@@ -10,7 +10,8 @@ interface SchedulingSuggestionsProps {
   suggestions: DateSuggestion[];
   sessions: GameSession[];
   isGm: boolean;
-  onConfirm: (date: string) => void;
+  gameName: string;
+  onConfirm: (date: string, startTime: string, endTime: string) => void;
   onCancel: (date: string) => void;
   gameId: string;
 }
@@ -21,28 +22,59 @@ export function SchedulingSuggestions({
   suggestions,
   sessions,
   isGm,
+  gameName,
   onConfirm,
   onCancel,
 }: SchedulingSuggestionsProps) {
   const [showAll, setShowAll] = useState(false);
+  const [confirmingDate, setConfirmingDate] = useState<string | null>(null);
+  const [startTime, setStartTime] = useState('18:00');
+  const [endTime, setEndTime] = useState('22:00');
 
   const confirmedDates = new Set(sessions.filter((s) => s.status === 'confirmed').map((s) => s.date));
   const confirmedSessions = sessions.filter((s) => s.status === 'confirmed');
+
+  const handleConfirmClick = (date: string) => {
+    setConfirmingDate(date);
+  };
+
+  const handleConfirmSubmit = () => {
+    if (confirmingDate) {
+      onConfirm(confirmingDate, startTime, endTime);
+      setConfirmingDate(null);
+    }
+  };
+
+  const formatTime = (time: string | null) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const h = parseInt(hours, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${minutes} ${ampm}`;
+  };
 
   const displayedSuggestions = showAll ? suggestions : suggestions.slice(0, 10);
 
   const handleExportAll = () => {
     const events = confirmedSessions.map((session) => ({
       date: session.date,
-      title: 'Game Night',
+      startTime: session.start_time || undefined,
+      endTime: session.end_time || undefined,
+      title: gameName,
     }));
     const ics = generateICS(events);
-    downloadICS(ics, 'game-sessions.ics');
+    downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-sessions.ics`);
   };
 
-  const handleExportSingle = (date: string) => {
-    const ics = generateICS([{ date, title: 'Game Night' }]);
-    downloadICS(ics, `game-session-${date}.ics`);
+  const handleExportSingle = (session: GameSession) => {
+    const ics = generateICS([{
+      date: session.date,
+      startTime: session.start_time || undefined,
+      endTime: session.end_time || undefined,
+      title: gameName,
+    }]);
+    downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-${session.date}.ics`);
   };
 
   const downloadICS = (content: string, filename: string) => {
@@ -80,7 +112,9 @@ export function SchedulingSuggestions({
                         {format(new Date(session.date), 'EEEE, MMMM d, yyyy')}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {DAYS[new Date(session.date).getDay()]}
+                        {session.start_time && session.end_time
+                          ? `${formatTime(session.start_time)} - ${formatTime(session.end_time)}`
+                          : DAYS[new Date(session.date).getDay()]}
                       </p>
                     </div>
                   </div>
@@ -88,7 +122,7 @@ export function SchedulingSuggestions({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleExportSingle(session.date)}
+                      onClick={() => handleExportSingle(session)}
                     >
                       Export
                     </Button>
@@ -211,7 +245,7 @@ export function SchedulingSuggestions({
                         {isGm && !isConfirmed && (
                           <Button
                             size="sm"
-                            onClick={() => onConfirm(suggestion.date)}
+                            onClick={() => handleConfirmClick(suggestion.date)}
                           >
                             Confirm
                           </Button>
@@ -232,6 +266,62 @@ export function SchedulingSuggestions({
           )}
         </CardContent>
       </Card>
+
+      {/* Time picker modal */}
+      {confirmingDate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-card-foreground mb-4">
+              Schedule Session
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {format(new Date(confirmingDate), 'EEEE, MMMM d, yyyy')}
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-card-foreground mb-1">
+                  Start Time
+                </label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-card-foreground mb-1">
+                  End Time
+                </label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setConfirmingDate(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleConfirmSubmit}
+              >
+                Confirm Session
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

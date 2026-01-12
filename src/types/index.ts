@@ -43,6 +43,8 @@ export interface GameSession {
   id: string;
   game_id: string;
   date: string; // ISO date string
+  start_time: string | null; // HH:MM:SS format
+  end_time: string | null; // HH:MM:SS format
   status: SessionStatus;
   confirmed_by: string | null;
   created_at: string;

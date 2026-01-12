@@ -61,6 +61,8 @@ CREATE TABLE sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   date DATE NOT NULL,
+  start_time TIME,
+  end_time TIME,
   status session_status DEFAULT 'suggested',
   confirmed_by UUID REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),

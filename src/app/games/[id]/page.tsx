@@ -220,7 +220,7 @@ export default function GameDetailPage() {
     }
   };
 
-  const handleConfirmSession = async (date: string) => {
+  const handleConfirmSession = async (date: string, startTime: string, endTime: string) => {
     if (!profile?.id || !gameId) return;
 
     const { data, error } = await supabase
@@ -229,6 +229,8 @@ export default function GameDetailPage() {
         {
           game_id: gameId,
           date,
+          start_time: startTime,
+          end_time: endTime,
           status: 'confirmed',
           confirmed_by: profile.id,
         },
@@ -414,6 +416,7 @@ export default function GameDetailPage() {
           suggestions={suggestions}
           sessions={sessions}
           isGm={isGm}
+          gameName={game.name}
           onConfirm={handleConfirmSession}
           onCancel={handleCancelSession}
           gameId={gameId}

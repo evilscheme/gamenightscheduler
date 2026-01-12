@@ -4,6 +4,8 @@
 
 interface CalendarEvent {
   date: string; // YYYY-MM-DD
+  startTime?: string; // HH:MM or HH:MM:SS
+  endTime?: string; // HH:MM or HH:MM:SS
   title: string;
   description?: string;
   location?: string;
@@ -26,8 +28,18 @@ export function generateICS(events: CalendarEvent[]): string {
     lines.push('BEGIN:VEVENT');
     lines.push(`UID:${uid}`);
     lines.push(`DTSTAMP:${now}`);
-    lines.push(`DTSTART;VALUE=DATE:${dateStr}`);
-    lines.push(`DTEND;VALUE=DATE:${dateStr}`);
+
+    // Use timed event if start/end times provided, otherwise all-day
+    if (event.startTime && event.endTime) {
+      const startTimeStr = event.startTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
+      const endTimeStr = event.endTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
+      lines.push(`DTSTART:${dateStr}T${startTimeStr}`);
+      lines.push(`DTEND:${dateStr}T${endTimeStr}`);
+    } else {
+      lines.push(`DTSTART;VALUE=DATE:${dateStr}`);
+      lines.push(`DTEND;VALUE=DATE:${dateStr}`);
+    }
+
     lines.push(`SUMMARY:${escapeICS(event.title)}`);
     if (event.description) {
       lines.push(`DESCRIPTION:${escapeICS(event.description)}`);
@@ -56,10 +68,21 @@ function escapeICS(text: string): string {
  */
 export function generateGoogleCalendarURL(event: CalendarEvent): string {
   const baseURL = 'https://calendar.google.com/calendar/render';
+  const dateStr = event.date.replace(/-/g, '');
+
+  let dates: string;
+  if (event.startTime && event.endTime) {
+    const startTimeStr = event.startTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
+    const endTimeStr = event.endTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
+    dates = `${dateStr}T${startTimeStr}/${dateStr}T${endTimeStr}`;
+  } else {
+    dates = `${dateStr}/${dateStr}`;
+  }
+
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: event.title,
-    dates: `${event.date.replace(/-/g, '')}/${event.date.replace(/-/g, '')}`,
+    dates,
   });
 
   if (event.description) {

@@ -12,11 +12,10 @@ A web app to help tabletop RPG groups coordinate game sessions. GMs create campa
 
 ## Tech Stack
 
-- Next.js 14+ (App Router)
+- Next.js 16 (App Router)
 - TypeScript
-- Tailwind CSS
-- NextAuth.js (Google & Discord OAuth)
-- Supabase (PostgreSQL)
+- Tailwind CSS 4
+- Supabase (PostgreSQL + Auth)
 
 ## Setup
 
@@ -34,19 +33,19 @@ npm install
 
 ### 3. Configure OAuth Providers
 
+In the Supabase Dashboard, go to Authentication > Providers and enable:
+
 **Google:**
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project or select existing
-3. Enable Google+ API
-4. Create OAuth 2.0 credentials
-5. Add `http://localhost:3000/api/auth/callback/google` as authorized redirect URI
+2. Create OAuth 2.0 credentials
+3. Add `https://<your-project>.supabase.co/auth/v1/callback` as authorized redirect URI
+4. Copy Client ID and Secret to Supabase Dashboard
 
 **Discord:**
 1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
 2. Create a new application
-3. Go to OAuth2 > General
-4. Add `http://localhost:3000/api/auth/callback/discord` as redirect URI
-5. Copy Client ID and Client Secret
+3. Add `https://<your-project>.supabase.co/auth/v1/callback` as redirect URI
+4. Copy Client ID and Secret to Supabase Dashboard
 
 ### 4. Environment Variables
 
@@ -58,12 +57,7 @@ cp .env.example .env.local
 
 Required variables:
 - `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase "perishable" key (safe for browser)
-- `SUPABASE_SERVICE_ROLE_KEY` - Supabase "secret" key (server-side only, never expose)
-- `NEXTAUTH_URL` - Your app URL (http://localhost:3000 for dev)
-- `NEXTAUTH_SECRET` - Generate with `openssl rand -base64 32`
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` - From Google Cloud Console
-- `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` - From Discord Developer Portal
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon key (safe for browser)
 
 ### 5. Run the App
 
@@ -88,7 +82,7 @@ Open [http://localhost:3000](http://localhost:3000)
 ```
 src/
 ├── app/                    # Next.js App Router pages
-│   ├── api/auth/          # NextAuth.js API routes
+│   ├── auth/callback/     # OAuth callback handler
 │   ├── dashboard/         # User dashboard
 │   ├── games/             # Game pages (create, view, join)
 │   ├── login/             # Login page
@@ -98,10 +92,11 @@ src/
 │   ├── games/             # Game-related components
 │   ├── layout/            # Navbar, Providers
 │   └── ui/                # Reusable UI components
+├── contexts/
+│   └── AuthContext.tsx    # Supabase Auth context
 ├── lib/
-│   ├── auth.ts            # NextAuth configuration
 │   ├── ics.ts             # Calendar export utilities
-│   └── supabase.ts        # Supabase client
+│   └── supabase/          # Supabase clients (browser, server, admin)
 └── types/                 # TypeScript types
 ```
 

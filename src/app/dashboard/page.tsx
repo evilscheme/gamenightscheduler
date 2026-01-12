@@ -1,11 +1,11 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button, Card, CardContent } from '@/components/ui';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { Game, User } from '@/types';
 
 interface GameWithGM extends Game {
@@ -14,33 +14,34 @@ interface GameWithGM extends Game {
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  const { profile, isLoading } = useAuth();
   const router = useRouter();
   const [games, setGames] = useState<GameWithGM[]>([]);
   const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!isLoading && !profile) {
       router.push('/login');
     }
-  }, [status, router]);
+  }, [isLoading, profile, router]);
 
   useEffect(() => {
     async function fetchGames() {
-      if (!session?.user?.id) return;
+      if (!profile?.id) return;
 
       // Fetch games where user is GM or member
       const { data: memberships } = await supabase
         .from('game_memberships')
         .select('game_id')
-        .eq('user_id', session.user.id);
+        .eq('user_id', profile.id);
 
       const memberGameIds = memberships?.map((m) => m.game_id) || [];
 
       const { data: gmGames } = await supabase
         .from('games')
         .select('*, gm:users!games_gm_id_fkey(*)')
-        .eq('gm_id', session.user.id);
+        .eq('gm_id', profile.id);
 
       const { data: memberGames } = await supabase
         .from('games')
@@ -67,12 +68,12 @@ export default function DashboardPage() {
       setLoading(false);
     }
 
-    if (session?.user?.id) {
+    if (profile?.id) {
       fetchGames();
     }
-  }, [session?.user?.id]);
+  }, [profile?.id]);
 
-  if (status === 'loading' || loading) {
+  if (isLoading || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -89,7 +90,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-foreground">Your Games</h1>
           <p className="text-muted-foreground mt-1">Manage your campaigns and game sessions</p>
         </div>
-        {session?.user?.isGm && (
+        {profile?.is_gm && (
           <Link href="/games/new">
             <Button>Create New Game</Button>
           </Link>
@@ -102,11 +103,11 @@ export default function DashboardPage() {
             <span className="text-5xl mb-4 block">🎲</span>
             <h2 className="text-xl font-semibold text-card-foreground mb-2">No games yet</h2>
             <p className="text-muted-foreground mb-6">
-              {session?.user?.isGm
+              {profile?.is_gm
                 ? "Create your first game to start scheduling sessions with your group."
                 : "Join a game using an invite link from your GM, or request GM status in settings to create your own."}
             </p>
-            {session?.user?.isGm ? (
+            {profile?.is_gm ? (
               <Link href="/games/new">
                 <Button>Create Your First Game</Button>
               </Link>
@@ -128,10 +129,10 @@ export default function DashboardPage() {
                       <h3 className="text-lg font-semibold text-card-foreground">{game.name}</h3>
                       <p className="text-sm text-muted-foreground">
                         GM: {game.gm.name}
-                        {game.gm_id === session?.user?.id && ' (You)'}
+                        {game.gm_id === profile?.id && ' (You)'}
                       </p>
                     </div>
-                    {game.gm_id === session?.user?.id && (
+                    {game.gm_id === profile?.id && (
                       <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded">
                         GM
                       </span>
@@ -159,7 +160,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {!session?.user?.isGm && (
+      {!profile?.is_gm && (
         <div className="mt-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
           <p className="text-amber-700 dark:text-amber-400 text-sm">
             <strong>Want to create your own games?</strong> Go to{' '}

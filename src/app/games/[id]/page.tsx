@@ -1,10 +1,10 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { Button, Card, CardContent, CardHeader } from '@/components/ui';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { Game, User, Availability, GameSession, DateSuggestion } from '@/types';
 import { AvailabilityCalendar } from '@/components/calendar/AvailabilityCalendar';
 import { SchedulingSuggestions } from '@/components/games/SchedulingSuggestions';
@@ -26,10 +26,11 @@ interface GameWithMembers extends Game {
 type Tab = 'overview' | 'availability' | 'schedule';
 
 export default function GameDetailPage() {
-  const { data: session, status } = useSession();
+  const { profile, isLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const gameId = params.id as string;
+  const supabase = createClient();
 
   const [game, setGame] = useState<GameWithMembers | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,16 +41,16 @@ export default function GameDetailPage() {
   const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
   const [copied, setCopied] = useState(false);
 
-  const isGm = game?.gm_id === session?.user?.id;
+  const isGm = game?.gm_id === profile?.id;
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!isLoading && !profile) {
       router.push('/login');
     }
-  }, [status, router]);
+  }, [isLoading, profile, router]);
 
   const fetchData = useCallback(async () => {
-    if (!gameId || !session?.user?.id) return;
+    if (!gameId || !profile?.id) return;
 
     // Fetch game with GM
     const { data: gameData, error: gameError } = await supabase
@@ -78,7 +79,7 @@ export default function GameDetailPage() {
       .from('availability')
       .select('*')
       .eq('game_id', gameId)
-      .eq('user_id', session.user.id);
+      .eq('user_id', profile.id);
 
     const availMap: Record<string, boolean> = {};
     userAvail?.forEach((a) => {
@@ -101,13 +102,13 @@ export default function GameDetailPage() {
     setSessions(sessionData || []);
 
     setLoading(false);
-  }, [gameId, session?.user?.id, router]);
+  }, [gameId, profile?.id, router]);
 
   useEffect(() => {
-    if (session?.user?.id) {
+    if (profile?.id) {
       fetchData();
     }
-  }, [session?.user?.id, fetchData]);
+  }, [profile?.id, fetchData]);
 
   // Calculate suggestions when availability changes
   useEffect(() => {
@@ -161,14 +162,14 @@ export default function GameDetailPage() {
   }, [game, allAvailability]);
 
   const handleAvailabilityChange = async (date: string, isAvailable: boolean) => {
-    if (!session?.user?.id || !gameId) return;
+    if (!profile?.id || !gameId) return;
 
     // Optimistic update
     setAvailability((prev) => ({ ...prev, [date]: isAvailable }));
 
     const { error } = await supabase.from('availability').upsert(
       {
-        user_id: session.user.id,
+        user_id: profile.id,
         game_id: gameId,
         date,
         is_available: isAvailable,
@@ -187,7 +188,7 @@ export default function GameDetailPage() {
       // Update all availability for suggestions
       setAllAvailability((prev) => {
         const existing = prev.findIndex(
-          (a) => a.user_id === session.user.id && a.date === date
+          (a) => a.user_id === profile.id && a.date === date
         );
         if (existing >= 0) {
           const updated = [...prev];
@@ -198,7 +199,7 @@ export default function GameDetailPage() {
           ...prev,
           {
             id: 'temp',
-            user_id: session.user.id,
+            user_id: profile.id,
             game_id: gameId,
             date,
             is_available: isAvailable,
@@ -211,7 +212,7 @@ export default function GameDetailPage() {
   };
 
   const handleConfirmSession = async (date: string) => {
-    if (!session?.user?.id || !gameId) return;
+    if (!profile?.id || !gameId) return;
 
     const { data, error } = await supabase
       .from('sessions')
@@ -220,7 +221,7 @@ export default function GameDetailPage() {
           game_id: gameId,
           date,
           status: 'confirmed',
-          confirmed_by: session.user.id,
+          confirmed_by: profile.id,
         },
         { onConflict: 'game_id,date' }
       )
@@ -241,7 +242,7 @@ export default function GameDetailPage() {
   };
 
   const handleCancelSession = async (date: string) => {
-    if (!session?.user?.id || !gameId) return;
+    if (!profile?.id || !gameId) return;
 
     const { error } = await supabase
       .from('sessions')
@@ -262,7 +263,7 @@ export default function GameDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (status === 'loading' || loading) {
+  if (isLoading || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

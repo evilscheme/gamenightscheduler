@@ -1,11 +1,19 @@
 -- D&D Scheduler Database Schema
+-- Run this in Supabase SQL Editor for a fresh install
 
--- Enable UUID extension
+-- ============================================
+-- 1. Extensions
+-- ============================================
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Users table
+-- ============================================
+-- 2. Tables
+-- ============================================
+
+-- Users table (linked to auth.users via id)
 CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   avatar_url TEXT,
@@ -59,7 +67,10 @@ CREATE TABLE sessions (
   UNIQUE(game_id, date)
 );
 
--- Indexes for performance
+-- ============================================
+-- 3. Indexes
+-- ============================================
+
 CREATE INDEX idx_games_gm_id ON games(gm_id);
 CREATE INDEX idx_games_invite_code ON games(invite_code);
 CREATE INDEX idx_game_memberships_game_id ON game_memberships(game_id);
@@ -70,7 +81,72 @@ CREATE INDEX idx_availability_date ON availability(date);
 CREATE INDEX idx_sessions_game_id ON sessions(game_id);
 CREATE INDEX idx_sessions_date ON sessions(date);
 
--- Row Level Security (RLS) policies
+-- ============================================
+-- 4. Functions
+-- ============================================
+
+-- Auto-update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Auto-create user profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, email, name, avatar_url, is_gm)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(
+      NEW.raw_user_meta_data->>'full_name',
+      NEW.raw_user_meta_data->>'name',
+      split_part(NEW.email, '@', 1)
+    ),
+    COALESCE(
+      NEW.raw_user_meta_data->>'avatar_url',
+      NEW.raw_user_meta_data->>'picture'
+    ),
+    false
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Check if user is a game participant (used by RLS policies)
+CREATE OR REPLACE FUNCTION public.is_game_participant(game_id_param UUID, user_id_param UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM games WHERE id = game_id_param AND gm_id = user_id_param
+  ) OR EXISTS (
+    SELECT 1 FROM game_memberships WHERE game_id = game_id_param AND user_id = user_id_param
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
+-- 5. Triggers
+-- ============================================
+
+-- Update availability timestamp on change
+CREATE TRIGGER update_availability_updated_at
+  BEFORE UPDATE ON availability
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Create user profile when auth user signs up
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================
+-- 6. Row Level Security (RLS)
+-- ============================================
 
 -- Enable RLS on all tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -79,45 +155,52 @@ ALTER TABLE game_memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
--- Users: Anyone can read, only own record can be updated
-CREATE POLICY "Users are viewable by everyone" ON users FOR SELECT USING (true);
-CREATE POLICY "Users can update own record" ON users FOR UPDATE USING (true);
-CREATE POLICY "Service role can insert users" ON users FOR INSERT WITH CHECK (true);
+-- Users policies
+CREATE POLICY "Users are viewable by everyone" ON users
+  FOR SELECT USING (true);
+CREATE POLICY "Users can update own record" ON users
+  FOR UPDATE USING (auth.uid() = id);
 
--- Games: Members can view, GMs can modify
-CREATE POLICY "Games viewable by members" ON games FOR SELECT USING (true);
-CREATE POLICY "GMs can insert games" ON games FOR INSERT WITH CHECK (true);
-CREATE POLICY "GMs can update own games" ON games FOR UPDATE USING (true);
-CREATE POLICY "GMs can delete own games" ON games FOR DELETE USING (true);
+-- Games policies
+CREATE POLICY "Games are viewable by everyone" ON games
+  FOR SELECT USING (true);
+CREATE POLICY "GMs can insert games" ON games
+  FOR INSERT WITH CHECK (auth.uid() = gm_id);
+CREATE POLICY "GMs can update own games" ON games
+  FOR UPDATE USING (auth.uid() = gm_id);
+CREATE POLICY "GMs can delete own games" ON games
+  FOR DELETE USING (auth.uid() = gm_id);
 
--- Game Memberships
-CREATE POLICY "Memberships viewable by all" ON game_memberships FOR SELECT USING (true);
-CREATE POLICY "Anyone can join games" ON game_memberships FOR INSERT WITH CHECK (true);
-CREATE POLICY "Members can leave games" ON game_memberships FOR DELETE USING (true);
+-- Game memberships policies (uses helper function to avoid recursion)
+CREATE POLICY "Members can view memberships" ON game_memberships
+  FOR SELECT USING (public.is_game_participant(game_id, auth.uid()));
+CREATE POLICY "Users can join games" ON game_memberships
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can leave games" ON game_memberships
+  FOR DELETE USING (auth.uid() = user_id);
 
--- Availability
-CREATE POLICY "Availability viewable by game members" ON availability FOR SELECT USING (true);
-CREATE POLICY "Users can manage own availability" ON availability FOR INSERT WITH CHECK (true);
-CREATE POLICY "Users can update own availability" ON availability FOR UPDATE USING (true);
-CREATE POLICY "Users can delete own availability" ON availability FOR DELETE USING (true);
+-- Availability policies
+CREATE POLICY "Game participants can view availability" ON availability
+  FOR SELECT USING (public.is_game_participant(game_id, auth.uid()));
+CREATE POLICY "Users can insert own availability" ON availability
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own availability" ON availability
+  FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own availability" ON availability
+  FOR DELETE USING (auth.uid() = user_id);
 
--- Sessions
-CREATE POLICY "Sessions viewable by game members" ON sessions FOR SELECT USING (true);
-CREATE POLICY "GMs can manage sessions" ON sessions FOR INSERT WITH CHECK (true);
-CREATE POLICY "GMs can update sessions" ON sessions FOR UPDATE USING (true);
-CREATE POLICY "GMs can delete sessions" ON sessions FOR DELETE USING (true);
-
--- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Trigger for availability updated_at
-CREATE TRIGGER update_availability_updated_at
-  BEFORE UPDATE ON availability
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+-- Sessions policies
+CREATE POLICY "Game participants can view sessions" ON sessions
+  FOR SELECT USING (public.is_game_participant(game_id, auth.uid()));
+CREATE POLICY "GMs can insert sessions" ON sessions
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM games WHERE id = game_id AND gm_id = auth.uid())
+  );
+CREATE POLICY "GMs can update sessions" ON sessions
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM games WHERE id = game_id AND gm_id = auth.uid())
+  );
+CREATE POLICY "GMs can delete sessions" ON sessions
+  FOR DELETE USING (
+    EXISTS (SELECT 1 FROM games WHERE id = game_id AND gm_id = auth.uid())
+  );

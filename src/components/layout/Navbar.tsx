@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useSession, signOut } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
 import { ThemeToggle } from './ThemeToggle';
 
 export function Navbar() {
-  const { data: session, status } = useSession();
+  const { profile, isLoading, signOut } = useAuth();
 
   return (
     <nav className="bg-card border-b border-border">
@@ -17,7 +17,7 @@ export function Navbar() {
               <span className="text-2xl">🎲</span>
               <span className="font-bold text-xl text-foreground">Quest Calendar</span>
             </Link>
-            {session && (
+            {profile && (
               <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
                 <Link
                   href="/dashboard"
@@ -25,7 +25,7 @@ export function Navbar() {
                 >
                   Dashboard
                 </Link>
-                {session.user.isGm && (
+                {profile.is_gm && (
                   <Link
                     href="/games/new"
                     className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors"
@@ -39,27 +39,27 @@ export function Navbar() {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            {status === 'loading' ? (
+            {isLoading ? (
               <div className="h-8 w-8 animate-pulse bg-muted rounded-full" />
-            ) : session ? (
+            ) : profile ? (
               <>
                 <Link href="/settings" className="flex items-center gap-2">
-                  {session.user.image ? (
+                  {profile.avatar_url ? (
                     <img
-                      src={session.user.image}
-                      alt={session.user.name || ''}
+                      src={profile.avatar_url}
+                      alt={profile.name || ''}
                       className="h-8 w-8 rounded-full"
                     />
                   ) : (
                     <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
-                      {session.user.name?.[0]?.toUpperCase() || '?'}
+                      {profile.name?.[0]?.toUpperCase() || '?'}
                     </div>
                   )}
                   <span className="hidden sm:block text-sm font-medium text-foreground">
-                    {session.user.name}
+                    {profile.name}
                   </span>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/' })}>
+                <Button variant="ghost" size="sm" onClick={() => signOut()}>
                   Sign out
                 </Button>
               </>

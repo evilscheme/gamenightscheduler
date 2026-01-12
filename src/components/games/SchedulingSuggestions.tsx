@@ -127,8 +127,14 @@ export function SchedulingSuggestions({
               <ul className="divide-y divide-border">
                 {displayedSuggestions.map((suggestion) => {
                   const isConfirmed = confirmedDates.has(suggestion.date);
-                  const percentage = Math.round(
+                  const availablePercent = Math.round(
                     (suggestion.availableCount / suggestion.totalPlayers) * 100
+                  );
+                  const unavailablePercent = Math.round(
+                    (suggestion.unavailableCount / suggestion.totalPlayers) * 100
+                  );
+                  const pendingPercent = Math.round(
+                    (suggestion.pendingCount / suggestion.totalPlayers) * 100
                   );
 
                   return (
@@ -145,30 +151,59 @@ export function SchedulingSuggestions({
                               </span>
                             )}
                           </div>
-                          <div className="mt-1 flex items-center gap-2">
-                            <div className="flex-1 max-w-xs bg-muted rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full ${
-                                  percentage === 100
-                                    ? 'bg-green-500'
-                                    : percentage >= 75
-                                    ? 'bg-lime-500'
-                                    : percentage >= 50
-                                    ? 'bg-yellow-500'
-                                    : 'bg-red-500'
-                                }`}
-                                style={{ width: `${percentage}%` }}
-                              />
+                          {/* Segmented progress bar */}
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className="flex-1 max-w-xs bg-muted rounded-full h-2.5 overflow-hidden flex">
+                              {availablePercent > 0 && (
+                                <div
+                                  className="h-2.5 bg-green-500"
+                                  style={{ width: `${availablePercent}%` }}
+                                />
+                              )}
+                              {unavailablePercent > 0 && (
+                                <div
+                                  className="h-2.5 bg-red-500"
+                                  style={{ width: `${unavailablePercent}%` }}
+                                />
+                              )}
+                              {pendingPercent > 0 && (
+                                <div
+                                  className="h-2.5 bg-gray-400 dark:bg-gray-600"
+                                  style={{ width: `${pendingPercent}%` }}
+                                />
+                              )}
                             </div>
-                            <span className="text-sm text-muted-foreground">
-                              {suggestion.availableCount}/{suggestion.totalPlayers} available
+                          </div>
+                          {/* Status counts */}
+                          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+                            <span className="text-green-600 dark:text-green-400">
+                              {suggestion.availableCount} available
+                            </span>
+                            <span className="text-red-600 dark:text-red-400">
+                              {suggestion.unavailableCount} unavailable
+                            </span>
+                            <span className="text-gray-500 dark:text-gray-400">
+                              {suggestion.pendingCount} pending
                             </span>
                           </div>
-                          <div className="mt-2 text-sm">
+                          {/* Player details */}
+                          <div className="mt-2 text-sm space-y-1">
+                            {suggestion.availablePlayers.length > 0 && (
+                              <p className="text-muted-foreground">
+                                <span className="text-green-600 dark:text-green-400">Available:</span>{' '}
+                                {suggestion.availablePlayers.map((p) => p.name).join(', ')}
+                              </p>
+                            )}
                             {suggestion.unavailablePlayers.length > 0 && (
                               <p className="text-muted-foreground">
-                                Unavailable:{' '}
+                                <span className="text-red-600 dark:text-red-400">Unavailable:</span>{' '}
                                 {suggestion.unavailablePlayers.map((p) => p.name).join(', ')}
+                              </p>
+                            )}
+                            {suggestion.pendingPlayers.length > 0 && (
+                              <p className="text-muted-foreground">
+                                <span className="text-gray-500 dark:text-gray-400">Pending:</span>{' '}
+                                {suggestion.pendingPlayers.map((p) => p.name).join(', ')}
                               </p>
                             )}
                           </div>

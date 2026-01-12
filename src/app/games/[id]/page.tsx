@@ -128,13 +128,16 @@ export default function GameDetailPage() {
         const dateStr = format(date, 'yyyy-MM-dd');
         const availablePlayers: User[] = [];
         const unavailablePlayers: User[] = [];
+        const pendingPlayers: User[] = [];
 
         allPlayers.forEach((player) => {
           const playerAvail = allAvailability.find(
             (a) => a.user_id === player.id && a.date === dateStr
           );
-          // If no record, treat as available (optimistic default)
-          if (!playerAvail || playerAvail.is_available) {
+          // No record = pending (hasn't responded yet)
+          if (!playerAvail) {
+            pendingPlayers.push(player);
+          } else if (playerAvail.is_available) {
             availablePlayers.push(player);
           } else {
             unavailablePlayers.push(player);
@@ -145,15 +148,21 @@ export default function GameDetailPage() {
           date: dateStr,
           dayOfWeek: getDay(date),
           availableCount: availablePlayers.length,
+          unavailableCount: unavailablePlayers.length,
+          pendingCount: pendingPlayers.length,
           totalPlayers: allPlayers.length,
           availablePlayers,
           unavailablePlayers,
+          pendingPlayers,
         };
       })
       .sort((a, b) => {
-        // Sort by availability count (descending), then by date (ascending)
+        // Sort by available count (descending), then by pending count (ascending, fewer pending = more confidence), then by date
         if (b.availableCount !== a.availableCount) {
           return b.availableCount - a.availableCount;
+        }
+        if (a.pendingCount !== b.pendingCount) {
+          return a.pendingCount - b.pendingCount;
         }
         return a.date.localeCompare(b.date);
       });

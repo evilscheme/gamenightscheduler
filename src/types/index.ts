@@ -83,7 +83,10 @@ export interface DateSuggestion {
   date: string;
   dayOfWeek: number;
   availableCount: number;
+  unavailableCount: number;
+  pendingCount: number;
   totalPlayers: number;
   availablePlayers: User[];
   unavailablePlayers: User[];
+  pendingPlayers: User[];
 }

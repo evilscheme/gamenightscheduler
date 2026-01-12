@@ -20,19 +20,17 @@ export default function Home() {
               availability, suggest dates, and keep your party together.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/login">
-                <Button size="lg" className="w-full sm:w-auto bg-white text-indigo-600 hover:bg-indigo-50">
-                  Get Started
-                </Button>
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center px-6 py-3 text-base font-medium rounded-lg bg-white text-indigo-600 hover:bg-indigo-50 transition-colors"
+              >
+                Get Started
               </Link>
-              <Link href="#features">
-                <Button
-                  size="lg"
-                  variant="ghost"
-                  className="w-full sm:w-auto text-white hover:bg-white/10"
-                >
-                  Learn More
-                </Button>
+              <Link
+                href="#features"
+                className="inline-flex items-center justify-center px-6 py-3 text-base font-medium rounded-lg text-white hover:bg-white/10 transition-colors"
+              >
+                Learn More
               </Link>
             </div>
           </div>
@@ -40,9 +38,9 @@ export default function Home() {
       </div>
 
       {/* Features Section */}
-      <div id="features" className="py-24 bg-white">
+      <div id="features" className="py-24 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+          <h2 className="text-3xl font-bold text-center text-foreground mb-12">
             Everything you need to organize game night
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
@@ -81,10 +79,10 @@ export default function Home() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gray-50 py-16">
+      <div className="bg-secondary py-16">
         <div className="max-w-4xl mx-auto text-center px-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to roll initiative?</h2>
-          <p className="text-gray-600 mb-8">
+          <h2 className="text-2xl font-bold text-foreground mb-4">Ready to roll initiative?</h2>
+          <p className="text-muted-foreground mb-8">
             Sign up free and start coordinating your next campaign session.
           </p>
           <Link href="/login">
@@ -108,8 +106,8 @@ function FeatureCard({
   return (
     <div className="text-center p-6">
       <div className="text-4xl mb-4">{icon}</div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600">{description}</p>
+      <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
+      <p className="text-muted-foreground">{description}</p>
     </div>
   );
 }

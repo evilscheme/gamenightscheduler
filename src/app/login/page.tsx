@@ -3,7 +3,6 @@
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { Button } from '@/components/ui';
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
@@ -18,25 +17,25 @@ export default function LoginPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-card rounded-xl shadow-lg border border-border p-8">
           <div className="text-center mb-8">
             <span className="text-5xl">🎲</span>
-            <h1 className="text-2xl font-bold text-gray-900 mt-4">Welcome to Quest Calendar</h1>
-            <p className="text-gray-600 mt-2">Sign in to start scheduling your game nights</p>
+            <h1 className="text-2xl font-bold text-card-foreground mt-4">Welcome to Quest Calendar</h1>
+            <p className="text-muted-foreground mt-2">Sign in to start scheduling your game nights</p>
           </div>
 
           <div className="space-y-4">
             <button
               onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-border rounded-lg text-foreground font-medium hover:bg-secondary transition-colors"
             >
               <GoogleIcon />
               Continue with Google
@@ -51,7 +50,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p className="text-center text-sm text-muted-foreground mt-6">
             By signing in, you agree to our terms of service and privacy policy.
           </p>
         </div>

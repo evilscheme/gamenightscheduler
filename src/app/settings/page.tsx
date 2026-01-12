@@ -52,24 +52,24 @@ export default function SettingsPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Settings</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-8">Settings</h1>
 
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold">Profile</h2>
+          <h2 className="text-lg font-semibold text-card-foreground">Profile</h2>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <p className="text-gray-900">{session?.user?.email}</p>
-            <p className="text-sm text-gray-500 mt-1">Email cannot be changed</p>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
+            <p className="text-foreground">{session?.user?.email}</p>
+            <p className="text-sm text-muted-foreground mt-1">Email cannot be changed</p>
           </div>
 
           <Input
@@ -79,19 +79,19 @@ export default function SettingsPage() {
             placeholder="Your name"
           />
 
-          <div className="border-t pt-6">
+          <div className="border-t border-border pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium text-gray-900">Game Master Mode</h3>
-                <p className="text-sm text-gray-500">
+                <h3 className="font-medium text-foreground">Game Master Mode</h3>
+                <p className="text-sm text-muted-foreground">
                   Enable this to create and manage your own games
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsGm(!isGm)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${
-                  isGm ? 'bg-indigo-600' : 'bg-gray-200'
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${
+                  isGm ? 'bg-primary' : 'bg-muted'
                 }`}
               >
                 <span
@@ -105,7 +105,7 @@ export default function SettingsPage() {
 
           {message && (
             <p
-              className={`text-sm ${message.includes('Error') ? 'text-red-600' : 'text-green-600'}`}
+              className={`text-sm ${message.includes('Error') ? 'text-red-500' : 'text-green-500'}`}
             >
               {message}
             </p>

@@ -81,8 +81,8 @@ export function AvailabilityCalendar({
   return (
     <div className="space-y-6">
       {/* Bulk actions */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-sm font-medium text-gray-700 mb-3">Quick Actions</p>
+      <div className="bg-secondary rounded-lg p-4">
+        <p className="text-sm font-medium text-foreground mb-3">Quick Actions</p>
         <div className="flex flex-wrap gap-2">
           {playDays.map((day) => (
             <div key={day} className="flex gap-1">
@@ -108,7 +108,7 @@ export function AvailabilityCalendar({
       </div>
 
       {/* Calendar */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-card rounded-lg border border-border p-4">
         {/* Month navigation */}
         <div className="flex items-center justify-between mb-4">
           <Button
@@ -119,7 +119,7 @@ export function AvailabilityCalendar({
           >
             &larr; Prev
           </Button>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-card-foreground">
             {format(currentMonth, 'MMMM yyyy')}
           </h3>
           <Button
@@ -138,7 +138,7 @@ export function AvailabilityCalendar({
             <div
               key={day}
               className={`text-center text-sm font-medium py-2 ${
-                playDays.includes(i) ? 'text-gray-900' : 'text-gray-400'
+                playDays.includes(i) ? 'text-card-foreground' : 'text-muted-foreground'
               }`}
             >
               {day}
@@ -162,24 +162,24 @@ export function AvailabilityCalendar({
             const isConfirmed = confirmedDates.has(dateStr);
             const avail = availability[dateStr];
 
-            let bgColor = 'bg-gray-100'; // Non-play day
-            let textColor = 'text-gray-400';
+            let bgColor = 'bg-muted'; // Non-play day
+            let textColor = 'text-muted-foreground';
             let cursor = 'cursor-default';
 
             if (isPlayDay && !isPast) {
-              cursor = 'cursor-pointer hover:ring-2 hover:ring-indigo-300';
+              cursor = 'cursor-pointer hover:ring-2 hover:ring-primary/50';
               if (avail === true) {
-                bgColor = 'bg-green-100';
-                textColor = 'text-green-800';
+                bgColor = 'bg-green-500/20 dark:bg-green-500/30';
+                textColor = 'text-green-700 dark:text-green-400';
               } else if (avail === false) {
-                bgColor = 'bg-red-100';
-                textColor = 'text-red-800';
+                bgColor = 'bg-red-500/20 dark:bg-red-500/30';
+                textColor = 'text-red-700 dark:text-red-400';
               } else {
-                bgColor = 'bg-white border border-gray-200';
-                textColor = 'text-gray-700';
+                bgColor = 'bg-card border border-border';
+                textColor = 'text-card-foreground';
               }
             } else if (isPast) {
-              textColor = 'text-gray-300';
+              textColor = 'text-muted-foreground/50';
             }
 
             return (
@@ -188,7 +188,7 @@ export function AvailabilityCalendar({
                 onClick={() => handleDayClick(date)}
                 disabled={!isPlayDay || isPast}
                 className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm transition-all ${bgColor} ${textColor} ${cursor} ${
-                  isToday(date) ? 'ring-2 ring-indigo-500' : ''
+                  isToday(date) ? 'ring-2 ring-primary' : ''
                 }`}
               >
                 <span className={isToday(date) ? 'font-bold' : ''}>{format(date, 'd')}</span>
@@ -199,21 +199,21 @@ export function AvailabilityCalendar({
         </div>
 
         {/* Legend */}
-        <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-600">
+        <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-green-100 border border-green-200" />
+            <div className="w-4 h-4 rounded bg-green-500/20 dark:bg-green-500/30 border border-green-500/30" />
             <span>Available</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-red-100 border border-red-200" />
+            <div className="w-4 h-4 rounded bg-red-500/20 dark:bg-red-500/30 border border-red-500/30" />
             <span>Unavailable</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-white border border-gray-200" />
+            <div className="w-4 h-4 rounded bg-card border border-border" />
             <span>Not set (counts as available)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-gray-100" />
+            <div className="w-4 h-4 rounded bg-muted" />
             <span>Not a play day</span>
           </div>
           <div className="flex items-center gap-2">

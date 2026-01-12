@@ -23,7 +23,6 @@ export function SchedulingSuggestions({
   isGm,
   onConfirm,
   onCancel,
-  gameId,
 }: SchedulingSuggestionsProps) {
   const [showAll, setShowAll] = useState(false);
 
@@ -62,13 +61,13 @@ export function SchedulingSuggestions({
       {confirmedSessions.length > 0 && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <h2 className="text-lg font-semibold">Confirmed Sessions</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">Confirmed Sessions</h2>
             <Button size="sm" variant="secondary" onClick={handleExportAll}>
               Export All (.ics)
             </Button>
           </CardHeader>
           <CardContent>
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-border">
               {confirmedSessions.map((session) => (
                 <li
                   key={session.id}
@@ -77,10 +76,10 @@ export function SchedulingSuggestions({
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">🎲</span>
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-card-foreground">
                         {format(new Date(session.date), 'EEEE, MMMM d, yyyy')}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         {DAYS[new Date(session.date).getDay()]}
                       </p>
                     </div>
@@ -113,19 +112,19 @@ export function SchedulingSuggestions({
       {/* Suggestions */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold">Date Suggestions</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-lg font-semibold text-card-foreground">Date Suggestions</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Ranked by player availability. {isGm ? 'Click confirm to schedule a session.' : 'Ask your GM to confirm dates.'}
           </p>
         </CardHeader>
         <CardContent>
           {suggestions.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
+            <p className="text-muted-foreground text-center py-8">
               No available dates in the scheduling window.
             </p>
           ) : (
             <>
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-border">
                 {displayedSuggestions.map((suggestion) => {
                   const isConfirmed = confirmedDates.has(suggestion.date);
                   const percentage = Math.round(
@@ -137,17 +136,17 @@ export function SchedulingSuggestions({
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium text-card-foreground">
                               {format(new Date(suggestion.date), 'EEEE, MMMM d')}
                             </p>
                             {isConfirmed && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded">
+                              <span className="px-2 py-0.5 text-xs font-medium bg-green-500/20 text-green-700 dark:text-green-400 rounded">
                                 Confirmed
                               </span>
                             )}
                           </div>
                           <div className="mt-1 flex items-center gap-2">
-                            <div className="flex-1 max-w-xs bg-gray-200 rounded-full h-2">
+                            <div className="flex-1 max-w-xs bg-muted rounded-full h-2">
                               <div
                                 className={`h-2 rounded-full ${
                                   percentage === 100
@@ -161,13 +160,13 @@ export function SchedulingSuggestions({
                                 style={{ width: `${percentage}%` }}
                               />
                             </div>
-                            <span className="text-sm text-gray-600">
+                            <span className="text-sm text-muted-foreground">
                               {suggestion.availableCount}/{suggestion.totalPlayers} available
                             </span>
                           </div>
                           <div className="mt-2 text-sm">
                             {suggestion.unavailablePlayers.length > 0 && (
-                              <p className="text-gray-500">
+                              <p className="text-muted-foreground">
                                 Unavailable:{' '}
                                 {suggestion.unavailablePlayers.map((p) => p.name).join(', ')}
                               </p>

@@ -10,7 +10,6 @@ import { AvailabilityCalendar } from '@/components/calendar/AvailabilityCalendar
 import { SchedulingSuggestions } from '@/components/games/SchedulingSuggestions';
 import {
   addMonths,
-  startOfMonth,
   endOfMonth,
   eachDayOfInterval,
   getDay,
@@ -266,7 +265,7 @@ export default function GameDetailPage() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -283,8 +282,8 @@ export default function GameDetailPage() {
       <div className="mb-8">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{game.name}</h1>
-            <p className="text-gray-500 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">{game.name}</h1>
+            <p className="text-muted-foreground mt-1">
               GM: {game.gm.name}
               {isGm && ' (You)'}
             </p>
@@ -295,11 +294,11 @@ export default function GameDetailPage() {
             </Button>
           )}
         </div>
-        {game.description && <p className="text-gray-600 mt-4">{game.description}</p>}
+        {game.description && <p className="text-muted-foreground mt-4">{game.description}</p>}
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-border mb-6">
         <nav className="-mb-px flex gap-6">
           {(['overview', 'availability', 'schedule'] as Tab[]).map((tab) => (
             <button
@@ -307,8 +306,8 @@ export default function GameDetailPage() {
               onClick={() => setActiveTab(tab)}
               className={`py-3 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${
                 activeTab === tab
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
               }`}
             >
               {tab}
@@ -322,10 +321,10 @@ export default function GameDetailPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold">Players ({allPlayers.length})</h2>
+              <h2 className="text-lg font-semibold text-card-foreground">Players ({allPlayers.length})</h2>
             </CardHeader>
             <CardContent>
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-border">
                 {allPlayers.map((player) => (
                   <li key={player.id} className="py-3 flex items-center gap-3">
                     {player.avatar_url ? (
@@ -335,13 +334,13 @@ export default function GameDetailPage() {
                         className="w-8 h-8 rounded-full"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-medium">
+                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
                         {player.name[0]?.toUpperCase()}
                       </div>
                     )}
-                    <span className="text-gray-900">{player.name}</span>
+                    <span className="text-card-foreground">{player.name}</span>
                     {player.id === game.gm_id && (
-                      <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                         GM
                       </span>
                     )}
@@ -353,23 +352,23 @@ export default function GameDetailPage() {
 
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold">Game Details</h2>
+              <h2 className="text-lg font-semibold text-card-foreground">Game Details</h2>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-gray-500">Play Days</p>
-                <p className="text-gray-900">{game.play_days.map((d) => DAYS[d]).join(', ')}</p>
+                <p className="text-sm text-muted-foreground">Play Days</p>
+                <p className="text-card-foreground">{game.play_days.map((d) => DAYS[d]).join(', ')}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Scheduling Window</p>
-                <p className="text-gray-900">{game.scheduling_window_months} month(s) ahead</p>
+                <p className="text-sm text-muted-foreground">Scheduling Window</p>
+                <p className="text-card-foreground">{game.scheduling_window_months} month(s) ahead</p>
               </div>
               {confirmedSessions.length > 0 && (
                 <div>
-                  <p className="text-sm text-gray-500">Upcoming Sessions</p>
+                  <p className="text-sm text-muted-foreground">Upcoming Sessions</p>
                   <ul className="mt-1 space-y-1">
                     {confirmedSessions.slice(0, 3).map((s) => (
-                      <li key={s.id} className="text-gray-900">
+                      <li key={s.id} className="text-card-foreground">
                         {format(new Date(s.date), 'EEEE, MMMM d, yyyy')}
                       </li>
                     ))}
@@ -384,8 +383,8 @@ export default function GameDetailPage() {
       {activeTab === 'availability' && (
         <div>
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Mark Your Availability</h2>
-            <p className="text-gray-600">
+            <h2 className="text-lg font-semibold text-foreground mb-2">Mark Your Availability</h2>
+            <p className="text-muted-foreground">
               Click on dates to toggle your availability. Green means you're available, red means
               you're not. Gray days are not play days for this game.
             </p>

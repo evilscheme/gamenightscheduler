@@ -1,34 +1,35 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
-  const { data: session, status, update } = useSession();
+  const { profile, isLoading, refreshProfile } = useAuth();
   const router = useRouter();
   const [name, setName] = useState('');
   const [isGm, setIsGm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const supabase = createClient();
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!isLoading && !profile) {
       router.push('/login');
     }
-  }, [status, router]);
+  }, [isLoading, profile, router]);
 
   useEffect(() => {
-    if (session?.user) {
-      setName(session.user.name || '');
-      setIsGm(session.user.isGm || false);
+    if (profile) {
+      setName(profile.name || '');
+      setIsGm(profile.is_gm || false);
     }
-  }, [session]);
+  }, [profile]);
 
   const handleSave = async () => {
-    if (!session?.user?.id) return;
+    if (!profile?.id) return;
 
     setSaving(true);
     setMessage('');
@@ -36,20 +37,20 @@ export default function SettingsPage() {
     const { error } = await supabase
       .from('users')
       .update({ name, is_gm: isGm })
-      .eq('id', session.user.id);
+      .eq('id', profile.id);
 
     if (error) {
       setMessage('Error saving settings. Please try again.');
     } else {
       setMessage('Settings saved successfully!');
-      // Trigger session refresh
-      await update();
+      // Refresh profile data
+      await refreshProfile();
     }
 
     setSaving(false);
   };
 
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -68,7 +69,7 @@ export default function SettingsPage() {
         <CardContent className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
-            <p className="text-foreground">{session?.user?.email}</p>
+            <p className="text-foreground">{profile?.email}</p>
             <p className="text-sm text-muted-foreground mt-1">Email cannot be changed</p>
           </div>
 

@@ -1,20 +1,22 @@
 'use client';
 
-import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, Suspense } from 'react';
 
-export default function LoginPage() {
-  const { data: session, status } = useSession();
+function LoginContent() {
+  const { profile, isLoading, signInWithGoogle, signInWithDiscord } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
   useEffect(() => {
-    if (session) {
-      router.push('/dashboard');
+    if (profile) {
+      router.push(callbackUrl);
     }
-  }, [session, router]);
+  }, [profile, router, callbackUrl]);
 
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -34,7 +36,7 @@ export default function LoginPage() {
 
           <div className="space-y-4">
             <button
-              onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+              onClick={() => signInWithGoogle(callbackUrl)}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-border rounded-lg text-foreground font-medium hover:bg-secondary transition-colors"
             >
               <GoogleIcon />
@@ -42,7 +44,7 @@ export default function LoginPage() {
             </button>
 
             <button
-              onClick={() => signIn('discord', { callbackUrl: '/dashboard' })}
+              onClick={() => signInWithDiscord(callbackUrl)}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-[#5865F2] rounded-lg text-white font-medium hover:bg-[#4752C4] transition-colors"
             >
               <DiscordIcon />
@@ -56,6 +58,20 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
 

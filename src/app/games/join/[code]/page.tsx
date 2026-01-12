@@ -1,10 +1,10 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button, Card, CardContent } from '@/components/ui';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { Game, User } from '@/types';
 
 interface GameWithGM extends Game {
@@ -12,10 +12,11 @@ interface GameWithGM extends Game {
 }
 
 export default function JoinGamePage() {
-  const { data: session, status } = useSession();
+  const { profile, isLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const code = params.code as string;
+  const supabase = createClient();
 
   const [game, setGame] = useState<GameWithGM | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,14 +25,14 @@ export default function JoinGamePage() {
   const [alreadyMember, setAlreadyMember] = useState(false);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!isLoading && !profile) {
       router.push(`/login?callbackUrl=/games/join/${code}`);
     }
-  }, [status, router, code]);
+  }, [isLoading, profile, router, code]);
 
   useEffect(() => {
     async function fetchGame() {
-      if (!code || !session?.user?.id) return;
+      if (!code || !profile?.id) return;
 
       const { data: gameData, error: gameError } = await supabase
         .from('games')
@@ -48,14 +49,14 @@ export default function JoinGamePage() {
       setGame(gameData as GameWithGM);
 
       // Check if already a member or GM
-      if (gameData.gm_id === session.user.id) {
+      if (gameData.gm_id === profile.id) {
         setAlreadyMember(true);
       } else {
         const { data: membership } = await supabase
           .from('game_memberships')
           .select('id')
           .eq('game_id', gameData.id)
-          .eq('user_id', session.user.id)
+          .eq('user_id', profile.id)
           .single();
 
         if (membership) {
@@ -66,19 +67,19 @@ export default function JoinGamePage() {
       setLoading(false);
     }
 
-    if (session?.user?.id) {
+    if (profile?.id) {
       fetchGame();
     }
-  }, [code, session?.user?.id]);
+  }, [code, profile?.id]);
 
   const handleJoin = async () => {
-    if (!game || !session?.user?.id) return;
+    if (!game || !profile?.id) return;
 
     setJoining(true);
 
     const { error: joinError } = await supabase.from('game_memberships').insert({
       game_id: game.id,
-      user_id: session.user.id,
+      user_id: profile.id,
     });
 
     if (joinError) {
@@ -90,7 +91,7 @@ export default function JoinGamePage() {
     router.push(`/games/${game.id}`);
   };
 
-  if (status === 'loading' || loading) {
+  if (isLoading || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

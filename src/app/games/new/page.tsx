@@ -1,10 +1,10 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
 
 const DAYS = [
@@ -18,8 +18,9 @@ const DAYS = [
 ];
 
 export default function NewGamePage() {
-  const { data: session, status } = useSession();
+  const { profile, isLoading } = useAuth();
   const router = useRouter();
+  const supabase = createClient();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -29,12 +30,12 @@ export default function NewGamePage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!isLoading && !profile) {
       router.push('/login');
-    } else if (status === 'authenticated' && !session?.user?.isGm) {
+    } else if (!isLoading && profile && !profile.is_gm) {
       router.push('/dashboard');
     }
-  }, [status, session, router]);
+  }, [isLoading, profile, router]);
 
   const toggleDay = (day: number) => {
     setPlayDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
@@ -42,7 +43,7 @@ export default function NewGamePage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!session?.user?.id) return;
+    if (!profile?.id) return;
 
     if (!name.trim()) {
       setError('Please enter a game name');
@@ -64,7 +65,7 @@ export default function NewGamePage() {
       .insert({
         name: name.trim(),
         description: description.trim() || null,
-        gm_id: session.user.id,
+        gm_id: profile.id,
         play_days: playDays.sort((a, b) => a - b),
         invite_code: inviteCode,
         scheduling_window_months: windowMonths,
@@ -81,7 +82,7 @@ export default function NewGamePage() {
     router.push(`/games/${data.id}`);
   };
 
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

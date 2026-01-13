@@ -92,7 +92,8 @@ export default function JoinGamePage() {
     router.push(`/games/${game.id}`);
   };
 
-  if (isLoading || loading) {
+  // Show spinner while auth is loading OR while we have a session but profile hasn't loaded yet
+  if (isLoading || loading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

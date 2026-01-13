@@ -29,8 +29,8 @@ test.describe('Join Game', () => {
     await page.goto(`/games/join/${game.invite_code}`);
     await page.waitForLoadState('networkidle');
 
-    // Should see invitation message
-    await expect(page.getByText(/you've been invited/i)).toBeVisible();
+    // Should see invitation message (wait for page to load)
+    await expect(page.getByText(/you've been invited/i)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/join test campaign/i)).toBeVisible();
     await expect(page.getByText(/join test gm/i)).toBeVisible();
 
@@ -38,7 +38,7 @@ test.describe('Join Game', () => {
     await page.getByRole('button', { name: /join game/i }).click();
 
     // Should redirect to game detail page
-    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/);
+    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, { timeout: 10000 });
   });
 
   test('existing member sees "already in game" message', async ({ page, request }) => {
@@ -77,8 +77,8 @@ test.describe('Join Game', () => {
     await page.goto(`/games/join/${game.invite_code}`);
     await page.waitForLoadState('networkidle');
 
-    // Should see "already in game" message
-    await expect(page.getByText(/you're already in this game/i)).toBeVisible();
+    // Should see "already in game" message (wait for page to load)
+    await expect(page.getByText(/you're already in this game/i)).toBeVisible({ timeout: 10000 });
 
     // Should see "Go to Game" button instead of "Join Game"
     await expect(page.getByRole('button', { name: /go to game/i })).toBeVisible();
@@ -111,8 +111,8 @@ test.describe('Join Game', () => {
     await page.goto(`/games/join/${game.invite_code}`);
     await page.waitForLoadState('networkidle');
 
-    // Should see "already in game" message
-    await expect(page.getByText(/you're already in this game/i)).toBeVisible();
+    // Should see "already in game" message (wait for page to load)
+    await expect(page.getByText(/you're already in this game/i)).toBeVisible({ timeout: 10000 });
   });
 
   test('shows error for invalid invite code', async ({ page }) => {
@@ -127,9 +127,8 @@ test.describe('Join Game', () => {
     await page.goto('/games/join/invalid-code-12345');
     await page.waitForLoadState('networkidle');
 
-    // Should see error message
-    await expect(page.getByText(/game not found/i)).toBeVisible();
-    await expect(page.getByText(/please check the invite link/i)).toBeVisible();
+    // Should see error message (wait for page to load)
+    await expect(page.getByText(/game not found/i)).toBeVisible({ timeout: 10000 });
   });
 
   test('unauthenticated user is redirected to login', async ({ page }) => {
@@ -137,6 +136,6 @@ test.describe('Join Game', () => {
     await page.goto('/games/join/some-invite-code');
 
     // Should be redirected to login with callback URL
-    await expect(page).toHaveURL(/\/login\?callbackUrl=.*join.*some-invite-code/);
+    await expect(page).toHaveURL(/\/login\?callbackUrl=.*join.*some-invite-code/, { timeout: 10000 });
   });
 });

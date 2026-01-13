@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:wipe": "tsx scripts/wipe-database.ts"
+    "db:wipe": "tsx scripts/wipe-database.ts",
+    "test:e2e": "NODE_ENV=test playwright test",
+    "test:e2e:ui": "NODE_ENV=test playwright test --ui",
+    "test:e2e:headed": "NODE_ENV=test playwright test --headed",
+    "test:e2e:debug": "NODE_ENV=test playwright test --debug"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -20,6 +24,7 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

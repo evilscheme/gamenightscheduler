@@ -28,7 +28,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function fetchGames() {
-      if (!profile?.id) return;
+      if (!profile?.id) {
+        // No profile, nothing to fetch
+        setLoading(false);
+        return;
+      }
 
       // Fetch games where user is GM or member
       const { data: memberships } = await supabase
@@ -70,8 +74,11 @@ export default function DashboardPage() {
 
     if (profile?.id) {
       fetchGames();
+    } else if (!isLoading) {
+      // Auth finished but no profile - stop loading
+      setLoading(false);
     }
-  }, [profile?.id]);
+  }, [profile?.id, isLoading]);
 
   if (isLoading || loading) {
     return (

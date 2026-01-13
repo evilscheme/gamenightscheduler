@@ -56,14 +56,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      // Add timeout to prevent hanging
+      const fetchPromise = supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (data && !error) {
-      setProfile(data as User);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+      );
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as Awaited<typeof fetchPromise>;
+
+      if (data && !error) {
+        setProfile(data as User);
+      }
+    } catch {
+      // Timeout or error - continue without profile
     }
     setIsLoading(false);
   }

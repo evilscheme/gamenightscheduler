@@ -25,16 +25,16 @@ test.describe('Availability Calendar', () => {
     await page.goto(`/games/${game.id}`);
     await page.waitForLoadState('networkidle');
 
-    // Switch to availability tab
+    // Wait for page to load, then switch to availability tab
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /availability/i }).click();
 
-    // Should see calendar grid
-    await expect(page.locator('[class*="calendar"]').first()).toBeVisible({ timeout: 10000 });
+    // Should see "Mark Your Availability" heading
+    await expect(page.getByText(/mark your availability/i)).toBeVisible({ timeout: 10000 });
 
-    // Should see day headers (Su, Mo, Tu, etc.)
-    await expect(page.getByText(/^Su$/)).toBeVisible();
-    await expect(page.getByText(/^Fr$/)).toBeVisible();
-    await expect(page.getByText(/^Sa$/)).toBeVisible();
+    // Should see day headers (S, M, T, W, T, F, S in the calendar)
+    await expect(page.getByText(/^S$/).first()).toBeVisible();
+    await expect(page.getByText(/^F$/).first()).toBeVisible();
   });
 
   test('player can see availability tab', async ({ page, request }) => {
@@ -67,12 +67,12 @@ test.describe('Availability Calendar', () => {
     await page.goto(`/games/${game.id}`);
     await page.waitForLoadState('networkidle');
 
-    // Switch to availability tab
+    // Wait for page to load, then switch to availability tab
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /availability/i }).click();
-    await page.waitForLoadState('networkidle');
 
-    // Should see the calendar
-    await expect(page.locator('[class*="calendar"]').first()).toBeVisible({ timeout: 10000 });
+    // Should see the availability content
+    await expect(page.getByText(/mark your availability/i)).toBeVisible({ timeout: 10000 });
   });
 
   test('shows availability legend', async ({ page, request }) => {
@@ -97,12 +97,12 @@ test.describe('Availability Calendar', () => {
     await page.goto(`/games/${game.id}`);
     await page.waitForLoadState('networkidle');
 
-    // Switch to availability tab
+    // Wait for page to load, then switch to availability tab
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /availability/i }).click();
-    await page.waitForLoadState('networkidle');
 
     // Should see legend items
-    await expect(page.getByText(/available/i).first()).toBeVisible();
+    await expect(page.getByText(/available/i).first()).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/unavailable/i).first()).toBeVisible();
   });
 
@@ -129,18 +129,19 @@ test.describe('Availability Calendar', () => {
     await page.goto(`/games/${game.id}`);
     await page.waitForLoadState('networkidle');
 
-    // Switch to availability tab
+    // Wait for page to load, then switch to availability tab
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /availability/i }).click();
-    await page.waitForLoadState('networkidle');
 
-    // Should see month headers for current and next months
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-    const nextMonth = new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toLocaleString('default', { month: 'long' });
+    // Wait for calendar to load
+    await expect(page.getByText(/mark your availability/i)).toBeVisible({ timeout: 10000 });
 
-    // At least one of the months should be visible
-    const hasCurrentMonth = await page.getByText(new RegExp(currentMonth, 'i')).count() > 0;
-    const hasNextMonth = await page.getByText(new RegExp(nextMonth, 'i')).count() > 0;
+    // Should see month headers (Jan 2026, Feb 2026, etc.)
+    // The calendar shows abbreviated month names with year
+    const monthYearPattern = /\w{3}\s+\d{4}/; // Matches "Jan 2026", "Feb 2026", etc.
+    const monthHeaders = await page.getByText(monthYearPattern).count();
 
-    expect(hasCurrentMonth || hasNextMonth).toBe(true);
+    // Should have at least 2 month headers visible
+    expect(monthHeaders).toBeGreaterThanOrEqual(2);
   });
 });

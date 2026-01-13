@@ -14,11 +14,11 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
     await page.waitForLoadState('networkidle');
 
-    // Should see the form
-    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
+    // Wait for profile to load (spinner to disappear) then check for form
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
 
     // Fill out the form
-    await page.getByLabel(/game name/i).fill('Test D&D Campaign');
+    await page.getByPlaceholder(/curse of strahd/i).fill('Test D&D Campaign');
     await page.getByPlaceholder(/brief description/i).fill('A test campaign for E2E testing');
 
     // Select Friday and Saturday as play days
@@ -29,10 +29,10 @@ test.describe('Game Creation', () => {
     await page.getByRole('button', { name: /create game/i }).click();
 
     // Should redirect to the game detail page
-    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/);
+    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, { timeout: 10000 });
 
     // Should see the game name
-    await expect(page.getByRole('heading', { name: /test d&d campaign/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /test d&d campaign/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('non-GM is redirected away from create game page', async ({ page }) => {
@@ -47,8 +47,8 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
     await page.waitForLoadState('networkidle');
 
-    // Should be redirected to dashboard
-    await expect(page).toHaveURL('/dashboard');
+    // Should be redirected to dashboard (wait for profile to load and redirect to trigger)
+    await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
   });
 
   test('shows validation error when no play days selected', async ({ page }) => {
@@ -61,8 +61,11 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
     await page.waitForLoadState('networkidle');
 
+    // Wait for form to load
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
+
     // Fill only the name
-    await page.getByLabel(/game name/i).fill('Test Campaign');
+    await page.getByPlaceholder(/curse of strahd/i).fill('Test Campaign');
 
     // Try to submit without selecting play days
     await page.getByRole('button', { name: /create game/i }).click();
@@ -81,14 +84,17 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
     await page.waitForLoadState('networkidle');
 
+    // Wait for form to load
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
+
     // Select play days but leave name empty
     await page.getByRole('button', { name: 'Friday' }).click();
 
-    // Try to submit
+    // Try to submit - browser's HTML5 validation will block submission
     await page.getByRole('button', { name: /create game/i }).click();
 
-    // Should show validation error
-    await expect(page.getByText(/please enter a game name/i)).toBeVisible();
+    // Should still be on the create page (form submission blocked by browser validation)
+    await expect(page).toHaveURL('/games/new');
   });
 
   test('can select scheduling window', async ({ page }) => {
@@ -101,17 +107,20 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
     await page.waitForLoadState('networkidle');
 
+    // Wait for form to load
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
+
     // Change scheduling window to 3 months
     await page.getByRole('combobox').selectOption('3');
 
     // Fill required fields
-    await page.getByLabel(/game name/i).fill('Long Window Campaign');
+    await page.getByPlaceholder(/curse of strahd/i).fill('Long Window Campaign');
     await page.getByRole('button', { name: 'Friday' }).click();
 
     // Submit
     await page.getByRole('button', { name: /create game/i }).click();
 
     // Should redirect successfully
-    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/);
+    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, { timeout: 10000 });
   });
 });

@@ -26,7 +26,7 @@ interface GameWithMembers extends Game {
 type Tab = 'overview' | 'availability' | 'schedule';
 
 export default function GameDetailPage() {
-  const { profile, isLoading } = useAuth();
+  const { profile, isLoading, session } = useAuth();
   const router = useRouter();
   const params = useParams();
   const gameId = params.id as string;
@@ -44,10 +44,12 @@ export default function GameDetailPage() {
   const isGm = game?.gm_id === profile?.id;
 
   useEffect(() => {
-    if (!isLoading && !profile) {
+    // Only redirect if auth is done loading AND there's no session
+    // Don't redirect just because profile hasn't loaded yet - session is sufficient proof of auth
+    if (!isLoading && !session) {
       router.push('/login');
     }
-  }, [isLoading, profile, router]);
+  }, [isLoading, session, router]);
 
   const fetchData = useCallback(async () => {
     if (!gameId || !profile?.id) return;

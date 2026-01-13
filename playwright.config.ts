@@ -49,14 +49,20 @@ export default defineConfig({
 
     // Video on first retry
     video: 'on-first-retry',
+
+    // Action timeout (clicks, fills, etc) - fail fast if element not found
+    actionTimeout: 5000,
+
+    // Navigation timeout
+    navigationTimeout: 10000,
   },
 
-  // Test timeout
-  timeout: 30000,
+  // Test timeout - enough for setup + assertions, but not too long
+  timeout: 15000,
 
-  // Expect timeout
+  // Expect timeout - time to wait for assertions
   expect: {
-    timeout: 5000,
+    timeout: 3000,
   },
 
   // Browser projects

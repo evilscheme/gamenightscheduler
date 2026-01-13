@@ -12,7 +12,7 @@ interface GameWithGM extends Game {
 }
 
 export default function JoinGamePage() {
-  const { profile, isLoading } = useAuth();
+  const { profile, isLoading, session } = useAuth();
   const router = useRouter();
   const params = useParams();
   const code = params.code as string;
@@ -25,10 +25,11 @@ export default function JoinGamePage() {
   const [alreadyMember, setAlreadyMember] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !profile) {
+    // Only redirect if auth is done loading AND there's no session
+    if (!isLoading && !session) {
       router.push(`/login?callbackUrl=/games/join/${code}`);
     }
-  }, [isLoading, profile, router, code]);
+  }, [isLoading, session, router, code]);
 
   useEffect(() => {
     async function fetchGame() {

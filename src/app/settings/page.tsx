@@ -7,7 +7,7 @@ import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
-  const { profile, isLoading, refreshProfile } = useAuth();
+  const { profile, isLoading, refreshProfile, session } = useAuth();
   const router = useRouter();
   const [name, setName] = useState('');
   const [isGm, setIsGm] = useState(false);
@@ -16,10 +16,11 @@ export default function SettingsPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    if (!isLoading && !profile) {
+    // Only redirect if auth is done loading AND there's no session
+    if (!isLoading && !session) {
       router.push('/login');
     }
-  }, [isLoading, profile, router]);
+  }, [isLoading, session, router]);
 
   useEffect(() => {
     if (profile) {

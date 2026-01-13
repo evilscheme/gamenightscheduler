@@ -14,17 +14,19 @@ interface GameWithGM extends Game {
 }
 
 export default function DashboardPage() {
-  const { profile, isLoading } = useAuth();
+  const { profile, isLoading, session } = useAuth();
   const router = useRouter();
   const [games, setGames] = useState<GameWithGM[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
-    if (!isLoading && !profile) {
+    // Only redirect if auth is done loading AND there's no session
+    // Don't redirect just because profile hasn't loaded yet - session is sufficient proof of auth
+    if (!isLoading && !session) {
       router.push('/login');
     }
-  }, [isLoading, profile, router]);
+  }, [isLoading, session, router]);
 
   useEffect(() => {
     async function fetchGames() {

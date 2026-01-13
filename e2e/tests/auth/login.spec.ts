@@ -40,10 +40,10 @@ test.describe('Authentication', () => {
 
     // Try to visit login page
     await page.goto('/login');
-    await page.reload();
+    await page.waitForLoadState('networkidle');
 
-    // Should be redirected to dashboard
-    await expect(page).toHaveURL('/dashboard');
+    // Should be redirected to dashboard (wait for auth to load and redirect)
+    await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
   });
 
   test('login respects callbackUrl parameter', async ({ page }) => {
@@ -56,10 +56,10 @@ test.describe('Authentication', () => {
 
     // Visit login with callback URL
     await page.goto('/login?callbackUrl=/settings');
-    await page.reload();
+    await page.waitForLoadState('networkidle');
 
-    // Should redirect to the callback URL (settings)
-    await expect(page).toHaveURL('/settings');
+    // Should redirect to the callback URL (settings) - wait for auth + redirect
+    await expect(page).toHaveURL('/settings', { timeout: 10000 });
   });
 
   test('GM users see "Create New Game" button on dashboard', async ({ page }) => {

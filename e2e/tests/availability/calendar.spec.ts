@@ -23,8 +23,7 @@ test.describe('Availability Calendar', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Wait for page to load, then switch to availability tab
     await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /availability/i }).click();
@@ -65,8 +64,7 @@ test.describe('Availability Calendar', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Wait for page to load, then switch to availability tab
     await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /availability/i }).click();
@@ -95,8 +93,7 @@ test.describe('Availability Calendar', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Wait for page to load, then switch to availability tab
     await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /availability/i }).click();
@@ -127,8 +124,7 @@ test.describe('Availability Calendar', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Wait for page to load, then switch to availability tab
     await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /availability/i }).click();

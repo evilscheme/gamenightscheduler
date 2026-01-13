@@ -12,9 +12,8 @@ test.describe('Game Creation', () => {
 
     // Navigate to create game page
     await page.goto('/games/new');
-    await page.waitForLoadState('networkidle');
 
-    // Wait for profile to load (spinner to disappear) then check for form
+    // Wait for form to load
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
 
     // Fill out the form
@@ -43,11 +42,10 @@ test.describe('Game Creation', () => {
       is_gm: false,
     });
 
-    // Try to navigate to create game page
+    // Try to navigate to create game page - will redirect non-GM to dashboard
     await page.goto('/games/new');
-    await page.waitForLoadState('networkidle');
 
-    // Should be redirected to dashboard (wait for profile to load and redirect to trigger)
+    // Should be redirected to dashboard (wait for auth/profile to load and redirect to trigger)
     await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
   });
 
@@ -59,7 +57,6 @@ test.describe('Game Creation', () => {
     });
 
     await page.goto('/games/new');
-    await page.waitForLoadState('networkidle');
 
     // Wait for form to load
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
@@ -82,7 +79,6 @@ test.describe('Game Creation', () => {
     });
 
     await page.goto('/games/new');
-    await page.waitForLoadState('networkidle');
 
     // Wait for form to load
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
@@ -105,7 +101,6 @@ test.describe('Game Creation', () => {
     });
 
     await page.goto('/games/new');
-    await page.waitForLoadState('networkidle');
 
     // Wait for form to load
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });

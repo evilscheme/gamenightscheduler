@@ -34,8 +34,7 @@ test.describe('RLS Policy Enforcement', () => {
 
     // Try to access the game page
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Non-members can view game (RLS policy allows SELECT for all)
     // but they are not listed as players and don't see the invite link
     await expect(page.getByRole('heading', { name: /viewable game/i })).toBeVisible({ timeout: 10000 });
@@ -52,8 +51,7 @@ test.describe('RLS Policy Enforcement', () => {
     });
 
     await page.goto('/games/new');
-    await page.waitForLoadState('networkidle');
-
+    
     // Should be redirected to dashboard (non-GM users can't create games)
     // Wait for client-side redirect after profile loads and is_gm check fails
     await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
@@ -89,8 +87,7 @@ test.describe('RLS Policy Enforcement', () => {
 
     // Access the game page as the player
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Should be able to see the game (wait for data to load)
     await expect(page.getByRole('heading', { name: /member visible game/i })).toBeVisible({ timeout: 10000 });
   });
@@ -131,8 +128,7 @@ test.describe('RLS Policy Enforcement', () => {
 
     // Navigate to dashboard as second GM
     await page.goto('/dashboard');
-    await page.waitForLoadState('networkidle');
-
+    
     // Wait for dashboard to load with games
     await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: 10000 });
 
@@ -173,8 +169,7 @@ test.describe('RLS Policy Enforcement', () => {
 
     // View game as player
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Wait for game page to load with data
     await expect(page.getByRole('heading', { name: /badge test game/i })).toBeVisible({ timeout: 10000 });
 
@@ -192,8 +187,7 @@ test.describe('RLS Policy Enforcement', () => {
     });
 
     await page.goto('/settings');
-    await page.waitForLoadState('networkidle');
-
+    
     // Wait for settings page to load with profile data
     await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({ timeout: 10000 });
 
@@ -232,8 +226,7 @@ test.describe('RLS Policy Enforcement', () => {
 
     // View as player
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Wait for game page to load with data
     await expect(page.getByRole('heading', { name: /invite visibility game/i })).toBeVisible({ timeout: 10000 });
 

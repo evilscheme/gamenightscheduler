@@ -47,12 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Fallback: if onAuthStateChange doesn't fire within 3 seconds, assume no session
+    // Fallback: if onAuthStateChange doesn't fire within 1 second, assume no session
     const timeoutId = setTimeout(() => {
       if (isMounted) {
         setIsLoading(false);
       }
-    }, 3000);
+    }, 1000);
 
     return () => {
       isMounted = false;

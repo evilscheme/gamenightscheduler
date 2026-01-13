@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from '@playwright/test';
+import { expect } from '@playwright/test';
 
 /**
  * Helper functions for test authentication.
@@ -78,12 +79,12 @@ export async function loginTestUser(
 
   const user = await response.json();
 
-  // Navigate and reload to ensure auth context picks up the session
+  // Navigate to establish auth cookies in the browser context
+  // Don't wait for full page load - the subsequent test steps will wait for their own elements
   if (navigateAndReload) {
     await page.goto('/dashboard');
-    await page.reload();
-    // Wait a moment for auth context to initialize
-    await page.waitForTimeout(1000);
+    // Brief wait for cookies to be processed and initial auth state change to fire
+    await page.waitForTimeout(100);
   }
 
   return user;

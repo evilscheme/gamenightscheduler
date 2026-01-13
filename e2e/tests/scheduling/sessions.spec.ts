@@ -44,11 +44,10 @@ test.describe('Session Scheduling', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
 
-    // Switch to schedule tab
+    // Switch to schedule tab (wait for button then click)
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /schedule/i }).click();
-    await page.waitForLoadState('networkidle');
 
     // Should see date suggestions section
     await expect(page.getByText(/date suggestions/i)).toBeVisible({ timeout: 10000 });
@@ -80,11 +79,10 @@ test.describe('Session Scheduling', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
 
-    // Switch to schedule tab
+    // Switch to schedule tab (wait for button then click)
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /schedule/i }).click();
-    await page.waitForLoadState('networkidle');
 
     // Should see confirm button (only for GM)
     const confirmButtons = page.getByRole('button', { name: /confirm/i });
@@ -123,11 +121,10 @@ test.describe('Session Scheduling', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
 
-    // Switch to schedule tab
+    // Switch to schedule tab (wait for button then click)
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /schedule/i }).click();
-    await page.waitForLoadState('networkidle');
 
     // Player should see suggestions but no confirm buttons (only GM can confirm)
     await expect(page.getByText(/date suggestions/i)).toBeVisible({ timeout: 10000 });
@@ -165,11 +162,10 @@ test.describe('Session Scheduling', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
 
-    // Switch to schedule tab
+    // Switch to schedule tab (wait for button then click)
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /schedule/i }).click();
-    await page.waitForLoadState('networkidle');
 
     // Should see confirmed sessions section or the session
     await expect(page.getByText(/confirmed|session/i).first()).toBeVisible({ timeout: 10000 });
@@ -205,11 +201,10 @@ test.describe('Session Scheduling', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
 
-    // Switch to schedule tab
+    // Switch to schedule tab (wait for button then click)
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /schedule/i }).click();
-    await page.waitForLoadState('networkidle');
 
     // Should see export options (like calendar export)
     // The exact text depends on the UI, but there should be export functionality

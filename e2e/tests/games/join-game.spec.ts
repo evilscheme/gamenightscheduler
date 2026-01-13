@@ -27,8 +27,7 @@ test.describe('Join Game', () => {
 
     // Navigate to join page
     await page.goto(`/games/join/${game.invite_code}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Should see invitation message (wait for page to load)
     await expect(page.getByText(/you've been invited/i)).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/join test campaign/i)).toBeVisible();
@@ -75,8 +74,7 @@ test.describe('Join Game', () => {
 
     // Navigate to join page
     await page.goto(`/games/join/${game.invite_code}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Should see "already in game" message (wait for page to load)
     await expect(page.getByText(/you're already in this game/i)).toBeVisible({ timeout: 10000 });
 
@@ -109,8 +107,7 @@ test.describe('Join Game', () => {
 
     // Navigate to join page as the GM
     await page.goto(`/games/join/${game.invite_code}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Should see "already in game" message (wait for page to load)
     await expect(page.getByText(/you're already in this game/i)).toBeVisible({ timeout: 10000 });
   });
@@ -125,8 +122,7 @@ test.describe('Join Game', () => {
 
     // Navigate to join page with invalid code
     await page.goto('/games/join/invalid-code-12345');
-    await page.waitForLoadState('networkidle');
-
+    
     // Should see error message (wait for page to load)
     await expect(page.getByText(/game not found/i)).toBeVisible({ timeout: 10000 });
   });

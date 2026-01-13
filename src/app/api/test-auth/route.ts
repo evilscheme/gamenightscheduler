@@ -53,43 +53,44 @@ export async function POST(request: Request): Promise<Response> {
 
     const admin = createAdminClient();
 
-    // Check if user already exists
-    const { data: existingUsers } = await admin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users.find((u) => u.email === email);
-
     let userId: string;
 
-    if (existingUser) {
-      // User exists - update their password to ensure we can sign in
-      userId = existingUser.id;
-      await admin.auth.admin.updateUserById(userId, {
+    // Try to create user first (common case - tests use unique emails)
+    const { data: newUser, error: createError } =
+      await admin.auth.admin.createUser({
+        email,
         password: testPassword,
+        email_confirm: true, // Auto-confirm email for testing
+        user_metadata: {
+          full_name: name,
+        },
       });
-    } else {
-      // Create new user with email/password auth
-      const { data: newUser, error: createError } =
-        await admin.auth.admin.createUser({
-          email,
-          password: testPassword,
-          email_confirm: true, // Auto-confirm email for testing
-          user_metadata: {
-            full_name: name,
-          },
-        });
 
-      if (createError || !newUser.user) {
+    if (createError) {
+      // If user already exists, find them and update password
+      if (createError.message?.includes('already')) {
+        const { data: existingUsers } = await admin.auth.admin.listUsers();
+        const existingUser = existingUsers?.users.find((u) => u.email === email);
+        if (!existingUser) {
+          return NextResponse.json(
+            { error: 'User exists but could not be found' },
+            { status: 500 }
+          );
+        }
+        userId = existingUser.id;
+        await admin.auth.admin.updateUserById(userId, {
+          password: testPassword,
+        });
+      } else {
         console.error('Failed to create test user:', createError);
         return NextResponse.json(
           { error: 'Failed to create user', details: createError?.message },
           { status: 500 }
         );
       }
-
-      userId = newUser.user.id;
+    } else {
+      userId = newUser.user!.id;
     }
-
-    // Wait a moment for the database trigger to create the profile
-    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Update the user profile with is_gm if needed
     const { error: updateError } = await admin

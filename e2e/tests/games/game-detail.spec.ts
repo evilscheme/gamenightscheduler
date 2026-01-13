@@ -27,8 +27,7 @@ test.describe('Game Detail Page', () => {
 
     // Navigate to game detail page
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Should see game name (wait for profile + data to load)
     await expect(page.getByRole('heading', { name: /detail test campaign/i })).toBeVisible({ timeout: 10000 });
 
@@ -59,8 +58,7 @@ test.describe('Game Detail Page', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Should see copy invite link button (wait for page to load)
     await expect(page.getByRole('button', { name: /copy invite link/i })).toBeVisible({ timeout: 10000 });
   });
@@ -95,8 +93,7 @@ test.describe('Game Detail Page', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Should see game name (wait for page to load)
     await expect(page.getByRole('heading', { name: /player view campaign/i })).toBeVisible({ timeout: 10000 });
   });
@@ -121,8 +118,7 @@ test.describe('Game Detail Page', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Wait for page to load first
     await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
 
@@ -167,8 +163,7 @@ test.describe('Game Detail Page', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    await page.waitForLoadState('networkidle');
-
+    
     // Should show both GM and player in members list (wait for page to load)
     // Use the member list section specifically to avoid matching navbar
     await expect(page.getByRole('list').getByText(/members test gm/i)).toBeVisible({ timeout: 10000 });

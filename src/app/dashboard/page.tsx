@@ -1,8 +1,8 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import Link from 'next/link';
 import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
@@ -15,18 +15,11 @@ interface GameWithGMAndCount extends GameWithGM {
 
 export default function DashboardPage() {
   const { profile, isLoading, session } = useAuth();
-  const router = useRouter();
   const [games, setGames] = useState<GameWithGMAndCount[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
-  useEffect(() => {
-    // Only redirect if auth is done loading AND there's no session
-    // Don't redirect just because profile hasn't loaded yet - session is sufficient proof of auth
-    if (!isLoading && !session) {
-      router.push('/login');
-    }
-  }, [isLoading, session, router]);
+  useAuthRedirect();
 
   useEffect(() => {
     async function fetchGames() {

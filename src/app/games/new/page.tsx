@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
@@ -20,15 +21,7 @@ export default function NewGamePage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    // Only redirect if auth is done loading AND there's no session
-    if (!isLoading && !session) {
-      router.push('/login');
-    } else if (!isLoading && profile && !profile.is_gm) {
-      // If profile loaded but not a GM, redirect to dashboard
-      router.push('/dashboard');
-    }
-  }, [isLoading, session, profile, router]);
+  useAuthRedirect({ requireGM: true });
 
   const toggleDay = (day: number) => {
     setPlayDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
@@ -86,7 +79,7 @@ export default function NewGamePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Create New Game</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-8">Create New Game</h1>
 
       <form onSubmit={handleCreate}>
         <Card>
@@ -103,7 +96,7 @@ export default function NewGamePage() {
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Description (optional)
               </label>
               <textarea
@@ -111,12 +104,12 @@ export default function NewGamePage() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="A brief description of your campaign..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <label className="block text-sm font-medium text-foreground mb-3">
                 Which days can your group play?
               </label>
               <div className="flex flex-wrap gap-2">
@@ -135,25 +128,25 @@ export default function NewGamePage() {
                   </button>
                 ))}
               </div>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-muted-foreground mt-2">
                 Players will only be able to mark availability on these days
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Scheduling Window
               </label>
               <select
                 value={windowMonths}
                 onChange={(e) => setWindowMonths(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               >
                 <option value={1}>1 month ahead</option>
                 <option value={2}>2 months ahead</option>
                 <option value={3}>3 months ahead</option>
               </select>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 How far in advance players can mark their availability
               </p>
             </div>

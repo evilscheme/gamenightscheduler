@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
+import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { User, Availability, GameSession, DateSuggestion, GameWithMembers } from '@/types';
@@ -17,7 +18,7 @@ import {
   isAfter,
   startOfDay,
 } from 'date-fns';
-import { DAY_LABELS } from '@/lib/constants';
+import { DAY_LABELS, TIMEOUTS } from '@/lib/constants';
 
 type Tab = 'overview' | 'availability' | 'schedule';
 
@@ -39,13 +40,7 @@ export default function GameDetailPage() {
 
   const isGm = game?.gm_id === profile?.id;
 
-  useEffect(() => {
-    // Only redirect if auth is done loading AND there's no session
-    // Don't redirect just because profile hasn't loaded yet - session is sufficient proof of auth
-    if (!isLoading && !session) {
-      router.push('/login');
-    }
-  }, [isLoading, session, router]);
+  useAuthRedirect();
 
   const fetchData = useCallback(async () => {
     if (!gameId || !profile?.id) return;
@@ -269,7 +264,7 @@ export default function GameDetailPage() {
     const link = `${window.location.origin}/games/join/${game.invite_code}`;
     navigator.clipboard.writeText(link);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), TIMEOUTS.NOTIFICATION);
   };
 
   // Show spinner while auth is loading, data is loading, or profile hasn't loaded yet

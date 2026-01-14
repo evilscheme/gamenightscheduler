@@ -8,3 +8,16 @@ export const DAY_LABELS = {
 
 // Day options for select inputs (value is day number 0-6, label is full name)
 export const DAY_OPTIONS = DAY_LABELS.full.map((label, value) => ({ value, label }));
+
+// Timeout values (in milliseconds)
+export const TIMEOUTS = {
+  AUTH_STATE_FALLBACK: 1000,
+  PROFILE_FETCH: 5000,
+  NOTIFICATION: 2000,
+} as const;
+
+// Default session times
+export const SESSION_DEFAULTS = {
+  START_TIME: '18:00',
+  END_TIME: '22:00',
+} as const;

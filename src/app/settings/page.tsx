@@ -1,26 +1,20 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
-  const { profile, isLoading, refreshProfile, session } = useAuth();
-  const router = useRouter();
+  const { profile, isLoading, refreshProfile } = useAuth();
   const [name, setName] = useState('');
   const [isGm, setIsGm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const supabase = createClient();
 
-  useEffect(() => {
-    // Only redirect if auth is done loading AND there's no session
-    if (!isLoading && !session) {
-      router.push('/login');
-    }
-  }, [isLoading, session, router]);
+  useAuthRedirect();
 
   useEffect(() => {
     if (profile) {

@@ -104,8 +104,8 @@ export default function JoinGamePage() {
         <Card>
           <CardContent className="py-12 text-center">
             <span className="text-5xl mb-4 block">😕</span>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Invite Not Found</h2>
-            <p className="text-gray-600 mb-6">{error}</p>
+            <h2 className="text-xl font-semibold text-card-foreground mb-2">Invite Not Found</h2>
+            <p className="text-muted-foreground mb-6">{error}</p>
             <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
           </CardContent>
         </Card>
@@ -114,16 +114,16 @@ export default function JoinGamePage() {
           <CardContent className="py-8">
             <div className="text-center mb-6">
               <span className="text-5xl mb-4 block">🎲</span>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-card-foreground">
                 {alreadyMember ? "You're already in this game!" : "You've been invited!"}
               </h1>
             </div>
 
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">{game.name}</h2>
-              <p className="text-sm text-gray-500 mb-2">Game Master: {game.gm.name}</p>
-              {game.description && <p className="text-sm text-gray-600 mb-2">{game.description}</p>}
-              <p className="text-sm text-gray-500">
+            <div className="bg-secondary rounded-lg p-4 mb-6">
+              <h2 className="text-lg font-semibold text-card-foreground mb-1">{game.name}</h2>
+              <p className="text-sm text-muted-foreground mb-2">Game Master: {game.gm.name}</p>
+              {game.description && <p className="text-sm text-muted-foreground mb-2">{game.description}</p>}
+              <p className="text-sm text-muted-foreground">
                 Plays on: {game.play_days.map((d) => DAY_LABELS.short[d]).join(', ')}
               </p>
             </div>

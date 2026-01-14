@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { Button, Card, CardContent, CardHeader } from '@/components/ui';
 import { DateSuggestion, GameSession } from '@/types';
 import { generateICS } from '@/lib/ics';
-import { DAY_LABELS } from '@/lib/constants';
+import { DAY_LABELS, SESSION_DEFAULTS } from '@/lib/constants';
 
 interface SchedulingSuggestionsProps {
   suggestions: DateSuggestion[];
@@ -26,8 +26,8 @@ export function SchedulingSuggestions({
 }: SchedulingSuggestionsProps) {
   const [showAll, setShowAll] = useState(false);
   const [confirmingDate, setConfirmingDate] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState('18:00');
-  const [endTime, setEndTime] = useState('22:00');
+  const [startTime, setStartTime] = useState(SESSION_DEFAULTS.START_TIME);
+  const [endTime, setEndTime] = useState(SESSION_DEFAULTS.END_TIME);
 
   const confirmedDates = new Set(sessions.filter((s) => s.status === 'confirmed').map((s) => s.date));
   const confirmedSessions = sessions.filter((s) => s.status === 'confirmed');
@@ -200,7 +200,7 @@ export function SchedulingSuggestions({
                               )}
                               {pendingPercent > 0 && (
                                 <div
-                                  className="h-2.5 bg-gray-400 dark:bg-gray-600"
+                                  className="h-2.5 bg-muted-foreground/50"
                                   style={{ width: `${pendingPercent}%` }}
                                 />
                               )}
@@ -214,7 +214,7 @@ export function SchedulingSuggestions({
                             <span className="text-red-600 dark:text-red-400">
                               {suggestion.unavailableCount} unavailable
                             </span>
-                            <span className="text-gray-500 dark:text-gray-400">
+                            <span className="text-muted-foreground">
                               {suggestion.pendingCount} pending
                             </span>
                           </div>
@@ -234,7 +234,7 @@ export function SchedulingSuggestions({
                             )}
                             {suggestion.pendingPlayers.length > 0 && (
                               <p className="text-muted-foreground">
-                                <span className="text-gray-500 dark:text-gray-400">Pending:</span>{' '}
+                                <span className="text-muted-foreground">Pending:</span>{' '}
                                 {suggestion.pendingPlayers.map((p) => p.name).join(', ')}
                               </p>
                             )}

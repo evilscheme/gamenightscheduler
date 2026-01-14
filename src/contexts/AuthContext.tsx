@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@/types';
+import { TIMEOUTS } from '@/lib/constants';
 
 interface AuthContextType {
   user: SupabaseUser | null;
@@ -47,12 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Fallback: if onAuthStateChange doesn't fire within 1 second, assume no session
+    // Fallback: if onAuthStateChange doesn't fire quickly, assume no session
     const timeoutId = setTimeout(() => {
       if (isMounted) {
         setIsLoading(false);
       }
-    }, 1000);
+    }, TIMEOUTS.AUTH_STATE_FALLBACK);
 
     return () => {
       isMounted = false;
@@ -71,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), TIMEOUTS.PROFILE_FETCH)
       );
 
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as Awaited<typeof fetchPromise>;

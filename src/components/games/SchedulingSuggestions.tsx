@@ -26,8 +26,8 @@ export function SchedulingSuggestions({
 }: SchedulingSuggestionsProps) {
   const [showAll, setShowAll] = useState(false);
   const [confirmingDate, setConfirmingDate] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState(SESSION_DEFAULTS.START_TIME);
-  const [endTime, setEndTime] = useState(SESSION_DEFAULTS.END_TIME);
+  const [startTime, setStartTime] = useState<string>(SESSION_DEFAULTS.START_TIME);
+  const [endTime, setEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
 
   const confirmedDates = new Set(sessions.filter((s) => s.status === 'confirmed').map((s) => s.date));
   const confirmedSessions = sessions.filter((s) => s.status === 'confirmed');
@@ -103,6 +103,9 @@ export function SchedulingSuggestions({
                 const availablePercent = suggestion
                   ? Math.round((suggestion.availableCount / suggestion.totalPlayers) * 100)
                   : 0;
+                const maybePercent = suggestion
+                  ? Math.round((suggestion.maybeCount / suggestion.totalPlayers) * 100)
+                  : 0;
                 const unavailablePercent = suggestion
                   ? Math.round((suggestion.unavailableCount / suggestion.totalPlayers) * 100)
                   : 0;
@@ -135,6 +138,12 @@ export function SchedulingSuggestions({
                                       style={{ width: `${availablePercent}%` }}
                                     />
                                   )}
+                                  {maybePercent > 0 && (
+                                    <div
+                                      className="h-2.5 bg-yellow-500"
+                                      style={{ width: `${maybePercent}%` }}
+                                    />
+                                  )}
                                   {unavailablePercent > 0 && (
                                     <div
                                       className="h-2.5 bg-red-500"
@@ -154,6 +163,9 @@ export function SchedulingSuggestions({
                                 <span className="text-green-600 dark:text-green-400">
                                   {suggestion.availableCount} available
                                 </span>
+                                <span className="text-yellow-600 dark:text-yellow-400">
+                                  {suggestion.maybeCount} maybe
+                                </span>
                                 <span className="text-red-600 dark:text-red-400">
                                   {suggestion.unavailableCount} unavailable
                                 </span>
@@ -167,6 +179,14 @@ export function SchedulingSuggestions({
                                   <p className="text-muted-foreground">
                                     <span className="text-green-600 dark:text-green-400">Available:</span>{' '}
                                     {suggestion.availablePlayers.map((p) => p.name).join(', ')}
+                                  </p>
+                                )}
+                                {suggestion.maybePlayers.length > 0 && (
+                                  <p className="text-muted-foreground">
+                                    <span className="text-yellow-600 dark:text-yellow-400">Maybe:</span>{' '}
+                                    {suggestion.maybePlayers.map((p) =>
+                                      p.comment ? `${p.user.name} (${p.comment})` : p.user.name
+                                    ).join(', ')}
                                   </p>
                                 )}
                                 {suggestion.unavailablePlayers.length > 0 && (
@@ -235,6 +255,9 @@ export function SchedulingSuggestions({
                   const availablePercent = Math.round(
                     (suggestion.availableCount / suggestion.totalPlayers) * 100
                   );
+                  const maybePercent = Math.round(
+                    (suggestion.maybeCount / suggestion.totalPlayers) * 100
+                  );
                   const unavailablePercent = Math.round(
                     (suggestion.unavailableCount / suggestion.totalPlayers) * 100
                   );
@@ -272,6 +295,12 @@ export function SchedulingSuggestions({
                                   style={{ width: `${availablePercent}%` }}
                                 />
                               )}
+                              {maybePercent > 0 && (
+                                <div
+                                  className="h-2.5 bg-yellow-500"
+                                  style={{ width: `${maybePercent}%` }}
+                                />
+                              )}
                               {unavailablePercent > 0 && (
                                 <div
                                   className="h-2.5 bg-red-500"
@@ -291,6 +320,9 @@ export function SchedulingSuggestions({
                             <span className="text-green-600 dark:text-green-400">
                               {suggestion.availableCount} available
                             </span>
+                            <span className="text-yellow-600 dark:text-yellow-400">
+                              {suggestion.maybeCount} maybe
+                            </span>
                             <span className="text-red-600 dark:text-red-400">
                               {suggestion.unavailableCount} unavailable
                             </span>
@@ -304,6 +336,14 @@ export function SchedulingSuggestions({
                               <p className="text-muted-foreground">
                                 <span className="text-green-600 dark:text-green-400">Available:</span>{' '}
                                 {suggestion.availablePlayers.map((p) => p.name).join(', ')}
+                              </p>
+                            )}
+                            {suggestion.maybePlayers.length > 0 && (
+                              <p className="text-muted-foreground">
+                                <span className="text-yellow-600 dark:text-yellow-400">Maybe:</span>{' '}
+                                {suggestion.maybePlayers.map((p) =>
+                                  p.comment ? `${p.user.name} (${p.comment})` : p.user.name
+                                ).join(', ')}
                               </p>
                             )}
                             {suggestion.unavailablePlayers.length > 0 && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   format,
   startOfMonth,
@@ -13,14 +13,19 @@ import {
   startOfDay,
 } from "date-fns";
 import { Button } from "@/components/ui";
-import { GameSession } from "@/types";
+import { GameSession, AvailabilityStatus } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
+
+export interface AvailabilityEntry {
+  status: AvailabilityStatus;
+  comment: string | null;
+}
 
 interface AvailabilityCalendarProps {
   playDays: number[];
   windowMonths: number;
-  availability: Record<string, boolean>;
-  onToggle: (date: string, isAvailable: boolean) => void;
+  availability: Record<string, AvailabilityEntry>;
+  onToggle: (date: string, status: AvailabilityStatus, comment: string | null) => void;
   confirmedSessions: GameSession[];
 }
 
@@ -33,6 +38,8 @@ export function AvailabilityCalendar({
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = endOfMonth(addMonths(today, windowMonths));
+  const [commentingDate, setCommentingDate] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
 
   // Generate array of months to display
   const months = useMemo(() => {
@@ -47,6 +54,16 @@ export function AvailabilityCalendar({
 
   const confirmedDates = new Set(confirmedSessions.map((s) => s.date));
 
+  // Cycle through: unset -> unavailable -> maybe -> available -> unset
+  const getNextStatus = (current: AvailabilityEntry | undefined): AvailabilityStatus | null => {
+    if (!current) return 'unavailable';
+    switch (current.status) {
+      case 'unavailable': return 'maybe';
+      case 'maybe': return 'available';
+      case 'available': return null; // Will clear the entry
+    }
+  };
+
   const handleDayClick = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const dayOfWeek = getDay(date);
@@ -57,15 +74,38 @@ export function AvailabilityCalendar({
     // Can't toggle past dates
     if (isBefore(date, today)) return;
 
-    // Toggle availability
     const currentAvail = availability[dateStr];
-    onToggle(
-      dateStr,
-      currentAvail === false ? true : currentAvail === true ? false : false
-    );
+    const nextStatus = getNextStatus(currentAvail);
+
+    if (nextStatus === 'maybe') {
+      // Open comment input for maybe status
+      setCommentingDate(dateStr);
+      setCommentText(currentAvail?.comment || "");
+    } else if (nextStatus === null) {
+      // Clear the entry
+      onToggle(dateStr, 'available', null); // We'll handle deletion in the parent
+      // Actually we need a way to clear - let's use a special handling
+      // For now, cycle back to unavailable
+      onToggle(dateStr, 'unavailable', null);
+    } else {
+      onToggle(dateStr, nextStatus, null);
+    }
   };
 
-  const bulkSetDay = (dayOfWeek: number, isAvailable: boolean) => {
+  const handleMaybeConfirm = () => {
+    if (commentingDate) {
+      onToggle(commentingDate, 'maybe', commentText.trim() || null);
+      setCommentingDate(null);
+      setCommentText("");
+    }
+  };
+
+  const handleMaybeCancel = () => {
+    setCommentingDate(null);
+    setCommentText("");
+  };
+
+  const bulkSetDay = (dayOfWeek: number, status: AvailabilityStatus) => {
     const datesInWindow = eachDayOfInterval({
       start: today,
       end: maxDate,
@@ -73,7 +113,7 @@ export function AvailabilityCalendar({
 
     datesInWindow.forEach((date) => {
       const dateStr = format(date, "yyyy-MM-dd");
-      onToggle(dateStr, isAvailable);
+      onToggle(dateStr, status, null);
     });
   };
 
@@ -90,7 +130,7 @@ export function AvailabilityCalendar({
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() => bulkSetDay(day, true)}
+                onClick={() => bulkSetDay(day, 'available')}
                 className="text-xs h-7 px-2"
               >
                 All {DAY_LABELS.full[day]}s ✓
@@ -98,7 +138,7 @@ export function AvailabilityCalendar({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => bulkSetDay(day, false)}
+                onClick={() => bulkSetDay(day, 'unavailable')}
                 className="text-xs h-7 px-2"
               >
                 ✗
@@ -131,6 +171,10 @@ export function AvailabilityCalendar({
           <span>Available</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-sm bg-yellow-500/20 dark:bg-yellow-500/30 border border-yellow-500/30" />
+          <span>Maybe</span>
+        </div>
+        <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-sm bg-red-500/20 dark:bg-red-500/30 border border-red-500/30" />
           <span>Unavailable</span>
         </div>
@@ -147,6 +191,52 @@ export function AvailabilityCalendar({
           <span>Confirmed</span>
         </div>
       </div>
+
+      {/* Maybe comment modal */}
+      {commentingDate && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-card-foreground mb-2">
+              Maybe Available
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {format(new Date(commentingDate), 'EEEE, MMMM d, yyyy')}
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-card-foreground mb-1">
+                Add a note (optional)
+              </label>
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="e.g., Depends on work schedule"
+                className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleMaybeConfirm();
+                  if (e.key === 'Escape') handleMaybeCancel();
+                }}
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={handleMaybeCancel}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleMaybeConfirm}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -155,11 +245,11 @@ export function AvailabilityCalendar({
 interface MonthCalendarProps {
   month: Date;
   playDays: number[];
-  availability: Record<string, boolean>;
+  availability: Record<string, AvailabilityEntry>;
   confirmedDates: Set<string>;
   today: Date;
   onDayClick: (date: Date) => void;
-  weekdays: string[];
+  weekdays: readonly string[];
 }
 
 function MonthCalendar({
@@ -223,10 +313,13 @@ function MonthCalendar({
 
           if (isPlayDay && !isPast) {
             cursor = "cursor-pointer hover:ring-1 hover:ring-primary/50";
-            if (avail === true) {
+            if (avail?.status === 'available') {
               bgColor = "bg-green-500/20 dark:bg-green-500/30";
               textColor = "text-green-700 dark:text-green-400";
-            } else if (avail === false) {
+            } else if (avail?.status === 'maybe') {
+              bgColor = "bg-yellow-500/20 dark:bg-yellow-500/30";
+              textColor = "text-yellow-700 dark:text-yellow-400";
+            } else if (avail?.status === 'unavailable') {
               bgColor = "bg-red-500/20 dark:bg-red-500/30";
               textColor = "text-red-700 dark:text-red-400";
             } else {
@@ -245,12 +338,15 @@ function MonthCalendar({
               className={`w-full aspect-square rounded-sm flex items-center justify-center text-[10px] transition-all ${bgColor} ${textColor} ${cursor} ${
                 isToday(date) ? "ring-1 ring-primary font-bold" : ""
               }`}
-              title={dateStr}
+              title={avail?.comment ? `${dateStr}\n${avail.comment}` : dateStr}
             >
               <span className="relative">
                 {format(date, "d")}
                 {isConfirmed && (
                   <span className="absolute -top-1 -right-2 text-[8px]">🎲</span>
+                )}
+                {avail?.comment && (
+                  <span className="absolute -bottom-1 -right-2 text-[8px]">💬</span>
                 )}
               </span>
             </button>

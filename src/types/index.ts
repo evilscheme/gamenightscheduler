@@ -20,12 +20,15 @@ export interface Game {
   created_at: string;
 }
 
+export type AvailabilityStatus = 'available' | 'unavailable' | 'maybe';
+
 export interface Availability {
   id: string;
   user_id: string;
   game_id: string;
   date: string; // ISO date string
-  is_available: boolean;
+  status: AvailabilityStatus;
+  comment: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -69,10 +72,12 @@ export interface DateSuggestion {
   date: string;
   dayOfWeek: number;
   availableCount: number;
+  maybeCount: number;
   unavailableCount: number;
   pendingCount: number;
   totalPlayers: number;
   availablePlayers: User[];
+  maybePlayers: { user: User; comment: string | null }[];
   unavailablePlayers: User[];
   pendingPlayers: User[];
 }

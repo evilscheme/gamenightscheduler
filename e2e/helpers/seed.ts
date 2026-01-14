@@ -230,6 +230,9 @@ export async function checkSupabaseHealth(): Promise<boolean> {
 /**
  * Get dates for the next N weeks that fall on specified play days.
  * Useful for setting up availability test data.
+ *
+ * IMPORTANT: Uses local date format (YYYY-MM-DD) to match the calendar UI,
+ * not UTC/ISO format.
  */
 export function getPlayDates(
   playDays: number[],
@@ -244,7 +247,11 @@ export function getPlayDates(
     const dayOfWeek = date.getDay();
 
     if (playDays.includes(dayOfWeek)) {
-      dates.push(date.toISOString().split('T')[0]);
+      // Use local date format (YYYY-MM-DD) to match the calendar's date-fns format
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      dates.push(`${year}-${month}-${day}`);
     }
   }
 

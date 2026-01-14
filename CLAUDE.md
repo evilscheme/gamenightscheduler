@@ -68,3 +68,15 @@ Tests are in `e2e/tests/` organized by feature. The test harness uses:
 - `e2e/helpers/test-auth.ts` - Test user authentication
 
 Tests require `.env.test.local` with test database credentials. CI runs via GitHub Actions (`.github/workflows/e2e.yml`).
+
+**Testing workflow:** When fixing failing tests, run them individually rather than the full suite (which takes ~8 minutes):
+```bash
+# Run a specific test file
+npx playwright test e2e/tests/settings/profile.spec.ts --project=chromium
+
+# Run a specific test by line number
+npx playwright test "e2e/tests/settings/profile.spec.ts:46" --project=chromium
+
+# Run all tests in a directory
+npx playwright test e2e/tests/multi-user --project=chromium
+```

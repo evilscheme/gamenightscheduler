@@ -91,11 +91,12 @@ export async function addPlayerToGame(
 
 /**
  * Set availability for a user on specific dates.
+ * Supports both old boolean format (is_available) and new status format.
  */
 export async function setAvailability(
   userId: string,
   gameId: string,
-  dates: { date: string; is_available: boolean }[]
+  dates: { date: string; is_available?: boolean; status?: 'available' | 'unavailable' | 'maybe'; comment?: string }[]
 ): Promise<void> {
   const admin = getAdminClient();
 
@@ -103,7 +104,9 @@ export async function setAvailability(
     user_id: userId,
     game_id: gameId,
     date: d.date,
-    is_available: d.is_available,
+    // Support both old is_available and new status format
+    status: d.status ?? (d.is_available ? 'available' : 'unavailable'),
+    comment: d.comment ?? null,
   }));
 
   const { error } = await admin

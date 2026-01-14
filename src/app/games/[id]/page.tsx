@@ -400,7 +400,7 @@ export default function GameDetailPage() {
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-2">Mark Your Availability</h2>
             <p className="text-muted-foreground">
-              Click on dates to cycle through: unavailable (red) → maybe (yellow) → available (green).
+              Click on dates to cycle through: unavailable (red) → maybe (yellow) → available (green) → unavailable.
               For "maybe" dates, you can add an optional note. Gray days are not play days for this game.
             </p>
           </div>

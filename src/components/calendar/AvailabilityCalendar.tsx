@@ -54,13 +54,13 @@ export function AvailabilityCalendar({
 
   const confirmedDates = new Set(confirmedSessions.map((s) => s.date));
 
-  // Cycle through: unset -> unavailable -> maybe -> available -> unset
-  const getNextStatus = (current: AvailabilityEntry | undefined): AvailabilityStatus | null => {
+  // Cycle through: unset -> unavailable -> maybe -> available -> unavailable (continuous)
+  const getNextStatus = (current: AvailabilityEntry | undefined): AvailabilityStatus => {
     if (!current) return 'unavailable';
     switch (current.status) {
       case 'unavailable': return 'maybe';
       case 'maybe': return 'available';
-      case 'available': return null; // Will clear the entry
+      case 'available': return 'unavailable';
     }
   };
 
@@ -81,12 +81,6 @@ export function AvailabilityCalendar({
       // Open comment input for maybe status
       setCommentingDate(dateStr);
       setCommentText(currentAvail?.comment || "");
-    } else if (nextStatus === null) {
-      // Clear the entry
-      onToggle(dateStr, 'available', null); // We'll handle deletion in the parent
-      // Actually we need a way to clear - let's use a special handling
-      // For now, cycle back to unavailable
-      onToggle(dateStr, 'unavailable', null);
     } else {
       onToggle(dateStr, nextStatus, null);
     }

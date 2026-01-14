@@ -28,19 +28,21 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install chromium --with-deps
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
       - name: Start Supabase
         run: |
-          # Install Supabase CLI
-          npm install -g supabase
-
           # Start local Supabase (Docker is pre-installed on ubuntu-latest)
-          npx supabase start
+          supabase start
 
           # Apply schema directly (more reliable than db reset which can timeout)
           docker exec -i supabase_db_dndscheduler psql -U postgres -d postgres < supabase/schema.sql
 
           # Show status for debugging
-          npx supabase status
+          supabase status
 
       - name: Run E2E Tests
         run: npx playwright test
@@ -70,4 +72,4 @@ jobs:
 
       - name: Stop Supabase
         if: always()
-        run: npx supabase stop --no-backup
+        run: supabase stop --no-backup

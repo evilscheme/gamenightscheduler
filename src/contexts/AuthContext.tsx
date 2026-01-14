@@ -36,8 +36,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = getSupabaseClient();
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const start = performance.now();
-    console.log('[Auth] fetchProfile started for user:', userId);
     try {
       // Add timeout to prevent hanging
       const fetchPromise = supabase
@@ -51,14 +49,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
 
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as Awaited<typeof fetchPromise>;
-      console.log('[Auth] fetchProfile completed in', (performance.now() - start).toFixed(0), 'ms', { hasData: !!data, error });
 
       if (data && !error) {
         setProfile(data as User);
       }
-    } catch (e) {
+    } catch {
       // Timeout or error - continue without profile
-      console.log('[Auth] fetchProfile FAILED in', (performance.now() - start).toFixed(0), 'ms', e);
     }
     setIsLoading(false);
   }, [supabase]);
@@ -75,14 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[Auth] onAuthStateChange event:', event, { hasSession: !!session, initialLoadComplete });
       if (!isMounted) return;
 
       // During initial load, skip SIGNED_IN - it fires before token refresh completes
       // The session it provides has an expired access token, causing profile fetch to fail
       // INITIAL_SESSION will fire shortly after with a valid, refreshed token
       if (event === 'SIGNED_IN' && !initialLoadComplete) {
-        console.log('[Auth] Skipping SIGNED_IN during initial load (waiting for INITIAL_SESSION)');
         return;
       }
 

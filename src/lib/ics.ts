@@ -62,36 +62,3 @@ function escapeICS(text: string): string {
     .replace(/,/g, '\\,')
     .replace(/\n/g, '\\n');
 }
-
-/**
- * Generate a Google Calendar URL for adding an event
- */
-export function generateGoogleCalendarURL(event: CalendarEvent): string {
-  const baseURL = 'https://calendar.google.com/calendar/render';
-  const dateStr = event.date.replace(/-/g, '');
-
-  let dates: string;
-  if (event.startTime && event.endTime) {
-    const startTimeStr = event.startTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
-    const endTimeStr = event.endTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
-    dates = `${dateStr}T${startTimeStr}/${dateStr}T${endTimeStr}`;
-  } else {
-    dates = `${dateStr}/${dateStr}`;
-  }
-
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: event.title,
-    dates,
-  });
-
-  if (event.description) {
-    params.set('details', event.description);
-  }
-
-  if (event.location) {
-    params.set('location', event.location);
-  }
-
-  return `${baseURL}?${params.toString()}`;
-}

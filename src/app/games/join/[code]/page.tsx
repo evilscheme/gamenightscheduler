@@ -3,13 +3,10 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Button, Card, CardContent } from '@/components/ui';
+import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
-import { Game, User } from '@/types';
-
-interface GameWithGM extends Game {
-  gm: User;
-}
+import { GameWithGM } from '@/types';
+import { DAY_LABELS } from '@/lib/constants';
 
 export default function JoinGamePage() {
   const { profile, isLoading, session } = useAuth();
@@ -96,12 +93,10 @@ export default function JoinGamePage() {
   if (isLoading || loading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <LoadingSpinner />
       </div>
     );
   }
-
-  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
     <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -129,7 +124,7 @@ export default function JoinGamePage() {
               <p className="text-sm text-gray-500 mb-2">Game Master: {game.gm.name}</p>
               {game.description && <p className="text-sm text-gray-600 mb-2">{game.description}</p>}
               <p className="text-sm text-gray-500">
-                Plays on: {game.play_days.map((d) => DAYS[d]).join(', ')}
+                Plays on: {game.play_days.map((d) => DAY_LABELS.short[d]).join(', ')}
               </p>
             </div>
 

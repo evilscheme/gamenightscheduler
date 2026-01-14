@@ -20,13 +20,6 @@ export interface Game {
   created_at: string;
 }
 
-export interface GameMembership {
-  id: string;
-  game_id: string;
-  user_id: string;
-  joined_at: string;
-}
-
 export interface Availability {
   id: string;
   user_id: string;
@@ -61,10 +54,6 @@ export interface GameWithMembers extends Game {
   members: User[];
 }
 
-export interface AvailabilityWithUser extends Availability {
-  user: User;
-}
-
 // Form types
 
 export interface CreateGameInput {
@@ -72,11 +61,6 @@ export interface CreateGameInput {
   description?: string;
   play_days: number[];
   scheduling_window_months: number;
-}
-
-export interface UpdateAvailabilityInput {
-  game_id: string;
-  dates: { date: string; is_available: boolean }[];
 }
 
 // Scheduling types

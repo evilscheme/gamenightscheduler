@@ -1,5 +1,4 @@
 import type { APIRequestContext, Page } from '@playwright/test';
-import { expect } from '@playwright/test';
 
 /**
  * Helper functions for test authentication.
@@ -118,27 +117,3 @@ export async function createTestPlayer(
   });
 }
 
-/**
- * Sign out the current user.
- */
-export async function signOut(request: APIRequestContext): Promise<void> {
-  const response = await request.put('/api/test-auth');
-  if (!response.ok()) {
-    const text = await response.text();
-    throw new Error(`Failed to sign out: ${response.status()} ${text}`);
-  }
-}
-
-/**
- * Delete a test user by email.
- */
-export async function deleteTestUser(
-  request: APIRequestContext,
-  email: string
-): Promise<void> {
-  const response = await request.delete(`/api/test-auth?email=${encodeURIComponent(email)}`);
-  if (!response.ok()) {
-    const text = await response.text();
-    throw new Error(`Failed to delete test user: ${response.status()} ${text}`);
-  }
-}

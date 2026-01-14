@@ -96,25 +96,3 @@ export const test = base.extend<AuthFixtures>({
 });
 
 export { expect };
-
-/**
- * Helper to wait for navigation to complete and page to be ready.
- */
-export async function waitForPageReady(page: Page): Promise<void> {
-  await page.waitForLoadState('networkidle');
-}
-
-/**
- * Helper to assert that user is logged in by checking for dashboard elements.
- */
-export async function assertLoggedIn(page: Page): Promise<void> {
-  // The dashboard should have a nav or some logged-in indicator
-  await expect(page.getByRole('navigation')).toBeVisible();
-}
-
-/**
- * Helper to assert that user is logged out by checking for login page.
- */
-export async function assertLoggedOut(page: Page): Promise<void> {
-  await expect(page).toHaveURL(/\/login/);
-}

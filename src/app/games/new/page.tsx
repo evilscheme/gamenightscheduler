@@ -3,19 +3,10 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui';
+import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
-
-const DAYS = [
-  { value: 0, label: 'Sunday' },
-  { value: 1, label: 'Monday' },
-  { value: 2, label: 'Tuesday' },
-  { value: 3, label: 'Wednesday' },
-  { value: 4, label: 'Thursday' },
-  { value: 5, label: 'Friday' },
-  { value: 6, label: 'Saturday' },
-];
+import { DAY_OPTIONS } from '@/lib/constants';
 
 export default function NewGamePage() {
   const { profile, isLoading, session } = useAuth();
@@ -88,7 +79,7 @@ export default function NewGamePage() {
   if (isLoading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <LoadingSpinner />
       </div>
     );
   }
@@ -129,15 +120,15 @@ export default function NewGamePage() {
                 Which days can your group play?
               </label>
               <div className="flex flex-wrap gap-2">
-                {DAYS.map((day) => (
+                {DAY_OPTIONS.map((day) => (
                   <button
                     key={day.value}
                     type="button"
                     onClick={() => toggleDay(day.value)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       playDays.includes(day.value)
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
                     }`}
                   >
                     {day.label}

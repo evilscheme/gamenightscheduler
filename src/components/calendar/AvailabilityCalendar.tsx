@@ -14,6 +14,7 @@ import {
 } from "date-fns";
 import { Button } from "@/components/ui";
 import { GameSession } from "@/types";
+import { DAY_LABELS } from "@/lib/constants";
 
 interface AvailabilityCalendarProps {
   playDays: number[];
@@ -76,17 +77,6 @@ export function AvailabilityCalendar({
     });
   };
 
-  const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
-  const FULL_DAYS = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-
   return (
     <div className="space-y-4">
       {/* Bulk actions */}
@@ -103,7 +93,7 @@ export function AvailabilityCalendar({
                 onClick={() => bulkSetDay(day, true)}
                 className="text-xs h-7 px-2"
               >
-                All {FULL_DAYS[day]}s ✓
+                All {DAY_LABELS.full[day]}s ✓
               </Button>
               <Button
                 size="sm"
@@ -129,7 +119,7 @@ export function AvailabilityCalendar({
             confirmedDates={confirmedDates}
             today={today}
             onDayClick={handleDayClick}
-            weekdays={WEEKDAYS}
+            weekdays={DAY_LABELS.abbrev}
           />
         ))}
       </div>

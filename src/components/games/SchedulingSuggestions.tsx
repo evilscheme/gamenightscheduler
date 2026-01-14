@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Button, Card, CardContent, CardHeader } from '@/components/ui';
 import { DateSuggestion, GameSession } from '@/types';
 import { generateICS } from '@/lib/ics';
+import { DAY_LABELS } from '@/lib/constants';
 
 interface SchedulingSuggestionsProps {
   suggestions: DateSuggestion[];
@@ -13,10 +14,7 @@ interface SchedulingSuggestionsProps {
   gameName: string;
   onConfirm: (date: string, startTime: string, endTime: string) => void;
   onCancel: (date: string) => void;
-  gameId: string;
 }
-
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export function SchedulingSuggestions({
   suggestions,
@@ -114,7 +112,7 @@ export function SchedulingSuggestions({
                       <p className="text-sm text-muted-foreground">
                         {session.start_time && session.end_time
                           ? `${formatTime(session.start_time)} - ${formatTime(session.end_time)}`
-                          : DAYS[new Date(session.date).getDay()]}
+                          : DAY_LABELS.full[new Date(session.date).getDay()]}
                       </p>
                     </div>
                   </div>

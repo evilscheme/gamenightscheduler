@@ -4,19 +4,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Button, Card, CardContent } from '@/components/ui';
+import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
-import { Game, User } from '@/types';
+import { GameWithGM } from '@/types';
+import { DAY_LABELS } from '@/lib/constants';
 
-interface GameWithGM extends Game {
-  gm: User;
+interface GameWithGMAndCount extends GameWithGM {
   member_count: number;
 }
 
 export default function DashboardPage() {
   const { profile, isLoading, session } = useAuth();
   const router = useRouter();
-  const [games, setGames] = useState<GameWithGM[]>([]);
+  const [games, setGames] = useState<GameWithGMAndCount[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -70,7 +70,7 @@ export default function DashboardPage() {
         })
       );
 
-      setGames(gamesWithCounts as GameWithGM[]);
+      setGames(gamesWithCounts as GameWithGMAndCount[]);
       setLoading(false);
     }
 
@@ -86,12 +86,10 @@ export default function DashboardPage() {
   if (isLoading || loading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <LoadingSpinner />
       </div>
     );
   }
-
-  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -160,7 +158,7 @@ export default function DashboardPage() {
                     </span>
                     <span className="flex items-center gap-1">
                       <span>📅</span>
-                      {game.play_days.map((d) => DAYS[d]).join(', ')}
+                      {game.play_days.map((d) => DAY_LABELS.short[d]).join(', ')}
                     </span>
                   </div>
                 </CardContent>

@@ -3,9 +3,9 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
-import { Button, Card, CardContent, CardHeader } from '@/components/ui';
+import { Button, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
-import { Game, User, Availability, GameSession, DateSuggestion } from '@/types';
+import { User, Availability, GameSession, DateSuggestion, GameWithMembers } from '@/types';
 import { AvailabilityCalendar } from '@/components/calendar/AvailabilityCalendar';
 import { SchedulingSuggestions } from '@/components/games/SchedulingSuggestions';
 import {
@@ -17,11 +17,7 @@ import {
   isAfter,
   startOfDay,
 } from 'date-fns';
-
-interface GameWithMembers extends Game {
-  gm: User;
-  members: User[];
-}
+import { DAY_LABELS } from '@/lib/constants';
 
 type Tab = 'overview' | 'availability' | 'schedule';
 
@@ -280,14 +276,13 @@ export default function GameDetailPage() {
   if (isLoading || loading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <LoadingSpinner />
       </div>
     );
   }
 
   if (!game) return null;
 
-  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const allPlayers = [game.gm, ...game.members];
   const confirmedSessions = sessions.filter((s) => s.status === 'confirmed');
 
@@ -372,7 +367,7 @@ export default function GameDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm text-muted-foreground">Play Days</p>
-                <p className="text-card-foreground">{game.play_days.map((d) => DAYS[d]).join(', ')}</p>
+                <p className="text-card-foreground">{game.play_days.map((d) => DAY_LABELS.full[d]).join(', ')}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Scheduling Window</p>
@@ -422,7 +417,6 @@ export default function GameDetailPage() {
           gameName={game.name}
           onConfirm={handleConfirmSession}
           onCancel={handleCancelSession}
-          gameId={gameId}
         />
       )}
     </div>

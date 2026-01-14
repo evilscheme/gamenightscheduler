@@ -36,6 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = getSupabaseClient();
 
   const fetchProfile = useCallback(async (userId: string) => {
+    const start = performance.now();
+    console.log('[Auth] fetchProfile started for user:', userId);
     try {
       // Add timeout to prevent hanging
       const fetchPromise = supabase
@@ -49,12 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
 
       const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as Awaited<typeof fetchPromise>;
+      console.log('[Auth] fetchProfile completed in', (performance.now() - start).toFixed(0), 'ms', { hasData: !!data, error });
 
       if (data && !error) {
         setProfile(data as User);
       }
-    } catch {
+    } catch (e) {
       // Timeout or error - continue without profile
+      console.log('[Auth] fetchProfile FAILED in', (performance.now() - start).toFixed(0), 'ms', e);
     }
     setIsLoading(false);
   }, [supabase]);
@@ -63,15 +67,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
 
     async function initializeAuth() {
+      const start = performance.now();
+      console.log('[Auth] initializeAuth started');
+
       // Use getUser() which validates the session and refreshes the token if needed
       // This ensures we have a valid token before making any database queries
       // Unlike getSession(), this won't return an expired session
       const { data: { user }, error } = await supabase.auth.getUser();
+      console.log('[Auth] getUser completed in', (performance.now() - start).toFixed(0), 'ms', { hasUser: !!user, error: error?.message });
 
       if (!isMounted) return;
 
       if (error || !user) {
         // No valid session
+        console.log('[Auth] No valid session, finishing');
         setSession(null);
         setUser(null);
         setIsLoading(false);
@@ -80,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // We have a validated user, now get the session object
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('[Auth] getSession completed in', (performance.now() - start).toFixed(0), 'ms');
 
       if (!isMounted) return;
 
@@ -87,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user);
 
       await fetchProfile(user.id);
+      console.log('[Auth] initializeAuth finished in', (performance.now() - start).toFixed(0), 'ms');
     }
 
     // Start initialization immediately
@@ -96,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[Auth] onAuthStateChange event:', event, { hasSession: !!session });
       if (!isMounted) return;
 
       // Skip INITIAL_SESSION since initializeAuth() handles it

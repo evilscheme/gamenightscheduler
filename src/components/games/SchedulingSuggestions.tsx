@@ -243,7 +243,14 @@ export function SchedulingSuggestions({
                   );
 
                   return (
-                    <li key={suggestion.date} className="py-4">
+                    <li
+                      key={suggestion.date}
+                      className={`py-4 -mx-4 px-4 rounded-lg ${
+                        isConfirmed
+                          ? 'bg-green-500/10 dark:bg-green-500/15'
+                          : ''
+                      }`}
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3">

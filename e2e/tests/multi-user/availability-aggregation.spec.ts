@@ -216,9 +216,7 @@ test.describe('Multi-User Availability Aggregation', () => {
     await expect(page.getByText('2 pending')).toBeVisible();
   });
 
-  // TODO: This test is flaky due to browser context session management issues
-  // The multi-browser pattern with loginTestUser doesn't reliably maintain sessions
-  test.skip('cross-user visibility after availability change', async ({ browser, request }) => {
+  test('cross-user visibility after availability change', async ({ browser, request }) => {
     // Create GM + player
     const gm = await createTestUser(request, {
       email: `gm-cross-${Date.now()}@e2e.local`,
@@ -287,14 +285,10 @@ test.describe('Multi-User Availability Aggregation', () => {
       // Player marks themselves as available via API
       await setAvailability(player.id, game.id, [{ date: targetDate, is_available: true }]);
 
-      // GM navigates away and back (instead of reload to avoid session issues)
-      await gmPage.goto('/dashboard');
-      await expect(gmPage.getByRole('heading', { name: /your games/i })).toBeVisible({
-        timeout: TEST_TIMEOUTS.LONG,
-      });
+      // Reload the page to fetch fresh data (cookies are preserved on reload)
+      await gmPage.reload({ waitUntil: 'networkidle' });
 
-      // Navigate back to game schedule
-      await gmPage.goto(`/games/${game.id}`);
+      // Navigate to schedule tab again after reload
       await expect(gmPage.getByRole('button', { name: /schedule/i })).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });

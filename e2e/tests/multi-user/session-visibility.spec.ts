@@ -152,9 +152,7 @@ test.describe('Multi-User Session Visibility', () => {
     await expect(page.getByText(/10:00 PM/)).toBeVisible();
   });
 
-  // TODO: This test is flaky due to browser context session management issues
-  // The multi-browser pattern with loginTestUser doesn't reliably maintain sessions
-  test.skip('member list updates when new player joins', async ({ browser, request }) => {
+  test('member list updates when new player joins', async ({ browser, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-memberlist-${Date.now()}@e2e.local`,
       name: 'Member List GM',
@@ -193,8 +191,9 @@ test.describe('Multi-User Session Visibility', () => {
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
-      // Create and add new player
-      const player = await createTestUser(playerContext.request, {
+      // Create and add new player using the standalone request context
+      // (this is just for data creation, not for logging in)
+      const player = await createTestUser(request, {
         email: `player-memberlist-${Date.now()}@e2e.local`,
         name: 'New Member Player',
         is_gm: false,
@@ -215,15 +214,10 @@ test.describe('Multi-User Session Visibility', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // GM navigates away and back (instead of reload to avoid session issues)
-      await gmPage.goto('/dashboard');
-      await expect(gmPage.getByRole('heading', { name: /your games/i })).toBeVisible({
-        timeout: TEST_TIMEOUTS.LONG,
-      });
+      // Reload the page to fetch fresh data (cookies are preserved on reload)
+      await gmPage.reload({ waitUntil: 'networkidle' });
 
-      // Navigate back to game
-      await gmPage.goto(`/games/${game.id}`);
-      // Wait for page to fully load
+      // Wait for page to fully load after reload
       await expect(gmPage.getByRole('heading', { name: game.name })).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });

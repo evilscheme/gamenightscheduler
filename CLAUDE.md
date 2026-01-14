@@ -9,6 +9,12 @@ npm run dev      # Start development server at localhost:3000
 npm run build    # Build for production
 npm run lint     # Run ESLint
 npm run db:wipe  # Clear all data from database (keeps schema)
+
+# E2E Testing (Playwright)
+npm run test:e2e          # Run all e2e tests
+npm run test:e2e:ui       # Run with Playwright UI
+npm run test:e2e:headed   # Run in headed browser mode
+npm run test:e2e:debug    # Run in debug mode
 ```
 
 ## Architecture
@@ -23,9 +29,10 @@ Uses Supabase Auth with Google and Discord OAuth. OAuth providers are configured
 - `src/lib/supabase/client.ts` - Browser client (uses anon key)
 - `src/lib/supabase/server.ts` - Server client for server components
 - `src/lib/supabase/middleware.ts` - Session refresh helper
+- `src/proxy.ts` - Next.js 16 proxy configuration (replaces middleware.ts)
 - `src/app/auth/callback/route.ts` - OAuth callback handler
 
-The `useAuth()` hook provides: `user`, `profile`, `isLoading`, `signInWithGoogle()`, `signInWithDiscord()`, `signOut()`, `refreshProfile()`.
+The `useAuth()` hook provides: `user`, `session`, `profile`, `isLoading`, `signInWithGoogle()`, `signInWithDiscord()`, `signOut()`, `refreshProfile()`.
 
 ### Database
 
@@ -46,3 +53,18 @@ RLS uses `auth.uid()` and a `is_game_participant()` helper function (SECURITY DE
 - `src/components/layout/Providers.tsx` wraps app with ThemeProvider and AuthProvider
 - Users must enable "GM mode" in Settings (`is_gm` flag) to create games
 - Games use invite codes (nanoid) for players to join
+
+### Shared Utilities
+
+- `src/hooks/useAuthRedirect.ts` - Hook for protected pages (redirects to login, optionally requires GM)
+- `src/lib/constants.ts` - Shared constants (day labels, timeout values, session defaults)
+- `src/components/ui/` - Reusable components: Button, Card, Input, Textarea, LoadingSpinner, EmptyState
+
+### E2E Testing
+
+Tests are in `e2e/tests/` organized by feature. The test harness uses:
+- `e2e/fixtures/auth.fixture.ts` - Authenticated page fixture
+- `e2e/helpers/seed.ts` - Database seeding utilities
+- `e2e/helpers/test-auth.ts` - Test user authentication
+
+Tests require `.env.test.local` with test database credentials. CI runs via GitHub Actions (`.github/workflows/e2e.yml`).

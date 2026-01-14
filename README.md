@@ -77,6 +77,19 @@ Open [http://localhost:3000](http://localhost:3000)
 6. View **suggested dates** ranked by player availability
 7. **Confirm sessions** and export to your calendar
 
+## Testing
+
+The project uses Playwright for end-to-end testing.
+
+```bash
+npm run test:e2e          # Run all e2e tests
+npm run test:e2e:ui       # Run with Playwright UI
+npm run test:e2e:headed   # Run in headed browser mode
+npm run test:e2e:debug    # Run in debug mode
+```
+
+Tests require a `.env.test.local` file with test database credentials.
+
 ## Project Structure
 
 ```
@@ -90,14 +103,23 @@ src/
 ├── components/
 │   ├── calendar/          # Availability calendar
 │   ├── games/             # Game-related components
-│   ├── layout/            # Navbar, Providers
-│   └── ui/                # Reusable UI components
+│   ├── layout/            # Navbar, Providers, ThemeToggle
+│   └── ui/                # Reusable UI components (Button, Card, Input, etc.)
 ├── contexts/
 │   └── AuthContext.tsx    # Supabase Auth context
+├── hooks/
+│   └── useAuthRedirect.ts # Auth redirect hook for protected pages
 ├── lib/
+│   ├── constants.ts       # Shared constants (day labels, timeouts)
 │   ├── ics.ts             # Calendar export utilities
 │   └── supabase/          # Supabase clients (browser, server, admin)
+├── proxy.ts               # Next.js proxy configuration
 └── types/                 # TypeScript types
+
+e2e/
+├── fixtures/              # Playwright test fixtures
+├── helpers/               # Test utilities (auth, seeding)
+└── tests/                 # Test specs by feature
 ```
 
 ## License

@@ -61,8 +61,9 @@ export default defineConfig({
   timeout: 15000,
 
   // Expect timeout - time to wait for assertions
+  // 10s to account for auth state loading and React hydration
   expect: {
-    timeout: 3000,
+    timeout: 10000,
   },
 
   // Browser projects

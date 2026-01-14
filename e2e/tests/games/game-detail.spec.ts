@@ -29,7 +29,7 @@ test.describe('Game Detail Page', () => {
     await page.goto(`/games/${game.id}`);
     
     // Should see game name (wait for profile + data to load)
-    await expect(page.getByRole('heading', { name: /detail test campaign/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /detail test campaign/i })).toBeVisible();
 
     // Should see tabs
     await expect(page.getByRole('button', { name: /overview/i })).toBeVisible();
@@ -60,7 +60,7 @@ test.describe('Game Detail Page', () => {
     await page.goto(`/games/${game.id}`);
     
     // Should see copy invite link button (wait for page to load)
-    await expect(page.getByRole('button', { name: /copy invite link/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /copy invite link/i })).toBeVisible();
   });
 
   test('player can view game they are member of', async ({ page, request }) => {
@@ -95,7 +95,7 @@ test.describe('Game Detail Page', () => {
     await page.goto(`/games/${game.id}`);
     
     // Should see game name (wait for page to load)
-    await expect(page.getByRole('heading', { name: /player view campaign/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /player view campaign/i })).toBeVisible();
   });
 
   test('switching tabs works', async ({ page, request }) => {
@@ -120,19 +120,19 @@ test.describe('Game Detail Page', () => {
     await page.goto(`/games/${game.id}`);
     
     // Wait for page to load first
-    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible();
 
     // Click Availability tab
     await page.getByRole('button', { name: /availability/i }).click();
 
     // Should see availability content
-    await expect(page.getByText(/mark your availability/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
     // Click Schedule tab
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Should see scheduling content
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/date suggestions/i)).toBeVisible();
   });
 
   test('shows member list', async ({ page, request }) => {
@@ -166,7 +166,7 @@ test.describe('Game Detail Page', () => {
     
     // Should show both GM and player in members list (wait for page to load)
     // Use the member list section specifically to avoid matching navbar
-    await expect(page.getByRole('list').getByText(/members test gm/i)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole('list').getByText(/test player member/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('list').getByText(/members test gm/i)).toBeVisible();
+    await expect(page.getByRole('list').getByText(/test player member/i)).toBeVisible();
   });
 });

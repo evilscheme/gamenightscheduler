@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/components/ui';
+import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
 import { DAY_OPTIONS } from '@/lib/constants';
@@ -95,18 +95,13 @@ export default function NewGamePage() {
               required
             />
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Description (optional)
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="A brief description of your campaign..."
-                rows={3}
-                className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-              />
-            </div>
+            <Textarea
+              label="Description (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="A brief description of your campaign..."
+              rows={3}
+            />
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">

@@ -25,11 +25,11 @@ test.describe('Availability Calendar', () => {
     await page.goto(`/games/${game.id}`);
     
     // Wait for page to load, then switch to availability tab
-    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible();
     await page.getByRole('button', { name: /availability/i }).click();
 
     // Should see "Mark Your Availability" heading
-    await expect(page.getByText(/mark your availability/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
     // Should see day headers (S, M, T, W, T, F, S in the calendar)
     await expect(page.getByText(/^S$/).first()).toBeVisible();
@@ -66,11 +66,11 @@ test.describe('Availability Calendar', () => {
     await page.goto(`/games/${game.id}`);
     
     // Wait for page to load, then switch to availability tab
-    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible();
     await page.getByRole('button', { name: /availability/i }).click();
 
     // Should see the availability content
-    await expect(page.getByText(/mark your availability/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/mark your availability/i)).toBeVisible();
   });
 
   test('shows availability legend', async ({ page, request }) => {
@@ -95,11 +95,11 @@ test.describe('Availability Calendar', () => {
     await page.goto(`/games/${game.id}`);
     
     // Wait for page to load, then switch to availability tab
-    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible();
     await page.getByRole('button', { name: /availability/i }).click();
 
     // Should see legend items
-    await expect(page.getByText(/available/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/available/i).first()).toBeVisible();
     await expect(page.getByText(/unavailable/i).first()).toBeVisible();
   });
 
@@ -126,11 +126,11 @@ test.describe('Availability Calendar', () => {
     await page.goto(`/games/${game.id}`);
     
     // Wait for page to load, then switch to availability tab
-    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible();
     await page.getByRole('button', { name: /availability/i }).click();
 
     // Wait for calendar to load
-    await expect(page.getByText(/mark your availability/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
     // Should see month headers (Jan 2026, Feb 2026, etc.)
     // The calendar shows abbreviated month names with year

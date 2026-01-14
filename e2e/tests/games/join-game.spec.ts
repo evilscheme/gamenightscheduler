@@ -29,7 +29,7 @@ test.describe('Join Game', () => {
     await page.goto(`/games/join/${game.invite_code}`);
     
     // Should see invitation message (wait for page to load)
-    await expect(page.getByText(/you've been invited/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/you've been invited/i)).toBeVisible();
     await expect(page.getByText(/join test campaign/i)).toBeVisible();
     await expect(page.getByText(/join test gm/i)).toBeVisible();
 
@@ -37,7 +37,7 @@ test.describe('Join Game', () => {
     await page.getByRole('button', { name: /join game/i }).click();
 
     // Should redirect to game detail page
-    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, );
   });
 
   test('existing member sees "already in game" message', async ({ page, request }) => {
@@ -76,7 +76,7 @@ test.describe('Join Game', () => {
     await page.goto(`/games/join/${game.invite_code}`);
     
     // Should see "already in game" message (wait for page to load)
-    await expect(page.getByText(/you're already in this game/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/you're already in this game/i)).toBeVisible();
 
     // Should see "Go to Game" button instead of "Join Game"
     await expect(page.getByRole('button', { name: /go to game/i })).toBeVisible();
@@ -109,7 +109,7 @@ test.describe('Join Game', () => {
     await page.goto(`/games/join/${game.invite_code}`);
     
     // Should see "already in game" message (wait for page to load)
-    await expect(page.getByText(/you're already in this game/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/you're already in this game/i)).toBeVisible();
   });
 
   test('shows error for invalid invite code', async ({ page }) => {
@@ -124,7 +124,7 @@ test.describe('Join Game', () => {
     await page.goto('/games/join/invalid-code-12345');
     
     // Should see error message (wait for page to load)
-    await expect(page.getByText(/game not found/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/game not found/i)).toBeVisible();
   });
 
   test('unauthenticated user is redirected to login', async ({ page }) => {
@@ -132,6 +132,6 @@ test.describe('Join Game', () => {
     await page.goto('/games/join/some-invite-code');
 
     // Should be redirected to login with callback URL
-    await expect(page).toHaveURL(/\/login\?callbackUrl=.*join.*some-invite-code/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/login\?callbackUrl=.*join.*some-invite-code/, );
   });
 });

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import Link from 'next/link';
-import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
+import { Button, Card, CardContent, EmptyState, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { GameWithGM } from '@/types';
 import { DAY_LABELS } from '@/lib/constants';
@@ -100,23 +100,27 @@ export default function DashboardPage() {
 
       {games.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <span className="text-5xl mb-4 block">🎲</span>
-            <h2 className="text-xl font-semibold text-card-foreground mb-2">No games yet</h2>
-            <p className="text-muted-foreground mb-6">
-              {profile?.is_gm
-                ? "Create your first game to start scheduling sessions with your group."
-                : "Join a game using an invite link from your GM, or request GM status in settings to create your own."}
-            </p>
-            {profile?.is_gm ? (
-              <Link href="/games/new">
-                <Button>Create Your First Game</Button>
-              </Link>
-            ) : (
-              <Link href="/settings">
-                <Button variant="secondary">Go to Settings</Button>
-              </Link>
-            )}
+          <CardContent className="py-12">
+            <EmptyState
+              icon="🎲"
+              title="No games yet"
+              description={
+                profile?.is_gm
+                  ? "Create your first game to start scheduling sessions with your group."
+                  : "Join a game using an invite link from your GM, or request GM status in settings to create your own."
+              }
+              action={
+                profile?.is_gm ? (
+                  <Link href="/games/new">
+                    <Button>Create Your First Game</Button>
+                  </Link>
+                ) : (
+                  <Link href="/settings">
+                    <Button variant="secondary">Go to Settings</Button>
+                  </Link>
+                )
+              }
+            />
           </CardContent>
         </Card>
       ) : (

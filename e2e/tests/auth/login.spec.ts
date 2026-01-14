@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginTestUser } from '../../helpers/test-auth';
+import { TEST_TIMEOUTS } from '../../constants';
 
 test.describe('Authentication', () => {
   test('shows login page for unauthenticated users', async ({ page }) => {
@@ -27,7 +28,7 @@ test.describe('Authentication', () => {
     });
 
     // Wait for dashboard content to load (includes client-side data fetch)
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
   });
 
   test('authenticated user redirected from login to dashboard', async ({ page }) => {
@@ -40,9 +41,9 @@ test.describe('Authentication', () => {
 
     // Try to visit login page
     await page.goto('/login');
-    
+
     // Should be redirected to dashboard (wait for auth to load and redirect)
-    await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
+    await expect(page).toHaveURL('/dashboard');
   });
 
   test('login respects callbackUrl parameter', async ({ page }) => {
@@ -55,9 +56,9 @@ test.describe('Authentication', () => {
 
     // Visit login with callback URL
     await page.goto('/login?callbackUrl=/settings');
-    
+
     // Should redirect to the callback URL (settings) - wait for auth + redirect
-    await expect(page).toHaveURL('/settings', { timeout: 10000 });
+    await expect(page).toHaveURL('/settings');
   });
 
   test('GM users see "Create New Game" button on dashboard', async ({ page }) => {
@@ -69,7 +70,7 @@ test.describe('Authentication', () => {
     });
 
     // Wait for dashboard content to load (includes client-side data fetch)
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
 
     // Should see Create New Game button
     await expect(page.getByRole('link', { name: /create new game/i })).toBeVisible();
@@ -84,7 +85,7 @@ test.describe('Authentication', () => {
     });
 
     // Wait for dashboard content to load (includes client-side data fetch)
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
 
     // Should NOT see Create New Game button
     await expect(page.getByRole('link', { name: /create new game/i })).not.toBeVisible();

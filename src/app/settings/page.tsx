@@ -7,7 +7,7 @@ import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/
 import { createClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
-  const { profile, isLoading, refreshProfile } = useAuth();
+  const { profile, isLoading, refreshProfile, session } = useAuth();
   const [name, setName] = useState('');
   const [isGm, setIsGm] = useState(false);
   const [saving, setSaving] = useState(false);

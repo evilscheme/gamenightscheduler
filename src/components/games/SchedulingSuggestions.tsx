@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Button, Card, CardContent, CardHeader } from '@/components/ui';
+import { Button, Card, CardContent, CardHeader, EmptyState } from '@/components/ui';
 import { DateSuggestion, GameSession } from '@/types';
 import { generateICS } from '@/lib/ics';
 import { DAY_LABELS, SESSION_DEFAULTS } from '@/lib/constants';
@@ -151,9 +151,10 @@ export function SchedulingSuggestions({
         </CardHeader>
         <CardContent>
           {suggestions.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No available dates in the scheduling window.
-            </p>
+            <EmptyState
+              title="No available dates"
+              description="No available dates in the scheduling window."
+            />
           ) : (
             <>
               <ul className="divide-y divide-border">

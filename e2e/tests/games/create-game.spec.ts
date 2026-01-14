@@ -14,7 +14,7 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
 
     // Wait for form to load
-    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Fill out the form
     await page.getByPlaceholder(/curse of strahd/i).fill('Test D&D Campaign');
@@ -28,10 +28,10 @@ test.describe('Game Creation', () => {
     await page.getByRole('button', { name: /create game/i }).click();
 
     // Should redirect to the game detail page
-    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, );
 
     // Should see the game name
-    await expect(page.getByRole('heading', { name: /test d&d campaign/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /test d&d campaign/i })).toBeVisible();
   });
 
   test('non-GM is redirected away from create game page', async ({ page }) => {
@@ -46,7 +46,7 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
 
     // Should be redirected to dashboard (wait for auth/profile to load and redirect to trigger)
-    await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
+    await expect(page).toHaveURL('/dashboard', );
   });
 
   test('shows validation error when no play days selected', async ({ page }) => {
@@ -59,7 +59,7 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
 
     // Wait for form to load
-    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Fill only the name
     await page.getByPlaceholder(/curse of strahd/i).fill('Test Campaign');
@@ -81,7 +81,7 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
 
     // Wait for form to load
-    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Select play days but leave name empty
     await page.getByRole('button', { name: 'Friday' }).click();
@@ -103,7 +103,7 @@ test.describe('Game Creation', () => {
     await page.goto('/games/new');
 
     // Wait for form to load
-    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Change scheduling window to 3 months
     await page.getByRole('combobox').selectOption('3');
@@ -116,6 +116,6 @@ test.describe('Game Creation', () => {
     await page.getByRole('button', { name: /create game/i }).click();
 
     // Should redirect successfully
-    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, );
   });
 });

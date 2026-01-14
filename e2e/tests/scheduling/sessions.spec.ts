@@ -46,11 +46,11 @@ test.describe('Session Scheduling', () => {
     await page.goto(`/games/${game.id}`);
 
     // Switch to schedule tab (wait for button then click)
-    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Should see date suggestions section
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/date suggestions/i)).toBeVisible();
   });
 
   test('GM can see confirm button on suggestions', async ({ page, request }) => {
@@ -81,7 +81,7 @@ test.describe('Session Scheduling', () => {
     await page.goto(`/games/${game.id}`);
 
     // Switch to schedule tab (wait for button then click)
-    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Should see confirm button (only for GM)
@@ -123,11 +123,11 @@ test.describe('Session Scheduling', () => {
     await page.goto(`/games/${game.id}`);
 
     // Switch to schedule tab (wait for button then click)
-    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Player should see suggestions but no confirm buttons (only GM can confirm)
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/date suggestions/i)).toBeVisible();
   });
 
   test('shows confirmed sessions', async ({ page, request }) => {
@@ -164,11 +164,11 @@ test.describe('Session Scheduling', () => {
     await page.goto(`/games/${game.id}`);
 
     // Switch to schedule tab (wait for button then click)
-    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Should see confirmed sessions section or the session
-    await expect(page.getByText(/confirmed|session/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/confirmed|session/i).first()).toBeVisible();
   });
 
   test('shows export options for confirmed sessions', async ({ page, request }) => {
@@ -203,7 +203,7 @@ test.describe('Session Scheduling', () => {
     await page.goto(`/games/${game.id}`);
 
     // Switch to schedule tab (wait for button then click)
-    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Should see export options (like calendar export)

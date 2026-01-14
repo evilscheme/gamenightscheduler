@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
 import { createTestGame, addPlayerToGame } from '../../helpers/seed';
+import { TEST_TIMEOUTS } from '../../constants';
 
 /**
  * RLS (Row Level Security) Policy Tests
@@ -37,7 +38,7 @@ test.describe('RLS Policy Enforcement', () => {
     
     // Non-members can view game (RLS policy allows SELECT for all)
     // but they are not listed as players and don't see the invite link
-    await expect(page.getByRole('heading', { name: /viewable game/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /viewable game/i })).toBeVisible();
 
     // Verify the outsider is not in the players list (only GM is listed)
     await expect(page.getByText(/players \(1\)/i)).toBeVisible();
@@ -54,7 +55,7 @@ test.describe('RLS Policy Enforcement', () => {
     
     // Should be redirected to dashboard (non-GM users can't create games)
     // Wait for client-side redirect after profile loads and is_gm check fails
-    await expect(page).toHaveURL('/dashboard', { timeout: 10000 });
+    await expect(page).toHaveURL('/dashboard', );
   });
 
   test('member can view game they belong to', async ({ page, request }) => {
@@ -89,7 +90,7 @@ test.describe('RLS Policy Enforcement', () => {
     await page.goto(`/games/${game.id}`);
     
     // Should be able to see the game (wait for data to load)
-    await expect(page.getByRole('heading', { name: /member visible game/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /member visible game/i })).toBeVisible();
   });
 
   test('user can only see their own games on dashboard', async ({ page, request }) => {
@@ -130,10 +131,10 @@ test.describe('RLS Policy Enforcement', () => {
     await page.goto('/dashboard');
     
     // Wait for dashboard to load with games
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible();
 
     // Should see their own game
-    await expect(page.getByText(/second gm game/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/second gm game/i)).toBeVisible({ timeout: TEST_TIMEOUTS.SHORT });
 
     // Should NOT see the first GM's game
     await expect(page.getByText(/first gm game/i)).not.toBeVisible();
@@ -171,11 +172,11 @@ test.describe('RLS Policy Enforcement', () => {
     await page.goto(`/games/${game.id}`);
     
     // Wait for game page to load with data
-    await expect(page.getByRole('heading', { name: /badge test game/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /badge test game/i })).toBeVisible();
 
     // Player should see the GM's name but they themselves are not GM of this game
     // Use .first() because the GM name appears in multiple places (header and player list)
-    await expect(page.getByText(/badge test gm/i).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/badge test gm/i).first()).toBeVisible({ timeout: TEST_TIMEOUTS.SHORT });
   });
 
   test('settings page shows correct GM status', async ({ page }) => {
@@ -189,10 +190,10 @@ test.describe('RLS Policy Enforcement', () => {
     await page.goto('/settings');
     
     // Wait for settings page to load with profile data
-    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible();
 
     // Should see GM mode toggle in unchecked state
-    await expect(page.getByText(/game master mode/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/game master mode/i)).toBeVisible({ timeout: TEST_TIMEOUTS.SHORT });
   });
 
   test('invite link only visible to GM of the game', async ({ page, request }) => {
@@ -228,7 +229,7 @@ test.describe('RLS Policy Enforcement', () => {
     await page.goto(`/games/${game.id}`);
     
     // Wait for game page to load with data
-    await expect(page.getByRole('heading', { name: /invite visibility game/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /invite visibility game/i })).toBeVisible();
 
     // Player should NOT see copy invite link button (only GM sees it)
     // This depends on the implementation - some apps show invite to all members

@@ -17,22 +17,14 @@ export function Navbar() {
               <span className="text-2xl">🎲</span>
               <span className="font-bold text-xl text-foreground">Quest Calendar</span>
             </Link>
-            {profile && (
+            {profile?.is_gm && (
               <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
                 <Link
-                  href="/dashboard"
+                  href="/games/new"
                   className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors"
                 >
-                  Dashboard
+                  New Game
                 </Link>
-                {profile.is_gm && (
-                  <Link
-                    href="/games/new"
-                    className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors"
-                  >
-                    New Game
-                  </Link>
-                )}
               </div>
             )}
           </div>

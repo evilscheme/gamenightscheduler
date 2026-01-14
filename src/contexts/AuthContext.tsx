@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@/types';
@@ -19,50 +19,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Create a singleton supabase client to avoid recreating on each render
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+function getSupabaseClient() {
+  if (!supabaseClient) {
+    supabaseClient = createClient();
+  }
+  return supabaseClient;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
 
-  useEffect(() => {
-    let isMounted = true;
-
-    // Listen for auth changes - this is the source of truth
-    // onAuthStateChange fires immediately with initial state, so we rely on it
-    // rather than getSession() to avoid race conditions
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
-
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setIsLoading(false);
-      }
-    });
-
-    // Fallback: if onAuthStateChange doesn't fire quickly, assume no session
-    const timeoutId = setTimeout(() => {
-      if (isMounted) {
-        setIsLoading(false);
-      }
-    }, TIMEOUTS.AUTH_STATE_FALLBACK);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  async function fetchProfile(userId: string) {
+  const fetchProfile = useCallback(async (userId: string) => {
     try {
       // Add timeout to prevent hanging
       const fetchPromise = supabase
@@ -84,7 +57,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Timeout or error - continue without profile
     }
     setIsLoading(false);
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    let isMounted = true;
+    let initialLoadComplete = false;
+
+    // Listen for auth state changes - this is the ONLY source of truth
+    // DO NOT call getUser() separately - it's slow (5+ seconds for token refresh)
+    // Instead, let onAuthStateChange handle everything:
+    // - SIGNED_IN fires BEFORE token refresh (has expired token) - skip during initial load
+    // - INITIAL_SESSION fires AFTER token refresh (has valid token) - use this for initial load
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
+      // During initial load, skip SIGNED_IN - it fires before token refresh completes
+      // The session it provides has an expired access token, causing profile fetch to fail
+      // INITIAL_SESSION will fire shortly after with a valid, refreshed token
+      if (event === 'SIGNED_IN' && !initialLoadComplete) {
+        return;
+      }
+
+      // INITIAL_SESSION marks the completion of initial auth check (including token refresh)
+      if (event === 'INITIAL_SESSION') {
+        initialLoadComplete = true;
+      }
+
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase, fetchProfile]);
 
   async function signInWithGoogle(redirectTo?: string) {
     const redirectUrl = `${window.location.origin}/auth/callback${

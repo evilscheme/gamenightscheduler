@@ -63,26 +63,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
 
     async function initializeAuth() {
-      // Get session immediately from storage (no network call needed)
-      // This is fast because it reads from cookies/localStorage
+      // Use getUser() which validates the session and refreshes the token if needed
+      // This ensures we have a valid token before making any database queries
+      // Unlike getSession(), this won't return an expired session
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      if (!isMounted) return;
+
+      if (error || !user) {
+        // No valid session
+        setSession(null);
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      // We have a validated user, now get the session object
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!isMounted) return;
 
       setSession(session);
-      setUser(session?.user ?? null);
+      setUser(user);
 
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
+      await fetchProfile(user.id);
     }
 
     // Start initialization immediately
     initializeAuth();
 
-    // Listen for auth changes (handles token refresh, sign in/out, etc.)
+    // Listen for auth changes (handles sign in/out, token refresh, etc.)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {

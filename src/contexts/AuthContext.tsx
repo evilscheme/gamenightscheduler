@@ -65,53 +65,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    let initialLoadComplete = false;
 
-    async function initializeAuth() {
-      const start = performance.now();
-      console.log('[Auth] initializeAuth started');
-
-      // Use getUser() which validates the session and refreshes the token if needed
-      // This ensures we have a valid token before making any database queries
-      // Unlike getSession(), this won't return an expired session
-      const { data: { user }, error } = await supabase.auth.getUser();
-      console.log('[Auth] getUser completed in', (performance.now() - start).toFixed(0), 'ms', { hasUser: !!user, error: error?.message });
-
-      if (!isMounted) return;
-
-      if (error || !user) {
-        // No valid session
-        console.log('[Auth] No valid session, finishing');
-        setSession(null);
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
-      // We have a validated user, now get the session object
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('[Auth] getSession completed in', (performance.now() - start).toFixed(0), 'ms');
-
-      if (!isMounted) return;
-
-      setSession(session);
-      setUser(user);
-
-      await fetchProfile(user.id);
-      console.log('[Auth] initializeAuth finished in', (performance.now() - start).toFixed(0), 'ms');
-    }
-
-    // Start initialization immediately
-    initializeAuth();
-
-    // Listen for auth changes (handles sign in/out, token refresh, etc.)
+    // Listen for auth state changes - this is the ONLY source of truth
+    // DO NOT call getUser() separately - it's slow (5+ seconds for token refresh)
+    // Instead, let onAuthStateChange handle everything:
+    // - SIGNED_IN fires BEFORE token refresh (has expired token) - skip during initial load
+    // - INITIAL_SESSION fires AFTER token refresh (has valid token) - use this for initial load
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[Auth] onAuthStateChange event:', event, { hasSession: !!session });
+      console.log('[Auth] onAuthStateChange event:', event, { hasSession: !!session, initialLoadComplete });
       if (!isMounted) return;
 
-      // Skip INITIAL_SESSION since initializeAuth() handles it
-      if (event === 'INITIAL_SESSION') return;
+      // During initial load, skip SIGNED_IN - it fires before token refresh completes
+      // The session it provides has an expired access token, causing profile fetch to fail
+      // INITIAL_SESSION will fire shortly after with a valid, refreshed token
+      if (event === 'SIGNED_IN' && !initialLoadComplete) {
+        console.log('[Auth] Skipping SIGNED_IN during initial load (waiting for INITIAL_SESSION)');
+        return;
+      }
+
+      // INITIAL_SESSION marks the completion of initial auth check (including token refresh)
+      if (event === 'INITIAL_SESSION') {
+        initialLoadComplete = true;
+      }
 
       setSession(session);
       setUser(session?.user ?? null);

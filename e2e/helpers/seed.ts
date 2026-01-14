@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { execSync } from 'child_process';
+import * as path from 'path';
 
 /**
  * Database seeding helpers for E2E tests.
@@ -91,11 +93,12 @@ export async function addPlayerToGame(
 
 /**
  * Set availability for a user on specific dates.
+ * Supports both old boolean format (is_available) and new status format.
  */
 export async function setAvailability(
   userId: string,
   gameId: string,
-  dates: { date: string; is_available: boolean }[]
+  dates: { date: string; is_available?: boolean; status?: 'available' | 'unavailable' | 'maybe'; comment?: string }[]
 ): Promise<void> {
   const admin = getAdminClient();
 
@@ -103,7 +106,9 @@ export async function setAvailability(
     user_id: userId,
     game_id: gameId,
     date: d.date,
-    is_available: d.is_available,
+    // Support both old is_available and new status format
+    status: d.status ?? (d.is_available ? 'available' : 'unavailable'),
+    comment: d.comment ?? null,
   }));
 
   const { error } = await admin
@@ -256,4 +261,58 @@ export function getPlayDates(
   }
 
   return dates;
+}
+
+// Docker container name for local Supabase
+const SUPABASE_DB_CONTAINER = 'supabase_db_dndscheduler';
+
+/**
+ * Check if Supabase Docker container is running.
+ */
+export function isSupabaseRunning(): boolean {
+  try {
+    const result = execSync(`docker ps --filter "name=${SUPABASE_DB_CONTAINER}" --format "{{.Names}}"`, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    return result.trim() === SUPABASE_DB_CONTAINER;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reset the database schema by dropping all tables and reapplying schema.sql.
+ * This ensures tests always run against a fresh, known-good schema.
+ */
+export function resetDatabaseSchema(): void {
+  const schemaPath = path.resolve(__dirname, '../../supabase/schema.sql');
+
+  // SQL to drop all app tables and types (in dependency order)
+  const dropSql = `
+    DROP TABLE IF EXISTS sessions CASCADE;
+    DROP TABLE IF EXISTS availability CASCADE;
+    DROP TABLE IF EXISTS game_memberships CASCADE;
+    DROP TABLE IF EXISTS games CASCADE;
+    DROP TABLE IF EXISTS users CASCADE;
+    DROP TYPE IF EXISTS session_status CASCADE;
+    DROP TYPE IF EXISTS availability_status CASCADE;
+  `;
+
+  try {
+    // Drop existing tables
+    execSync(
+      `docker exec -i ${SUPABASE_DB_CONTAINER} psql -U postgres -d postgres -c "${dropSql.replace(/\n/g, ' ')}"`,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+    );
+
+    // Apply fresh schema
+    execSync(
+      `docker exec -i ${SUPABASE_DB_CONTAINER} psql -U postgres -d postgres < "${schemaPath}"`,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to reset database schema: ${message}`);
+  }
 }

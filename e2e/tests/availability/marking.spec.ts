@@ -44,20 +44,24 @@ test.describe('Availability Marking', () => {
 
     // Initial state: should have card background (not green or red)
     // Click to mark as available
+    // New cycle: unset -> unavailable -> maybe (modal) -> available -> unavailable
     await dateButton.click();
 
-    // After first click, should show unavailable (red) - the toggle goes undefined -> false -> true
-    // Wait for visual change - the button should have green background class
-    // Actually looking at the code: undefined -> false (unavailable) on first click
-    // Then false -> true (available) on second click
-    // Let me re-read the toggle logic...
-    // currentAvail === false ? true : currentAvail === true ? false : false
-    // So: if false -> true, if true -> false, if undefined -> false
-
-    // First click: undefined -> false (unavailable/red)
+    // First click: unset -> unavailable (red)
     await expect(dateButton).toHaveClass(/bg-red/);
 
-    // Second click: false -> true (available/green)
+    // Second click: unavailable -> maybe (opens modal)
+    await dateButton.click();
+
+    // Modal should appear - click Save to confirm "maybe" status
+    const saveButton = page.getByRole('button', { name: 'Save' });
+    await expect(saveButton).toBeVisible();
+    await saveButton.click();
+
+    // Should now show yellow (maybe)
+    await expect(dateButton).toHaveClass(/bg-yellow/);
+
+    // Third click: maybe -> available (green)
     await dateButton.click();
     await expect(dateButton).toHaveClass(/bg-green/);
 
@@ -114,13 +118,24 @@ test.describe('Availability Marking', () => {
     const dateButton = page.locator(`button[title="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
-    // Click twice to get to available (green)
-    await dateButton.click(); // undefined -> false (red)
-    await dateButton.click(); // false -> true (green)
+    // New cycle: unset -> unavailable -> maybe (modal) -> available -> unavailable
+    // Click to get to unavailable first
+    await dateButton.click(); // unset -> unavailable (red)
+    await expect(dateButton).toHaveClass(/bg-red/);
+
+    // Click to get to maybe (opens modal)
+    await dateButton.click();
+    const saveButton = page.getByRole('button', { name: 'Save' });
+    await expect(saveButton).toBeVisible();
+    await saveButton.click();
+    await expect(dateButton).toHaveClass(/bg-yellow/);
+
+    // Click to get to available (green)
+    await dateButton.click();
     await expect(dateButton).toHaveClass(/bg-green/);
 
     // Click again to toggle back to unavailable (red)
-    await dateButton.click(); // true -> false (red)
+    await dateButton.click(); // available -> unavailable (red)
     await expect(dateButton).toHaveClass(/bg-red/);
   });
 

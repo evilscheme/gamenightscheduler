@@ -6,8 +6,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
-import { User, Availability, GameSession, DateSuggestion, GameWithMembers } from '@/types';
-import { AvailabilityCalendar } from '@/components/calendar/AvailabilityCalendar';
+import { User, Availability, AvailabilityStatus, GameSession, DateSuggestion, GameWithMembers } from '@/types';
+import { AvailabilityCalendar, AvailabilityEntry } from '@/components/calendar/AvailabilityCalendar';
 import { SchedulingSuggestions } from '@/components/games/SchedulingSuggestions';
 import {
   addMonths,
@@ -32,7 +32,7 @@ export default function GameDetailPage() {
   const [game, setGame] = useState<GameWithMembers | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [availability, setAvailability] = useState<Record<string, boolean>>({});
+  const [availability, setAvailability] = useState<Record<string, AvailabilityEntry>>({});
   const [allAvailability, setAllAvailability] = useState<Availability[]>([]);
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
@@ -74,9 +74,9 @@ export default function GameDetailPage() {
       .eq('game_id', gameId)
       .eq('user_id', profile.id);
 
-    const availMap: Record<string, boolean> = {};
+    const availMap: Record<string, AvailabilityEntry> = {};
     userAvail?.forEach((a) => {
-      availMap[a.date] = a.is_available;
+      availMap[a.date] = { status: a.status, comment: a.comment };
     });
     setAvailability(availMap);
 
@@ -120,6 +120,7 @@ export default function GameDetailPage() {
       .map((date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const availablePlayers: User[] = [];
+        const maybePlayers: { user: User; comment: string | null }[] = [];
         const unavailablePlayers: User[] = [];
         const pendingPlayers: User[] = [];
 
@@ -130,8 +131,10 @@ export default function GameDetailPage() {
           // No record = pending (hasn't responded yet)
           if (!playerAvail) {
             pendingPlayers.push(player);
-          } else if (playerAvail.is_available) {
+          } else if (playerAvail.status === 'available') {
             availablePlayers.push(player);
+          } else if (playerAvail.status === 'maybe') {
+            maybePlayers.push({ user: player, comment: playerAvail.comment });
           } else {
             unavailablePlayers.push(player);
           }
@@ -141,18 +144,23 @@ export default function GameDetailPage() {
           date: dateStr,
           dayOfWeek: getDay(date),
           availableCount: availablePlayers.length,
+          maybeCount: maybePlayers.length,
           unavailableCount: unavailablePlayers.length,
           pendingCount: pendingPlayers.length,
           totalPlayers: allPlayers.length,
           availablePlayers,
+          maybePlayers,
           unavailablePlayers,
           pendingPlayers,
         };
       })
       .sort((a, b) => {
-        // Sort by available count (descending), then by pending count (ascending, fewer pending = more confidence), then by date
+        // Sort by available count (descending), then by maybe count, then by pending count (ascending), then by date
         if (b.availableCount !== a.availableCount) {
           return b.availableCount - a.availableCount;
+        }
+        if (b.maybeCount !== a.maybeCount) {
+          return b.maybeCount - a.maybeCount;
         }
         if (a.pendingCount !== b.pendingCount) {
           return a.pendingCount - b.pendingCount;
@@ -163,18 +171,19 @@ export default function GameDetailPage() {
     setSuggestions(suggestionList);
   }, [game, allAvailability]);
 
-  const handleAvailabilityChange = async (date: string, isAvailable: boolean) => {
+  const handleAvailabilityChange = async (date: string, status: AvailabilityStatus, comment: string | null) => {
     if (!profile?.id || !gameId) return;
 
     // Optimistic update
-    setAvailability((prev) => ({ ...prev, [date]: isAvailable }));
+    setAvailability((prev) => ({ ...prev, [date]: { status, comment } }));
 
     const { error } = await supabase.from('availability').upsert(
       {
         user_id: profile.id,
         game_id: gameId,
         date,
-        is_available: isAvailable,
+        status,
+        comment,
       },
       { onConflict: 'user_id,game_id,date' }
     );
@@ -194,7 +203,7 @@ export default function GameDetailPage() {
         );
         if (existing >= 0) {
           const updated = [...prev];
-          updated[existing] = { ...updated[existing], is_available: isAvailable };
+          updated[existing] = { ...updated[existing], status, comment };
           return updated;
         }
         return [
@@ -204,7 +213,8 @@ export default function GameDetailPage() {
             user_id: profile.id,
             game_id: gameId,
             date,
-            is_available: isAvailable,
+            status,
+            comment,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -390,8 +400,8 @@ export default function GameDetailPage() {
           <div className="mb-6">
             <h2 className="text-lg font-semibold text-foreground mb-2">Mark Your Availability</h2>
             <p className="text-muted-foreground">
-              Click on dates to toggle your availability. Green means you're available, red means
-              you're not. Gray days are not play days for this game.
+              Click on dates to cycle through: unavailable (red) → maybe (yellow) → available (green) → unavailable.
+              For "maybe" dates, you can add an optional note. Gray days are not play days for this game.
             </p>
           </div>
           <AvailabilityCalendar

@@ -160,7 +160,7 @@ export async function POST(request: Request): Promise<Response> {
       response.cookies.set(cookie.name, cookie.value, {
         path: '/',
         httpOnly: false,  // Browser client needs to read this
-        secure: process.env.NODE_ENV === 'production',
+        secure: false,  // Test-only route, never runs in production
         sameSite: 'lax',
       });
     }

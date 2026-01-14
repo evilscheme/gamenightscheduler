@@ -42,13 +42,17 @@ CREATE TABLE game_memberships (
   UNIQUE(game_id, user_id)
 );
 
+-- Availability status enum
+CREATE TYPE availability_status AS ENUM ('available', 'unavailable', 'maybe');
+
 -- Availability table
 CREATE TABLE availability (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   date DATE NOT NULL,
-  is_available BOOLEAN NOT NULL DEFAULT TRUE,
+  status availability_status NOT NULL DEFAULT 'available',
+  comment TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, game_id, date)

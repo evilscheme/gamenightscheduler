@@ -80,3 +80,6 @@ npx playwright test "e2e/tests/settings/profile.spec.ts:46" --project=chromium
 # Run all tests in a directory
 npx playwright test e2e/tests/multi-user --project=chromium
 ```
+
+### Tools
+- psql is the postgres client library, not pgsql

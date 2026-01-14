@@ -1,12 +1,13 @@
 # TODO
 
 ## More Features
-- [ ] implement third "maybe" state for availability, along with optional note
+- [X] implement third "maybe" state for availability, along with optional note
 - [ ] allow games to have a default time of day set in addition to the play days
 - [ ] allows game presets to be editable by the GM
+- [X] show player availability in the confirmed games UI
 
 ## Integration & Deployment
-- [ ] implement google OAuth
+- [X] implement google OAuth
 - [ ] figure out deployment (Vercel?)
 
 ## Security Constraints

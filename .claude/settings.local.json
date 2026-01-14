@@ -5,7 +5,8 @@
       "Bash(npx playwright test:*)",
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(curl:*)"
     ]
   }
 }

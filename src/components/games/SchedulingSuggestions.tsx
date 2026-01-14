@@ -98,44 +98,116 @@ export function SchedulingSuggestions({
           </CardHeader>
           <CardContent>
             <ul className="divide-y divide-border">
-              {confirmedSessions.map((session) => (
-                <li
-                  key={session.id}
-                  className="py-3 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">🎲</span>
-                    <div>
-                      <p className="font-medium text-card-foreground">
-                        {format(new Date(session.date), 'EEEE, MMMM d, yyyy')}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {session.start_time && session.end_time
-                          ? `${formatTime(session.start_time)} - ${formatTime(session.end_time)}`
-                          : DAY_LABELS.full[new Date(session.date).getDay()]}
-                      </p>
+              {confirmedSessions.map((session) => {
+                const suggestion = suggestions.find((s) => s.date === session.date);
+                const availablePercent = suggestion
+                  ? Math.round((suggestion.availableCount / suggestion.totalPlayers) * 100)
+                  : 0;
+                const unavailablePercent = suggestion
+                  ? Math.round((suggestion.unavailableCount / suggestion.totalPlayers) * 100)
+                  : 0;
+                const pendingPercent = suggestion
+                  ? Math.round((suggestion.pendingCount / suggestion.totalPlayers) * 100)
+                  : 0;
+
+                return (
+                  <li key={session.id} className="py-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3 flex-1">
+                        <span className="text-2xl">🎲</span>
+                        <div className="flex-1">
+                          <p className="font-medium text-card-foreground">
+                            {format(new Date(session.date), 'EEEE, MMMM d, yyyy')}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {session.start_time && session.end_time
+                              ? `${formatTime(session.start_time)} - ${formatTime(session.end_time)}`
+                              : DAY_LABELS.full[new Date(session.date).getDay()]}
+                          </p>
+                          {suggestion && (
+                            <>
+                              {/* Segmented progress bar */}
+                              <div className="mt-2 flex items-center gap-2">
+                                <div className="flex-1 max-w-xs bg-muted rounded-full h-2.5 overflow-hidden flex">
+                                  {availablePercent > 0 && (
+                                    <div
+                                      className="h-2.5 bg-green-500"
+                                      style={{ width: `${availablePercent}%` }}
+                                    />
+                                  )}
+                                  {unavailablePercent > 0 && (
+                                    <div
+                                      className="h-2.5 bg-red-500"
+                                      style={{ width: `${unavailablePercent}%` }}
+                                    />
+                                  )}
+                                  {pendingPercent > 0 && (
+                                    <div
+                                      className="h-2.5 bg-muted-foreground/50"
+                                      style={{ width: `${pendingPercent}%` }}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                              {/* Status counts */}
+                              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+                                <span className="text-green-600 dark:text-green-400">
+                                  {suggestion.availableCount} available
+                                </span>
+                                <span className="text-red-600 dark:text-red-400">
+                                  {suggestion.unavailableCount} unavailable
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {suggestion.pendingCount} pending
+                                </span>
+                              </div>
+                              {/* Player details */}
+                              <div className="mt-2 text-sm space-y-1">
+                                {suggestion.availablePlayers.length > 0 && (
+                                  <p className="text-muted-foreground">
+                                    <span className="text-green-600 dark:text-green-400">Available:</span>{' '}
+                                    {suggestion.availablePlayers.map((p) => p.name).join(', ')}
+                                  </p>
+                                )}
+                                {suggestion.unavailablePlayers.length > 0 && (
+                                  <p className="text-muted-foreground">
+                                    <span className="text-red-600 dark:text-red-400">Unavailable:</span>{' '}
+                                    {suggestion.unavailablePlayers.map((p) => p.name).join(', ')}
+                                  </p>
+                                )}
+                                {suggestion.pendingPlayers.length > 0 && (
+                                  <p className="text-muted-foreground">
+                                    <span className="text-muted-foreground">Pending:</span>{' '}
+                                    {suggestion.pendingPlayers.map((p) => p.name).join(', ')}
+                                  </p>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleExportSingle(session)}
+                        >
+                          Export
+                        </Button>
+                        {isGm && (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => onCancel(session.date)}
+                          >
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleExportSingle(session)}
-                    >
-                      Export
-                    </Button>
-                    {isGm && (
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => onCancel(session.date)}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </CardContent>
         </Card>

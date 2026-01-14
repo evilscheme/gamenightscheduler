@@ -1,13 +1,17 @@
 # TODO
 
-## Calendar Improvements
-- [X] Redesign calendar to be more compact and space-efficient
-- [X] Show multiple months in one view
+## More Features
+- [ ] implement third "maybe" state for availability, along with optional note
+- [ ] allow games to have a default time of day set in addition to the play days
+- [ ] allows game presets to be editable by the GM
 
-## Calendar Export & Session Times
-- [X] Use game name instead of "Game Night" for calendar export titles
-- [X] Add time tracking for sessions (e.g., 4-8pm)
-- [X] Let GM specify start/end time when scheduling a session
+## Integration & Deployment
+- [ ] implement google OAuth
+- [ ] figure out deployment (Vercel?)
 
-## Testing
-- [ ] Create comprehensive test suite for the application
+## Security Constraints
+- [ ] games should not be publicly visible, and only visible to members and the owning GM
+- [ ] users should only be able to see other users if they share one or more gamess
+
+## Bugs
+- [ ] calendar events have no timezone

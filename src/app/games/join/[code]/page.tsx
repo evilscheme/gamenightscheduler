@@ -12,7 +12,7 @@ interface GameWithGM extends Game {
 }
 
 export default function JoinGamePage() {
-  const { profile, isLoading } = useAuth();
+  const { profile, isLoading, session } = useAuth();
   const router = useRouter();
   const params = useParams();
   const code = params.code as string;
@@ -25,10 +25,11 @@ export default function JoinGamePage() {
   const [alreadyMember, setAlreadyMember] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !profile) {
+    // Only redirect if auth is done loading AND there's no session
+    if (!isLoading && !session) {
       router.push(`/login?callbackUrl=/games/join/${code}`);
     }
-  }, [isLoading, profile, router, code]);
+  }, [isLoading, session, router, code]);
 
   useEffect(() => {
     async function fetchGame() {
@@ -91,7 +92,8 @@ export default function JoinGamePage() {
     router.push(`/games/${game.id}`);
   };
 
-  if (isLoading || loading) {
+  // Show spinner while auth is loading OR while we have a session but profile hasn't loaded yet
+  if (isLoading || loading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

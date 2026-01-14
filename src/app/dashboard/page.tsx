@@ -14,21 +14,27 @@ interface GameWithGM extends Game {
 }
 
 export default function DashboardPage() {
-  const { profile, isLoading } = useAuth();
+  const { profile, isLoading, session } = useAuth();
   const router = useRouter();
   const [games, setGames] = useState<GameWithGM[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
-    if (!isLoading && !profile) {
+    // Only redirect if auth is done loading AND there's no session
+    // Don't redirect just because profile hasn't loaded yet - session is sufficient proof of auth
+    if (!isLoading && !session) {
       router.push('/login');
     }
-  }, [isLoading, profile, router]);
+  }, [isLoading, session, router]);
 
   useEffect(() => {
     async function fetchGames() {
-      if (!profile?.id) return;
+      if (!profile?.id) {
+        // No profile, nothing to fetch
+        setLoading(false);
+        return;
+      }
 
       // Fetch games where user is GM or member
       const { data: memberships } = await supabase
@@ -70,10 +76,14 @@ export default function DashboardPage() {
 
     if (profile?.id) {
       fetchGames();
+    } else if (!isLoading) {
+      // Auth finished but no profile - stop loading
+      setLoading(false);
     }
-  }, [profile?.id]);
+  }, [profile?.id, isLoading]);
 
-  if (isLoading || loading) {
+  // Show spinner while auth is loading, data is loading, or profile hasn't loaded yet
+  if (isLoading || loading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />

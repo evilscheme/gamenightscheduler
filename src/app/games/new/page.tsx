@@ -18,7 +18,7 @@ const DAYS = [
 ];
 
 export default function NewGamePage() {
-  const { profile, isLoading } = useAuth();
+  const { profile, isLoading, session } = useAuth();
   const router = useRouter();
   const supabase = createClient();
 
@@ -30,12 +30,14 @@ export default function NewGamePage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isLoading && !profile) {
+    // Only redirect if auth is done loading AND there's no session
+    if (!isLoading && !session) {
       router.push('/login');
     } else if (!isLoading && profile && !profile.is_gm) {
+      // If profile loaded but not a GM, redirect to dashboard
       router.push('/dashboard');
     }
-  }, [isLoading, profile, router]);
+  }, [isLoading, session, profile, router]);
 
   const toggleDay = (day: number) => {
     setPlayDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
@@ -82,7 +84,8 @@ export default function NewGamePage() {
     router.push(`/games/${data.id}`);
   };
 
-  if (isLoading) {
+  // Show spinner while auth is loading OR while we have a session but profile hasn't loaded yet
+  if (isLoading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />

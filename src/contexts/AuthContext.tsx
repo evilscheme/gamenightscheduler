@@ -26,21 +26,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
+    let isMounted = true;
 
-    // Listen for auth changes
+    // Listen for auth changes - this is the source of truth
+    // onAuthStateChange fires immediately with initial state, so we rely on it
+    // rather than getSession() to avoid race conditions
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+
       setSession(session);
       setUser(session?.user ?? null);
 
@@ -52,18 +47,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Fallback: if onAuthStateChange doesn't fire within 1 second, assume no session
+    const timeoutId = setTimeout(() => {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    }, 1000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      // Add timeout to prevent hanging
+      const fetchPromise = supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (data && !error) {
-      setProfile(data as User);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
+      );
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as Awaited<typeof fetchPromise>;
+
+      if (data && !error) {
+        setProfile(data as User);
+      }
+    } catch {
+      // Timeout or error - continue without profile
     }
     setIsLoading(false);
   }

@@ -5,16 +5,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
 
 function LoginContent() {
-  const { profile, isLoading, signInWithGoogle, signInWithDiscord } = useAuth();
+  const { session, isLoading, signInWithGoogle, signInWithDiscord } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
   useEffect(() => {
-    if (profile) {
+    // Redirect if user is already authenticated (check session, not profile)
+    if (session) {
       router.push(callbackUrl);
     }
-  }, [profile, router, callbackUrl]);
+  }, [session, router, callbackUrl]);
 
   if (isLoading) {
     return (

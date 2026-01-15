@@ -5,6 +5,7 @@
 - [ ] allow games to have a default time of day set in addition to the play days
 - [ ] allows game presets to be editable by the GM
 - [X] show player availability in the confirmed games UI
+- [ ] players should be able to leave games, and GMs should be able to remove players from their games
 
 ## Integration & Deployment
 - [X] implement google OAuth
@@ -16,3 +17,4 @@
 
 ## Bugs
 - [ ] calendar events have no timezone
+- [ ] light mode text can be hard to read in places

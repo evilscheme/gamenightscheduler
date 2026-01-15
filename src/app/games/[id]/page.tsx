@@ -17,6 +17,7 @@ import {
   format,
   isAfter,
   startOfDay,
+  parseISO,
 } from 'date-fns';
 import { DAY_LABELS, TIMEOUTS } from '@/lib/constants';
 
@@ -384,7 +385,7 @@ export default function GameDetailPage() {
                   <ul className="mt-1 space-y-1">
                     {confirmedSessions.slice(0, 3).map((s) => (
                       <li key={s.id} className="text-card-foreground">
-                        {format(new Date(s.date), 'EEEE, MMMM d, yyyy')}
+                        {format(parseISO(s.date), 'EEEE, MMMM d, yyyy')}
                       </li>
                     ))}
                   </ul>

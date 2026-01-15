@@ -251,7 +251,8 @@ test.describe('Availability Marking', () => {
     const playDates = getPlayDates([5, 6], 2);
     const targetDate = playDates[0];
 
-    const dateButton = page.locator(`button[title="${targetDate}"]`);
+    // Use contains selector since title changes after adding a comment
+    const dateButton = page.locator(`button[title*="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
     // Click twice to get to maybe status (unset -> unavailable -> maybe)

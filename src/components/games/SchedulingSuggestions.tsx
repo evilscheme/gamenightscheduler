@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Button, Card, CardContent, CardHeader, EmptyState } from '@/components/ui';
 import { DateSuggestion, GameSession } from '@/types';
 import { generateICS } from '@/lib/ics';
@@ -120,12 +120,12 @@ export function SchedulingSuggestions({
                         <span className="text-2xl">🎲</span>
                         <div className="flex-1">
                           <p className="font-medium text-card-foreground">
-                            {format(new Date(session.date), 'EEEE, MMMM d, yyyy')}
+                            {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {session.start_time && session.end_time
                               ? `${formatTime(session.start_time)} - ${formatTime(session.end_time)}`
-                              : DAY_LABELS.full[new Date(session.date).getDay()]}
+                              : DAY_LABELS.full[parseISO(session.date).getDay()]}
                           </p>
                           {suggestion && (
                             <>
@@ -278,7 +278,7 @@ export function SchedulingSuggestions({
                         <div className="flex-1">
                           <div className="flex items-center gap-3">
                             <p className="font-medium text-card-foreground">
-                              {format(new Date(suggestion.date), 'EEEE, MMMM d')}
+                              {format(parseISO(suggestion.date), 'EEEE, MMMM d')}
                             </p>
                             {isConfirmed && (
                               <span className="px-2 py-0.5 text-xs font-medium bg-green-500/20 text-green-700 dark:text-green-400 rounded">
@@ -393,7 +393,7 @@ export function SchedulingSuggestions({
               Schedule Session
             </h3>
             <p className="text-muted-foreground mb-4">
-              {format(new Date(confirmingDate), 'EEEE, MMMM d, yyyy')}
+              {format(parseISO(confirmingDate), 'EEEE, MMMM d, yyyy')}
             </p>
 
             <div className="space-y-4">

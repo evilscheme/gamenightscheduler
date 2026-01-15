@@ -11,6 +11,7 @@ import {
   isToday,
   isBefore,
   startOfDay,
+  parseISO,
 } from "date-fns";
 import { Button } from "@/components/ui";
 import { GameSession, AvailabilityStatus } from "@/types";
@@ -200,7 +201,7 @@ export function AvailabilityCalendar({
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-card-foreground">
-                Note for {format(new Date(commentingDate), 'MMM d')}
+                Note for {format(parseISO(commentingDate), 'MMM d')}
               </span>
               <button
                 onClick={handleMaybeCancel}

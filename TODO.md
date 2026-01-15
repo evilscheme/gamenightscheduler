@@ -2,14 +2,17 @@
 
 ## More Features
 - [X] implement third "maybe" state for availability, along with optional note
-- [ ] allow games to have a default time of day set in addition to the play days
-- [ ] allows game presets to be editable by the GM
+- [X] allow games to have a default time of day set in addition to the play days
+- [X] allows game presets to be editable by the GM
 - [X] show player availability in the confirmed games UI
 - [ ] players should be able to leave games, and GMs should be able to remove players from their games
+- [ ] better favicon
+- [ ] better app name & custom domain
+- [ ] better preview card for URLs when pasted to discord/messages
 
 ## Integration & Deployment
 - [X] implement google OAuth
-- [ ] figure out deployment (Vercel?)
+- [X] figure out deployment (Vercel?)
 
 ## Security Constraints
 - [ ] games should not be publicly visible, and only visible to members and the owning GM
@@ -17,4 +20,4 @@
 
 ## Bugs
 - [ ] calendar events have no timezone
-- [ ] light mode text can be hard to read in places
+- [X] light mode text can be hard to read in places

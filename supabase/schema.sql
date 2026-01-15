@@ -30,6 +30,8 @@ CREATE TABLE games (
   play_days INTEGER[] NOT NULL DEFAULT '{}',
   invite_code TEXT UNIQUE NOT NULL,
   scheduling_window_months INTEGER DEFAULT 2 CHECK (scheduling_window_months BETWEEN 1 AND 3),
+  default_start_time TIME DEFAULT '18:00',
+  default_end_time TIME DEFAULT '22:00',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

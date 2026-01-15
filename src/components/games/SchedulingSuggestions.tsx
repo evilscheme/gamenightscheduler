@@ -12,6 +12,8 @@ interface SchedulingSuggestionsProps {
   sessions: GameSession[];
   isGm: boolean;
   gameName: string;
+  defaultStartTime?: string | null;
+  defaultEndTime?: string | null;
   onConfirm: (date: string, startTime: string, endTime: string) => void;
   onCancel: (date: string) => void;
 }
@@ -21,18 +23,27 @@ export function SchedulingSuggestions({
   sessions,
   isGm,
   gameName,
+  defaultStartTime,
+  defaultEndTime,
   onConfirm,
   onCancel,
 }: SchedulingSuggestionsProps) {
+  // Use game's default times if set, otherwise fall back to SESSION_DEFAULTS
+  const initialStartTime = defaultStartTime?.slice(0, 5) || SESSION_DEFAULTS.START_TIME;
+  const initialEndTime = defaultEndTime?.slice(0, 5) || SESSION_DEFAULTS.END_TIME;
+
   const [showAll, setShowAll] = useState(false);
   const [confirmingDate, setConfirmingDate] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<string>(SESSION_DEFAULTS.START_TIME);
-  const [endTime, setEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
+  const [startTime, setStartTime] = useState<string>(initialStartTime);
+  const [endTime, setEndTime] = useState<string>(initialEndTime);
 
   const confirmedDates = new Set(sessions.filter((s) => s.status === 'confirmed').map((s) => s.date));
   const confirmedSessions = sessions.filter((s) => s.status === 'confirmed');
 
   const handleConfirmClick = (date: string) => {
+    // Reset to defaults each time the modal opens
+    setStartTime(initialStartTime);
+    setEndTime(initialEndTime);
     setConfirmingDate(date);
   };
 

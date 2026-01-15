@@ -1,37 +1,77 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
-import { nanoid } from 'nanoid';
+import { Game } from '@/types';
 import { DAY_OPTIONS, SESSION_DEFAULTS } from '@/lib/constants';
 
-export default function NewGamePage() {
+export default function EditGamePage() {
   const { profile, isLoading, session } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const gameId = params.id as string;
   const supabase = createClient();
 
+  const [game, setGame] = useState<Game | null>(null);
+  const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [playDays, setPlayDays] = useState<number[]>([]);
   const [windowMonths, setWindowMonths] = useState(2);
   const [defaultStartTime, setDefaultStartTime] = useState<string>(SESSION_DEFAULTS.START_TIME);
   const [defaultEndTime, setDefaultEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
-  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   useAuthRedirect({ requireGM: true });
+
+  useEffect(() => {
+    async function fetchGame() {
+      if (!gameId || !profile?.id) return;
+
+      const { data, error: fetchError } = await supabase
+        .from('games')
+        .select('*')
+        .eq('id', gameId)
+        .single();
+
+      if (fetchError || !data) {
+        router.push('/dashboard');
+        return;
+      }
+
+      // Verify user is the GM
+      if (data.gm_id !== profile.id) {
+        router.push(`/games/${gameId}`);
+        return;
+      }
+
+      setGame(data);
+      setName(data.name);
+      setDescription(data.description || '');
+      setPlayDays(data.play_days);
+      setWindowMonths(data.scheduling_window_months);
+      setDefaultStartTime(data.default_start_time?.slice(0, 5) || SESSION_DEFAULTS.START_TIME);
+      setDefaultEndTime(data.default_end_time?.slice(0, 5) || SESSION_DEFAULTS.END_TIME);
+      setLoading(false);
+    }
+
+    if (profile?.id) {
+      fetchGame();
+    }
+  }, [gameId, profile?.id, router]);
 
   const toggleDay = (day: number) => {
     setPlayDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.id) return;
+    if (!profile?.id || !game) return;
 
     if (!name.trim()) {
       setError('Please enter a game name');
@@ -43,37 +83,31 @@ export default function NewGamePage() {
       return;
     }
 
-    setCreating(true);
+    setSaving(true);
     setError('');
 
-    const inviteCode = nanoid(10);
-
-    const { data, error: insertError } = await supabase
+    const { error: updateError } = await supabase
       .from('games')
-      .insert({
+      .update({
         name: name.trim(),
         description: description.trim() || null,
-        gm_id: profile.id,
         play_days: playDays.sort((a, b) => a - b),
-        invite_code: inviteCode,
         scheduling_window_months: windowMonths,
         default_start_time: defaultStartTime,
         default_end_time: defaultEndTime,
       })
-      .select()
-      .single();
+      .eq('id', gameId);
 
-    if (insertError) {
-      setError('Failed to create game. Please try again.');
-      setCreating(false);
+    if (updateError) {
+      setError('Failed to save changes. Please try again.');
+      setSaving(false);
       return;
     }
 
-    router.push(`/games/${data.id}`);
+    router.push(`/games/${gameId}`);
   };
 
-  // Show spinner while auth is loading OR while we have a session but profile hasn't loaded yet
-  if (isLoading || (session && !profile)) {
+  if (isLoading || loading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner />
@@ -81,14 +115,16 @@ export default function NewGamePage() {
     );
   }
 
+  if (!game) return null;
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-foreground mb-8">Create New Game</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-8">Edit Game</h1>
 
-      <form onSubmit={handleCreate}>
+      <form onSubmit={handleSave}>
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Game Details</h2>
+            <h2 className="text-lg font-semibold">Game Settings</h2>
           </CardHeader>
           <CardContent className="space-y-6">
             <Input
@@ -186,14 +222,14 @@ export default function NewGamePage() {
             {error && <p className="text-sm text-danger">{error}</p>}
 
             <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={creating} className="flex-1">
-                {creating ? 'Creating...' : 'Create Game'}
+              <Button type="submit" disabled={saving} className="flex-1">
+                {saving ? 'Saving...' : 'Save Changes'}
               </Button>
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => router.back()}
-                disabled={creating}
+                onClick={() => router.push(`/games/${gameId}`)}
+                disabled={saving}
               >
                 Cancel
               </Button>

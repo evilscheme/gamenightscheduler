@@ -41,6 +41,15 @@ export default function GameDetailPage() {
 
   const isGm = game?.gm_id === profile?.id;
 
+  const formatTime = (time: string | null) => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const h = parseInt(hours, 10);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${minutes} ${ampm}`;
+  };
+
   useAuthRedirect();
 
   const fetchData = useCallback(async () => {
@@ -305,9 +314,14 @@ export default function GameDetailPage() {
             </p>
           </div>
           {isGm && (
-            <Button onClick={copyInviteLink} variant="secondary">
-              {copied ? 'Copied!' : 'Copy Invite Link'}
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => router.push(`/games/${gameId}/edit`)} variant="secondary">
+                Edit
+              </Button>
+              <Button onClick={copyInviteLink} variant="secondary">
+                {copied ? 'Copied!' : 'Copy Invite Link'}
+              </Button>
+            </div>
           )}
         </div>
         {game.description && <p className="text-muted-foreground mt-4">{game.description}</p>}
@@ -379,6 +393,12 @@ export default function GameDetailPage() {
                 <p className="text-sm text-muted-foreground">Scheduling Window</p>
                 <p className="text-card-foreground">{game.scheduling_window_months} month(s) ahead</p>
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Default Session Time</p>
+                <p className="text-card-foreground">
+                  {formatTime(game.default_start_time)} - {formatTime(game.default_end_time)}
+                </p>
+              </div>
               {confirmedSessions.length > 0 && (
                 <div>
                   <p className="text-sm text-muted-foreground">Upcoming Sessions</p>
@@ -421,6 +441,8 @@ export default function GameDetailPage() {
           sessions={sessions}
           isGm={isGm}
           gameName={game.name}
+          defaultStartTime={game.default_start_time}
+          defaultEndTime={game.default_end_time}
           onConfirm={handleConfirmSession}
           onCancel={handleCancelSession}
         />

@@ -5,10 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev      # Start development server at localhost:3000
-npm run build    # Build for production
-npm run lint     # Run ESLint
-npm run db:wipe  # Clear all data from database (keeps schema)
+npm run dev          # Start dev server against cloud Supabase (.env.local)
+npm run dev:local    # Start dev server against local Supabase (.env.local.supabase)
+npm run build        # Build for production
+npm run lint         # Run ESLint
+npm run db:wipe      # Clear all data from database (keeps schema)
+
+# Local Supabase (requires Supabase CLI: brew install supabase/tap/supabase)
+npm run db:start     # Start local Supabase containers
+npm run db:stop      # Stop local Supabase containers
+npm run db:reset     # Reset local DB and reapply schema.sql
+npm run db:status    # Show local Supabase status and credentials
 
 # E2E Testing (Playwright)
 npm run test:e2e          # Run all e2e tests

@@ -17,6 +17,8 @@ export interface Game {
   play_days: number[]; // 0=Sun, 1=Mon, ..., 6=Sat
   invite_code: string;
   scheduling_window_months: number;
+  default_start_time: string | null; // HH:MM:SS format
+  default_end_time: string | null; // HH:MM:SS format
   created_at: string;
 }
 
@@ -64,6 +66,8 @@ export interface CreateGameInput {
   description?: string;
   play_days: number[];
   scheduling_window_months: number;
+  default_start_time?: string;
+  default_end_time?: string;
 }
 
 // Scheduling types

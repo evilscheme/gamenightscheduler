@@ -160,13 +160,13 @@ export function SchedulingSuggestions({
                               </div>
                               {/* Status counts */}
                               <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-                                <span className="text-green-600 dark:text-green-400">
+                                <span className="text-success">
                                   {suggestion.availableCount} available
                                 </span>
-                                <span className="text-yellow-600 dark:text-yellow-400">
+                                <span className="text-warning">
                                   {suggestion.maybeCount} maybe
                                 </span>
-                                <span className="text-red-600 dark:text-red-400">
+                                <span className="text-danger">
                                   {suggestion.unavailableCount} unavailable
                                 </span>
                                 <span className="text-muted-foreground">
@@ -177,13 +177,13 @@ export function SchedulingSuggestions({
                               <div className="mt-2 text-sm space-y-1">
                                 {suggestion.availablePlayers.length > 0 && (
                                   <p className="text-muted-foreground">
-                                    <span className="text-green-600 dark:text-green-400">Available:</span>{' '}
+                                    <span className="text-success">Available:</span>{' '}
                                     {suggestion.availablePlayers.map((p) => p.name).join(', ')}
                                   </p>
                                 )}
                                 {suggestion.maybePlayers.length > 0 && (
                                   <p className="text-muted-foreground">
-                                    <span className="text-yellow-600 dark:text-yellow-400">Maybe:</span>{' '}
+                                    <span className="text-warning">Maybe:</span>{' '}
                                     {suggestion.maybePlayers.map((p) =>
                                       p.comment ? `${p.user.name} (${p.comment})` : p.user.name
                                     ).join(', ')}
@@ -191,7 +191,7 @@ export function SchedulingSuggestions({
                                 )}
                                 {suggestion.unavailablePlayers.length > 0 && (
                                   <p className="text-muted-foreground">
-                                    <span className="text-red-600 dark:text-red-400">Unavailable:</span>{' '}
+                                    <span className="text-danger">Unavailable:</span>{' '}
                                     {suggestion.unavailablePlayers.map((p) => p.name).join(', ')}
                                   </p>
                                 )}
@@ -281,7 +281,7 @@ export function SchedulingSuggestions({
                               {format(parseISO(suggestion.date), 'EEEE, MMMM d')}
                             </p>
                             {isConfirmed && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-green-500/20 text-green-700 dark:text-green-400 rounded">
+                              <span className="px-2 py-0.5 text-xs font-medium bg-success/20 text-success rounded">
                                 Confirmed
                               </span>
                             )}
@@ -317,13 +317,13 @@ export function SchedulingSuggestions({
                           </div>
                           {/* Status counts */}
                           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-                            <span className="text-green-600 dark:text-green-400">
+                            <span className="text-success">
                               {suggestion.availableCount} available
                             </span>
-                            <span className="text-yellow-600 dark:text-yellow-400">
+                            <span className="text-warning">
                               {suggestion.maybeCount} maybe
                             </span>
-                            <span className="text-red-600 dark:text-red-400">
+                            <span className="text-danger">
                               {suggestion.unavailableCount} unavailable
                             </span>
                             <span className="text-muted-foreground">
@@ -334,13 +334,13 @@ export function SchedulingSuggestions({
                           <div className="mt-2 text-sm space-y-1">
                             {suggestion.availablePlayers.length > 0 && (
                               <p className="text-muted-foreground">
-                                <span className="text-green-600 dark:text-green-400">Available:</span>{' '}
+                                <span className="text-success">Available:</span>{' '}
                                 {suggestion.availablePlayers.map((p) => p.name).join(', ')}
                               </p>
                             )}
                             {suggestion.maybePlayers.length > 0 && (
                               <p className="text-muted-foreground">
-                                <span className="text-yellow-600 dark:text-yellow-400">Maybe:</span>{' '}
+                                <span className="text-warning">Maybe:</span>{' '}
                                 {suggestion.maybePlayers.map((p) =>
                                   p.comment ? `${p.user.name} (${p.comment})` : p.user.name
                                 ).join(', ')}
@@ -348,7 +348,7 @@ export function SchedulingSuggestions({
                             )}
                             {suggestion.unavailablePlayers.length > 0 && (
                               <p className="text-muted-foreground">
-                                <span className="text-red-600 dark:text-red-400">Unavailable:</span>{' '}
+                                <span className="text-danger">Unavailable:</span>{' '}
                                 {suggestion.unavailablePlayers.map((p) => p.name).join(', ')}
                               </p>
                             )}

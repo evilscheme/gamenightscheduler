@@ -8,11 +8,19 @@
   --primary: #4f46e5;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
-  --secondary-foreground: #475569;
+  --secondary-foreground: #374151;
   --muted: #f1f5f9;
-  --muted-foreground: #64748b;
+  --muted-foreground: #475569;
   --border: #e2e8f0;
   --ring: #4f46e5;
+
+  /* Semantic status colors - light mode (optimized for contrast) */
+  --success: #15803d;
+  --success-muted: #166534;
+  --warning: #a16207;
+  --warning-muted: #854d0e;
+  --danger: #dc2626;
+  --danger-muted: #b91c1c;
 }
 
 .dark {
@@ -28,6 +36,14 @@
   --muted-foreground: #94a3b8;
   --border: #334155;
   --ring: #6366f1;
+
+  /* Semantic status colors - dark mode */
+  --success: #4ade80;
+  --success-muted: #22c55e;
+  --warning: #fbbf24;
+  --warning-muted: #f59e0b;
+  --danger: #f87171;
+  --danger-muted: #ef4444;
 }
 
 @theme inline {
@@ -43,6 +59,12 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-warning: var(--warning);
+  --color-warning-muted: var(--warning-muted);
+  --color-danger: var(--danger);
+  --color-danger-muted: var(--danger-muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

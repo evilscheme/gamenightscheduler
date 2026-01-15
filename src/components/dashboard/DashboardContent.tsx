@@ -163,8 +163,8 @@ export function DashboardContent() {
       )}
 
       {!profile?.is_gm && (
-        <div className="mt-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-          <p className="text-amber-700 dark:text-amber-400 text-sm">
+        <div className="mt-8 p-4 bg-warning/10 border border-warning/20 rounded-lg">
+          <p className="text-warning text-sm">
             <strong>Want to create your own games?</strong> Go to{' '}
             <Link href="/settings" className="underline">
               Settings

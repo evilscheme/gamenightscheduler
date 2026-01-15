@@ -48,15 +48,15 @@ test.describe('Availability Marking', () => {
     await dateButton.click();
 
     // First click: unset -> unavailable (red)
-    await expect(dateButton).toHaveClass(/bg-red/);
+    await expect(dateButton).toHaveClass(/bg-danger/);
 
     // Second click: unavailable -> maybe (yellow) - no modal, direct transition
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-yellow/);
+    await expect(dateButton).toHaveClass(/bg-warning/);
 
     // Third click: maybe -> available (green)
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-green/);
+    await expect(dateButton).toHaveClass(/bg-success/);
 
     // Verify persistence after reload
     await page.reload();
@@ -66,7 +66,7 @@ test.describe('Availability Marking', () => {
     await page.getByRole('button', { name: /availability/i }).click();
 
     const dateButtonAfterReload = page.locator(`button[title="${targetDate}"]`);
-    await expect(dateButtonAfterReload).toHaveClass(/bg-green/);
+    await expect(dateButtonAfterReload).toHaveClass(/bg-success/);
   });
 
   test('click available date to toggle to unavailable', async ({ page, request }) => {
@@ -114,19 +114,19 @@ test.describe('Availability Marking', () => {
     // Cycle: unset -> unavailable -> maybe -> available -> unavailable
     // Click to get to unavailable first
     await dateButton.click(); // unset -> unavailable (red)
-    await expect(dateButton).toHaveClass(/bg-red/);
+    await expect(dateButton).toHaveClass(/bg-danger/);
 
     // Click to get to maybe (yellow) - no modal, direct transition
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-yellow/);
+    await expect(dateButton).toHaveClass(/bg-warning/);
 
     // Click to get to available (green)
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-green/);
+    await expect(dateButton).toHaveClass(/bg-success/);
 
     // Click again to toggle back to unavailable (red)
     await dateButton.click(); // available -> unavailable (red)
-    await expect(dateButton).toHaveClass(/bg-red/);
+    await expect(dateButton).toHaveClass(/bg-danger/);
   });
 
   test('cannot mark past dates', async ({ page, request }) => {
@@ -258,7 +258,7 @@ test.describe('Availability Marking', () => {
     // Click twice to get to maybe status (unset -> unavailable -> maybe)
     await dateButton.click();
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-yellow/);
+    await expect(dateButton).toHaveClass(/bg-warning/);
 
     // Maybe date should show edit icon (pencil emoji)
     const editIcon = dateButton.locator('span:has-text("✏️")');

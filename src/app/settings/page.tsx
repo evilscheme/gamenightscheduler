@@ -102,7 +102,7 @@ export default function SettingsPage() {
 
           {message && (
             <p
-              className={`text-sm ${message.includes('Error') ? 'text-red-500' : 'text-green-500'}`}
+              className={`text-sm ${message.includes('Error') ? 'text-danger' : 'text-success'}`}
             >
               {message}
             </p>

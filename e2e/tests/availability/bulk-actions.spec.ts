@@ -45,13 +45,13 @@ test.describe('Bulk Availability Actions', () => {
 
     // Wait for the first Friday to turn green (async operations need time)
     const firstFriday = page.locator(`button[title="${fridays[0]}"]`);
-    await expect(firstFriday).toHaveClass(/bg-green/, { timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(firstFriday).toHaveClass(/bg-success/, { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // Verify another Friday is also green
     if (fridays.length > 1) {
       const secondFriday = page.locator(`button[title="${fridays[1]}"]`);
       if (await secondFriday.count() > 0) {
-        await expect(secondFriday).toHaveClass(/bg-green/);
+        await expect(secondFriday).toHaveClass(/bg-success/);
       }
     }
   });
@@ -104,13 +104,13 @@ test.describe('Bulk Availability Actions', () => {
 
     // Wait for the first Saturday to turn red (async operations need time)
     const firstSaturday = page.locator(`button[title="${saturdays[0]}"]`);
-    await expect(firstSaturday).toHaveClass(/bg-red/, { timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(firstSaturday).toHaveClass(/bg-danger/, { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // Verify another Saturday is also red
     if (saturdays.length > 1) {
       const secondSaturday = page.locator(`button[title="${saturdays[1]}"]`);
       if (await secondSaturday.count() > 0) {
-        await expect(secondSaturday).toHaveClass(/bg-red/);
+        await expect(secondSaturday).toHaveClass(/bg-danger/);
       }
     }
   });
@@ -156,7 +156,7 @@ test.describe('Bulk Availability Actions', () => {
 
     // Verify it's green before reload (wait for async operation)
     const dateButton = page.locator(`button[title="${firstFriday}"]`);
-    await expect(dateButton).toHaveClass(/bg-green/, { timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(dateButton).toHaveClass(/bg-success/, { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // Reload the page
     await page.reload();
@@ -172,6 +172,6 @@ test.describe('Bulk Availability Actions', () => {
 
     // Verify the Friday is still green after reload
     const dateButtonAfterReload = page.locator(`button[title="${firstFriday}"]`);
-    await expect(dateButtonAfterReload).toHaveClass(/bg-green/);
+    await expect(dateButtonAfterReload).toHaveClass(/bg-success/);
   });
 });

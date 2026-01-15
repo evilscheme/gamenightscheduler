@@ -77,13 +77,14 @@ export function AvailabilityCalendar({
     const currentAvail = availability[dateStr];
     const nextStatus = getNextStatus(currentAvail);
 
-    if (nextStatus === 'maybe') {
-      // Open comment input for maybe status
-      setCommentingDate(dateStr);
-      setCommentText(currentAvail?.comment || "");
-    } else {
-      onToggle(dateStr, nextStatus, null);
-    }
+    // Cycle through states - preserve existing comment for maybe status
+    const comment = nextStatus === 'maybe' ? (currentAvail?.comment || null) : null;
+    onToggle(dateStr, nextStatus, comment);
+  };
+
+  const handleEditComment = (dateStr: string) => {
+    setCommentingDate(dateStr);
+    setCommentText(availability[dateStr]?.comment || "");
   };
 
   const handleMaybeConfirm = () => {
@@ -143,7 +144,7 @@ export function AvailabilityCalendar({
       </div>
 
       {/* Multi-month calendar grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {months.map((month) => (
           <MonthCalendar
             key={format(month, "yyyy-MM")}
@@ -153,6 +154,7 @@ export function AvailabilityCalendar({
             confirmedDates={confirmedDates}
             today={today}
             onDayClick={handleDayClick}
+            onEditComment={handleEditComment}
             weekdays={DAY_LABELS.abbrev}
           />
         ))}
@@ -186,42 +188,50 @@ export function AvailabilityCalendar({
         </div>
       </div>
 
-      {/* Maybe comment modal */}
+      {/* Compact note editor popover */}
       {commentingDate && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-card-foreground mb-2">
-              Maybe Available
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {format(new Date(commentingDate), 'EEEE, MMMM d, yyyy')}
-            </p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-card-foreground mb-1">
-                Add a note (optional)
-              </label>
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="e.g., Depends on work schedule"
-                className="w-full px-3 py-2 bg-background border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleMaybeConfirm();
-                  if (e.key === 'Escape') handleMaybeCancel();
-                }}
-              />
+        <div
+          className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
+          onClick={handleMaybeCancel}
+        >
+          <div
+            className="bg-card rounded-lg shadow-lg border border-border p-4 w-full max-w-sm mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-card-foreground">
+                Note for {format(new Date(commentingDate), 'MMM d')}
+              </span>
+              <button
+                onClick={handleMaybeCancel}
+                className="text-muted-foreground hover:text-foreground text-lg leading-none"
+              >
+                &times;
+              </button>
             </div>
-            <div className="flex gap-3">
+            <input
+              type="text"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="e.g., Depends on work schedule"
+              className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary mb-3"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleMaybeConfirm();
+                if (e.key === 'Escape') handleMaybeCancel();
+              }}
+            />
+            <div className="flex gap-2">
               <Button
                 variant="secondary"
+                size="sm"
                 className="flex-1"
                 onClick={handleMaybeCancel}
               >
                 Cancel
               </Button>
               <Button
+                size="sm"
                 className="flex-1"
                 onClick={handleMaybeConfirm}
               >
@@ -243,6 +253,7 @@ interface MonthCalendarProps {
   confirmedDates: Set<string>;
   today: Date;
   onDayClick: (date: Date) => void;
+  onEditComment: (dateStr: string) => void;
   weekdays: readonly string[];
 }
 
@@ -253,6 +264,7 @@ function MonthCalendar({
   confirmedDates,
   today,
   onDayClick,
+  onEditComment,
   weekdays,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
@@ -286,10 +298,10 @@ function MonthCalendar({
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-px">
+      <div className="grid grid-cols-7 gap-0.5">
         {/* Empty cells for start of month offset */}
         {Array.from({ length: startDayOfWeek }).map((_, i) => (
-          <div key={`empty-${i}`} className="w-full aspect-square" />
+          <div key={`empty-${i}`} className="w-full aspect-square min-h-[36px]" />
         ))}
 
         {/* Day cells */}
@@ -324,25 +336,35 @@ function MonthCalendar({
             textColor = "text-muted-foreground/50";
           }
 
+          const isMaybe = avail?.status === 'maybe';
+          const hasComment = !!avail?.comment;
+
           return (
             <button
               key={dateStr}
               onClick={() => onDayClick(date)}
               disabled={!isPlayDay || isPast}
-              className={`w-full aspect-square rounded-sm flex items-center justify-center text-[10px] transition-all ${bgColor} ${textColor} ${cursor} ${
+              className={`relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all ${bgColor} ${textColor} ${cursor} ${
                 isToday(date) ? "ring-1 ring-primary font-bold" : ""
               }`}
               title={avail?.comment ? `${dateStr}\n${avail.comment}` : dateStr}
             >
-              <span className="relative">
-                {format(date, "d")}
-                {isConfirmed && (
-                  <span className="absolute -top-1 -right-2 text-[8px]">🎲</span>
-                )}
-                {avail?.comment && (
-                  <span className="absolute -bottom-1 -right-2 text-[8px]">💬</span>
-                )}
-              </span>
+              {format(date, "d")}
+              {isConfirmed && (
+                <span className="absolute top-0.5 right-1 text-xs leading-none">🎲</span>
+              )}
+              {isMaybe && !isPast && (
+                <span
+                  className="absolute bottom-0.5 right-1 text-xs leading-none cursor-pointer hover:scale-125 transition-transform"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditComment(dateStr);
+                  }}
+                  title={hasComment ? "Edit note" : "Add note"}
+                >
+                  {hasComment ? "💬" : "✏️"}
+                </span>
+              )}
             </button>
           );
         })}

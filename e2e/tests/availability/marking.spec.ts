@@ -44,21 +44,14 @@ test.describe('Availability Marking', () => {
 
     // Initial state: should have card background (not green or red)
     // Click to mark as available
-    // New cycle: unset -> unavailable -> maybe (modal) -> available -> unavailable
+    // Cycle: unset -> unavailable -> maybe -> available -> unavailable
     await dateButton.click();
 
     // First click: unset -> unavailable (red)
     await expect(dateButton).toHaveClass(/bg-red/);
 
-    // Second click: unavailable -> maybe (opens modal)
+    // Second click: unavailable -> maybe (yellow) - no modal, direct transition
     await dateButton.click();
-
-    // Modal should appear - click Save to confirm "maybe" status
-    const saveButton = page.getByRole('button', { name: 'Save' });
-    await expect(saveButton).toBeVisible();
-    await saveButton.click();
-
-    // Should now show yellow (maybe)
     await expect(dateButton).toHaveClass(/bg-yellow/);
 
     // Third click: maybe -> available (green)
@@ -118,16 +111,13 @@ test.describe('Availability Marking', () => {
     const dateButton = page.locator(`button[title="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
-    // New cycle: unset -> unavailable -> maybe (modal) -> available -> unavailable
+    // Cycle: unset -> unavailable -> maybe -> available -> unavailable
     // Click to get to unavailable first
     await dateButton.click(); // unset -> unavailable (red)
     await expect(dateButton).toHaveClass(/bg-red/);
 
-    // Click to get to maybe (opens modal)
+    // Click to get to maybe (yellow) - no modal, direct transition
     await dateButton.click();
-    const saveButton = page.getByRole('button', { name: 'Save' });
-    await expect(saveButton).toBeVisible();
-    await saveButton.click();
     await expect(dateButton).toHaveClass(/bg-yellow/);
 
     // Click to get to available (green)
@@ -229,5 +219,73 @@ test.describe('Availability Marking', () => {
       // Should have muted background (non-play day styling)
       await expect(mondayButton).toHaveClass(/bg-muted/);
     }
+  });
+
+  test('can add a note to maybe status via edit icon', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-note-${Date.now()}@e2e.local`,
+      name: 'Note GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Note Campaign',
+      play_days: [5, 6],
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /availability/i }).click();
+    await expect(page.getByText(/mark your availability/i)).toBeVisible();
+
+    const playDates = getPlayDates([5, 6], 2);
+    const targetDate = playDates[0];
+
+    const dateButton = page.locator(`button[title="${targetDate}"]`);
+    await expect(dateButton).toBeVisible();
+
+    // Click twice to get to maybe status (unset -> unavailable -> maybe)
+    await dateButton.click();
+    await dateButton.click();
+    await expect(dateButton).toHaveClass(/bg-yellow/);
+
+    // Maybe date should show edit icon (pencil emoji)
+    const editIcon = dateButton.locator('span:has-text("✏️")');
+    await expect(editIcon).toBeVisible();
+
+    // Click the edit icon to open note popover
+    await editIcon.click();
+
+    // Note editor should appear
+    const noteInput = page.locator('input[placeholder*="Depends on work"]');
+    await expect(noteInput).toBeVisible();
+
+    // Add a note
+    await noteInput.fill('Late arrival expected');
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Note icon should now show comment bubble instead of pencil
+    const commentIcon = dateButton.locator('span:has-text("💬")');
+    await expect(commentIcon).toBeVisible();
+
+    // Verify note persists after reload
+    await page.reload();
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /availability/i }).click();
+
+    const dateButtonAfterReload = page.locator(`button[title*="${targetDate}"]`);
+    await expect(dateButtonAfterReload.locator('span:has-text("💬")')).toBeVisible();
   });
 });

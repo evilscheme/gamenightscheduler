@@ -234,4 +234,88 @@ test.describe('Session Confirmation', () => {
     const confirmButtons = page.getByRole('button', { name: /^confirm$/i });
     await expect(confirmButtons).toHaveCount(0);
   });
+
+  test('confirmation modal uses game default times', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-default-times-${Date.now()}@e2e.local`,
+      name: 'Default Times GM',
+      is_gm: true,
+    });
+
+    // Create game with custom default times (7:30 PM - 11:30 PM)
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Custom Times Campaign',
+      play_days: [5, 6],
+      default_start_time: '19:30',
+      default_end_time: '23:30',
+    });
+
+    const playDates = getPlayDates([5, 6], 4);
+    await setAvailability(gm.id, game.id, [{ date: playDates[0], is_available: true }]);
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Wait for page to load before interacting
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Click confirm on first suggestion
+    await page.getByRole('button', { name: /^confirm$/i }).first().click();
+
+    // Wait for modal
+    await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
+
+    // Check that the time inputs are pre-filled with game's default times
+    const startTimeInput = page.getByText('Start Time').locator('..').locator('input');
+    const endTimeInput = page.getByText('End Time').locator('..').locator('input');
+
+    await expect(startTimeInput).toHaveValue('19:30');
+    await expect(endTimeInput).toHaveValue('23:30');
+  });
+
+  test('default times are shown in game detail overview', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-detail-times-${Date.now()}@e2e.local`,
+      name: 'Detail Times GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Detail Times Campaign',
+      play_days: [5, 6],
+      default_start_time: '17:00',
+      default_end_time: '21:00',
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Wait for page to load
+    await expect(page.getByRole('heading', { name: /detail times campaign/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Should show default session time in overview (5:00 PM - 9:00 PM)
+    await expect(page.getByText(/default session time/i)).toBeVisible();
+    await expect(page.getByText(/5:00 PM - 9:00 PM/)).toBeVisible();
+  });
 });

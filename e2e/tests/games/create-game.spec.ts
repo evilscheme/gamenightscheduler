@@ -118,4 +118,57 @@ test.describe('Game Creation', () => {
     // Should redirect successfully
     await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, );
   });
+
+  test('can set default session times', async ({ page }) => {
+    await loginTestUser(page, {
+      email: `gm-times-${Date.now()}@e2e.local`,
+      name: 'Session Times GM',
+      is_gm: true,
+    });
+
+    await page.goto('/games/new');
+
+    // Wait for form to load
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
+
+    // Fill required fields
+    await page.getByPlaceholder(/curse of strahd/i).fill('Evening Campaign');
+    await page.getByRole('button', { name: 'Saturday' }).click();
+
+    // Set custom default times (7 PM - 11 PM)
+    const startTimeInput = page.locator('input[type="time"]').first();
+    const endTimeInput = page.locator('input[type="time"]').last();
+
+    await startTimeInput.fill('19:00');
+    await endTimeInput.fill('23:00');
+
+    // Submit
+    await page.getByRole('button', { name: /create game/i }).click();
+
+    // Should redirect successfully
+    await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/);
+
+    // Should show the default times in game details
+    await expect(page.getByText(/7:00 PM - 11:00 PM/)).toBeVisible();
+  });
+
+  test('default session times have sensible defaults', async ({ page }) => {
+    await loginTestUser(page, {
+      email: `gm-defaults-${Date.now()}@e2e.local`,
+      name: 'Defaults GM',
+      is_gm: true,
+    });
+
+    await page.goto('/games/new');
+
+    // Wait for form to load
+    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
+
+    // Check that time inputs have default values (6 PM - 10 PM / 18:00 - 22:00)
+    const startTimeInput = page.locator('input[type="time"]').first();
+    const endTimeInput = page.locator('input[type="time"]').last();
+
+    await expect(startTimeInput).toHaveValue('18:00');
+    await expect(endTimeInput).toHaveValue('22:00');
+  });
 });

@@ -32,6 +32,8 @@ export interface TestGame {
   invite_code: string;
   play_days: number[];
   scheduling_window_months: number;
+  default_start_time: string | null;
+  default_end_time: string | null;
 }
 
 export interface TestUser {
@@ -52,6 +54,8 @@ export async function createTestGame(options: {
   play_days?: number[];
   scheduling_window_months?: number;
   description?: string;
+  default_start_time?: string;
+  default_end_time?: string;
 }): Promise<TestGame> {
   const admin = getAdminClient();
 
@@ -62,6 +66,8 @@ export async function createTestGame(options: {
     play_days: options.play_days || [5, 6], // Friday, Saturday
     scheduling_window_months: options.scheduling_window_months || 2,
     description: options.description || null,
+    default_start_time: options.default_start_time || '18:00',
+    default_end_time: options.default_end_time || '22:00',
   };
 
   const { data, error } = await admin.from('games').insert(gameData).select().single();

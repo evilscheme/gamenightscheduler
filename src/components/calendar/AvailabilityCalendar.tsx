@@ -164,15 +164,15 @@ export function AvailabilityCalendar({
       {/* Compact Legend */}
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-green-500/20 dark:bg-green-500/30 border border-green-500/30" />
+          <div className="w-3 h-3 rounded-sm bg-success/20 border border-success/30" />
           <span>Available</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-yellow-500/20 dark:bg-yellow-500/30 border border-yellow-500/30" />
+          <div className="w-3 h-3 rounded-sm bg-warning/20 border border-warning/30" />
           <span>Maybe</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-red-500/20 dark:bg-red-500/30 border border-red-500/30" />
+          <div className="w-3 h-3 rounded-sm bg-danger/20 border border-danger/30" />
           <span>Unavailable</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -321,14 +321,14 @@ function MonthCalendar({
           if (isPlayDay && !isPast) {
             cursor = "cursor-pointer hover:ring-1 hover:ring-primary/50";
             if (avail?.status === 'available') {
-              bgColor = "bg-green-500/20 dark:bg-green-500/30";
-              textColor = "text-green-700 dark:text-green-400";
+              bgColor = "bg-success/20";
+              textColor = "text-success";
             } else if (avail?.status === 'maybe') {
-              bgColor = "bg-yellow-500/20 dark:bg-yellow-500/30";
-              textColor = "text-yellow-700 dark:text-yellow-400";
+              bgColor = "bg-warning/20";
+              textColor = "text-warning";
             } else if (avail?.status === 'unavailable') {
-              bgColor = "bg-red-500/20 dark:bg-red-500/30";
-              textColor = "text-red-700 dark:text-red-400";
+              bgColor = "bg-danger/20";
+              textColor = "text-danger";
             } else {
               bgColor = "bg-card border border-border";
               textColor = "text-card-foreground";

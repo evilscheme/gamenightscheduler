@@ -48,7 +48,7 @@ export default function NewGamePage() {
 
     const inviteCode = nanoid(10);
 
-    const { data, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from('games')
       .insert({
         name: name.trim(),
@@ -59,9 +59,7 @@ export default function NewGamePage() {
         scheduling_window_months: windowMonths,
         default_start_time: defaultStartTime,
         default_end_time: defaultEndTime,
-      })
-      .select()
-      .single();
+      });
 
     if (insertError) {
       setError('Failed to create game. Please try again.');
@@ -69,7 +67,14 @@ export default function NewGamePage() {
       return;
     }
 
-    router.push(`/games/${data.id}`);
+    // Fetch the created game by invite code (we can't use .select() on insert due to RLS timing)
+    const { data: createdGame } = await supabase
+      .from('games')
+      .select('id')
+      .eq('invite_code', inviteCode)
+      .single();
+
+    router.push(`/games/${createdGame?.id || '/dashboard'}`);
   };
 
   // Show spinner while auth is loading OR while we have a session but profile hasn't loaded yet

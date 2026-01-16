@@ -5,7 +5,7 @@
 - [X] allow games to have a default time of day set in addition to the play days
 - [X] allows game presets to be editable by the GM
 - [X] show player availability in the confirmed games UI
-- [ ] players should be able to leave games, and GMs should be able to remove players from their games
+- [X] players should be able to leave games, and GMs should be able to remove players from their games
 - [ ] better favicon
 - [ ] better app name & custom domain
 - [ ] better preview card for URLs when pasted to discord/messages

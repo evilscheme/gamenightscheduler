@@ -186,6 +186,10 @@ CREATE POLICY "Users can join games" ON game_memberships
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can leave games" ON game_memberships
   FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "GMs can remove players" ON game_memberships
+  FOR DELETE USING (
+    EXISTS (SELECT 1 FROM games WHERE id = game_id AND gm_id = auth.uid())
+  );
 
 -- Availability policies
 CREATE POLICY "Game participants can view availability" ON availability

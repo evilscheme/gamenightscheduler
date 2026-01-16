@@ -117,8 +117,9 @@ test.describe('Leave and Remove Players', () => {
       });
       await expect(page.getByText('Leave Test Game', { exact: false })).toBeVisible();
 
-      // Confirm leaving
-      await page.getByRole('button', { name: /^leave game$/i }).click();
+      // Confirm leaving - click the button inside the modal (not the header button)
+      const modal = page.locator('.fixed.inset-0');
+      await modal.getByRole('button', { name: /^leave game$/i }).click();
 
       // Should be redirected to dashboard
       await expect(page).toHaveURL(/\/dashboard/, {
@@ -319,8 +320,9 @@ test.describe('Leave and Remove Players', () => {
       });
       await expect(page.getByText('Player To Remove', { exact: false })).toBeVisible();
 
-      // Confirm removal
-      await page.getByRole('button', { name: /^remove player$/i }).click();
+      // Confirm removal - click the button inside the modal
+      const modal = page.locator('.fixed.inset-0');
+      await modal.getByRole('button', { name: /^remove player$/i }).click();
 
       // Modal should close and player should be removed
       await expect(page.getByText(/are you sure you want to remove/i)).not.toBeVisible({

@@ -21,3 +21,4 @@
 ## Bugs
 - [ ] calendar events have no timezone
 - [X] light mode text can be hard to read in places
+- [ ] if someone is given a game join link, and they don't have a user already, when they complete the user signup flow they aren't redirected to the join URL, and there is no invite shown in their UI

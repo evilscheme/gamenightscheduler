@@ -76,7 +76,7 @@ Tests are in `e2e/tests/` organized by feature. The test harness uses:
 
 Tests require `.env.test.local` with test database credentials. CI runs via GitHub Actions (`.github/workflows/e2e.yml`).
 
-**Testing workflow:** When fixing failing tests, run them individually rather than the full suite (which takes ~8 minutes):
+**Testing workflow:** When fixing failing tests, run them individually rather than the full suite:
 ```bash
 # Run a specific test file
 npx playwright test e2e/tests/settings/profile.spec.ts --project=chromium
@@ -90,3 +90,6 @@ npx playwright test e2e/tests/multi-user --project=chromium
 
 ### Tools
 - psql is the postgres client library, not pgsql
+
+### Development Practices to Follow
+when adding a significant new feature, make sure to add tests for that feature as well

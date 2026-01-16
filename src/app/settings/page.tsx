@@ -16,12 +16,15 @@ export default function SettingsPage() {
 
   useAuthRedirect();
 
+  // Sync local state with profile - this is a valid pattern for form initialization
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (profile) {
       setName(profile.name || '');
       setIsGm(profile.is_gm || false);
     }
   }, [profile]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSave = async () => {
     if (!profile?.id) return;

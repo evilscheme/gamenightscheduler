@@ -73,6 +73,7 @@ export function DashboardContent() {
       // Auth finished but no profile - stop loading
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
   }, [profile?.id, isLoading]);
 
   // Show spinner while auth is loading, data is loading, or profile hasn't loaded yet

@@ -38,6 +38,7 @@ export function Navbar() {
               <>
                 <Link href="/settings" className="flex items-center gap-2">
                   {profile.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- external avatar URL
                     <img
                       src={profile.avatar_url}
                       alt={profile.name || ''}

@@ -41,6 +41,8 @@ export default function GameDetailPage() {
   const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isGm = game?.gm_id === profile?.id;
   const isMember = game?.members.some((m) => m.id === profile?.id);
@@ -332,6 +334,23 @@ export default function GameDetailPage() {
     setPlayerToRemove(null);
   };
 
+  const handleDeleteGame = async () => {
+    if (!gameId) return;
+
+    setIsDeleting(true);
+    const { error } = await supabase
+      .from('games')
+      .delete()
+      .eq('id', gameId);
+
+    if (!error) {
+      router.push('/dashboard');
+    } else {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   // Show spinner while auth is loading, data is loading, or profile hasn't loaded yet
   if (isLoading || loading || (session && !profile)) {
     return (
@@ -366,6 +385,9 @@ export default function GameDetailPage() {
                 </Button>
                 <Button onClick={copyInviteLink} variant="secondary">
                   {copied ? 'Copied!' : 'Copy Invite Link'}
+                </Button>
+                <Button onClick={() => setShowDeleteConfirm(true)} variant="danger">
+                  Delete Game
                 </Button>
               </>
             )}
@@ -566,6 +588,38 @@ export default function GameDetailPage() {
                 onClick={() => handleRemovePlayer(playerToRemove.id)}
               >
                 Remove Player
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Game Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-card-foreground mb-2">
+              Delete Game?
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              Are you sure you want to permanently delete <strong>{game.name}</strong>? This will remove all players, availability data, and scheduled sessions. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={handleDeleteGame}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Game'}
               </Button>
             </div>
           </div>

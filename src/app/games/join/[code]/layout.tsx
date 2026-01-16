@@ -32,16 +32,16 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     const gmName = gm?.name || 'Unknown';
 
     return {
-      title: `Join ${game.name} - Can We Play?`,
+      title: `${game.name} - Game Invite - Can We Play?`,
       description: game.description || `Join ${gmName}'s game on ${playDays}`,
       openGraph: {
-        title: `Join ${game.name}`,
+        title: `${game.name} - Game Invite`,
         description: `Game Master: ${gmName} | Plays on: ${playDays}`,
         type: 'website',
       },
       twitter: {
         card: 'summary_large_image',
-        title: `Join ${game.name}`,
+        title: `${game.name} - Game Invite`,
         description: `Game Master: ${gmName} | Plays on: ${playDays}`,
       },
     };

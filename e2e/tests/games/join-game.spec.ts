@@ -30,7 +30,7 @@ test.describe('Join Game', () => {
     
     // Should see invitation message (wait for page to load)
     await expect(page.getByText(/you've been invited/i)).toBeVisible();
-    await expect(page.getByText(/join test campaign/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /join test campaign/i })).toBeVisible();
     await expect(page.getByText(/join test gm/i)).toBeVisible();
 
     // Click join button

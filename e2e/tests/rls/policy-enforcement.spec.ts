@@ -267,7 +267,7 @@ test.describe('RLS Policy Enforcement', () => {
 
     // Should see the join page with game details
     await expect(page.getByRole('heading', { name: /you've been invited/i })).toBeVisible();
-    await expect(page.getByText(/joinable game/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /joinable game/i })).toBeVisible();
 
     // Join the game
     await page.getByRole('button', { name: /join game/i }).click();

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
 import { ThemeToggle } from './ThemeToggle';
@@ -14,7 +15,7 @@ export function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-2xl">🎲</span>
+              <Image src="/logo.png" alt="Quest Calendar" width={32} height={32} />
               <span className="font-bold text-xl text-foreground">Quest Calendar</span>
             </Link>
             {profile?.is_gm && (

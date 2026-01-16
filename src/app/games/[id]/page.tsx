@@ -38,8 +38,12 @@ export default function GameDetailPage() {
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
   const [copied, setCopied] = useState(false);
+  const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
 
   const isGm = game?.gm_id === profile?.id;
+  const isMember = game?.members.some((m) => m.id === profile?.id);
 
   const formatTime = (time: string | null) => {
     if (!time) return '';
@@ -287,6 +291,47 @@ export default function GameDetailPage() {
     setTimeout(() => setCopied(false), TIMEOUTS.NOTIFICATION);
   };
 
+  const handleLeaveGame = async () => {
+    if (!profile?.id || !gameId) return;
+
+    setIsLeaving(true);
+    const { error } = await supabase
+      .from('game_memberships')
+      .delete()
+      .eq('game_id', gameId)
+      .eq('user_id', profile.id);
+
+    if (!error) {
+      router.push('/dashboard');
+    } else {
+      setIsLeaving(false);
+      setShowLeaveConfirm(false);
+    }
+  };
+
+  const handleRemovePlayer = async (playerId: string) => {
+    if (!gameId) return;
+
+    const { error } = await supabase
+      .from('game_memberships')
+      .delete()
+      .eq('game_id', gameId)
+      .eq('user_id', playerId);
+
+    if (!error) {
+      setGame((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          members: prev.members.filter((m) => m.id !== playerId),
+        };
+      });
+      // Also remove their availability from allAvailability
+      setAllAvailability((prev) => prev.filter((a) => a.user_id !== playerId));
+    }
+    setPlayerToRemove(null);
+  };
+
   // Show spinner while auth is loading, data is loading, or profile hasn't loaded yet
   if (isLoading || loading || (session && !profile)) {
     return (
@@ -313,16 +358,23 @@ export default function GameDetailPage() {
               {isGm && ' (You)'}
             </p>
           </div>
-          {isGm && (
-            <div className="flex gap-2">
-              <Button onClick={() => router.push(`/games/${gameId}/edit`)} variant="secondary">
-                Edit
+          <div className="flex gap-2">
+            {isGm && (
+              <>
+                <Button onClick={() => router.push(`/games/${gameId}/edit`)} variant="secondary">
+                  Edit
+                </Button>
+                <Button onClick={copyInviteLink} variant="secondary">
+                  {copied ? 'Copied!' : 'Copy Invite Link'}
+                </Button>
+              </>
+            )}
+            {isMember && !isGm && (
+              <Button onClick={() => setShowLeaveConfirm(true)} variant="danger">
+                Leave Game
               </Button>
-              <Button onClick={copyInviteLink} variant="secondary">
-                {copied ? 'Copied!' : 'Copy Invite Link'}
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         {game.description && <p className="text-muted-foreground mt-4">{game.description}</p>}
       </div>
@@ -368,11 +420,21 @@ export default function GameDetailPage() {
                         {player.name[0]?.toUpperCase()}
                       </div>
                     )}
-                    <span className="text-card-foreground">{player.name}</span>
+                    <span className="flex-1 text-card-foreground">{player.name}</span>
                     {player.id === game.gm_id && (
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                         GM
                       </span>
+                    )}
+                    {isGm && player.id !== game.gm_id && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setPlayerToRemove(player)}
+                        className="text-danger hover:text-danger hover:bg-danger/10"
+                      >
+                        Remove
+                      </Button>
                     )}
                   </li>
                 ))}
@@ -446,6 +508,68 @@ export default function GameDetailPage() {
           onConfirm={handleConfirmSession}
           onCancel={handleCancelSession}
         />
+      )}
+
+      {/* Leave Game Confirmation Modal */}
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-card-foreground mb-2">
+              Leave Game?
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              Are you sure you want to leave <strong>{game.name}</strong>? Your availability data will be removed.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setShowLeaveConfirm(false)}
+                disabled={isLeaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={handleLeaveGame}
+                disabled={isLeaving}
+              >
+                {isLeaving ? 'Leaving...' : 'Leave Game'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Player Confirmation Modal */}
+      {playerToRemove && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-card-foreground mb-2">
+              Remove Player?
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              Are you sure you want to remove <strong>{playerToRemove.name}</strong> from this game? Their availability data will be deleted.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setPlayerToRemove(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={() => handleRemovePlayer(playerToRemove.id)}
+              >
+                Remove Player
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

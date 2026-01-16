@@ -111,6 +111,7 @@ export default function GameDetailPage() {
     setSessions(sessionData || []);
 
     setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
   }, [gameId, profile?.id, router]);
 
   useEffect(() => {
@@ -432,6 +433,7 @@ export default function GameDetailPage() {
                 {allPlayers.map((player) => (
                   <li key={player.id} className="py-3 flex items-center gap-3">
                     {player.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- external avatar URL
                       <img
                         src={player.avatar_url}
                         alt={player.name}
@@ -506,7 +508,7 @@ export default function GameDetailPage() {
             <h2 className="text-lg font-semibold text-foreground mb-2">Mark Your Availability</h2>
             <p className="text-muted-foreground">
               Click on dates to cycle through: unavailable (red) → maybe (yellow) → available (green) → unavailable.
-              For "maybe" dates, you can add an optional note. Gray days are not play days for this game.
+              For &quot;maybe&quot; dates, you can add an optional note. Gray days are not play days for this game.
             </p>
           </div>
           <AvailabilityCalendar

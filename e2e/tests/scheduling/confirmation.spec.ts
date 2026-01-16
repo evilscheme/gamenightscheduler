@@ -162,8 +162,7 @@ test.describe('Session Confirmation', () => {
     });
 
     // Initially no confirmed sessions section (or empty)
-    const confirmedSectionBefore = page.getByText(/confirmed sessions/i);
-    const hasConfirmedBefore = await confirmedSectionBefore.count() > 0;
+    // Note: we just check that we can get to this point; specific checks done after confirm
 
     // Confirm a session
     await page.getByRole('button', { name: /^confirm$/i }).first().click();

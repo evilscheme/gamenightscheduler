@@ -63,6 +63,7 @@ export default function EditGamePage() {
     if (profile?.id) {
       fetchGame();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
   }, [gameId, profile?.id, router]);
 
   const toggleDay = (day: number) => {

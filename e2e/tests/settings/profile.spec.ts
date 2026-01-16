@@ -43,7 +43,7 @@ test.describe('Settings Profile', () => {
     });
   });
 
-  test('name change persists after reload', async ({ page, request }) => {
+  test('name change persists after reload', async ({ page }) => {
     const timestamp = Date.now();
     const email = `user-persist-${timestamp}@e2e.local`;
 

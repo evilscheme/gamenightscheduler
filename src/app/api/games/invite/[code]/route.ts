@@ -52,7 +52,7 @@ export async function GET(
 
     // Check if user is already a member or GM
     let isMember = false;
-    let isGm = game.gm_id === user.id;
+    const isGm = game.gm_id === user.id;
 
     if (!isGm) {
       const { data: membership } = await admin

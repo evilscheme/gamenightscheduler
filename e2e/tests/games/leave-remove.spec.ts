@@ -115,7 +115,7 @@ test.describe('Leave and Remove Players', () => {
       await expect(page.getByText(/are you sure you want to leave/i)).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
-      await expect(page.getByText('Leave Test Game', { exact: false })).toBeVisible();
+      await expect(page.getByRole('strong').getByText('Leave Test Game')).toBeVisible();
 
       // Confirm leaving - click the button inside the modal (not the header button)
       const modal = page.locator('.fixed.inset-0');
@@ -127,7 +127,7 @@ test.describe('Leave and Remove Players', () => {
       });
 
       // Game should no longer appear (or verify player is no longer in game)
-      await expect(page.getByText('Leave Test Game')).not.toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Leave Test Game' })).not.toBeVisible();
     });
 
     test('player can cancel leaving via modal', async ({ page, request }) => {
@@ -258,8 +258,8 @@ test.describe('Leave and Remove Players', () => {
 
       await page.goto(`/games/${game.id}`);
 
-      // Wait for page to load
-      await expect(page.getByText('No Remove Player')).toBeVisible({
+      // Wait for page to load - use player list to avoid navbar match
+      await expect(page.getByRole('list').getByText('No Remove Player')).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
@@ -303,8 +303,8 @@ test.describe('Leave and Remove Players', () => {
 
       await page.goto(`/games/${game.id}`);
 
-      // Wait for player to load
-      await expect(page.getByText('Player To Remove')).toBeVisible({
+      // Wait for player to load - use player list to be specific
+      await expect(page.getByRole('list').getByText('Player To Remove')).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
@@ -318,7 +318,7 @@ test.describe('Leave and Remove Players', () => {
       await expect(page.getByText(/are you sure you want to remove/i)).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
-      await expect(page.getByText('Player To Remove', { exact: false })).toBeVisible();
+      await expect(page.getByRole('strong').getByText('Player To Remove')).toBeVisible();
 
       // Confirm removal - click the button inside the modal
       const modal = page.locator('.fixed.inset-0');
@@ -333,7 +333,7 @@ test.describe('Leave and Remove Players', () => {
       await expect(page.getByText('Players (1)')).toBeVisible();
 
       // Player name should no longer be in the list
-      await expect(page.getByText('Player To Remove')).not.toBeVisible();
+      await expect(page.getByRole('list').getByText('Player To Remove')).not.toBeVisible();
     });
 
     test('GM can cancel removing player via modal', async ({ page, request }) => {

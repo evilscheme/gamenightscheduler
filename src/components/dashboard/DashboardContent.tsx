@@ -39,10 +39,13 @@ export function DashboardContent() {
         .select('*, gm:users!games_gm_id_fkey(*)')
         .eq('gm_id', profile.id);
 
-      const { data: memberGames } = await supabase
-        .from('games')
-        .select('*, gm:users!games_gm_id_fkey(*)')
-        .in('id', memberGameIds.length > 0 ? memberGameIds : ['none']);
+      // Only query for member games if user has memberships
+      const memberGames = memberGameIds.length > 0
+        ? (await supabase
+            .from('games')
+            .select('*, gm:users!games_gm_id_fkey(*)')
+            .in('id', memberGameIds)).data
+        : [];
 
       // Combine and dedupe
       const allGames = [...(gmGames || []), ...(memberGames || [])];

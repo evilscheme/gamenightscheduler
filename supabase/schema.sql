@@ -170,8 +170,8 @@ CREATE POLICY "Users can update own record" ON users
   FOR UPDATE USING (auth.uid() = id);
 
 -- Games policies
-CREATE POLICY "Games are viewable by everyone" ON games
-  FOR SELECT USING (true);
+CREATE POLICY "Users can view games they are part of" ON games
+  FOR SELECT USING (public.is_game_participant(id, auth.uid()));
 CREATE POLICY "GMs can insert games" ON games
   FOR INSERT WITH CHECK (auth.uid() = gm_id);
 CREATE POLICY "GMs can update own games" ON games

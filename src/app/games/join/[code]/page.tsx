@@ -5,8 +5,19 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
-import { GameWithGM } from '@/types';
 import { DAY_LABELS } from '@/lib/constants';
+
+interface GamePreview {
+  id: string;
+  name: string;
+  description: string | null;
+  play_days: number[];
+  gm: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  };
+}
 
 export default function JoinGamePage() {
   const { profile, isLoading, session } = useAuth();
@@ -15,7 +26,7 @@ export default function JoinGamePage() {
   const code = params.code as string;
   const supabase = createClient();
 
-  const [game, setGame] = useState<GameWithGM | null>(null);
+  const [game, setGame] = useState<GamePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
@@ -32,36 +43,18 @@ export default function JoinGamePage() {
     async function fetchGame() {
       if (!code || !profile?.id) return;
 
-      const { data: gameData, error: gameError } = await supabase
-        .from('games')
-        .select('*, gm:users!games_gm_id_fkey(*)')
-        .eq('invite_code', code)
-        .single();
+      // Use API route to fetch game by invite code (bypasses RLS)
+      const response = await fetch(`/api/games/invite/${code}`);
 
-      if (gameError || !gameData) {
+      if (!response.ok) {
         setError('Game not found. Please check the invite link.');
         setLoading(false);
         return;
       }
 
-      setGame(gameData as GameWithGM);
-
-      // Check if already a member or GM
-      if (gameData.gm_id === profile.id) {
-        setAlreadyMember(true);
-      } else {
-        const { data: membership } = await supabase
-          .from('game_memberships')
-          .select('id')
-          .eq('game_id', gameData.id)
-          .eq('user_id', profile.id)
-          .single();
-
-        if (membership) {
-          setAlreadyMember(true);
-        }
-      }
-
+      const data = await response.json();
+      setGame(data.game);
+      setAlreadyMember(data.isMember);
       setLoading(false);
     }
 

@@ -11,9 +11,8 @@ import { TEST_TIMEOUTS } from '../../constants';
  */
 
 test.describe('RLS Policy Enforcement', () => {
-  test('non-member can view game but has limited access', async ({ page, request }) => {
-    // Note: RLS policy "Games are viewable by everyone" allows any authenticated user
-    // to view game details. This test documents that behavior.
+  test('non-member cannot view game they are not part of', async ({ page, request }) => {
+    // RLS policy restricts game visibility to only participants (GM or members)
     const gm = await createTestUser(request, {
       email: `gm-rls-${Date.now()}@e2e.local`,
       name: 'RLS Test GM',
@@ -22,7 +21,7 @@ test.describe('RLS Policy Enforcement', () => {
 
     const game = await createTestGame({
       gm_id: gm.id,
-      name: 'Viewable Game',
+      name: 'Private Game',
       play_days: [5, 6],
     });
 
@@ -35,13 +34,12 @@ test.describe('RLS Policy Enforcement', () => {
 
     // Try to access the game page
     await page.goto(`/games/${game.id}`);
-    
-    // Non-members can view game (RLS policy allows SELECT for all)
-    // but they are not listed as players and don't see the invite link
-    await expect(page.getByRole('heading', { name: /viewable game/i })).toBeVisible();
 
-    // Verify the outsider is not in the players list (only GM is listed)
-    await expect(page.getByText(/players \(1\)/i)).toBeVisible();
+    // Non-members should be redirected to dashboard (RLS blocks access)
+    await expect(page).toHaveURL('/dashboard');
+
+    // The private game should not be visible on their dashboard
+    await expect(page.getByText(/private game/i)).not.toBeVisible();
   });
 
   test('non-GM cannot access create game page', async ({ page }) => {
@@ -238,5 +236,74 @@ test.describe('RLS Policy Enforcement', () => {
 
     // Document the current behavior - if this fails, update based on actual UI behavior
     await expect(inviteButton).not.toBeVisible();
+  });
+
+  test('non-member can join game via invite link', async ({ page, request }) => {
+    // Even though non-members can't view games directly, they should be able
+    // to join via invite code (the API route bypasses RLS for invite lookups)
+    const gm = await createTestUser(request, {
+      email: `gm-invite-join-${Date.now()}@e2e.local`,
+      name: 'Invite Join GM',
+      is_gm: true,
+    });
+
+    const inviteCode = `join-test-${Date.now()}`;
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Joinable Game',
+      invite_code: inviteCode,
+      play_days: [5],
+    });
+
+    // Create a new user who is not a member
+    await loginTestUser(page, {
+      email: `joiner-${Date.now()}@e2e.local`,
+      name: 'Joining User',
+      is_gm: false,
+    });
+
+    // Navigate to the invite link
+    await page.goto(`/games/join/${inviteCode}`);
+
+    // Should see the join page with game details
+    await expect(page.getByRole('heading', { name: /you've been invited/i })).toBeVisible();
+    await expect(page.getByText(/joinable game/i)).toBeVisible();
+
+    // Join the game
+    await page.getByRole('button', { name: /join game/i }).click();
+
+    // Should be redirected to the game page after joining
+    await expect(page).toHaveURL(`/games/${game.id}`);
+
+    // Now as a member, should see the game details
+    await expect(page.getByRole('heading', { name: /joinable game/i })).toBeVisible();
+  });
+
+  test('non-member cannot access game edit page', async ({ page, request }) => {
+    // Non-members should be blocked from accessing the edit page
+    const gm = await createTestUser(request, {
+      email: `gm-edit-block-${Date.now()}@e2e.local`,
+      name: 'Edit Block GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Uneditables Game',
+      play_days: [5],
+    });
+
+    // Create a different GM user (is_gm but not member of this game)
+    await loginTestUser(page, {
+      email: `other-gm-${Date.now()}@e2e.local`,
+      name: 'Other GM',
+      is_gm: true,
+    });
+
+    // Try to access the edit page
+    await page.goto(`/games/${game.id}/edit`);
+
+    // Should be redirected to dashboard (RLS blocks access)
+    await expect(page).toHaveURL('/dashboard');
   });
 });

@@ -15,14 +15,14 @@ export function generateICS(events: CalendarEvent[]): string {
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Quest Calendar//D&D Scheduler//EN',
+    'PRODID:-//Can We Play//Game Night Scheduler//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
   ];
 
   events.forEach((event, index) => {
     const dateStr = event.date.replace(/-/g, '');
-    const uid = `${dateStr}-${index}@questcalendar.app`;
+    const uid = `${dateStr}-${index}@canweplay.games`;
     const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
     lines.push('BEGIN:VEVENT');

@@ -131,7 +131,7 @@ export default function EditGamePage() {
               label="Game Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Curse of Strahd Campaign"
+              placeholder="e.g., Friday Night Board Games"
               required
             />
 
@@ -139,7 +139,7 @@ export default function EditGamePage() {
               label="Description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="A brief description of your campaign..."
+              placeholder="A brief description of your game..."
               rows={3}
             />
 

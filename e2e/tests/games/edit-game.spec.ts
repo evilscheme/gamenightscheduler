@@ -139,7 +139,7 @@ test.describe('Game Edit Page', () => {
     });
 
     // Check name is pre-populated
-    const nameInput = page.getByPlaceholder(/curse of strahd/i);
+    const nameInput = page.getByPlaceholder(/friday night board games/i);
     await expect(nameInput).toHaveValue('Prepopulated Campaign');
 
     // Check description is pre-populated
@@ -190,7 +190,7 @@ test.describe('Game Edit Page', () => {
     });
 
     // Update the name
-    const nameInput = page.getByPlaceholder(/curse of strahd/i);
+    const nameInput = page.getByPlaceholder(/friday night board games/i);
     await nameInput.clear();
     await nameInput.fill('Updated Campaign Name');
 

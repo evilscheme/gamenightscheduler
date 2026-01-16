@@ -17,8 +17,8 @@ test.describe('Game Creation', () => {
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Fill out the form
-    await page.getByPlaceholder(/curse of strahd/i).fill('Test D&D Campaign');
-    await page.getByPlaceholder(/brief description/i).fill('A test campaign for E2E testing');
+    await page.getByPlaceholder(/friday night board games/i).fill('Test Game Night');
+    await page.getByPlaceholder(/brief description/i).fill('A test game for E2E testing');
 
     // Select Friday and Saturday as play days
     await page.getByRole('button', { name: 'Friday' }).click();
@@ -31,7 +31,7 @@ test.describe('Game Creation', () => {
     await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/, );
 
     // Should see the game name
-    await expect(page.getByRole('heading', { name: /test d&d campaign/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /test game night/i })).toBeVisible();
   });
 
   test('non-GM is redirected away from create game page', async ({ page }) => {
@@ -62,7 +62,7 @@ test.describe('Game Creation', () => {
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Fill only the name
-    await page.getByPlaceholder(/curse of strahd/i).fill('Test Campaign');
+    await page.getByPlaceholder(/friday night board games/i).fill('Test Game');
 
     // Try to submit without selecting play days
     await page.getByRole('button', { name: /create game/i }).click();
@@ -109,7 +109,7 @@ test.describe('Game Creation', () => {
     await page.getByRole('combobox').selectOption('3');
 
     // Fill required fields
-    await page.getByPlaceholder(/curse of strahd/i).fill('Long Window Campaign');
+    await page.getByPlaceholder(/friday night board games/i).fill('Long Window Game');
     await page.getByRole('button', { name: 'Friday' }).click();
 
     // Submit
@@ -132,7 +132,7 @@ test.describe('Game Creation', () => {
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Fill required fields
-    await page.getByPlaceholder(/curse of strahd/i).fill('Evening Campaign');
+    await page.getByPlaceholder(/friday night board games/i).fill('Evening Game');
     await page.getByRole('button', { name: 'Saturday' }).click();
 
     // Set custom default times (7 PM - 11 PM)

@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Quest Calendar - D&D Session Scheduler',
-  description: 'Coordinate game nights with your tabletop RPG group',
+  title: 'Can We Play? - Game Night Scheduler',
+  description: 'Coordinate game nights with your group',
 };
 
 export default function RootLayout({

@@ -32,7 +32,7 @@ function LoginContent() {
         <div className="bg-card rounded-xl shadow-lg border border-border p-8">
           <div className="text-center mb-8">
             <span className="text-5xl">🎲</span>
-            <h1 className="text-2xl font-bold text-card-foreground mt-4">Welcome to Quest Calendar</h1>
+            <h1 className="text-2xl font-bold text-card-foreground mt-4">Welcome to Can We Play?</h1>
             <p className="text-muted-foreground mt-2">Sign in to start scheduling your game nights</p>
           </div>
 

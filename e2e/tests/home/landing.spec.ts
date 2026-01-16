@@ -14,7 +14,7 @@ test.describe('Landing Page', () => {
     await expect(page.getByText(/never miss a game night again/i)).toBeVisible();
 
     // Description text should be visible
-    await expect(page.getByText(/coordinate your d&d/i)).toBeVisible();
+    await expect(page.getByText(/coordinate your game nights/i)).toBeVisible();
 
     // CTA buttons should be visible
     await expect(page.getByRole('link', { name: /get started/i })).toBeVisible();
@@ -27,12 +27,12 @@ test.describe('Landing Page', () => {
     await expect(page.getByRole('heading', { name: 'Track Availability' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Smart Suggestions' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Calendar Export' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Multiple Campaigns' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Multiple Games' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Easy Invites' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Flexible Play Days' })).toBeVisible();
 
     // Bottom CTA should be visible
-    await expect(page.getByRole('heading', { name: /ready to roll initiative/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /ready to get started/i })).toBeVisible();
   });
 
   test('CTA button navigates to login', async ({ page }) => {

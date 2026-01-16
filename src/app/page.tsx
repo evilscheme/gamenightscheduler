@@ -31,14 +31,14 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 relative">
           <div className="text-center">
             <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6">
-              Quest Calendar
+              Can We Play?
               <span className="block text-indigo-200 text-2xl sm:text-3xl mt-2 font-normal">
                 Never miss a game night again
               </span>
             </h1>
             <p className="max-w-2xl mx-auto text-lg text-indigo-100 mb-8">
-              Coordinate your D&D, Daggerheart, and other tabletop RPG sessions with ease. Track
-              availability, suggest dates, and keep your party together.
+              Coordinate your game nights with ease. Track availability, suggest dates, and keep
+              your group together.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
@@ -82,13 +82,13 @@ export default function Home() {
             />
             <FeatureCard
               icon="👥"
-              title="Multiple Campaigns"
+              title="Multiple Games"
               description="Manage several games at once, each with its own players and schedule."
             />
             <FeatureCard
               icon="🔗"
               title="Easy Invites"
-              description="Share a simple invite link to add players to your campaign."
+              description="Share a simple invite link to add players to your game."
             />
             <FeatureCard
               icon="🎲"
@@ -102,9 +102,9 @@ export default function Home() {
       {/* CTA Section */}
       <div className="bg-secondary py-16">
         <div className="max-w-4xl mx-auto text-center px-4">
-          <h2 className="text-2xl font-bold text-foreground mb-4">Ready to roll initiative?</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">Ready to get started?</h2>
           <p className="text-muted-foreground mb-8">
-            Sign up free and start coordinating your next campaign session.
+            Sign up free and start coordinating your next game night.
           </p>
           <Link href="/login">
             <Button size="lg">Create Your First Game</Button>

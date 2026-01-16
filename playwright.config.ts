@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright configuration for D&D Scheduler E2E tests
+ * Playwright configuration for Can We Play? E2E tests
  *
  * Key design decisions:
  * - Single worker to avoid database race conditions (tests share Supabase local instance)

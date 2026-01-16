@@ -1,10 +1,10 @@
-# Quest Calendar - D&D Session Scheduler
+# Can We Play? - Game Night Scheduler
 
-A web app to help tabletop RPG groups coordinate game sessions. GMs create campaigns, players mark their availability, and the app suggests optimal dates based on everyone's schedules.
+A web app to help groups coordinate game nights. Hosts create games, players mark their availability, and the app suggests optimal dates based on everyone's schedules.
 
 ## Features
 
-- **Multiple Campaigns**: Manage several games at once, each with its own players
+- **Multiple Games**: Manage several games at once, each with its own players
 - **Availability Calendar**: Players mark when they're free on designated play days
 - **Smart Suggestions**: Dates ranked by player availability
 - **Easy Invites**: Share a simple invite link to add players

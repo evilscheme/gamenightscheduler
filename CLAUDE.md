@@ -26,7 +26,7 @@ npm run test:e2e:debug    # Run in debug mode
 
 ## Architecture
 
-This is a Next.js 16 App Router application for scheduling D&D game sessions. Players mark availability on a calendar, and the app suggests optimal dates.
+This is a Next.js 16 App Router application for scheduling game nights. Players mark availability on a calendar, and the app suggests optimal dates.
 
 ### Authentication
 
@@ -47,7 +47,7 @@ Supabase PostgreSQL with Row Level Security. Schema in `supabase/schema.sql`.
 
 Key tables:
 - `users` - Profiles linked to `auth.users` via id (auto-created on signup via trigger)
-- `games` - Campaigns with GM, play days array, invite code
+- `games` - Games with host (GM), play days array, invite code
 - `game_memberships` - Players in each game
 - `availability` - Available/unavailable dates per player per game
 - `sessions` - Scheduled game nights (suggested/confirmed/cancelled)

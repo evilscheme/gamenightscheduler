@@ -15,8 +15,8 @@ export function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.png" alt="Quest Calendar" width={32} height={32} />
-              <span className="font-bold text-xl text-foreground">Quest Calendar</span>
+              <Image src="/logo.png" alt="Can We Play?" width={32} height={32} />
+              <span className="font-bold text-xl text-foreground">Can We Play?</span>
             </Link>
             {profile?.is_gm && (
               <div className="hidden sm:ml-8 sm:flex sm:space-x-4">

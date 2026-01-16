@@ -1,4 +1,4 @@
--- D&D Scheduler Database Schema
+-- Can We Play? Database Schema
 -- Run this in Supabase SQL Editor for a fresh install
 
 -- ============================================
@@ -21,7 +21,7 @@ CREATE TABLE users (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Games (Campaigns) table
+-- Games table
 CREATE TABLE games (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,

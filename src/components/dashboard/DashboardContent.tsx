@@ -89,7 +89,7 @@ export function DashboardContent() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Your Games</h1>
-          <p className="text-muted-foreground mt-1">Manage your campaigns and game sessions</p>
+          <p className="text-muted-foreground mt-1">Manage your games and sessions</p>
         </div>
         {profile?.is_gm && (
           <Link href="/games/new">

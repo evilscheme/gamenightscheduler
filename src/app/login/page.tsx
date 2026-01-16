@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
@@ -31,7 +32,7 @@ function LoginContent() {
       <div className="max-w-md w-full">
         <div className="bg-card rounded-xl shadow-lg border border-border p-8">
           <div className="text-center mb-8">
-            <span className="text-5xl">🎲</span>
+            <Image src="/logo.png" alt="Can We Play?" width={64} height={64} className="mx-auto" />
             <h1 className="text-2xl font-bold text-card-foreground mt-4">Welcome to Can We Play?</h1>
             <p className="text-muted-foreground mt-2">Sign in to start scheduling your game nights</p>
           </div>

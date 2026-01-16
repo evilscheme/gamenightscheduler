@@ -6,8 +6,8 @@
 - [X] allows game presets to be editable by the GM
 - [X] show player availability in the confirmed games UI
 - [X] players should be able to leave games, and GMs should be able to remove players from their games
-- [ ] better favicon
-- [ ] better app name & custom domain
+- [X] better favicon
+- [X] better app name & custom domain
 - [ ] better preview card for URLs when pasted to discord/messages
 
 ## Integration & Deployment
@@ -21,5 +21,5 @@
 ## Bugs
 - [ ] calendar events have no timezone
 - [X] light mode text can be hard to read in places
-- [ ] if someone is given a game join link, and they don't have a user already, when they complete the user signup flow they aren't redirected to the join URL, and there is no invite shown in their UI
-- [ ] players can view games they aren't a member of
+- [X] if someone is given a game join link, and they don't have a user already, when they complete the user signup flow they aren't redirected to the join URL, and there is no invite shown in their UI 
+- [X] players can view games they aren't a member of

@@ -41,6 +41,13 @@ Uses Supabase Auth with Google and Discord OAuth. OAuth providers are configured
 
 The `useAuth()` hook provides: `user`, `session`, `profile`, `isLoading`, `signInWithGoogle()`, `signInWithDiscord()`, `signOut()`, `refreshProfile()`.
 
+**Supabase URL Configuration:** In Supabase Dashboard > Authentication > URL Configuration, the "Redirect URLs" allowlist must include wildcard patterns for OAuth callbacks with query parameters to work (e.g., for post-login redirects to invite links). Use `/**` suffix:
+```
+http://localhost:3000/**
+https://your-production-domain.com/**
+```
+Without the wildcard, Supabase may strip query parameters like `?next=/games/join/ABC` from redirect URLs.
+
 ### Database
 
 Supabase PostgreSQL with Row Level Security. Schema in `supabase/schema.sql`.

@@ -55,13 +55,13 @@ export function AvailabilityCalendar({
 
   const confirmedDates = new Set(confirmedSessions.map((s) => s.date));
 
-  // Cycle through: unset -> unavailable -> maybe -> available -> unavailable (continuous)
+  // Cycle through: unset -> available (yes) -> unavailable (no) -> maybe -> available (continuous)
   const getNextStatus = (current: AvailabilityEntry | undefined): AvailabilityStatus => {
-    if (!current) return 'unavailable';
+    if (!current) return 'available';
     switch (current.status) {
+      case 'available': return 'unavailable';
       case 'unavailable': return 'maybe';
       case 'maybe': return 'available';
-      case 'available': return 'unavailable';
     }
   };
 

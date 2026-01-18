@@ -220,8 +220,8 @@ test.describe('Availability Marking', () => {
     // Monday should be disabled since it's not a play day
     if (await mondayButton.count() > 0) {
       await expect(mondayButton).toBeDisabled();
-      // Should have muted background (non-play day styling)
-      await expect(mondayButton).toHaveClass(/bg-muted/);
+      // Should have non-play day styling (cross-hatched)
+      await expect(mondayButton).toHaveClass(/non-play-day/);
     }
   });
 

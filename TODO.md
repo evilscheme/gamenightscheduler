@@ -16,7 +16,7 @@
 - [ ] make it more explicit that the "export" buttons export calendar invites
 - [ ] add "mark all remaining unspecified days as [yes/no]" capability
 - [ ] add a way for users to give feedback and report bugs (github issues?)
-- [ ] make the non-play days more visually obvious with some cross-hatching
+- [X] make the non-play days more visually obvious with some cross-hatching
 
 ## Integration & Deployment
 - [X] implement google OAuth

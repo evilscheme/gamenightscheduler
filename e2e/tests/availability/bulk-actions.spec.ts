@@ -35,10 +35,13 @@ test.describe('Bulk Availability Actions', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Click "All Fridays ✓" button
-    const allFridaysButton = page.getByRole('button', { name: /all fridays/i });
-    await expect(allFridaysButton).toBeVisible();
-    await allFridaysButton.click();
+    // Select Fridays from the day dropdown, status is already "available" by default
+    const dayDropdown = page.locator('select').first();
+    await dayDropdown.selectOption('5'); // Friday = 5
+
+    // Click Apply button
+    const applyButton = page.getByRole('button', { name: /apply/i });
+    await applyButton.click();
 
     // Get upcoming Fridays to verify
     const fridays = getPlayDates([5], 4); // Next 4 weeks of Fridays
@@ -87,17 +90,17 @@ test.describe('Bulk Availability Actions', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Click the ✗ button next to "All Saturdays ✓"
-    // The button is adjacent to the "All Saturdays ✓" button
-    // Find the Saturday button first, then click the next sibling ✗ button
-    const allSaturdaysButton = page.getByRole('button', { name: /all saturdays/i });
-    await expect(allSaturdaysButton).toBeVisible();
+    // Select Saturdays from the day dropdown
+    const dayDropdown = page.locator('select').first();
+    await dayDropdown.selectOption('6'); // Saturday = 6
 
-    // The ✗ button is the sibling immediately after the "All Saturdays ✓" button
-    // Click on the parent div's second button
-    const saturdayButtonParent = allSaturdaysButton.locator('..');
-    const unavailableButton = saturdayButtonParent.getByRole('button', { name: '✗' });
-    await unavailableButton.click();
+    // Select "unavailable" from the status dropdown
+    const statusDropdown = page.locator('select').nth(1);
+    await statusDropdown.selectOption('unavailable');
+
+    // Click Apply button
+    const applyButton = page.getByRole('button', { name: /apply/i });
+    await applyButton.click();
 
     // Get upcoming Saturdays to verify
     const saturdays = getPlayDates([6], 4); // Next 4 weeks of Saturdays
@@ -147,8 +150,11 @@ test.describe('Bulk Availability Actions', () => {
     });
 
     // Mark all Fridays as available
-    const allFridaysButton = page.getByRole('button', { name: /all fridays/i });
-    await allFridaysButton.click();
+    const dayDropdown = page.locator('select').first();
+    await dayDropdown.selectOption('5'); // Friday = 5
+    // Status is already "available" by default
+    const applyButton = page.getByRole('button', { name: /apply/i });
+    await applyButton.click();
 
     // Get first Friday to check
     const fridays = getPlayDates([5], 4);
@@ -173,5 +179,114 @@ test.describe('Bulk Availability Actions', () => {
     // Verify the Friday is still green after reload
     const dateButtonAfterReload = page.locator(`button[title="${firstFriday}"]`);
     await expect(dateButtonAfterReload).toHaveClass(/bg-success/);
+  });
+
+  test('bulk mark remaining days only affects unset dates', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-bulk-remaining-${Date.now()}@e2e.local`,
+      name: 'Bulk Remaining GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Bulk Remaining Campaign',
+      play_days: [5, 6], // Friday, Saturday
+      scheduling_window_months: 2,
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /availability/i }).click();
+    await expect(page.getByText(/mark your availability/i)).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // First, manually mark the first Friday as unavailable by clicking it
+    const fridays = getPlayDates([5], 4);
+    const firstFriday = page.locator(`button[title="${fridays[0]}"]`);
+    await firstFriday.click(); // available
+    await firstFriday.click(); // unavailable
+    await expect(firstFriday).toHaveClass(/bg-danger/, { timeout: TEST_TIMEOUTS.DEFAULT });
+
+    // Now use "remaining days" to mark all unset dates as available
+    const dayDropdown = page.locator('select').first();
+    await dayDropdown.selectOption('remaining');
+    // Status is already "available" by default
+    const applyButton = page.getByRole('button', { name: /apply/i });
+    await applyButton.click();
+
+    // The first Friday should still be red (unavailable) - not overwritten
+    await expect(firstFriday).toHaveClass(/bg-danger/);
+
+    // But other Fridays should be green (available)
+    if (fridays.length > 1) {
+      const secondFriday = page.locator(`button[title="${fridays[1]}"]`);
+      if (await secondFriday.count() > 0) {
+        await expect(secondFriday).toHaveClass(/bg-success/, { timeout: TEST_TIMEOUTS.DEFAULT });
+      }
+    }
+
+    // Saturdays should also be green
+    const saturdays = getPlayDates([6], 4);
+    const firstSaturday = page.locator(`button[title="${saturdays[0]}"]`);
+    if (await firstSaturday.count() > 0) {
+      await expect(firstSaturday).toHaveClass(/bg-success/);
+    }
+  });
+
+  test('bulk mark as maybe', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-bulk-maybe-${Date.now()}@e2e.local`,
+      name: 'Bulk Maybe GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Bulk Maybe Campaign',
+      play_days: [5], // Friday only
+      scheduling_window_months: 2,
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /availability/i }).click();
+    await expect(page.getByText(/mark your availability/i)).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Select Fridays and set status to "maybe"
+    const dayDropdown = page.locator('select').first();
+    await dayDropdown.selectOption('5'); // Friday = 5
+
+    const statusDropdown = page.locator('select').nth(1);
+    await statusDropdown.selectOption('maybe');
+
+    const applyButton = page.getByRole('button', { name: /apply/i });
+    await applyButton.click();
+
+    // Verify Fridays are yellow/warning (maybe)
+    const fridays = getPlayDates([5], 4);
+    const firstFriday = page.locator(`button[title="${fridays[0]}"]`);
+    await expect(firstFriday).toHaveClass(/bg-warning/, { timeout: TEST_TIMEOUTS.DEFAULT });
   });
 });

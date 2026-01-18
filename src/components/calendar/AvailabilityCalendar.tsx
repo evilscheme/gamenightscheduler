@@ -41,6 +41,8 @@ export function AvailabilityCalendar({
   const maxDate = endOfMonth(addMonths(today, windowMonths));
   const [commentingDate, setCommentingDate] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [bulkDayFilter, setBulkDayFilter] = useState<string>("remaining");
+  const [bulkStatus, setBulkStatus] = useState<AvailabilityStatus>("available");
 
   // Generate array of months to display
   const months = useMemo(() => {
@@ -102,46 +104,68 @@ export function AvailabilityCalendar({
     setCommentText("");
   };
 
-  const bulkSetDay = (dayOfWeek: number, status: AvailabilityStatus) => {
+  const bulkSetDays = (filter: string, status: AvailabilityStatus) => {
     const datesInWindow = eachDayOfInterval({
       start: today,
       end: maxDate,
-    }).filter((date) => getDay(date) === dayOfWeek && !isBefore(date, today));
+    }).filter((date) => {
+      const dayOfWeek = getDay(date);
+      if (!playDays.includes(dayOfWeek)) return false;
+      if (isBefore(date, today)) return false;
+
+      if (filter === "remaining") {
+        // Only dates without availability set
+        const dateStr = format(date, "yyyy-MM-dd");
+        return !availability[dateStr];
+      } else {
+        // Specific day of week
+        return dayOfWeek === parseInt(filter, 10);
+      }
+    });
 
     datesInWindow.forEach((date) => {
       const dateStr = format(date, "yyyy-MM-dd");
-      onToggle(dateStr, status, null);
+      // Preserve existing comments when bulk setting
+      const existingComment = availability[dateStr]?.comment || null;
+      onToggle(dateStr, status, existingComment);
     });
+  };
+
+  const handleBulkSubmit = () => {
+    bulkSetDays(bulkDayFilter, bulkStatus);
   };
 
   return (
     <div className="space-y-4">
       {/* Bulk actions */}
       <div className="bg-secondary rounded-lg p-3">
-        <p className="text-xs font-medium text-foreground mb-2">
-          Quick Actions
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {playDays.map((day) => (
-            <div key={day} className="flex gap-1">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => bulkSetDay(day, 'available')}
-                className="text-xs h-7 px-2"
-              >
-                All {DAY_LABELS.full[day]}s ✓
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => bulkSetDay(day, 'unavailable')}
-                className="text-xs h-7 px-2"
-              >
-                ✗
-              </Button>
-            </div>
-          ))}
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Mark all</span>
+          <select
+            value={bulkDayFilter}
+            onChange={(e) => setBulkDayFilter(e.target.value)}
+            className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
+          >
+            <option value="remaining">remaining days</option>
+            {playDays.map((day) => (
+              <option key={day} value={day}>
+                {DAY_LABELS.full[day]}s
+              </option>
+            ))}
+          </select>
+          <span className="text-muted-foreground">as</span>
+          <select
+            value={bulkStatus}
+            onChange={(e) => setBulkStatus(e.target.value as AvailabilityStatus)}
+            className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
+          >
+            <option value="available">available</option>
+            <option value="unavailable">unavailable</option>
+            <option value="maybe">maybe</option>
+          </select>
+          <Button size="sm" onClick={handleBulkSubmit} className="h-8">
+            Apply
+          </Button>
         </div>
       </div>
 

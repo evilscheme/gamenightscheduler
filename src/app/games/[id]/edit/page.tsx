@@ -27,7 +27,7 @@ export default function EditGamePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  useAuthRedirect({ requireGM: true });
+  useAuthRedirect();
 
   useEffect(() => {
     async function fetchGame() {
@@ -44,10 +44,22 @@ export default function EditGamePage() {
         return;
       }
 
-      // Verify user is the GM
-      if (data.gm_id !== profile.id) {
-        router.push(`/games/${gameId}`);
-        return;
+      // Check if user is GM or co-GM
+      const isGm = data.gm_id === profile.id;
+
+      if (!isGm) {
+        // Check if user is a co-GM
+        const { data: membership } = await supabase
+          .from('game_memberships')
+          .select('is_co_gm')
+          .eq('game_id', gameId)
+          .eq('user_id', profile.id)
+          .single();
+
+        if (!membership?.is_co_gm) {
+          router.push(`/games/${gameId}`);
+          return;
+        }
       }
 
       setGame(data);

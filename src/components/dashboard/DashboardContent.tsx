@@ -16,6 +16,7 @@ import { DAY_LABELS } from "@/lib/constants";
 
 interface GameWithGMAndCount extends GameWithGM {
   member_count: number;
+  is_co_gm: boolean;
 }
 
 export function DashboardContent() {
@@ -32,13 +33,16 @@ export function DashboardContent() {
         return;
       }
 
-      // Fetch games where user is GM or member
+      // Fetch games where user is GM or member, including co-GM status
       const { data: memberships } = await supabase
         .from("game_memberships")
-        .select("game_id")
+        .select("game_id, is_co_gm")
         .eq("user_id", profile.id);
 
       const memberGameIds = memberships?.map((m) => m.game_id) || [];
+      const coGmGameIds = new Set(
+        memberships?.filter((m) => m.is_co_gm).map((m) => m.game_id) || []
+      );
 
       const { data: gmGames } = await supabase
         .from("games")
@@ -62,7 +66,7 @@ export function DashboardContent() {
         new Map(allGames.map((g) => [g.id, g])).values()
       );
 
-      // Get member counts
+      // Get member counts and add co-GM status
       const gamesWithCounts = await Promise.all(
         uniqueGames.map(async (game) => {
           const { count } = await supabase
@@ -70,7 +74,11 @@ export function DashboardContent() {
             .select("*", { count: "exact", head: true })
             .eq("game_id", game.id);
 
-          return { ...game, member_count: (count || 0) + 1 }; // +1 for GM
+          return {
+            ...game,
+            member_count: (count || 0) + 1, // +1 for GM
+            is_co_gm: coGmGameIds.has(game.id),
+          };
         })
       );
 
@@ -156,6 +164,11 @@ export function DashboardContent() {
                     {game.gm_id === profile?.id && (
                       <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded">
                         GM
+                      </span>
+                    )}
+                    {game.is_co_gm && (
+                      <span className="px-2 py-1 text-xs font-medium bg-secondary text-secondary-foreground rounded">
+                        Co-GM
                       </span>
                     )}
                   </div>

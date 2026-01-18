@@ -40,6 +40,7 @@ CREATE TABLE game_memberships (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  is_co_gm BOOLEAN DEFAULT FALSE NOT NULL,
   joined_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(game_id, user_id)
 );
@@ -83,6 +84,7 @@ CREATE INDEX idx_games_gm_id ON games(gm_id);
 CREATE INDEX idx_games_invite_code ON games(invite_code);
 CREATE INDEX idx_game_memberships_game_id ON game_memberships(game_id);
 CREATE INDEX idx_game_memberships_user_id ON game_memberships(user_id);
+CREATE INDEX idx_game_memberships_co_gm ON game_memberships(game_id) WHERE is_co_gm = TRUE;
 CREATE INDEX idx_availability_game_id ON availability(game_id);
 CREATE INDEX idx_availability_user_id ON availability(user_id);
 CREATE INDEX idx_availability_date ON availability(date);
@@ -138,6 +140,33 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- Check if user is GM or co-GM (used by RLS policies)
+CREATE OR REPLACE FUNCTION public.is_game_gm_or_co_gm(game_id_param UUID, user_id_param UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  -- Check if user is the original GM
+  IF EXISTS (SELECT 1 FROM public.games WHERE id = game_id_param AND gm_id = user_id_param) THEN
+    RETURN TRUE;
+  END IF;
+  -- Check if user is a co-GM
+  RETURN EXISTS (
+    SELECT 1 FROM public.game_memberships
+    WHERE game_id = game_id_param AND user_id = user_id_param AND is_co_gm = TRUE
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Check if a membership is for a co-GM (used by RLS policies to determine removal permissions)
+CREATE OR REPLACE FUNCTION public.is_membership_co_gm(membership_game_id UUID, membership_user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.game_memberships
+    WHERE game_id = membership_game_id AND user_id = membership_user_id AND is_co_gm = TRUE
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
 -- ============================================
 -- 5. Triggers
 -- ============================================
@@ -175,8 +204,8 @@ CREATE POLICY "Users can view games they are part of" ON games
   FOR SELECT USING (public.is_game_participant(id, (select auth.uid())));
 CREATE POLICY "GMs can insert games" ON games
   FOR INSERT WITH CHECK ((select auth.uid()) = gm_id);
-CREATE POLICY "GMs can update own games" ON games
-  FOR UPDATE USING ((select auth.uid()) = gm_id);
+CREATE POLICY "GMs and co-GMs can update games" ON games
+  FOR UPDATE USING (public.is_game_gm_or_co_gm(id, (select auth.uid())));
 CREATE POLICY "GMs can delete own games" ON games
   FOR DELETE USING ((select auth.uid()) = gm_id);
 
@@ -185,9 +214,20 @@ CREATE POLICY "Members can view memberships" ON game_memberships
   FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
 CREATE POLICY "Users can join games" ON game_memberships
   FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
-CREATE POLICY "Users or GMs can delete memberships" ON game_memberships
+CREATE POLICY "Users, GMs, or co-GMs can delete memberships" ON game_memberships
   FOR DELETE USING (
+    -- User can always remove themselves
     (select auth.uid()) = user_id OR
+    -- GM can remove anyone
+    EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid())) OR
+    -- Co-GM can remove non-co-GMs only (use SECURITY DEFINER functions to bypass RLS)
+    (
+      public.is_membership_co_gm(game_id, (select auth.uid())) AND  -- current user is a co-GM
+      NOT public.is_membership_co_gm(game_id, user_id)              -- target is not a co-GM
+    )
+  );
+CREATE POLICY "GMs can update memberships" ON game_memberships
+  FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
   );
 
@@ -204,15 +244,9 @@ CREATE POLICY "Users can delete own availability" ON availability
 -- Sessions policies
 CREATE POLICY "Game participants can view sessions" ON sessions
   FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
-CREATE POLICY "GMs can insert sessions" ON sessions
-  FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
-  );
-CREATE POLICY "GMs can update sessions" ON sessions
-  FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
-  );
-CREATE POLICY "GMs can delete sessions" ON sessions
-  FOR DELETE USING (
-    EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
-  );
+CREATE POLICY "GMs and co-GMs can insert sessions" ON sessions
+  FOR INSERT WITH CHECK (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
+CREATE POLICY "GMs and co-GMs can update sessions" ON sessions
+  FOR UPDATE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
+CREATE POLICY "GMs and co-GMs can delete sessions" ON sessions
+  FOR DELETE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));

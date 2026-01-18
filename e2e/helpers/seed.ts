@@ -98,6 +98,27 @@ export async function addPlayerToGame(
 }
 
 /**
+ * Set co-GM status for a player in a game.
+ */
+export async function setCoGmStatus(
+  gameId: string,
+  userId: string,
+  isCoGm: boolean
+): Promise<void> {
+  const admin = getAdminClient();
+
+  const { error } = await admin
+    .from('game_memberships')
+    .update({ is_co_gm: isCoGm })
+    .eq('game_id', gameId)
+    .eq('user_id', userId);
+
+  if (error) {
+    throw new Error(`Failed to set co-GM status: ${error.message}`);
+  }
+}
+
+/**
  * Set availability for a user on specific dates.
  * Supports both old boolean format (is_available) and new status format.
  */

@@ -18,6 +18,8 @@
 - [X] make the non-play days more visually obvious with some cross-hatching
 - [ ] sensible usage limits (20 games per person, 50 players per game)
 - [ ] make chosen game days a different color than green
+- [ ] only show pencil (edit) icon on hover
+- [ ] clean up text in places to be more accurate/explanatory
 
 ## Integration & Deployment
 - [X] implement google OAuth

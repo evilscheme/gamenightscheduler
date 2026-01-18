@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Button, Card, CardContent, EmptyState, LoadingSpinner } from '@/components/ui';
-import { createClient } from '@/lib/supabase/client';
-import { GameWithGM } from '@/types';
-import { DAY_LABELS } from '@/lib/constants';
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Button,
+  Card,
+  CardContent,
+  EmptyState,
+  LoadingSpinner,
+} from "@/components/ui";
+import { createClient } from "@/lib/supabase/client";
+import { GameWithGM } from "@/types";
+import { DAY_LABELS } from "@/lib/constants";
 
 interface GameWithGMAndCount extends GameWithGM {
   member_count: number;
@@ -28,36 +34,41 @@ export function DashboardContent() {
 
       // Fetch games where user is GM or member
       const { data: memberships } = await supabase
-        .from('game_memberships')
-        .select('game_id')
-        .eq('user_id', profile.id);
+        .from("game_memberships")
+        .select("game_id")
+        .eq("user_id", profile.id);
 
       const memberGameIds = memberships?.map((m) => m.game_id) || [];
 
       const { data: gmGames } = await supabase
-        .from('games')
-        .select('*, gm:users!games_gm_id_fkey(*)')
-        .eq('gm_id', profile.id);
+        .from("games")
+        .select("*, gm:users!games_gm_id_fkey(*)")
+        .eq("gm_id", profile.id);
 
       // Only query for member games if user has memberships
-      const memberGames = memberGameIds.length > 0
-        ? (await supabase
-            .from('games')
-            .select('*, gm:users!games_gm_id_fkey(*)')
-            .in('id', memberGameIds)).data
-        : [];
+      const memberGames =
+        memberGameIds.length > 0
+          ? (
+              await supabase
+                .from("games")
+                .select("*, gm:users!games_gm_id_fkey(*)")
+                .in("id", memberGameIds)
+            ).data
+          : [];
 
       // Combine and dedupe
       const allGames = [...(gmGames || []), ...(memberGames || [])];
-      const uniqueGames = Array.from(new Map(allGames.map((g) => [g.id, g])).values());
+      const uniqueGames = Array.from(
+        new Map(allGames.map((g) => [g.id, g])).values()
+      );
 
       // Get member counts
       const gamesWithCounts = await Promise.all(
         uniqueGames.map(async (game) => {
           const { count } = await supabase
-            .from('game_memberships')
-            .select('*', { count: 'exact', head: true })
-            .eq('game_id', game.id);
+            .from("game_memberships")
+            .select("*", { count: "exact", head: true })
+            .eq("game_id", game.id);
 
           return { ...game, member_count: (count || 0) + 1 }; // +1 for GM
         })
@@ -90,7 +101,9 @@ export function DashboardContent() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Your Games</h1>
-          <p className="text-muted-foreground mt-1">Manage your games and sessions</p>
+          <p className="text-muted-foreground mt-1">
+            Manage your games and sessions
+          </p>
         </div>
         {profile?.is_gm && (
           <Link href="/games/new">
@@ -108,7 +121,7 @@ export function DashboardContent() {
               description={
                 profile?.is_gm
                   ? "Create your first game to start scheduling sessions with your group."
-                  : "Join a game using an invite link from your GM, or request GM status in settings to create your own."
+                  : "Join a game using an invite link from your GM, or enable GM status in settings to create your own."
               }
               action={
                 profile?.is_gm ? (
@@ -132,10 +145,12 @@ export function DashboardContent() {
                 <CardContent className="py-6">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold text-card-foreground">{game.name}</h3>
+                      <h3 className="text-lg font-semibold text-card-foreground">
+                        {game.name}
+                      </h3>
                       <p className="text-sm text-muted-foreground">
                         GM: {game.gm.name}
-                        {game.gm_id === profile?.id && ' (You)'}
+                        {game.gm_id === profile?.id && " (You)"}
                       </p>
                     </div>
                     {game.gm_id === profile?.id && (
@@ -146,17 +161,22 @@ export function DashboardContent() {
                   </div>
 
                   {game.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{game.description}</p>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                      {game.description}
+                    </p>
                   )}
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <span>👥</span>
-                      {game.member_count} player{game.member_count !== 1 ? 's' : ''}
+                      {game.member_count} player
+                      {game.member_count !== 1 ? "s" : ""}
                     </span>
                     <span className="flex items-center gap-1">
                       <span>📅</span>
-                      {game.play_days.map((d) => DAY_LABELS.short[d]).join(', ')}
+                      {game.play_days
+                        .map((d) => DAY_LABELS.short[d])
+                        .join(", ")}
                     </span>
                   </div>
                 </CardContent>
@@ -169,10 +189,10 @@ export function DashboardContent() {
       {!profile?.is_gm && (
         <div className="mt-8 p-4 bg-warning/10 border border-warning/20 rounded-lg">
           <p className="text-warning text-sm">
-            <strong>Want to create your own games?</strong> Go to{' '}
+            <strong>Want to create your own games?</strong> Go to{" "}
             <Link href="/settings" className="underline">
               Settings
-            </Link>{' '}
+            </Link>{" "}
             to enable GM mode.
           </p>
         </div>

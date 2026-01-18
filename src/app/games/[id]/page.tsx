@@ -1,14 +1,30 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
-import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
-import { createClient } from '@/lib/supabase/client';
-import { User, Availability, AvailabilityStatus, GameSession, DateSuggestion, GameWithMembers } from '@/types';
-import { AvailabilityCalendar, AvailabilityEntry } from '@/components/calendar/AvailabilityCalendar';
-import { SchedulingSuggestions } from '@/components/games/SchedulingSuggestions';
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  LoadingSpinner,
+} from "@/components/ui";
+import { createClient } from "@/lib/supabase/client";
+import {
+  User,
+  Availability,
+  AvailabilityStatus,
+  GameSession,
+  DateSuggestion,
+  GameWithMembers,
+} from "@/types";
+import {
+  AvailabilityCalendar,
+  AvailabilityEntry,
+} from "@/components/calendar/AvailabilityCalendar";
+import { SchedulingSuggestions } from "@/components/games/SchedulingSuggestions";
 import {
   addMonths,
   endOfMonth,
@@ -18,10 +34,10 @@ import {
   isAfter,
   startOfDay,
   parseISO,
-} from 'date-fns';
-import { DAY_LABELS, TIMEOUTS } from '@/lib/constants';
+} from "date-fns";
+import { DAY_LABELS, TIMEOUTS } from "@/lib/constants";
 
-type Tab = 'overview' | 'availability' | 'schedule';
+type Tab = "overview" | "availability" | "schedule";
 
 export default function GameDetailPage() {
   const { profile, isLoading, session } = useAuth();
@@ -32,8 +48,10 @@ export default function GameDetailPage() {
 
   const [game, setGame] = useState<GameWithMembers | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [availability, setAvailability] = useState<Record<string, AvailabilityEntry>>({});
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [availability, setAvailability] = useState<
+    Record<string, AvailabilityEntry>
+  >({});
   const [allAvailability, setAllAvailability] = useState<Availability[]>([]);
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
@@ -48,10 +66,10 @@ export default function GameDetailPage() {
   const isMember = game?.members.some((m) => m.id === profile?.id);
 
   const formatTime = (time: string | null) => {
-    if (!time) return '';
-    const [hours, minutes] = time.split(':');
+    if (!time) return "";
+    const [hours, minutes] = time.split(":");
     const h = parseInt(hours, 10);
-    const ampm = h >= 12 ? 'PM' : 'AM';
+    const ampm = h >= 12 ? "PM" : "AM";
     const h12 = h % 12 || 12;
     return `${h12}:${minutes} ${ampm}`;
   };
@@ -63,21 +81,21 @@ export default function GameDetailPage() {
 
     // Fetch game with GM
     const { data: gameData, error: gameError } = await supabase
-      .from('games')
-      .select('*, gm:users!games_gm_id_fkey(*)')
-      .eq('id', gameId)
+      .from("games")
+      .select("*, gm:users!games_gm_id_fkey(*)")
+      .eq("id", gameId)
       .single();
 
     if (gameError || !gameData) {
-      router.push('/dashboard');
+      router.push("/dashboard");
       return;
     }
 
     // Fetch members
     const { data: memberships } = await supabase
-      .from('game_memberships')
-      .select('user_id, users(*)')
-      .eq('game_id', gameId);
+      .from("game_memberships")
+      .select("user_id, users(*)")
+      .eq("game_id", gameId);
 
     const members = memberships?.map((m) => m.users as unknown as User) || [];
 
@@ -85,10 +103,10 @@ export default function GameDetailPage() {
 
     // Fetch user's availability
     const { data: userAvail } = await supabase
-      .from('availability')
-      .select('*')
-      .eq('game_id', gameId)
-      .eq('user_id', profile.id);
+      .from("availability")
+      .select("*")
+      .eq("game_id", gameId)
+      .eq("user_id", profile.id);
 
     const availMap: Record<string, AvailabilityEntry> = {};
     userAvail?.forEach((a) => {
@@ -97,21 +115,24 @@ export default function GameDetailPage() {
     setAvailability(availMap);
 
     // Fetch all availability for suggestions
-    const { data: allAvail } = await supabase.from('availability').select('*').eq('game_id', gameId);
+    const { data: allAvail } = await supabase
+      .from("availability")
+      .select("*")
+      .eq("game_id", gameId);
 
     setAllAvailability(allAvail || []);
 
     // Fetch sessions
     const { data: sessionData } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('game_id', gameId)
-      .order('date', { ascending: true });
+      .from("sessions")
+      .select("*")
+      .eq("game_id", gameId)
+      .order("date", { ascending: true });
 
     setSessions(sessionData || []);
 
     setLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
   }, [gameId, profile?.id, router]);
 
   useEffect(() => {
@@ -128,14 +149,18 @@ export default function GameDetailPage() {
     const today = startOfDay(new Date());
     const endDate = endOfMonth(addMonths(today, game.scheduling_window_months));
 
-    const playDates = eachDayOfInterval({ start: today, end: endDate }).filter((date) =>
-      game.play_days.includes(getDay(date))
+    const playDates = eachDayOfInterval({ start: today, end: endDate }).filter(
+      (date) => game.play_days.includes(getDay(date))
     );
 
     const suggestionList: DateSuggestion[] = playDates
-      .filter((date) => isAfter(date, today) || format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'))
+      .filter(
+        (date) =>
+          isAfter(date, today) ||
+          format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
+      )
       .map((date) => {
-        const dateStr = format(date, 'yyyy-MM-dd');
+        const dateStr = format(date, "yyyy-MM-dd");
         const availablePlayers: { user: User; comment: string | null }[] = [];
         const maybePlayers: { user: User; comment: string | null }[] = [];
         const unavailablePlayers: { user: User; comment: string | null }[] = [];
@@ -148,12 +173,18 @@ export default function GameDetailPage() {
           // No record = pending (hasn't responded yet)
           if (!playerAvail) {
             pendingPlayers.push(player);
-          } else if (playerAvail.status === 'available') {
-            availablePlayers.push({ user: player, comment: playerAvail.comment });
-          } else if (playerAvail.status === 'maybe') {
+          } else if (playerAvail.status === "available") {
+            availablePlayers.push({
+              user: player,
+              comment: playerAvail.comment,
+            });
+          } else if (playerAvail.status === "maybe") {
             maybePlayers.push({ user: player, comment: playerAvail.comment });
           } else {
-            unavailablePlayers.push({ user: player, comment: playerAvail.comment });
+            unavailablePlayers.push({
+              user: player,
+              comment: playerAvail.comment,
+            });
           }
         });
 
@@ -188,13 +219,17 @@ export default function GameDetailPage() {
     setSuggestions(suggestionList);
   }, [game, allAvailability]);
 
-  const handleAvailabilityChange = async (date: string, status: AvailabilityStatus, comment: string | null) => {
+  const handleAvailabilityChange = async (
+    date: string,
+    status: AvailabilityStatus,
+    comment: string | null
+  ) => {
     if (!profile?.id || !gameId) return;
 
     // Optimistic update
     setAvailability((prev) => ({ ...prev, [date]: { status, comment } }));
 
-    const { error } = await supabase.from('availability').upsert(
+    const { error } = await supabase.from("availability").upsert(
       {
         user_id: profile.id,
         game_id: gameId,
@@ -202,7 +237,7 @@ export default function GameDetailPage() {
         status,
         comment,
       },
-      { onConflict: 'user_id,game_id,date' }
+      { onConflict: "user_id,game_id,date" }
     );
 
     if (error) {
@@ -226,7 +261,7 @@ export default function GameDetailPage() {
         return [
           ...prev,
           {
-            id: 'temp',
+            id: "temp",
             user_id: profile.id,
             game_id: gameId,
             date,
@@ -240,21 +275,25 @@ export default function GameDetailPage() {
     }
   };
 
-  const handleConfirmSession = async (date: string, startTime: string, endTime: string) => {
+  const handleConfirmSession = async (
+    date: string,
+    startTime: string,
+    endTime: string
+  ) => {
     if (!profile?.id || !gameId) return;
 
     const { data, error } = await supabase
-      .from('sessions')
+      .from("sessions")
       .upsert(
         {
           game_id: gameId,
           date,
           start_time: startTime,
           end_time: endTime,
-          status: 'confirmed',
+          status: "confirmed",
           confirmed_by: profile.id,
         },
-        { onConflict: 'game_id,date' }
+        { onConflict: "game_id,date" }
       )
       .select()
       .single();
@@ -276,10 +315,10 @@ export default function GameDetailPage() {
     if (!profile?.id || !gameId) return;
 
     const { error } = await supabase
-      .from('sessions')
+      .from("sessions")
       .delete()
-      .eq('game_id', gameId)
-      .eq('date', date);
+      .eq("game_id", gameId)
+      .eq("date", date);
 
     if (!error) {
       setSessions((prev) => prev.filter((s) => s.date !== date));
@@ -299,13 +338,13 @@ export default function GameDetailPage() {
 
     setIsLeaving(true);
     const { error } = await supabase
-      .from('game_memberships')
+      .from("game_memberships")
       .delete()
-      .eq('game_id', gameId)
-      .eq('user_id', profile.id);
+      .eq("game_id", gameId)
+      .eq("user_id", profile.id);
 
     if (!error) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     } else {
       setIsLeaving(false);
       setShowLeaveConfirm(false);
@@ -316,10 +355,10 @@ export default function GameDetailPage() {
     if (!gameId) return;
 
     const { error } = await supabase
-      .from('game_memberships')
+      .from("game_memberships")
       .delete()
-      .eq('game_id', gameId)
-      .eq('user_id', playerId);
+      .eq("game_id", gameId)
+      .eq("user_id", playerId);
 
     if (!error) {
       setGame((prev) => {
@@ -339,13 +378,10 @@ export default function GameDetailPage() {
     if (!gameId) return;
 
     setIsDeleting(true);
-    const { error } = await supabase
-      .from('games')
-      .delete()
-      .eq('id', gameId);
+    const { error } = await supabase.from("games").delete().eq("id", gameId);
 
     if (!error) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     } else {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
@@ -364,7 +400,7 @@ export default function GameDetailPage() {
   if (!game) return null;
 
   const allPlayers = [game.gm, ...game.members];
-  const confirmedSessions = sessions.filter((s) => s.status === 'confirmed');
+  const confirmedSessions = sessions.filter((s) => s.status === "confirmed");
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -375,44 +411,55 @@ export default function GameDetailPage() {
             <h1 className="text-2xl font-bold text-foreground">{game.name}</h1>
             <p className="text-muted-foreground mt-1">
               GM: {game.gm.name}
-              {isGm && ' (You)'}
+              {isGm && " (You)"}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {isGm && (
               <>
-                <Button onClick={() => router.push(`/games/${gameId}/edit`)} variant="secondary">
+                <Button
+                  onClick={() => router.push(`/games/${gameId}/edit`)}
+                  variant="secondary"
+                >
                   Edit
                 </Button>
                 <Button onClick={copyInviteLink} variant="secondary">
-                  {copied ? 'Copied!' : 'Copy Invite Link'}
+                  {copied ? "Copied!" : "Copy Invite Link"}
                 </Button>
-                <Button onClick={() => setShowDeleteConfirm(true)} variant="danger">
+                <Button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  variant="danger"
+                >
                   Delete Game
                 </Button>
               </>
             )}
             {isMember && !isGm && (
-              <Button onClick={() => setShowLeaveConfirm(true)} variant="danger">
+              <Button
+                onClick={() => setShowLeaveConfirm(true)}
+                variant="danger"
+              >
                 Leave Game
               </Button>
             )}
           </div>
         </div>
-        {game.description && <p className="text-muted-foreground mt-4">{game.description}</p>}
+        {game.description && (
+          <p className="text-muted-foreground mt-4">{game.description}</p>
+        )}
       </div>
 
       {/* Tabs */}
       <div className="border-b border-border mb-6">
         <nav className="-mb-px flex gap-4 sm:gap-6">
-          {(['overview', 'availability', 'schedule'] as Tab[]).map((tab) => (
+          {(["overview", "availability", "schedule"] as Tab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`py-3 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${
                 activeTab === tab
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
               {tab}
@@ -422,11 +469,13 @@ export default function GameDetailPage() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'overview' && (
+      {activeTab === "overview" && (
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-card-foreground">Players ({allPlayers.length})</h2>
+              <h2 className="text-lg font-semibold text-card-foreground">
+                Players ({allPlayers.length})
+              </h2>
             </CardHeader>
             <CardContent>
               <ul className="divide-y divide-border">
@@ -444,7 +493,9 @@ export default function GameDetailPage() {
                         {player.name[0]?.toUpperCase()}
                       </div>
                     )}
-                    <span className="flex-1 text-card-foreground">{player.name}</span>
+                    <span className="flex-1 text-card-foreground">
+                      {player.name}
+                    </span>
                     {player.id === game.gm_id && (
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                         GM
@@ -468,30 +519,43 @@ export default function GameDetailPage() {
 
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold text-card-foreground">Game Details</h2>
+              <h2 className="text-lg font-semibold text-card-foreground">
+                Game Details
+              </h2>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm text-muted-foreground">Play Days</p>
-                <p className="text-card-foreground">{game.play_days.map((d) => DAY_LABELS.full[d]).join(', ')}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Scheduling Window</p>
-                <p className="text-card-foreground">{game.scheduling_window_months} month(s) ahead</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Default Session Time</p>
                 <p className="text-card-foreground">
-                  {formatTime(game.default_start_time)} - {formatTime(game.default_end_time)}
+                  {game.play_days.map((d) => DAY_LABELS.full[d]).join(", ")}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Scheduling Window
+                </p>
+                <p className="text-card-foreground">
+                  {game.scheduling_window_months} month(s) ahead
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Default Session Time
+                </p>
+                <p className="text-card-foreground">
+                  {formatTime(game.default_start_time)} -{" "}
+                  {formatTime(game.default_end_time)}
                 </p>
               </div>
               {confirmedSessions.length > 0 && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Upcoming Sessions</p>
+                  <p className="text-sm text-muted-foreground">
+                    Upcoming Sessions
+                  </p>
                   <ul className="mt-1 space-y-1">
                     {confirmedSessions.slice(0, 3).map((s) => (
                       <li key={s.id} className="text-card-foreground">
-                        {format(parseISO(s.date), 'EEEE, MMMM d, yyyy')}
+                        {format(parseISO(s.date), "EEEE, MMMM d, yyyy")}
                       </li>
                     ))}
                   </ul>
@@ -502,13 +566,17 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {activeTab === 'availability' && (
+      {activeTab === "availability" && (
         <div>
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-foreground mb-2">Mark Your Availability</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-2">
+              Mark Your Availability
+            </h2>
             <p className="text-muted-foreground">
-              Click on dates to cycle through: unavailable (red) → maybe (yellow) → available (green) → unavailable.
-              For &quot;maybe&quot; dates, you can add an optional note. Gray days are not play days for this game.
+              Click on dates to cycle through: unavailable (red) → maybe
+              (yellow) → available (green) → unavailable. Click the pencil icon
+              to add an optional note. Disabled days are not play days for this
+              game.
             </p>
           </div>
           <AvailabilityCalendar
@@ -521,7 +589,7 @@ export default function GameDetailPage() {
         </div>
       )}
 
-      {activeTab === 'schedule' && (
+      {activeTab === "schedule" && (
         <SchedulingSuggestions
           suggestions={suggestions}
           sessions={sessions}
@@ -542,7 +610,8 @@ export default function GameDetailPage() {
               Leave Game?
             </h3>
             <p className="text-muted-foreground mb-6">
-              Are you sure you want to leave <strong>{game.name}</strong>? Your availability data will be removed.
+              Are you sure you want to leave <strong>{game.name}</strong>? Your
+              availability data will be removed.
             </p>
             <div className="flex gap-3">
               <Button
@@ -559,7 +628,7 @@ export default function GameDetailPage() {
                 onClick={handleLeaveGame}
                 disabled={isLeaving}
               >
-                {isLeaving ? 'Leaving...' : 'Leave Game'}
+                {isLeaving ? "Leaving..." : "Leave Game"}
               </Button>
             </div>
           </div>
@@ -574,7 +643,9 @@ export default function GameDetailPage() {
               Remove Player?
             </h3>
             <p className="text-muted-foreground mb-6">
-              Are you sure you want to remove <strong>{playerToRemove.name}</strong> from this game? Their availability data will be deleted.
+              Are you sure you want to remove{" "}
+              <strong>{playerToRemove.name}</strong> from this game? Their
+              availability data will be deleted.
             </p>
             <div className="flex gap-3">
               <Button
@@ -604,7 +675,10 @@ export default function GameDetailPage() {
               Delete Game?
             </h3>
             <p className="text-muted-foreground mb-6">
-              Are you sure you want to permanently delete <strong>{game.name}</strong>? This will remove all players, availability data, and scheduled sessions. This action cannot be undone.
+              Are you sure you want to permanently delete{" "}
+              <strong>{game.name}</strong>? This will remove all players,
+              availability data, and scheduled sessions. This action cannot be
+              undone.
             </p>
             <div className="flex gap-3">
               <Button
@@ -621,7 +695,7 @@ export default function GameDetailPage() {
                 onClick={handleDeleteGame}
                 disabled={isDeleting}
               >
-                {isDeleting ? 'Deleting...' : 'Delete Game'}
+                {isDeleting ? "Deleting..." : "Delete Game"}
               </Button>
             </div>
           </div>

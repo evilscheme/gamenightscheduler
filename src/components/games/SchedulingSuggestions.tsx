@@ -104,7 +104,7 @@ export function SchedulingSuggestions({
           <CardHeader className="flex flex-row items-center justify-between">
             <h2 className="text-lg font-semibold text-card-foreground">Confirmed Sessions</h2>
             <Button size="sm" variant="secondary" onClick={handleExportAll}>
-              Export All (.ics)
+              📅 Export All to Calendar
             </Button>
           </CardHeader>
           <CardContent>
@@ -227,7 +227,7 @@ export function SchedulingSuggestions({
                           variant="ghost"
                           onClick={() => handleExportSingle(session)}
                         >
-                          Export
+                          📅 Add to Calendar
                         </Button>
                         {isGm && (
                           <Button

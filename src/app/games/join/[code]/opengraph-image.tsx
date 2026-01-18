@@ -17,9 +17,13 @@ interface GamePreview {
   gm_name: string;
 }
 
+function getBaseUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
+
 async function getGamePreview(code: string): Promise<GamePreview | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const response = await fetch(`${baseUrl}/api/games/preview/${code}`, {
       next: { revalidate: 60 },
     });
@@ -37,6 +41,7 @@ async function getGamePreview(code: string): Promise<GamePreview | null> {
 export default async function Image({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const game = await getGamePreview(code);
+  const logoUrl = `${getBaseUrl()}/logo.png`;
 
   if (!game) {
     // Fallback to static image style if game not found
@@ -210,33 +215,12 @@ export default async function Image({ params }: { params: Promise<{ code: string
             bottom: 40,
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-            }}
-          >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#1a1a2e"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-          </div>
+          <img
+            src={logoUrl}
+            alt=""
+            width={56}
+            height={56}
+          />
           <div
             style={{
               display: 'flex',

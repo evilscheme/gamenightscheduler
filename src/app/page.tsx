@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
@@ -30,6 +31,14 @@ export default function Home() {
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 relative">
           <div className="text-center">
+            <Image
+              src="/logo.png"
+              alt="Can We Play?"
+              width={180}
+              height={180}
+              className="mx-auto mb-8"
+              priority
+            />
             <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6">
               Can We Play?
               <span className="block text-indigo-200 text-2xl sm:text-3xl mt-2 font-normal">

@@ -88,6 +88,7 @@ CREATE INDEX idx_availability_user_id ON availability(user_id);
 CREATE INDEX idx_availability_date ON availability(date);
 CREATE INDEX idx_sessions_game_id ON sessions(game_id);
 CREATE INDEX idx_sessions_date ON sessions(date);
+CREATE INDEX idx_sessions_confirmed_by ON sessions(confirmed_by);
 
 -- ============================================
 -- 4. Functions
@@ -167,52 +168,51 @@ ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users are viewable by everyone" ON users
   FOR SELECT USING (true);
 CREATE POLICY "Users can update own record" ON users
-  FOR UPDATE USING (auth.uid() = id);
+  FOR UPDATE USING ((select auth.uid()) = id);
 
 -- Games policies
 CREATE POLICY "Users can view games they are part of" ON games
-  FOR SELECT USING (public.is_game_participant(id, auth.uid()));
+  FOR SELECT USING (public.is_game_participant(id, (select auth.uid())));
 CREATE POLICY "GMs can insert games" ON games
-  FOR INSERT WITH CHECK (auth.uid() = gm_id);
+  FOR INSERT WITH CHECK ((select auth.uid()) = gm_id);
 CREATE POLICY "GMs can update own games" ON games
-  FOR UPDATE USING (auth.uid() = gm_id);
+  FOR UPDATE USING ((select auth.uid()) = gm_id);
 CREATE POLICY "GMs can delete own games" ON games
-  FOR DELETE USING (auth.uid() = gm_id);
+  FOR DELETE USING ((select auth.uid()) = gm_id);
 
 -- Game memberships policies (uses helper function to avoid recursion)
 CREATE POLICY "Members can view memberships" ON game_memberships
-  FOR SELECT USING (public.is_game_participant(game_id, auth.uid()));
+  FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
 CREATE POLICY "Users can join games" ON game_memberships
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can leave games" ON game_memberships
-  FOR DELETE USING (auth.uid() = user_id);
-CREATE POLICY "GMs can remove players" ON game_memberships
+  FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users or GMs can delete memberships" ON game_memberships
   FOR DELETE USING (
-    EXISTS (SELECT 1 FROM games WHERE id = game_id AND gm_id = auth.uid())
+    (select auth.uid()) = user_id OR
+    EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
   );
 
 -- Availability policies
 CREATE POLICY "Game participants can view availability" ON availability
-  FOR SELECT USING (public.is_game_participant(game_id, auth.uid()));
+  FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
 CREATE POLICY "Users can insert own availability" ON availability
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
 CREATE POLICY "Users can update own availability" ON availability
-  FOR UPDATE USING (auth.uid() = user_id);
+  FOR UPDATE USING ((select auth.uid()) = user_id);
 CREATE POLICY "Users can delete own availability" ON availability
-  FOR DELETE USING (auth.uid() = user_id);
+  FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- Sessions policies
 CREATE POLICY "Game participants can view sessions" ON sessions
-  FOR SELECT USING (public.is_game_participant(game_id, auth.uid()));
+  FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
 CREATE POLICY "GMs can insert sessions" ON sessions
   FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM games WHERE id = game_id AND gm_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
   );
 CREATE POLICY "GMs can update sessions" ON sessions
   FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM games WHERE id = game_id AND gm_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
   );
 CREATE POLICY "GMs can delete sessions" ON sessions
   FOR DELETE USING (
-    EXISTS (SELECT 1 FROM games WHERE id = game_id AND gm_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
   );

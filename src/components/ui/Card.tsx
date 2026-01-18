@@ -21,7 +21,7 @@ Card.displayName = 'Card';
 export const CardHeader = forwardRef<HTMLDivElement, CardProps>(
   ({ className = '', children, ...props }, ref) => {
     return (
-      <div ref={ref} className={`px-6 py-4 border-b border-border ${className}`} {...props}>
+      <div ref={ref} className={`px-4 py-3 sm:px-6 sm:py-4 border-b border-border ${className}`} {...props}>
         {children}
       </div>
     );
@@ -33,7 +33,7 @@ CardHeader.displayName = 'CardHeader';
 export const CardContent = forwardRef<HTMLDivElement, CardProps>(
   ({ className = '', children, ...props }, ref) => {
     return (
-      <div ref={ref} className={`px-6 py-4 ${className}`} {...props}>
+      <div ref={ref} className={`px-4 py-3 sm:px-6 sm:py-4 ${className}`} {...props}>
         {children}
       </div>
     );

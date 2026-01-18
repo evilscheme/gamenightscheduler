@@ -101,9 +101,9 @@ export function SchedulingSuggestions({
       {/* Confirmed Sessions */}
       {confirmedSessions.length > 0 && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-card-foreground">Confirmed Sessions</h2>
-            <Button size="sm" variant="secondary" onClick={handleExportAll}>
+            <Button size="sm" variant="secondary" onClick={handleExportAll} className="w-full sm:w-auto">
               📅 Export All to Calendar
             </Button>
           </CardHeader>
@@ -126,10 +126,10 @@ export function SchedulingSuggestions({
 
                 return (
                   <li key={session.id} className="py-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        <span className="text-2xl">🎲</span>
-                        <div className="flex-1">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <span className="text-2xl shrink-0">🎲</span>
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium text-card-foreground">
                             {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
                           </p>
@@ -142,7 +142,7 @@ export function SchedulingSuggestions({
                             <>
                               {/* Segmented progress bar */}
                               <div className="mt-2 flex items-center gap-2">
-                                <div className="flex-1 max-w-xs bg-muted rounded-full h-2.5 overflow-hidden flex">
+                                <div className="flex-1 bg-muted rounded-full h-2.5 overflow-hidden flex">
                                   {availablePercent > 0 && (
                                     <div
                                       className="h-2.5 bg-green-500"
@@ -221,7 +221,7 @@ export function SchedulingSuggestions({
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 shrink-0 sm:ml-4">
                         <Button
                           size="sm"
                           variant="ghost"
@@ -289,9 +289,9 @@ export function SchedulingSuggestions({
                           : ''
                       }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             <p className="font-medium text-card-foreground">
                               {format(parseISO(suggestion.date), 'EEEE, MMMM d')}
                             </p>
@@ -303,7 +303,7 @@ export function SchedulingSuggestions({
                           </div>
                           {/* Segmented progress bar */}
                           <div className="mt-2 flex items-center gap-2">
-                            <div className="flex-1 max-w-xs bg-muted rounded-full h-2.5 overflow-hidden flex">
+                            <div className="flex-1 sm:max-w-xs bg-muted rounded-full h-2.5 overflow-hidden flex">
                               {availablePercent > 0 && (
                                 <div
                                   className="h-2.5 bg-green-500"
@@ -383,6 +383,7 @@ export function SchedulingSuggestions({
                           <Button
                             size="sm"
                             onClick={() => handleConfirmClick(suggestion.date)}
+                            className="shrink-0 self-start"
                           >
                             Confirm
                           </Button>

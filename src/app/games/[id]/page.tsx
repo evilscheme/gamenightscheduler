@@ -370,7 +370,7 @@ export default function GameDetailPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">{game.name}</h1>
             <p className="text-muted-foreground mt-1">
@@ -378,7 +378,7 @@ export default function GameDetailPage() {
               {isGm && ' (You)'}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {isGm && (
               <>
                 <Button onClick={() => router.push(`/games/${gameId}/edit`)} variant="secondary">
@@ -404,7 +404,7 @@ export default function GameDetailPage() {
 
       {/* Tabs */}
       <div className="border-b border-border mb-6">
-        <nav className="-mb-px flex gap-6">
+        <nav className="-mb-px flex gap-4 sm:gap-6">
           {(['overview', 'availability', 'schedule'] as Tab[]).map((tab) => (
             <button
               key={tab}

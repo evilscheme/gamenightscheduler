@@ -35,8 +35,6 @@ Uses Supabase Auth with Google and Discord OAuth. OAuth providers are configured
 - `src/contexts/AuthContext.tsx` - Auth context providing `useAuth()` hook
 - `src/lib/supabase/client.ts` - Browser client (uses anon key)
 - `src/lib/supabase/server.ts` - Server client for server components
-- `src/lib/supabase/middleware.ts` - Session refresh helper
-- `src/proxy.ts` - Next.js 16 proxy configuration (replaces middleware.ts)
 - `src/app/auth/callback/route.ts` - OAuth callback handler
 
 The `useAuth()` hook provides: `user`, `session`, `profile`, `isLoading`, `signInWithGoogle()`, `signInWithDiscord()`, `signOut()`, `refreshProfile()`.
@@ -64,7 +62,6 @@ RLS uses `auth.uid()` and a `is_game_participant()` helper function (SECURITY DE
 ### Key Patterns
 
 - All page components use `'use client'` directive
-- `src/components/layout/Providers.tsx` wraps app with ThemeProvider and AuthProvider
 - Users must enable "GM mode" in Settings (`is_gm` flag) to create games
 - Games use invite codes (nanoid) for players to join
 
@@ -73,6 +70,24 @@ RLS uses `auth.uid()` and a `is_game_participant()` helper function (SECURITY DE
 - `src/hooks/useAuthRedirect.ts` - Hook for protected pages (redirects to login, optionally requires GM)
 - `src/lib/constants.ts` - Shared constants (day labels, timeout values, session defaults)
 - `src/components/ui/` - Reusable components: Button, Card, Input, Textarea, LoadingSpinner, EmptyState
+
+### Layout Components
+
+- `src/components/layout/Providers.tsx` - Wraps app with ThemeProvider and AuthProvider
+- `src/components/layout/Navbar.tsx` - Navigation bar with user menu and help dropdown
+- `src/components/layout/ThemeToggle.tsx` - Dark/light mode toggle
+- `src/components/dashboard/DashboardContent.tsx` - Main dashboard view for authenticated users
+
+### API Routes
+
+- `src/app/api/games/invite/[code]/route.ts` - GET game by invite code (authenticated, checks membership)
+- `src/app/api/games/preview/[code]/route.ts` - GET game preview for OG crawlers (public, cached)
+- `src/app/api/test-auth/route.ts` - Test user management for E2E tests (dev only, blocked in production)
+
+### OG Image Generation
+
+- `src/app/opengraph-image.tsx` - Default OG image for the app
+- `src/app/games/join/[code]/opengraph-image.tsx` - Dynamic OG image for game invite links
 
 ### E2E Testing
 

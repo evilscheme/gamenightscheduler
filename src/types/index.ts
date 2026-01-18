@@ -35,7 +35,7 @@ export interface Availability {
   updated_at: string;
 }
 
-export type SessionStatus = 'suggested' | 'confirmed' | 'cancelled';
+type SessionStatus = 'suggested' | 'confirmed' | 'cancelled';
 
 export interface GameSession {
   id: string;
@@ -59,20 +59,9 @@ export interface GameWithMembers extends Game {
   members: User[];
 }
 
-// Form types
-
-export interface CreateGameInput {
-  name: string;
-  description?: string;
-  play_days: number[];
-  scheduling_window_months: number;
-  default_start_time?: string;
-  default_end_time?: string;
-}
-
 // Scheduling types
 
-export interface PlayerWithComment {
+interface PlayerWithComment {
   user: User;
   comment: string | null;
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Button } from '@/components/ui';
+import { Button, LoadingSpinner } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
 
@@ -18,7 +18,7 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

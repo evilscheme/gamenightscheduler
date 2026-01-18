@@ -348,7 +348,7 @@ function MonthCalendar({
               disabled={!isPlayDay || isPast}
               className={`relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all ${bgColor} ${textColor} ${cursor} ${
                 isToday(date) ? "ring-1 ring-primary font-bold" : ""
-              }`}
+              } ${isConfirmed ? "ring-2 ring-success" : ""}`}
               title={avail?.comment ? `${dateStr}\n${avail.comment}` : dateStr}
             >
               {format(date, "d")}

@@ -1,10 +1,53 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
 import { ThemeToggle } from './ThemeToggle';
+
+const GITHUB_ISSUES_URL = 'https://github.com/evilscheme/gamenightscheduler/issues';
+
+function HelpDropdown() {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Help menu"
+      >
+        ?
+      </button>
+      {isOpen && (
+        <div className="absolute right-0 mt-2 bg-card border border-border rounded-md shadow-lg z-50">
+          <a
+            href={GITHUB_ISSUES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors rounded-md whitespace-nowrap"
+            onClick={() => setIsOpen(false)}
+          >
+            🐛 Report Bug / Feedback
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Navbar() {
   const { profile, isLoading, signOut } = useAuth();
@@ -31,6 +74,7 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
+            <HelpDropdown />
             <ThemeToggle />
             {isLoading ? (
               <div className="h-8 w-8 animate-pulse bg-muted rounded-full" />

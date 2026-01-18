@@ -100,7 +100,7 @@ BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = '';
 
 -- Auto-create user profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -123,19 +123,19 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Check if user is a game participant (used by RLS policies)
 CREATE OR REPLACE FUNCTION public.is_game_participant(game_id_param UUID, user_id_param UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
-    SELECT 1 FROM games WHERE id = game_id_param AND gm_id = user_id_param
+    SELECT 1 FROM public.games WHERE id = game_id_param AND gm_id = user_id_param
   ) OR EXISTS (
-    SELECT 1 FROM game_memberships WHERE game_id = game_id_param AND user_id = user_id_param
+    SELECT 1 FROM public.game_memberships WHERE game_id = game_id_param AND user_id = user_id_param
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- ============================================
 -- 5. Triggers

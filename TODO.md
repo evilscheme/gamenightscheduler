@@ -16,6 +16,7 @@
 - [X] add "mark all remaining unspecified days as [yes/no]" capability
 - [X] add a way for users to give feedback and report bugs (github issues?)
 - [X] make the non-play days more visually obvious with some cross-hatching
+- [ ] sensible usage limits (20 games per person, 50 players per game)
 
 ## Integration & Deployment
 - [X] implement google OAuth
@@ -30,7 +31,7 @@
 - [X] light mode text can be hard to read in places
 - [X] if someone is given a game join link, and they don't have a user already, when they complete the user signup flow they aren't redirected to the join URL, and there is no invite shown in their UI 
 - [X] players can view games they aren't a member of
-- [ ] supabase URL is super sketchy, improve it!
+- [~] supabase URL is super sketchy, improve it! (probably can't do w/o paying)
 
 ## Possible future features
 - have the app publish a calendar URL that clients can subscribe to?

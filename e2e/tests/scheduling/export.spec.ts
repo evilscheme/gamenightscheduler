@@ -48,8 +48,7 @@ test.describe('Session Export', () => {
     const downloadPromise = page.waitForEvent('download');
 
     // Click the individual export button (not "Export All")
-    // The individual export button just says "Export"
-    const exportButton = page.getByRole('button', { name: /^export$/i }).first();
+    const exportButton = page.getByRole('button', { name: /add to calendar/i }).first();
     await expect(exportButton).toBeVisible();
     await exportButton.click();
 
@@ -164,7 +163,7 @@ test.describe('Session Export', () => {
     });
 
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: /^export$/i }).first().click();
+    await page.getByRole('button', { name: /add to calendar/i }).first().click();
 
     const download = await downloadPromise;
 

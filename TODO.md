@@ -17,6 +17,7 @@
 - [X] add a way for users to give feedback and report bugs (github issues?)
 - [X] make the non-play days more visually obvious with some cross-hatching
 - [ ] sensible usage limits (20 games per person, 50 players per game)
+- [ ] make chosen game days a different color than green
 
 ## Integration & Deployment
 - [X] implement google OAuth
@@ -35,3 +36,5 @@
 
 ## Possible future features
 - have the app publish a calendar URL that clients can subscribe to?
+- allow for co-GMs?
+- allow GM to punch in special play options that aren't normally a play day?

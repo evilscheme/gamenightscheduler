@@ -58,8 +58,8 @@ export function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/logo.png" alt="Can We Play?" width={44} height={44} />
-              <span className="font-bold text-xl text-foreground">Can We Play?</span>
+              <Image src="/logo.png" alt="Can We Play?" width={44} height={44} className="shrink-0" />
+              <span className="hidden sm:block font-bold text-xl text-foreground">Can We Play?</span>
             </Link>
             {profile?.is_gm && (
               <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
@@ -73,23 +73,23 @@ export function Navbar() {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <HelpDropdown />
             <ThemeToggle />
             {isLoading ? (
-              <div className="h-8 w-8 animate-pulse bg-muted rounded-full" />
+              <div className="h-8 w-8 animate-pulse bg-muted rounded-full shrink-0" />
             ) : profile ? (
               <>
-                <Link href="/settings" className="flex items-center gap-2">
+                <Link href="/settings" className="flex items-center gap-2 shrink-0">
                   {profile.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element -- external avatar URL
                     <img
                       src={profile.avatar_url}
                       alt={profile.name || ''}
-                      className="h-8 w-8 rounded-full"
+                      className="h-8 w-8 rounded-full shrink-0"
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
+                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium shrink-0">
                       {profile.name?.[0]?.toUpperCase() || '?'}
                     </div>
                   )}
@@ -97,7 +97,7 @@ export function Navbar() {
                     {profile.name}
                   </span>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={() => signOut()}>
+                <Button variant="ghost" size="sm" onClick={() => signOut()} className="shrink-0">
                   Sign out
                 </Button>
               </>

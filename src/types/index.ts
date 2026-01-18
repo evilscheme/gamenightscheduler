@@ -72,6 +72,11 @@ export interface CreateGameInput {
 
 // Scheduling types
 
+export interface PlayerWithComment {
+  user: User;
+  comment: string | null;
+}
+
 export interface DateSuggestion {
   date: string;
   dayOfWeek: number;
@@ -80,8 +85,8 @@ export interface DateSuggestion {
   unavailableCount: number;
   pendingCount: number;
   totalPlayers: number;
-  availablePlayers: User[];
-  maybePlayers: { user: User; comment: string | null }[];
-  unavailablePlayers: User[];
+  availablePlayers: PlayerWithComment[];
+  maybePlayers: PlayerWithComment[];
+  unavailablePlayers: PlayerWithComment[];
   pendingPlayers: User[];
 }

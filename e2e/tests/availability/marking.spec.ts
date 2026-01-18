@@ -225,7 +225,7 @@ test.describe('Availability Marking', () => {
     }
   });
 
-  test('can add a note to maybe status via edit icon', async ({ page, request }) => {
+  test('can add a note to any availability status via edit icon', async ({ page, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-note-${Date.now()}@e2e.local`,
       name: 'Note GM',
@@ -259,13 +259,11 @@ test.describe('Availability Marking', () => {
     const dateButton = page.locator(`button[title*="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
-    // Click three times to get to maybe status (unset -> available -> unavailable -> maybe)
+    // Click once to mark as available
     await dateButton.click();
-    await dateButton.click();
-    await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-warning/);
+    await expect(dateButton).toHaveClass(/bg-success/);
 
-    // Maybe date should show edit icon (pencil emoji)
+    // Available date should show edit icon (pencil emoji) for adding notes
     const editIcon = dateButton.locator('span:has-text("✏️")');
     await expect(editIcon).toBeVisible();
 
@@ -293,5 +291,75 @@ test.describe('Availability Marking', () => {
 
     const dateButtonAfterReload = page.locator(`button[title*="${targetDate}"]`);
     await expect(dateButtonAfterReload.locator('span:has-text("💬")')).toBeVisible();
+  });
+
+  test('notes persist when cycling through availability states', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-note-persist-${Date.now()}@e2e.local`,
+      name: 'Note Persist GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Note Persist Campaign',
+      play_days: [5, 6],
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /availability/i }).click();
+    await expect(page.getByText(/mark your availability/i)).toBeVisible();
+
+    const playDates = getPlayDates([5, 6], 2);
+    const targetDate = playDates[0];
+
+    const dateButton = page.locator(`button[title*="${targetDate}"]`);
+    await expect(dateButton).toBeVisible();
+
+    // Click to mark as available and add a note
+    await dateButton.click();
+    await expect(dateButton).toHaveClass(/bg-success/);
+
+    const editIcon = dateButton.locator('span:has-text("✏️")');
+    await editIcon.click();
+
+    const noteInput = page.locator('input[placeholder*="Depends on work"]');
+    await noteInput.fill('Important meeting note');
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify note icon shows
+    await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
+
+    // Cycle to unavailable - note should persist
+    await dateButton.click();
+    await expect(dateButton).toHaveClass(/bg-danger/);
+    await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
+
+    // Cycle to maybe - note should persist
+    await dateButton.click();
+    await expect(dateButton).toHaveClass(/bg-warning/);
+    await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
+
+    // Cycle back to available - note should still persist
+    await dateButton.click();
+    await expect(dateButton).toHaveClass(/bg-success/);
+    await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
+
+    // Verify the note content is still there by clicking edit
+    const commentIcon = dateButton.locator('span:has-text("💬")');
+    await commentIcon.click();
+
+    const noteInputAfterCycle = page.locator('input[placeholder*="Depends on work"]');
+    await expect(noteInputAfterCycle).toHaveValue('Important meeting note');
   });
 });

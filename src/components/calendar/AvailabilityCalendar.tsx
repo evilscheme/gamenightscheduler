@@ -181,7 +181,7 @@ export function AvailabilityCalendar({
           <span>Not set</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-muted" />
+          <div className="w-3 h-3 rounded-sm non-play-day" />
           <span>Not a play day</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -315,7 +315,7 @@ function MonthCalendar({
           const isConfirmed = confirmedDates.has(dateStr);
           const avail = availability[dateStr];
 
-          let bgColor = "bg-muted"; // Non-play day
+          let bgColor = "non-play-day"; // Non-play day (cross-hatched)
           let textColor = "text-muted-foreground";
           let cursor = "cursor-default";
 

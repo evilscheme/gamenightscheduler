@@ -10,9 +10,9 @@
 - [X] better app name & custom domain
 - [X] better preview card for URLs when pasted to discord/messages
 - [ ] add a bulk maybe option, and make those buttons a little easier to see visually
-- [ ] change selection order to "yes -> no -> maybe" when toggling availability
+- [X] change selection order to "yes -> no -> maybe" when toggling availability
 - [ ] make it more obvious that calendar cells can be clicked?
-- [ ] allow notes for all availabilities, not just "maybe"
+- [X] allow notes for all availabilities, not just "maybe"
 - [ ] make it more explicit that the "export" buttons export calendar invites
 - [ ] add "mark all remaining unspecified days as [yes/no]" capability
 - [ ] add a way for users to give feedback and report bugs (github issues?)

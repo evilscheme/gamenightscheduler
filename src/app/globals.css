@@ -74,3 +74,23 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+/* Diagonal cross-hatching pattern for non-play days */
+.non-play-day {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 10px,
+      color-mix(in srgb, var(--muted-foreground) 20%, transparent) 10px,
+      color-mix(in srgb, var(--muted-foreground) 20%, transparent) 11px
+    ),
+    /* repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      color-mix(in srgb, var(--muted-foreground) 20%, transparent) 10px,
+      color-mix(in srgb, var(--muted-foreground) 20%, transparent) 11px
+    ), */
+    var(--muted);
+}

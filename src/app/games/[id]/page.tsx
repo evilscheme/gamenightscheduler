@@ -136,9 +136,9 @@ export default function GameDetailPage() {
       .filter((date) => isAfter(date, today) || format(date, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd'))
       .map((date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
-        const availablePlayers: User[] = [];
+        const availablePlayers: { user: User; comment: string | null }[] = [];
         const maybePlayers: { user: User; comment: string | null }[] = [];
-        const unavailablePlayers: User[] = [];
+        const unavailablePlayers: { user: User; comment: string | null }[] = [];
         const pendingPlayers: User[] = [];
 
         allPlayers.forEach((player) => {
@@ -149,11 +149,11 @@ export default function GameDetailPage() {
           if (!playerAvail) {
             pendingPlayers.push(player);
           } else if (playerAvail.status === 'available') {
-            availablePlayers.push(player);
+            availablePlayers.push({ user: player, comment: playerAvail.comment });
           } else if (playerAvail.status === 'maybe') {
             maybePlayers.push({ user: player, comment: playerAvail.comment });
           } else {
-            unavailablePlayers.push(player);
+            unavailablePlayers.push({ user: player, comment: playerAvail.comment });
           }
         });
 

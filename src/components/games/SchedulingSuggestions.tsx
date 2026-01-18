@@ -189,7 +189,9 @@ export function SchedulingSuggestions({
                                 {suggestion.availablePlayers.length > 0 && (
                                   <p className="text-muted-foreground">
                                     <span className="text-success">Available:</span>{' '}
-                                    {suggestion.availablePlayers.map((p) => p.name).join(', ')}
+                                    {suggestion.availablePlayers.map((p) =>
+                                      p.comment ? `${p.user.name} (${p.comment})` : p.user.name
+                                    ).join(', ')}
                                   </p>
                                 )}
                                 {suggestion.maybePlayers.length > 0 && (
@@ -203,7 +205,9 @@ export function SchedulingSuggestions({
                                 {suggestion.unavailablePlayers.length > 0 && (
                                   <p className="text-muted-foreground">
                                     <span className="text-danger">Unavailable:</span>{' '}
-                                    {suggestion.unavailablePlayers.map((p) => p.name).join(', ')}
+                                    {suggestion.unavailablePlayers.map((p) =>
+                                      p.comment ? `${p.user.name} (${p.comment})` : p.user.name
+                                    ).join(', ')}
                                   </p>
                                 )}
                                 {suggestion.pendingPlayers.length > 0 && (
@@ -346,7 +350,9 @@ export function SchedulingSuggestions({
                             {suggestion.availablePlayers.length > 0 && (
                               <p className="text-muted-foreground">
                                 <span className="text-success">Available:</span>{' '}
-                                {suggestion.availablePlayers.map((p) => p.name).join(', ')}
+                                {suggestion.availablePlayers.map((p) =>
+                                  p.comment ? `${p.user.name} (${p.comment})` : p.user.name
+                                ).join(', ')}
                               </p>
                             )}
                             {suggestion.maybePlayers.length > 0 && (
@@ -360,7 +366,9 @@ export function SchedulingSuggestions({
                             {suggestion.unavailablePlayers.length > 0 && (
                               <p className="text-muted-foreground">
                                 <span className="text-danger">Unavailable:</span>{' '}
-                                {suggestion.unavailablePlayers.map((p) => p.name).join(', ')}
+                                {suggestion.unavailablePlayers.map((p) =>
+                                  p.comment ? `${p.user.name} (${p.comment})` : p.user.name
+                                ).join(', ')}
                               </p>
                             )}
                             {suggestion.pendingPlayers.length > 0 && (

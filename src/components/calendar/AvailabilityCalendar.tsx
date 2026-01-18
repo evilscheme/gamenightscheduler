@@ -78,8 +78,8 @@ export function AvailabilityCalendar({
     const currentAvail = availability[dateStr];
     const nextStatus = getNextStatus(currentAvail);
 
-    // Cycle through states - preserve existing comment for maybe status
-    const comment = nextStatus === 'maybe' ? (currentAvail?.comment || null) : null;
+    // Cycle through states - preserve existing comment regardless of status
+    const comment = currentAvail?.comment || null;
     onToggle(dateStr, nextStatus, comment);
   };
 
@@ -88,15 +88,16 @@ export function AvailabilityCalendar({
     setCommentText(availability[dateStr]?.comment || "");
   };
 
-  const handleMaybeConfirm = () => {
+  const handleSaveComment = () => {
     if (commentingDate) {
-      onToggle(commentingDate, 'maybe', commentText.trim() || null);
+      const currentStatus = availability[commentingDate]?.status || 'available';
+      onToggle(commentingDate, currentStatus, commentText.trim() || null);
       setCommentingDate(null);
       setCommentText("");
     }
   };
 
-  const handleMaybeCancel = () => {
+  const handleCancelComment = () => {
     setCommentingDate(null);
     setCommentText("");
   };
@@ -193,7 +194,7 @@ export function AvailabilityCalendar({
       {commentingDate && (
         <div
           className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
-          onClick={handleMaybeCancel}
+          onClick={handleCancelComment}
         >
           <div
             className="bg-card rounded-lg shadow-lg border border-border p-4 w-full max-w-sm mx-4"
@@ -204,7 +205,7 @@ export function AvailabilityCalendar({
                 Note for {format(parseISO(commentingDate), 'MMM d')}
               </span>
               <button
-                onClick={handleMaybeCancel}
+                onClick={handleCancelComment}
                 className="text-muted-foreground hover:text-foreground text-lg leading-none"
               >
                 &times;
@@ -218,8 +219,8 @@ export function AvailabilityCalendar({
               className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary mb-3"
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleMaybeConfirm();
-                if (e.key === 'Escape') handleMaybeCancel();
+                if (e.key === 'Enter') handleSaveComment();
+                if (e.key === 'Escape') handleCancelComment();
               }}
             />
             <div className="flex gap-2">
@@ -227,14 +228,14 @@ export function AvailabilityCalendar({
                 variant="secondary"
                 size="sm"
                 className="flex-1"
-                onClick={handleMaybeCancel}
+                onClick={handleCancelComment}
               >
                 Cancel
               </Button>
               <Button
                 size="sm"
                 className="flex-1"
-                onClick={handleMaybeConfirm}
+                onClick={handleSaveComment}
               >
                 Save
               </Button>
@@ -337,8 +338,8 @@ function MonthCalendar({
             textColor = "text-muted-foreground/50";
           }
 
-          const isMaybe = avail?.status === 'maybe';
           const hasComment = !!avail?.comment;
+          const hasAvailability = !!avail;
 
           return (
             <button
@@ -354,7 +355,7 @@ function MonthCalendar({
               {isConfirmed && (
                 <span className="absolute top-0.5 right-1 text-xs leading-none">🎲</span>
               )}
-              {isMaybe && !isPast && (
+              {isPlayDay && !isPast && hasAvailability && (
                 <span
                   className="absolute bottom-0.5 right-1 text-xs leading-none cursor-pointer hover:scale-125 transition-transform"
                   onClick={(e) => {

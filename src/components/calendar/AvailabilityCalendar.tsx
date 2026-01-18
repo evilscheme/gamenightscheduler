@@ -209,7 +209,7 @@ export function AvailabilityCalendar({
           <span>Not a play day</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px]">🎲</span>
+          <div className="w-3 h-3 rounded-sm scheduled-session" />
           <span>Confirmed</span>
         </div>
       </div>
@@ -372,12 +372,13 @@ function MonthCalendar({
               disabled={!isPlayDay || isPast}
               className={`relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all ${bgColor} ${textColor} ${cursor} ${
                 isToday(date) ? "ring-1 ring-primary font-bold" : ""
-              } ${isConfirmed ? "ring-2 ring-success" : ""}`}
+              } ${isConfirmed ? "scheduled-session" : ""}`}
               title={avail?.comment ? `${dateStr}\n${avail.comment}` : dateStr}
             >
-              {format(date, "d")}
-              {isConfirmed && (
-                <span className="absolute top-0.5 right-1 text-xs leading-none">🎲</span>
+              {isConfirmed ? (
+                <span className="bg-card/80 px-1 rounded-sm">{format(date, "d")}</span>
+              ) : (
+                format(date, "d")
               )}
               {isPlayDay && !isPast && hasAvailability && (
                 <span

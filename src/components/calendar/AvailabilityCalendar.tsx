@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import {
   format,
   startOfMonth,
@@ -300,6 +300,33 @@ function MonthCalendar({
 
   const startDayOfWeek = getDay(startOfMonth(month));
 
+  // Long-press handling for mobile
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTriggered = useRef(false);
+
+  const handleTouchStart = (dateStr: string) => {
+    longPressTriggered.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true;
+      onEditComment(dateStr);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleDayClickWithLongPressCheck = (date: Date) => {
+    if (longPressTriggered.current) {
+      longPressTriggered.current = false;
+      return;
+    }
+    onDayClick(date);
+  };
+
   return (
     <div className="bg-card rounded-lg border border-border p-2">
       {/* Month header */}
@@ -368,9 +395,12 @@ function MonthCalendar({
           return (
             <button
               key={dateStr}
-              onClick={() => onDayClick(date)}
+              onClick={() => handleDayClickWithLongPressCheck(date)}
+              onTouchStart={() => isPlayDay && !isPast && handleTouchStart(dateStr)}
+              onTouchEnd={handleTouchEnd}
+              onTouchMove={handleTouchEnd}
               disabled={!isPlayDay || isPast}
-              className={`relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all ${bgColor} ${textColor} ${cursor} ${
+              className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all ${bgColor} ${textColor} ${cursor} ${
                 isToday(date) ? "ring-1 ring-primary font-bold" : ""
               } ${isConfirmed ? "scheduled-session" : ""}`}
               title={avail?.comment ? `${dateStr}\n${avail.comment}` : dateStr}
@@ -382,7 +412,9 @@ function MonthCalendar({
               )}
               {isPlayDay && !isPast && hasAvailability && (
                 <span
-                  className="absolute bottom-0.5 right-1 text-xs leading-none cursor-pointer hover:scale-125 transition-transform"
+                  className={`absolute bottom-0.5 right-1 text-xs leading-none cursor-pointer hover:scale-125 transition-all ${
+                    hasComment ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  }`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onEditComment(dateStr);

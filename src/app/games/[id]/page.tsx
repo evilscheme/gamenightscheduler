@@ -65,7 +65,8 @@ export default function GameDetailPage() {
   const [openPlayerMenu, setOpenPlayerMenu] = useState<string | null>(null);
 
   const isGm = game?.gm_id === profile?.id;
-  const isCoGm = game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;
+  const isCoGm =
+    game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;
   const canDoGmActions = !!(isGm || isCoGm);
   const isMember = game?.members.some((m) => m.id === profile?.id);
 
@@ -101,10 +102,11 @@ export default function GameDetailPage() {
       .select("user_id, is_co_gm, users(*)")
       .eq("game_id", gameId);
 
-    const members = memberships?.map((m) => ({
-      ...(m.users as unknown as User),
-      is_co_gm: m.is_co_gm,
-    })) as MemberWithRole[] || [];
+    const members =
+      (memberships?.map((m) => ({
+        ...(m.users as unknown as User),
+        is_co_gm: m.is_co_gm,
+      })) as MemberWithRole[]) || [];
 
     setGame({ ...gameData, members } as GameWithMembers);
 
@@ -511,15 +513,21 @@ export default function GameDetailPage() {
             <CardContent>
               <ul className="divide-y divide-border">
                 {allPlayers.map((player) => {
-                  const memberData = game.members.find((m) => m.id === player.id);
+                  const memberData = game.members.find(
+                    (m) => m.id === player.id
+                  );
                   const playerIsCoGm = memberData?.is_co_gm ?? false;
                   const isOriginalGm = player.id === game.gm_id;
                   // Co-GMs can only remove non-co-GM members
-                  const canRemovePlayer = isGm || (isCoGm && !playerIsCoGm && !isOriginalGm);
+                  const canRemovePlayer =
+                    isGm || (isCoGm && !playerIsCoGm && !isOriginalGm);
                   const showMenu = (isGm || canRemovePlayer) && !isOriginalGm;
 
                   return (
-                    <li key={player.id} className="py-3 flex items-center gap-3">
+                    <li
+                      key={player.id}
+                      className="py-3 flex items-center gap-3"
+                    >
                       {player.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element -- external avatar URL
                         <img
@@ -548,11 +556,19 @@ export default function GameDetailPage() {
                       {showMenu && (
                         <div className="relative">
                           <button
-                            onClick={() => setOpenPlayerMenu(openPlayerMenu === player.id ? null : player.id)}
+                            onClick={() =>
+                              setOpenPlayerMenu(
+                                openPlayerMenu === player.id ? null : player.id
+                              )
+                            }
                             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                             aria-label="Player actions"
                           >
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg
+                              className="w-5 h-5"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
                               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                             </svg>
                           </button>
@@ -567,12 +583,17 @@ export default function GameDetailPage() {
                                 {isGm && (
                                   <button
                                     onClick={() => {
-                                      handleToggleCoGm(player.id, !playerIsCoGm);
+                                      handleToggleCoGm(
+                                        player.id,
+                                        !playerIsCoGm
+                                      );
                                       setOpenPlayerMenu(null);
                                     }}
                                     className="w-full px-3 py-2 text-left text-sm text-card-foreground hover:bg-secondary transition-colors"
                                   >
-                                    {playerIsCoGm ? "Remove Co-GM" : "Make Co-GM"}
+                                    {playerIsCoGm
+                                      ? "Remove Co-GM"
+                                      : "Make Co-GM"}
                                   </button>
                                 )}
                                 {canRemovePlayer && (
@@ -654,9 +675,12 @@ export default function GameDetailPage() {
               Mark Your Availability
             </h2>
             <p className="text-muted-foreground">
-              Click on dates to cycle through: unavailable (red) → maybe
-              (yellow) → available (green) → unavailable. Click the pencil icon
-              to add an optional note. Disabled days are not play days for this
+              Click on dates to cycle through: available (green) → unavailable
+              (red) → maybe (yellow).
+            </p>
+            <p className="text-muted-foreground">
+              Hover over a date to see the pencil icon for adding a note, or
+              long-press on mobile. Hatched days are not play days for this
               game.
             </p>
           </div>

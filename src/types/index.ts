@@ -6,6 +6,7 @@ export interface User {
   name: string;
   avatar_url: string | null;
   is_gm: boolean;
+  is_admin: boolean;
   created_at: string;
 }
 

@@ -7,6 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 interface UseAuthRedirectOptions {
   /** Require user to be a GM, redirect to dashboard if not */
   requireGM?: boolean;
+  /** Require user to be an admin, redirect to dashboard if not */
+  requireAdmin?: boolean;
   /** Custom redirect URL for unauthenticated users (default: /login) */
   redirectTo?: string;
 }
@@ -14,10 +16,10 @@ interface UseAuthRedirectOptions {
 /**
  * Hook to handle auth-based redirects for protected pages.
  * Redirects to login if not authenticated.
- * Optionally redirects non-GMs to dashboard.
+ * Optionally redirects non-GMs or non-admins to dashboard.
  */
 export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
-  const { requireGM = false, redirectTo = '/login' } = options;
+  const { requireGM = false, requireAdmin = false, redirectTo = '/login' } = options;
   const { session, profile, isLoading } = useAuth();
   const router = useRouter();
 
@@ -28,6 +30,9 @@ export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
     } else if (requireGM && !isLoading && profile && !profile.is_gm) {
       // If profile loaded but not a GM, redirect to dashboard
       router.push('/dashboard');
+    } else if (requireAdmin && !isLoading && profile && !profile.is_admin) {
+      // If profile loaded but not an admin, redirect to dashboard
+      router.push('/dashboard');
     }
-  }, [isLoading, session, profile, router, redirectTo, requireGM]);
+  }, [isLoading, session, profile, router, redirectTo, requireGM, requireAdmin]);
 }

@@ -18,6 +18,7 @@ CREATE TABLE users (
   name TEXT NOT NULL,
   avatar_url TEXT,
   is_gm BOOLEAN DEFAULT FALSE,
+  is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -110,7 +111,7 @@ $$ LANGUAGE plpgsql SET search_path = '';
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, name, avatar_url, is_gm)
+  INSERT INTO public.users (id, email, name, avatar_url, is_gm, is_admin)
   VALUES (
     NEW.id,
     NEW.email,
@@ -123,6 +124,7 @@ BEGIN
       NEW.raw_user_meta_data->>'avatar_url',
       NEW.raw_user_meta_data->>'picture'
     ),
+    false,
     false
   );
   RETURN NEW;

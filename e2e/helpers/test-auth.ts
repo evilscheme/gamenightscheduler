@@ -11,6 +11,7 @@ export interface TestUser {
   email: string;
   name: string;
   is_gm: boolean;
+  is_admin: boolean;
 }
 
 /**
@@ -26,15 +27,17 @@ export async function createTestUser(
     email?: string;
     name?: string;
     is_gm?: boolean;
+    is_admin?: boolean;
   } = {}
 ): Promise<TestUser> {
   const timestamp = Date.now();
   const email = options.email || `test-${timestamp}@e2e.local`;
   const name = options.name || `Test User ${timestamp}`;
   const is_gm = options.is_gm ?? false;
+  const is_admin = options.is_admin ?? false;
 
   const response = await request.post('http://localhost:3001/api/test-auth', {
-    data: { email, name, is_gm },
+    data: { email, name, is_gm, is_admin },
   });
 
   if (!response.ok()) {
@@ -59,6 +62,7 @@ export async function loginTestUser(
     email?: string;
     name?: string;
     is_gm?: boolean;
+    is_admin?: boolean;
   } = {},
   navigateAndReload = true
 ): Promise<TestUser> {
@@ -66,9 +70,10 @@ export async function loginTestUser(
   const email = options.email || `test-${timestamp}@e2e.local`;
   const name = options.name || `Test User ${timestamp}`;
   const is_gm = options.is_gm ?? false;
+  const is_admin = options.is_admin ?? false;
 
   const response = await page.request.post('http://localhost:3001/api/test-auth', {
-    data: { email, name, is_gm },
+    data: { email, name, is_gm, is_admin },
   });
 
   if (!response.ok()) {
@@ -114,6 +119,21 @@ export async function createTestPlayer(
     email: `player-${Date.now()}@e2e.local`,
     name: name || `Test Player ${Date.now()}`,
     is_gm: false,
+  });
+}
+
+/**
+ * Create an admin user for testing.
+ */
+export async function createTestAdmin(
+  request: APIRequestContext,
+  name?: string
+): Promise<TestUser> {
+  return createTestUser(request, {
+    email: `admin-${Date.now()}@e2e.local`,
+    name: name || `Test Admin ${Date.now()}`,
+    is_gm: false,
+    is_admin: true,
   });
 }
 

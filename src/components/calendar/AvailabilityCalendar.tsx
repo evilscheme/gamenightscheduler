@@ -400,9 +400,10 @@ function MonthCalendar({
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
               disabled={!isPlayDay || isPast}
-              className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all ${bgColor} ${textColor} ${cursor} ${
+              className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${
                 isToday(date) ? "ring-1 ring-primary font-bold" : ""
               } ${isConfirmed ? "scheduled-session" : ""}`}
+              style={{ WebkitTouchCallout: "none" }}
               title={avail?.comment ? `${dateStr}\n${avail.comment}` : dateStr}
             >
               {isConfirmed ? (

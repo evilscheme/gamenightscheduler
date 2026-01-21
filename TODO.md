@@ -10,14 +10,13 @@
 - [X] better app name & custom domain
 - [X] better preview card for URLs when pasted to discord/messages
 - [X] change selection order to "yes -> no -> maybe" when toggling availability
-- [ ] make it more obvious that calendar cells can be clicked?
 - [X] allow notes for all availabilities, not just "maybe"
 - [X] make it more explicit that the "export" buttons export calendar invites
 - [X] add "mark all remaining unspecified days as [yes/no]" capability
 - [X] add a way for users to give feedback and report bugs (github issues?)
 - [X] make the non-play days more visually obvious with some cross-hatching
 - [ ] sensible usage limits (20 games per person, 50 players per game)
-- [ ] make chosen game days a different color than green
+- [X] make chosen game days a different color than green
 - [X] only show pencil (edit) icon on hover
 - [ ] clean up text in places to be more accurate/explanatory
 - [ ] improve new user experience
@@ -40,4 +39,4 @@
 ## Possible future features
 - have the app publish a calendar URL that clients can subscribe to?
 - [X] allow for co-GMs?
-- allow GM to punch in special play options that aren't normally a play day?
+- [X] allow GM to punch in special play options that aren't normally a play day?

@@ -21,6 +21,7 @@
   --warning-muted: #855d0e;
   --danger: #dc2626;
   --danger-muted: #b91c1c;
+  --scheduled: #0891b2;
 }
 
 .dark {
@@ -44,6 +45,7 @@
   --warning-muted: #f59e0b;
   --danger: #f87171;
   --danger-muted: #ef4444;
+  --scheduled: #22d3ee;
 }
 
 @theme inline {
@@ -97,15 +99,15 @@ body {
 
 /* Festive star pattern for scheduled/confirmed sessions */
 .scheduled-session {
-  background-color: color-mix(in srgb, var(--success) 15%, transparent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M8 2 L9.5 6 L14 6 L10.5 9 L12 14 L8 11 L4 14 L5.5 9 L2 6 L6.5 6 Z' fill='%2322c55e' opacity='0.35'/%3E%3C/svg%3E");
+  background-color: color-mix(in srgb, var(--scheduled) 15%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M8 2 L9.5 6 L14 6 L10.5 9 L12 14 L8 11 L4 14 L5.5 9 L2 6 L6.5 6 Z' fill='%230891b2' opacity='0.35'/%3E%3C/svg%3E");
   background-size: 10px 10px;
   animation: twinkle 2s ease-in-out infinite;
 }
 
 .dark .scheduled-session {
-  background-color: color-mix(in srgb, var(--success) 20%, transparent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M8 2 L9.5 6 L14 6 L10.5 9 L12 14 L8 11 L4 14 L5.5 9 L2 6 L6.5 6 Z' fill='%234ade80' opacity='0.45'/%3E%3C/svg%3E");
+  background-color: color-mix(in srgb, var(--scheduled) 20%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M8 2 L9.5 6 L14 6 L10.5 9 L12 14 L8 11 L4 14 L5.5 9 L2 6 L6.5 6 Z' fill='%2322d3ee' opacity='0.45'/%3E%3C/svg%3E");
 }
 
 @keyframes twinkle {

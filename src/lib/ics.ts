@@ -55,7 +55,7 @@ export function generateICS(events: CalendarEvent[]): string {
   return lines.join('\r\n');
 }
 
-function escapeICS(text: string): string {
+export function escapeICS(text: string): string {
   return text
     .replace(/\\/g, '\\\\')
     .replace(/;/g, '\\;')

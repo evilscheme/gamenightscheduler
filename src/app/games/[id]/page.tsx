@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import {
   Button,
@@ -37,6 +37,8 @@ import {
   parseISO,
 } from "date-fns";
 import { DAY_LABELS, TIMEOUTS } from "@/lib/constants";
+import { calculatePlayerCompletionPercentages } from "@/lib/availability";
+import { formatTime } from "@/lib/formatting";
 
 type Tab = "overview" | "availability" | "schedule";
 
@@ -70,14 +72,19 @@ export default function GameDetailPage() {
   const canDoGmActions = !!(isGm || isCoGm);
   const isMember = game?.members.some((m) => m.id === profile?.id);
 
-  const formatTime = (time: string | null) => {
-    if (!time) return "";
-    const [hours, minutes] = time.split(":");
-    const h = parseInt(hours, 10);
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h % 12 || 12;
-    return `${h12}:${minutes} ${ampm}`;
-  };
+  // Calculate availability completion percentage per player
+  const playerCompletionPercentages = useMemo(() => {
+    if (!game) return {};
+
+    const allPlayers = [game.gm, ...game.members];
+    return calculatePlayerCompletionPercentages({
+      playerIds: allPlayers.map((p) => p.id),
+      playDays: game.play_days,
+      schedulingWindowMonths: game.scheduling_window_months,
+      specialPlayDates: game.special_play_dates || [],
+      availabilityRecords: allAvailability,
+    });
+  }, [game, allAvailability]);
 
   useAuthRedirect();
 
@@ -579,9 +586,25 @@ export default function GameDetailPage() {
                           {player.name[0]?.toUpperCase()}
                         </div>
                       )}
-                      <span className="flex-1 text-card-foreground">
-                        {player.name}
-                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-card-foreground">
+                          {player.name}
+                        </span>
+                        {playerCompletionPercentages[player.id] !== undefined && (
+                          <span
+                            className={`ml-2 text-xs ${
+                              playerCompletionPercentages[player.id] === 100
+                                ? "text-success"
+                                : playerCompletionPercentages[player.id] >= 50
+                                  ? "text-warning"
+                                  : "text-muted-foreground"
+                            }`}
+                            title="Availability filled in"
+                          >
+                            {playerCompletionPercentages[player.id]}% filled
+                          </span>
+                        )}
+                      </div>
                       {isOriginalGm && (
                         <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                           GM

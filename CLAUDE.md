@@ -20,6 +20,11 @@ npm run db:status    # Show local Supabase status and credentials
 # Database backup (requires pg_dump)
 npm run db:backup    # Backup cloud DB (uses DATABASE_URL from .env.local)
 
+# Unit Testing (Vitest)
+npm run test              # Run unit tests in watch mode
+npm run test:run          # Run unit tests once
+npm run test:coverage     # Run unit tests with coverage report
+
 # E2E Testing (Playwright)
 npm run test:e2e          # Run all e2e tests
 npm run test:e2e:ui       # Run with Playwright UI

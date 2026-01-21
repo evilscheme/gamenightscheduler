@@ -11,7 +11,9 @@
       "Bash(grep:*)",
       "WebSearch",
       "WebFetch(domain:vercel.com)",
-      "WebFetch(domain:supabase.com)"
+      "WebFetch(domain:supabase.com)",
+      "Bash(npm run test:run:*)",
+      "Bash(npm run test:coverage:*)"
     ]
   }
 }

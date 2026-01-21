@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Test coverage output:
+    "coverage/**",
   ]),
   // Disable React hooks rules in e2e tests (Playwright's `use` is not a React hook)
   {

@@ -8,6 +8,7 @@ import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea 
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
 import { DAY_OPTIONS, SESSION_DEFAULTS } from '@/lib/constants';
+import { validateGameForm } from '@/lib/gameValidation';
 
 export default function EditGamePage() {
   const { profile, isLoading, session } = useAuth();
@@ -86,13 +87,9 @@ export default function EditGamePage() {
     e.preventDefault();
     if (!profile?.id || !game) return;
 
-    if (!name.trim()) {
-      setError('Please enter a game name');
-      return;
-    }
-
-    if (playDays.length === 0) {
-      setError('Please select at least one play day');
+    const validation = validateGameForm({ name, playDays });
+    if (!validation.valid) {
+      setError(validation.errors[0]);
       return;
     }
 

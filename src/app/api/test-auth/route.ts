@@ -22,6 +22,7 @@ interface TestUserRequest {
   email: string;
   name: string;
   is_gm?: boolean;
+  is_admin?: boolean;
 }
 
 interface TestUserResponse {
@@ -29,6 +30,7 @@ interface TestUserResponse {
   email: string;
   name: string;
   is_gm: boolean;
+  is_admin: boolean;
 }
 
 export async function POST(request: Request): Promise<Response> {
@@ -39,7 +41,7 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const body = (await request.json()) as TestUserRequest;
-    const { email, name, is_gm = false } = body;
+    const { email, name, is_gm = false, is_admin = false } = body;
 
     if (!email || !name) {
       return NextResponse.json(
@@ -92,10 +94,10 @@ export async function POST(request: Request): Promise<Response> {
       userId = newUser.user!.id;
     }
 
-    // Update the user profile with is_gm if needed
+    // Update the user profile with is_gm and is_admin if needed
     const { error: updateError } = await admin
       .from('users')
-      .update({ name, is_gm })
+      .update({ name, is_gm, is_admin })
       .eq('id', userId);
 
     if (updateError) {
@@ -148,6 +150,7 @@ export async function POST(request: Request): Promise<Response> {
       email,
       name: profile?.name || name,
       is_gm: profile?.is_gm || is_gm,
+      is_admin: profile?.is_admin || is_admin,
     };
 
     // Create response with the session cookies

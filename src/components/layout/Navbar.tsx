@@ -61,14 +61,24 @@ export function Navbar() {
               <Image src="/logo.png" alt="Can We Play?" width={44} height={44} className="shrink-0" />
               <span className="hidden sm:block font-bold text-xl text-foreground">Can We Play?</span>
             </Link>
-            {profile?.is_gm && (
+            {(profile?.is_gm || profile?.is_admin) && (
               <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
-                <Link
-                  href="/games/new"
-                  className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors"
-                >
-                  New Game
-                </Link>
+                {profile?.is_gm && (
+                  <Link
+                    href="/games/new"
+                    className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors"
+                  >
+                    New Game
+                  </Link>
+                )}
+                {profile?.is_admin && (
+                  <Link
+                    href="/admin"
+                    className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors"
+                  >
+                    Admin
+                  </Link>
+                )}
               </div>
             )}
           </div>

@@ -36,6 +36,9 @@
 - [X] players can view games they aren't a member of
 - [~] supabase URL is super sketchy, improve it! (probably can't do w/o paying)
 
+## Technical Debt / Cleanup
+- [ ] Remove unused `session_status` enum values from schema: 'suggested' and 'cancelled' are never used. Sessions are created directly as 'confirmed', and cancelled sessions are deleted rather than marked as cancelled. Either remove these values or implement the intended workflow.
+
 ## Possible future features
 - have the app publish a calendar URL that clients can subscribe to?
 - [X] allow for co-GMs?

@@ -62,6 +62,7 @@ export default function GameDetailPage() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [openPlayerMenu, setOpenPlayerMenu] = useState<string | null>(null);
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm = game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;
@@ -515,6 +516,7 @@ export default function GameDetailPage() {
                   const isOriginalGm = player.id === game.gm_id;
                   // Co-GMs can only remove non-co-GM members
                   const canRemovePlayer = isGm || (isCoGm && !playerIsCoGm && !isOriginalGm);
+                  const showMenu = (isGm || canRemovePlayer) && !isOriginalGm;
 
                   return (
                     <li key={player.id} className="py-3 flex items-center gap-3">
@@ -543,25 +545,51 @@ export default function GameDetailPage() {
                           Co-GM
                         </span>
                       )}
-                      {isGm && !isOriginalGm && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleToggleCoGm(player.id, !playerIsCoGm)}
-                          className="text-muted-foreground hover:text-foreground"
-                        >
-                          {playerIsCoGm ? "Remove Co-GM" : "Make Co-GM"}
-                        </Button>
-                      )}
-                      {canRemovePlayer && !isOriginalGm && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setPlayerToRemove(player)}
-                          className="text-danger hover:text-danger hover:bg-danger/10"
-                        >
-                          Remove
-                        </Button>
+                      {showMenu && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenPlayerMenu(openPlayerMenu === player.id ? null : player.id)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                            aria-label="Player actions"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                            </svg>
+                          </button>
+                          {openPlayerMenu === player.id && (
+                            <>
+                              {/* Backdrop to close menu on click outside */}
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenPlayerMenu(null)}
+                              />
+                              <div className="absolute right-0 mt-1 w-40 bg-card border border-border rounded-lg shadow-lg z-20 py-1">
+                                {isGm && (
+                                  <button
+                                    onClick={() => {
+                                      handleToggleCoGm(player.id, !playerIsCoGm);
+                                      setOpenPlayerMenu(null);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-card-foreground hover:bg-secondary transition-colors"
+                                  >
+                                    {playerIsCoGm ? "Remove Co-GM" : "Make Co-GM"}
+                                  </button>
+                                )}
+                                {canRemovePlayer && (
+                                  <button
+                                    onClick={() => {
+                                      setPlayerToRemove(player);
+                                      setOpenPlayerMenu(null);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-danger hover:bg-danger/10 transition-colors"
+                                  >
+                                    Remove from Game
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       )}
                     </li>
                   );

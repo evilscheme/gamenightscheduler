@@ -223,9 +223,9 @@ test.describe('Leave and Remove Players', () => {
       });
       await expect(page.getByText('Remove View Player2')).toBeVisible();
 
-      // GM should see Remove buttons (one per player, not for GM)
-      const removeButtons = page.getByRole('button', { name: /remove/i });
-      await expect(removeButtons).toHaveCount(2);
+      // GM should see player action menus (one per player, not for GM)
+      const actionMenus = page.getByLabel('Player actions');
+      await expect(actionMenus).toHaveCount(2);
     });
 
     test('player does not see Remove buttons', async ({ page, request }) => {
@@ -311,8 +311,10 @@ test.describe('Leave and Remove Players', () => {
       // Verify player count shows 2 (GM + player)
       await expect(page.getByText('Players (2)')).toBeVisible();
 
-      // Click Remove button
-      await page.getByRole('button', { name: /remove/i }).click();
+      // Open the player actions menu and click Remove
+      const playerRow = page.locator('li').filter({ hasText: 'Player To Remove' });
+      await playerRow.getByLabel('Player actions').click();
+      await page.getByRole('button', { name: /remove from game/i }).click();
 
       // Confirmation modal should appear
       await expect(page.getByText(/are you sure you want to remove/i)).toBeVisible({
@@ -321,8 +323,7 @@ test.describe('Leave and Remove Players', () => {
       await expect(page.getByRole('strong').getByText('Player To Remove')).toBeVisible();
 
       // Confirm removal - click the button inside the modal
-      const modal = page.locator('.fixed.inset-0');
-      await modal.getByRole('button', { name: /^remove player$/i }).click();
+      await page.getByRole('button', { name: /^remove player$/i }).click();
 
       // Modal should close and player should be removed
       await expect(page.getByText(/are you sure you want to remove/i)).not.toBeVisible({
@@ -371,16 +372,18 @@ test.describe('Leave and Remove Players', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // Click Remove button
-      await page.getByRole('button', { name: /remove/i }).click();
+      // Open the player actions menu and click Remove
+      const playerRow = page.locator('li').filter({ hasText: 'Cancel Remove Player' });
+      await playerRow.getByLabel('Player actions').click();
+      await page.getByRole('button', { name: /remove from game/i }).click();
 
       // Modal should appear
       await expect(page.getByText(/are you sure you want to remove/i)).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
-      // Click Cancel
-      await page.getByRole('button', { name: /cancel/i }).click();
+      // Click Cancel (the Cancel button in the modal)
+      await page.locator('.fixed.inset-0').getByRole('button', { name: /^cancel$/i }).click();
 
       // Modal should close
       await expect(page.getByText(/are you sure you want to remove/i)).not.toBeVisible();

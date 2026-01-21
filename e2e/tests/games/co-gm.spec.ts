@@ -43,18 +43,23 @@ test.describe('Co-GM Feature', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // Find the player row and click "Make Co-GM"
+      // Find the player row and open the actions menu
       const playerRow = page.locator('li').filter({ hasText: player.name });
-      await expect(playerRow.getByRole('button', { name: /make co-gm/i })).toBeVisible();
-      await playerRow.getByRole('button', { name: /make co-gm/i }).click();
+      await expect(playerRow.getByLabel('Player actions')).toBeVisible();
+      await playerRow.getByLabel('Player actions').click();
+
+      // Click "Make Co-GM" in the dropdown
+      await expect(page.getByRole('button', { name: /make co-gm/i })).toBeVisible();
+      await page.getByRole('button', { name: /make co-gm/i }).click();
 
       // Verify the Co-GM badge appears
-      await expect(playerRow.getByText('Co-GM')).toBeVisible({
+      await expect(playerRow.locator('span').filter({ hasText: /^Co-GM$/ })).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
-      // Button should now say "Remove Co-GM"
-      await expect(playerRow.getByRole('button', { name: /remove co-gm/i })).toBeVisible();
+      // Open menu again to verify button text changed
+      await playerRow.getByLabel('Player actions').click();
+      await expect(page.getByRole('button', { name: /remove co-gm/i })).toBeVisible();
     });
 
     test('GM can demote a co-GM', async ({ page, request }) => {
@@ -94,16 +99,19 @@ test.describe('Co-GM Feature', () => {
       const playerRow = page.locator('li').filter({ hasText: player.name });
       await expect(playerRow.locator('span').filter({ hasText: /^Co-GM$/ })).toBeVisible();
 
-      // Click "Remove Co-GM"
-      await playerRow.getByRole('button', { name: /remove co-gm/i }).click();
+      // Open actions menu and click "Remove Co-GM"
+      await playerRow.getByLabel('Player actions').click();
+      await expect(page.getByRole('button', { name: /remove co-gm/i })).toBeVisible();
+      await page.getByRole('button', { name: /remove co-gm/i }).click();
 
       // Verify the Co-GM badge is gone (the span with exact text "Co-GM")
       await expect(playerRow.locator('span').filter({ hasText: /^Co-GM$/ })).not.toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
-      // Button should now say "Make Co-GM"
-      await expect(playerRow.getByRole('button', { name: /make co-gm/i })).toBeVisible();
+      // Open menu again to verify button text changed
+      await playerRow.getByLabel('Player actions').click();
+      await expect(page.getByRole('button', { name: /make co-gm/i })).toBeVisible();
     });
   });
 
@@ -258,24 +266,27 @@ test.describe('Co-GM Feature', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // Find the regular player row
+      // Find the regular player row and open actions menu
       const playerRow = page.locator('li').filter({ hasText: player.name });
-      await expect(playerRow.getByRole('button', { name: /^remove$/i })).toBeVisible();
-      await playerRow.getByRole('button', { name: /^remove$/i }).click();
+      await expect(playerRow.getByLabel('Player actions')).toBeVisible();
+      await playerRow.getByLabel('Player actions').click();
 
-      // Wait for confirmation modal to appear - the modal has a fixed position overlay
-      const modalOverlay = page.locator('.fixed.inset-0');
-      await expect(modalOverlay).toBeVisible({ timeout: TEST_TIMEOUTS.DEFAULT });
+      // Click "Remove from Game" in the dropdown
+      await expect(page.getByRole('button', { name: /remove from game/i })).toBeVisible();
+      await page.getByRole('button', { name: /remove from game/i }).click();
 
-      // The modal has the heading "Remove Player?"
-      await expect(page.getByText(/remove player\?/i)).toBeVisible();
+      // Wait for confirmation modal to appear
+      await expect(page.getByRole('heading', { name: /remove player\?/i })).toBeVisible({
+        timeout: TEST_TIMEOUTS.DEFAULT,
+      });
 
-      // Click the danger button in the modal which says "Remove Player"
-      // There should only be one button with variant="danger" that says "Remove Player"
-      await page.locator('.fixed.inset-0').getByRole('button', { name: /^remove player$/i }).click();
+      // Click the "Remove Player" button in the modal
+      await page.getByRole('button', { name: /^remove player$/i }).click();
 
       // Wait for the modal to close
-      await expect(modalOverlay).not.toBeVisible({ timeout: TEST_TIMEOUTS.DEFAULT });
+      await expect(page.getByRole('heading', { name: /remove player\?/i })).not.toBeVisible({
+        timeout: TEST_TIMEOUTS.DEFAULT,
+      });
 
       // Reload to verify the deletion persisted
       await page.reload();
@@ -336,8 +347,8 @@ test.describe('Co-GM Feature', () => {
       const coGm2Row = page.locator('li').filter({ hasText: coGm2.name });
       await expect(coGm2Row.locator('span').filter({ hasText: /^Co-GM$/ })).toBeVisible();
 
-      // Should NOT have a Remove button for the other co-GM
-      await expect(coGm2Row.getByRole('button', { name: /^remove$/i })).not.toBeVisible();
+      // Co-GM should not see a menu for other co-GMs (since they can't do anything to them)
+      await expect(coGm2Row.getByLabel('Player actions')).not.toBeVisible();
     });
 
     test('co-GM cannot delete the game', async ({ page, request }) => {
@@ -418,7 +429,13 @@ test.describe('Co-GM Feature', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // Co-GM should NOT see "Make Co-GM" or "Remove Co-GM" buttons
+      // Find the regular player's row and open their menu
+      const playerRow = page.locator('li').filter({ hasText: player.name });
+      await expect(playerRow.getByLabel('Player actions')).toBeVisible();
+      await playerRow.getByLabel('Player actions').click();
+
+      // Co-GM should only see "Remove from Game", NOT "Make Co-GM" or "Remove Co-GM"
+      await expect(page.getByRole('button', { name: /remove from game/i })).toBeVisible();
       await expect(page.getByRole('button', { name: /make co-gm/i })).not.toBeVisible();
       await expect(page.getByRole('button', { name: /remove co-gm/i })).not.toBeVisible();
     });

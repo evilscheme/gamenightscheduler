@@ -54,9 +54,13 @@ export interface GameWithGM extends Game {
   gm: User;
 }
 
+export interface MemberWithRole extends User {
+  is_co_gm: boolean;
+}
+
 export interface GameWithMembers extends Game {
   gm: User;
-  members: User[];
+  members: MemberWithRole[];
 }
 
 // Scheduling types

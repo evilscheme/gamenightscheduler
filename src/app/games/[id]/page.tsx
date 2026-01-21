@@ -19,6 +19,7 @@ import {
   GameSession,
   DateSuggestion,
   GameWithMembers,
+  MemberWithRole,
 } from "@/types";
 import {
   AvailabilityCalendar,
@@ -61,8 +62,11 @@ export default function GameDetailPage() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [openPlayerMenu, setOpenPlayerMenu] = useState<string | null>(null);
 
   const isGm = game?.gm_id === profile?.id;
+  const isCoGm = game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;
+  const canDoGmActions = !!(isGm || isCoGm);
   const isMember = game?.members.some((m) => m.id === profile?.id);
 
   const formatTime = (time: string | null) => {
@@ -91,13 +95,16 @@ export default function GameDetailPage() {
       return;
     }
 
-    // Fetch members
+    // Fetch members with co-GM status
     const { data: memberships } = await supabase
       .from("game_memberships")
-      .select("user_id, users(*)")
+      .select("user_id, is_co_gm, users(*)")
       .eq("game_id", gameId);
 
-    const members = memberships?.map((m) => m.users as unknown as User) || [];
+    const members = memberships?.map((m) => ({
+      ...(m.users as unknown as User),
+      is_co_gm: m.is_co_gm,
+    })) as MemberWithRole[] || [];
 
     setGame({ ...gameData, members } as GameWithMembers);
 
@@ -388,6 +395,28 @@ export default function GameDetailPage() {
     }
   };
 
+  const handleToggleCoGm = async (playerId: string, makeCoGm: boolean) => {
+    if (!gameId) return;
+
+    const { error } = await supabase
+      .from("game_memberships")
+      .update({ is_co_gm: makeCoGm })
+      .eq("game_id", gameId)
+      .eq("user_id", playerId);
+
+    if (!error) {
+      setGame((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          members: prev.members.map((m) =>
+            m.id === playerId ? { ...m, is_co_gm: makeCoGm } : m
+          ),
+        };
+      });
+    }
+  };
+
   // Show spinner while auth is loading, data is loading, or profile hasn't loaded yet
   if (isLoading || loading || (session && !profile)) {
     return (
@@ -415,7 +444,7 @@ export default function GameDetailPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {isGm && (
+            {canDoGmActions && (
               <>
                 <Button
                   onClick={() => router.push(`/games/${gameId}/edit`)}
@@ -426,13 +455,15 @@ export default function GameDetailPage() {
                 <Button onClick={copyInviteLink} variant="secondary">
                   {copied ? "Copied!" : "Copy Invite Link"}
                 </Button>
-                <Button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  variant="danger"
-                >
-                  Delete Game
-                </Button>
               </>
+            )}
+            {isGm && (
+              <Button
+                onClick={() => setShowDeleteConfirm(true)}
+                variant="danger"
+              >
+                Delete Game
+              </Button>
             )}
             {isMember && !isGm && (
               <Button
@@ -479,40 +510,90 @@ export default function GameDetailPage() {
             </CardHeader>
             <CardContent>
               <ul className="divide-y divide-border">
-                {allPlayers.map((player) => (
-                  <li key={player.id} className="py-3 flex items-center gap-3">
-                    {player.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- external avatar URL
-                      <img
-                        src={player.avatar_url}
-                        alt={player.name}
-                        className="w-8 h-8 rounded-full"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
-                        {player.name[0]?.toUpperCase()}
-                      </div>
-                    )}
-                    <span className="flex-1 text-card-foreground">
-                      {player.name}
-                    </span>
-                    {player.id === game.gm_id && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                        GM
+                {allPlayers.map((player) => {
+                  const memberData = game.members.find((m) => m.id === player.id);
+                  const playerIsCoGm = memberData?.is_co_gm ?? false;
+                  const isOriginalGm = player.id === game.gm_id;
+                  // Co-GMs can only remove non-co-GM members
+                  const canRemovePlayer = isGm || (isCoGm && !playerIsCoGm && !isOriginalGm);
+                  const showMenu = (isGm || canRemovePlayer) && !isOriginalGm;
+
+                  return (
+                    <li key={player.id} className="py-3 flex items-center gap-3">
+                      {player.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- external avatar URL
+                        <img
+                          src={player.avatar_url}
+                          alt={player.name}
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
+                          {player.name[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <span className="flex-1 text-card-foreground">
+                        {player.name}
                       </span>
-                    )}
-                    {isGm && player.id !== game.gm_id && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setPlayerToRemove(player)}
-                        className="text-danger hover:text-danger hover:bg-danger/10"
-                      >
-                        Remove
-                      </Button>
-                    )}
-                  </li>
-                ))}
+                      {isOriginalGm && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                          GM
+                        </span>
+                      )}
+                      {playerIsCoGm && (
+                        <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded">
+                          Co-GM
+                        </span>
+                      )}
+                      {showMenu && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenPlayerMenu(openPlayerMenu === player.id ? null : player.id)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                            aria-label="Player actions"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                            </svg>
+                          </button>
+                          {openPlayerMenu === player.id && (
+                            <>
+                              {/* Backdrop to close menu on click outside */}
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenPlayerMenu(null)}
+                              />
+                              <div className="absolute right-0 mt-1 w-40 bg-card border border-border rounded-lg shadow-lg z-20 py-1">
+                                {isGm && (
+                                  <button
+                                    onClick={() => {
+                                      handleToggleCoGm(player.id, !playerIsCoGm);
+                                      setOpenPlayerMenu(null);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-card-foreground hover:bg-secondary transition-colors"
+                                  >
+                                    {playerIsCoGm ? "Remove Co-GM" : "Make Co-GM"}
+                                  </button>
+                                )}
+                                {canRemovePlayer && (
+                                  <button
+                                    onClick={() => {
+                                      setPlayerToRemove(player);
+                                      setOpenPlayerMenu(null);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-danger hover:bg-danger/10 transition-colors"
+                                  >
+                                    Remove from Game
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </CardContent>
           </Card>
@@ -593,7 +674,7 @@ export default function GameDetailPage() {
         <SchedulingSuggestions
           suggestions={suggestions}
           sessions={sessions}
-          isGm={isGm}
+          isGm={canDoGmActions}
           gameName={game.name}
           defaultStartTime={game.default_start_time}
           defaultEndTime={game.default_end_time}

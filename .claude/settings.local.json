@@ -8,7 +8,10 @@
       "Bash(npm run lint:*)",
       "Bash(curl:*)",
       "Bash(ls:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebSearch",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:supabase.com)"
     ]
   }
 }

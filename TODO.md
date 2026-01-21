@@ -18,8 +18,9 @@
 - [X] make the non-play days more visually obvious with some cross-hatching
 - [ ] sensible usage limits (20 games per person, 50 players per game)
 - [ ] make chosen game days a different color than green
-- [ ] only show pencil (edit) icon on hover
+- [X] only show pencil (edit) icon on hover
 - [ ] clean up text in places to be more accurate/explanatory
+- [ ] improve new user experience
 
 ## Integration & Deployment
 - [X] implement google OAuth
@@ -38,5 +39,5 @@
 
 ## Possible future features
 - have the app publish a calendar URL that clients can subscribe to?
-- allow for co-GMs?
+- [X] allow for co-GMs?
 - allow GM to punch in special play options that aren't normally a play day?

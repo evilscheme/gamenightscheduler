@@ -17,6 +17,9 @@ npm run db:stop      # Stop local Supabase containers
 npm run db:reset     # Reset local DB and reapply schema.sql
 npm run db:status    # Show local Supabase status and credentials
 
+# Database backup (requires pg_dump)
+npm run db:backup    # Backup cloud DB (uses DATABASE_URL from .env.local)
+
 # E2E Testing (Playwright)
 npm run test:e2e          # Run all e2e tests
 npm run test:e2e:ui       # Run with Playwright UI

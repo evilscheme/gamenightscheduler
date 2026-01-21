@@ -27,6 +27,9 @@
 .DS_Store
 *.pem
 
+# database backups
+/backups/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

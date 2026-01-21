@@ -26,8 +26,15 @@ interface AvailabilityCalendarProps {
   playDays: number[];
   windowMonths: number;
   availability: Record<string, AvailabilityEntry>;
-  onToggle: (date: string, status: AvailabilityStatus, comment: string | null) => void;
+  onToggle: (
+    date: string,
+    status: AvailabilityStatus,
+    comment: string | null
+  ) => void;
   confirmedSessions: GameSession[];
+  specialPlayDates?: string[];
+  isGmOrCoGm?: boolean;
+  onToggleSpecialDate?: (date: string) => void;
 }
 
 export function AvailabilityCalendar({
@@ -36,6 +43,9 @@ export function AvailabilityCalendar({
   availability,
   onToggle,
   confirmedSessions,
+  specialPlayDates = [],
+  isGmOrCoGm = false,
+  onToggleSpecialDate,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = endOfMonth(addMonths(today, windowMonths));
@@ -48,7 +58,10 @@ export function AvailabilityCalendar({
   const months = useMemo(() => {
     const result = [];
     let current = startOfMonth(today);
-    while (isBefore(current, maxDate) || current.getTime() === startOfMonth(maxDate).getTime()) {
+    while (
+      isBefore(current, maxDate) ||
+      current.getTime() === startOfMonth(maxDate).getTime()
+    ) {
       result.push(current);
       current = addMonths(current, 1);
     }
@@ -58,21 +71,27 @@ export function AvailabilityCalendar({
   const confirmedDates = new Set(confirmedSessions.map((s) => s.date));
 
   // Cycle through: unset -> available (yes) -> unavailable (no) -> maybe -> available (continuous)
-  const getNextStatus = (current: AvailabilityEntry | undefined): AvailabilityStatus => {
-    if (!current) return 'available';
+  const getNextStatus = (
+    current: AvailabilityEntry | undefined
+  ): AvailabilityStatus => {
+    if (!current) return "available";
     switch (current.status) {
-      case 'available': return 'unavailable';
-      case 'unavailable': return 'maybe';
-      case 'maybe': return 'available';
+      case "available":
+        return "unavailable";
+      case "unavailable":
+        return "maybe";
+      case "maybe":
+        return "available";
     }
   };
 
   const handleDayClick = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const dayOfWeek = getDay(date);
+    const isSpecialPlayDate = specialPlayDates.includes(dateStr);
 
-    // Can't toggle non-play days
-    if (!playDays.includes(dayOfWeek)) return;
+    // Can't toggle non-play days (unless it's a special play date)
+    if (!playDays.includes(dayOfWeek) && !isSpecialPlayDate) return;
 
     // Can't toggle past dates
     if (isBefore(date, today)) return;
@@ -92,7 +111,7 @@ export function AvailabilityCalendar({
 
   const handleSaveComment = () => {
     if (commentingDate) {
-      const currentStatus = availability[commentingDate]?.status || 'available';
+      const currentStatus = availability[commentingDate]?.status || "available";
       onToggle(commentingDate, currentStatus, commentText.trim() || null);
       setCommentingDate(null);
       setCommentText("");
@@ -110,12 +129,13 @@ export function AvailabilityCalendar({
       end: maxDate,
     }).filter((date) => {
       const dayOfWeek = getDay(date);
-      if (!playDays.includes(dayOfWeek)) return false;
+      const dateStr = format(date, "yyyy-MM-dd");
+      const isSpecialPlayDate = specialPlayDates.includes(dateStr);
+      if (!playDays.includes(dayOfWeek) && !isSpecialPlayDate) return false;
       if (isBefore(date, today)) return false;
 
       if (filter === "remaining") {
         // Only dates without availability set
-        const dateStr = format(date, "yyyy-MM-dd");
         return !availability[dateStr];
       } else {
         // Specific day of week
@@ -156,7 +176,9 @@ export function AvailabilityCalendar({
           <span className="text-muted-foreground">as</span>
           <select
             value={bulkStatus}
-            onChange={(e) => setBulkStatus(e.target.value as AvailabilityStatus)}
+            onChange={(e) =>
+              setBulkStatus(e.target.value as AvailabilityStatus)
+            }
             className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
           >
             <option value="available">available</option>
@@ -182,6 +204,9 @@ export function AvailabilityCalendar({
             onDayClick={handleDayClick}
             onEditComment={handleEditComment}
             weekdays={DAY_LABELS.abbrev}
+            specialPlayDates={specialPlayDates}
+            isGmOrCoGm={isGmOrCoGm}
+            onToggleSpecialDate={onToggleSpecialDate}
           />
         ))}
       </div>
@@ -202,15 +227,19 @@ export function AvailabilityCalendar({
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-sm bg-card border border-border" />
-          <span>Not set</span>
+          <span>Availability not set</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-sm non-play-day" />
           <span>Not a play day</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-sm bg-card border border-primary border-dashed" />
+          <span>Special play day</span>
+        </div>
+        <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-sm scheduled-session" />
-          <span>Confirmed</span>
+          <span>Game scheduled</span>
         </div>
       </div>
 
@@ -226,7 +255,7 @@ export function AvailabilityCalendar({
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-card-foreground">
-                Note for {format(parseISO(commentingDate), 'MMM d')}
+                Note for {format(parseISO(commentingDate), "MMM d")}
               </span>
               <button
                 onClick={handleCancelComment}
@@ -243,8 +272,8 @@ export function AvailabilityCalendar({
               className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary mb-3"
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveComment();
-                if (e.key === 'Escape') handleCancelComment();
+                if (e.key === "Enter") handleSaveComment();
+                if (e.key === "Escape") handleCancelComment();
               }}
             />
             <div className="flex gap-2">
@@ -256,11 +285,7 @@ export function AvailabilityCalendar({
               >
                 Cancel
               </Button>
-              <Button
-                size="sm"
-                className="flex-1"
-                onClick={handleSaveComment}
-              >
+              <Button size="sm" className="flex-1" onClick={handleSaveComment}>
                 Save
               </Button>
             </div>
@@ -281,6 +306,9 @@ interface MonthCalendarProps {
   onDayClick: (date: Date) => void;
   onEditComment: (dateStr: string) => void;
   weekdays: readonly string[];
+  specialPlayDates: string[];
+  isGmOrCoGm: boolean;
+  onToggleSpecialDate?: (date: string) => void;
 }
 
 function MonthCalendar({
@@ -292,6 +320,9 @@ function MonthCalendar({
   onDayClick,
   onEditComment,
   weekdays,
+  specialPlayDates,
+  isGmOrCoGm,
+  onToggleSpecialDate,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),
@@ -304,11 +335,17 @@ function MonthCalendar({
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
 
-  const handleTouchStart = (dateStr: string) => {
+  const handleTouchStart = (dateStr: string, isPlayDay: boolean) => {
     longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
-      onEditComment(dateStr);
+      if (isPlayDay) {
+        // For play days, long-press opens comment editor
+        onEditComment(dateStr);
+      } else if (isGmOrCoGm && onToggleSpecialDate) {
+        // For non-play days, GM can toggle special date
+        onToggleSpecialDate(dateStr);
+      }
     }, 500);
   };
 
@@ -354,36 +391,52 @@ function MonthCalendar({
       <div className="grid grid-cols-7 gap-0.5">
         {/* Empty cells for start of month offset */}
         {Array.from({ length: startDayOfWeek }).map((_, i) => (
-          <div key={`empty-${i}`} className="w-full aspect-square min-h-[36px]" />
+          <div
+            key={`empty-${i}`}
+            className="w-full aspect-square min-h-[36px]"
+          />
         ))}
 
         {/* Day cells */}
         {days.map((date) => {
           const dateStr = format(date, "yyyy-MM-dd");
           const dayOfWeek = getDay(date);
-          const isPlayDay = playDays.includes(dayOfWeek);
+          const isRegularPlayDay = playDays.includes(dayOfWeek);
+          const isSpecialPlayDate = specialPlayDates.includes(dateStr);
+          const isPlayDay = isRegularPlayDay || isSpecialPlayDate;
           const isPast = isBefore(date, today);
           const isConfirmed = confirmedDates.has(dateStr);
           const avail = availability[dateStr];
 
+          // Can GM add this as a special play date? Only non-play days that aren't past
+          const canAddAsSpecial =
+            isGmOrCoGm && !isRegularPlayDay && !isSpecialPlayDate && !isPast;
+          // Can GM remove this special play date?
+          const canRemoveSpecial = isGmOrCoGm && isSpecialPlayDate && !isPast;
+
           let bgColor = "non-play-day"; // Non-play day (cross-hatched)
           let textColor = "text-muted-foreground";
           let cursor = "cursor-default";
+          let extraStyles = "";
 
           if (isPlayDay && !isPast) {
             cursor = "cursor-pointer hover:ring-1 hover:ring-primary/50";
-            if (avail?.status === 'available') {
+            if (avail?.status === "available") {
               bgColor = "bg-success/20";
               textColor = "text-success";
-            } else if (avail?.status === 'maybe') {
+            } else if (avail?.status === "maybe") {
               bgColor = "bg-warning/20";
               textColor = "text-warning";
-            } else if (avail?.status === 'unavailable') {
+            } else if (avail?.status === "unavailable") {
               bgColor = "bg-danger/20";
               textColor = "text-danger";
             } else {
               bgColor = "bg-card border border-border";
               textColor = "text-card-foreground";
+            }
+            // Add dashed border for special play dates
+            if (isSpecialPlayDate) {
+              extraStyles = "border-primary border-dashed !border-2";
             }
           } else if (isPast) {
             textColor = "text-muted-foreground/50";
@@ -396,25 +449,58 @@ function MonthCalendar({
             <button
               key={dateStr}
               onClick={() => handleDayClickWithLongPressCheck(date)}
-              onTouchStart={() => isPlayDay && !isPast && handleTouchStart(dateStr)}
+              onTouchStart={() =>
+                !isPast && handleTouchStart(dateStr, isPlayDay)
+              }
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
-              disabled={!isPlayDay || isPast}
-              className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${
+              disabled={(!isPlayDay && !canAddAsSpecial) || isPast}
+              className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${
                 isToday(date) ? "ring-1 ring-primary font-bold" : ""
               } ${isConfirmed ? "scheduled-session" : ""}`}
               style={{ WebkitTouchCallout: "none" }}
               title={avail?.comment ? `${dateStr}\n${avail.comment}` : dateStr}
             >
               {isConfirmed ? (
-                <span className="bg-card/80 px-1 rounded-sm">{format(date, "d")}</span>
+                <span className="bg-card/80 px-1 rounded-sm">
+                  {format(date, "d")}
+                </span>
               ) : (
                 format(date, "d")
               )}
+              {/* GM: Add special play date icon on non-play days */}
+              {canAddAsSpecial && onToggleSpecialDate && (
+                <span
+                  className="absolute top-0.5 left-0.5 text-[10px] leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSpecialDate(dateStr);
+                  }}
+                  title="Enable as special play date"
+                >
+                  +
+                </span>
+              )}
+              {/* GM: Remove special play date icon */}
+              {canRemoveSpecial && onToggleSpecialDate && (
+                <span
+                  className="absolute top-0.5 left-0.5 text-[10px] leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-danger"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSpecialDate(dateStr);
+                  }}
+                  title="Remove special play date"
+                >
+                  -
+                </span>
+              )}
+              {/* Note/comment icon for play days */}
               {isPlayDay && !isPast && hasAvailability && (
                 <span
                   className={`absolute bottom-0.5 right-1 text-xs leading-none cursor-pointer hover:scale-125 transition-all ${
-                    hasComment ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    hasComment
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100"
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();

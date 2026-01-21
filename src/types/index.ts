@@ -15,6 +15,7 @@ export interface Game {
   description: string | null;
   gm_id: string;
   play_days: number[]; // 0=Sun, 1=Mon, ..., 6=Sat
+  special_play_dates: string[]; // ISO date strings (YYYY-MM-DD)
   invite_code: string;
   scheduling_window_months: number;
   default_start_time: string | null; // HH:MM:SS format

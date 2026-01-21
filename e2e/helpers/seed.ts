@@ -31,6 +31,7 @@ export interface TestGame {
   gm_id: string;
   invite_code: string;
   play_days: number[];
+  special_play_dates: string[];
   scheduling_window_months: number;
   default_start_time: string | null;
   default_end_time: string | null;
@@ -52,6 +53,7 @@ export async function createTestGame(options: {
   name?: string;
   invite_code?: string;
   play_days?: number[];
+  special_play_dates?: string[];
   scheduling_window_months?: number;
   description?: string;
   default_start_time?: string;
@@ -64,6 +66,7 @@ export async function createTestGame(options: {
     gm_id: options.gm_id,
     invite_code: options.invite_code || `test-${Date.now().toString(36)}`,
     play_days: options.play_days || [5, 6], // Friday, Saturday
+    special_play_dates: options.special_play_dates || [],
     scheduling_window_months: options.scheduling_window_months || 2,
     description: options.description || null,
     default_start_time: options.default_start_time || '18:00',
@@ -115,6 +118,25 @@ export async function setCoGmStatus(
 
   if (error) {
     throw new Error(`Failed to set co-GM status: ${error.message}`);
+  }
+}
+
+/**
+ * Update special play dates for a game.
+ */
+export async function setSpecialPlayDates(
+  gameId: string,
+  specialPlayDates: string[]
+): Promise<void> {
+  const admin = getAdminClient();
+
+  const { error } = await admin
+    .from('games')
+    .update({ special_play_dates: specialPlayDates })
+    .eq('id', gameId);
+
+  if (error) {
+    throw new Error(`Failed to set special play dates: ${error.message}`);
   }
 }
 

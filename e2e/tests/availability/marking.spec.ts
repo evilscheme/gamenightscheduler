@@ -186,6 +186,14 @@ test.describe('Availability Marking', () => {
       is_gm: true,
     });
 
+    // Create a player (non-GM) to test that they can't mark non-play days
+    // Note: GMs can now interact with non-play days to add special play dates
+    const player = await createTestUser(request, {
+      email: `player-nonplay-${Date.now()}@e2e.local`,
+      name: 'Non-Play Player',
+      is_gm: false,
+    });
+
     // Game only on Fridays (5) and Saturdays (6)
     const game = await createTestGame({
       gm_id: gm.id,
@@ -193,10 +201,13 @@ test.describe('Availability Marking', () => {
       play_days: [5, 6],
     });
 
+    await addPlayerToGame(game.id, player.id);
+
+    // Login as player (not GM)
     await loginTestUser(page, {
-      email: gm.email,
-      name: gm.name,
-      is_gm: true,
+      email: player.email,
+      name: player.name,
+      is_gm: false,
     });
 
     await page.goto(`/games/${game.id}`);
@@ -217,7 +228,7 @@ test.describe('Availability Marking', () => {
 
     const mondayButton = page.locator(`button[title="${mondayStr}"]`);
 
-    // Monday should be disabled since it's not a play day
+    // Monday should be disabled since it's not a play day (for players)
     if (await mondayButton.count() > 0) {
       await expect(mondayButton).toBeDisabled();
       // Should have non-play day styling (cross-hatched)

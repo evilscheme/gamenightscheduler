@@ -157,9 +157,13 @@ export default function GameDetailPage() {
     const allPlayers = [game.gm, ...game.members];
     const today = startOfDay(new Date());
     const endDate = endOfMonth(addMonths(today, game.scheduling_window_months));
+    const specialDates = game.special_play_dates || [];
 
     const playDates = eachDayOfInterval({ start: today, end: endDate }).filter(
-      (date) => game.play_days.includes(getDay(date))
+      (date) => {
+        const dateStr = format(date, "yyyy-MM-dd");
+        return game.play_days.includes(getDay(date)) || specialDates.includes(dateStr);
+      }
     );
 
     const suggestionList: DateSuggestion[] = playDates
@@ -415,6 +419,41 @@ export default function GameDetailPage() {
             m.id === playerId ? { ...m, is_co_gm: makeCoGm } : m
           ),
         };
+      });
+    }
+  };
+
+  const handleToggleSpecialDate = async (date: string) => {
+    if (!gameId || !game) return;
+
+    const currentSpecialDates = game.special_play_dates || [];
+    const isCurrentlySpecial = currentSpecialDates.includes(date);
+
+    let newSpecialDates: string[];
+    if (isCurrentlySpecial) {
+      // Remove the date
+      newSpecialDates = currentSpecialDates.filter((d) => d !== date);
+    } else {
+      // Add the date
+      newSpecialDates = [...currentSpecialDates, date].sort();
+    }
+
+    // Optimistic update
+    setGame((prev) => {
+      if (!prev) return prev;
+      return { ...prev, special_play_dates: newSpecialDates };
+    });
+
+    const { error } = await supabase
+      .from("games")
+      .update({ special_play_dates: newSpecialDates })
+      .eq("id", gameId);
+
+    if (error) {
+      // Revert on error
+      setGame((prev) => {
+        if (!prev) return prev;
+        return { ...prev, special_play_dates: currentSpecialDates };
       });
     }
   };
@@ -690,6 +729,9 @@ export default function GameDetailPage() {
             availability={availability}
             onToggle={handleAvailabilityChange}
             confirmedSessions={confirmedSessions}
+            specialPlayDates={game.special_play_dates || []}
+            isGmOrCoGm={canDoGmActions}
+            onToggleSpecialDate={handleToggleSpecialDate}
           />
         </div>
       )}

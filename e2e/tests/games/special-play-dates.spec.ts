@@ -343,7 +343,7 @@ test.describe('Special Play Dates', () => {
     await page.getByRole('button', { name: /availability/i }).click();
     await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
-    // Should see "Special play date" in the legend
-    await expect(page.getByText(/special play date/i)).toBeVisible();
+    // Should see "Special play day" in the legend
+    await expect(page.getByText(/special play day/i)).toBeVisible();
   });
 });

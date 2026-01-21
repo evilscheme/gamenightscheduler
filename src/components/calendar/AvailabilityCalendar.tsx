@@ -16,11 +16,12 @@ import {
 import { Button } from "@/components/ui";
 import { GameSession, AvailabilityStatus } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
+import {
+  getNextStatus,
+  AvailabilityEntry,
+} from "@/lib/availabilityStatus";
 
-export interface AvailabilityEntry {
-  status: AvailabilityStatus;
-  comment: string | null;
-}
+export type { AvailabilityEntry };
 
 interface AvailabilityCalendarProps {
   playDays: number[];
@@ -69,21 +70,6 @@ export function AvailabilityCalendar({
   }, [today, maxDate]);
 
   const confirmedDates = new Set(confirmedSessions.map((s) => s.date));
-
-  // Cycle through: unset -> available (yes) -> unavailable (no) -> maybe -> available (continuous)
-  const getNextStatus = (
-    current: AvailabilityEntry | undefined
-  ): AvailabilityStatus => {
-    if (!current) return "available";
-    switch (current.status) {
-      case "available":
-        return "unavailable";
-      case "unavailable":
-        return "maybe";
-      case "maybe":
-        return "available";
-    }
-  };
 
   const handleDayClick = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");

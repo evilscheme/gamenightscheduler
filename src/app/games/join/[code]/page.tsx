@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
-import { DAY_LABELS } from '@/lib/constants';
+import { DAY_LABELS, USAGE_LIMITS } from '@/lib/constants';
 
 interface GamePreview {
   id: string;
@@ -31,6 +31,7 @@ export default function JoinGamePage() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
   const [alreadyMember, setAlreadyMember] = useState(false);
+  const [playerCount, setPlayerCount] = useState<number>(0);
 
   useEffect(() => {
     // Only redirect if auth is done loading AND there's no session
@@ -55,6 +56,7 @@ export default function JoinGamePage() {
       const data = await response.json();
       setGame(data.game);
       setAlreadyMember(data.isMember);
+      setPlayerCount(data.playerCount ?? 0);
       setLoading(false);
     }
 
@@ -63,8 +65,16 @@ export default function JoinGamePage() {
     }
   }, [code, profile?.id]);
 
+  const isGameFull = playerCount >= USAGE_LIMITS.MAX_PLAYERS_PER_GAME;
+
   const handleJoin = async () => {
     if (!game || !profile?.id) return;
+
+    // Check player limit
+    if (isGameFull) {
+      setError(`This game is full (${USAGE_LIMITS.MAX_PLAYERS_PER_GAME} players maximum).`);
+      return;
+    }
 
     setJoining(true);
 
@@ -74,7 +84,12 @@ export default function JoinGamePage() {
     });
 
     if (joinError) {
-      setError('Failed to join game. Please try again.');
+      // Check if it's a policy violation (likely player limit exceeded)
+      if (joinError.code === '42501') {
+        setError(`This game is full (${USAGE_LIMITS.MAX_PLAYERS_PER_GAME} players maximum).`);
+      } else {
+        setError('Failed to join game. Please try again.');
+      }
       setJoining(false);
       return;
     }
@@ -106,9 +121,13 @@ export default function JoinGamePage() {
         <Card>
           <CardContent className="py-8">
             <div className="text-center mb-6">
-              <span className="text-5xl mb-4 block">🎲</span>
+              <span className="text-5xl mb-4 block">{isGameFull && !alreadyMember ? '😕' : '🎲'}</span>
               <h1 className="text-2xl font-bold text-card-foreground">
-                {alreadyMember ? "You're already in this game!" : "You've been invited!"}
+                {alreadyMember
+                  ? "You're already in this game!"
+                  : isGameFull
+                    ? "This game is full"
+                    : "You've been invited!"}
               </h1>
             </div>
 
@@ -125,6 +144,21 @@ export default function JoinGamePage() {
               <Button onClick={() => router.push(`/games/${game.id}`)} className="w-full">
                 Go to Game
               </Button>
+            ) : isGameFull ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-danger/10 border border-danger/20 rounded-lg text-center">
+                  <p className="text-sm text-danger">
+                    This game is full ({USAGE_LIMITS.MAX_PLAYERS_PER_GAME} players maximum).
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full"
+                >
+                  Go to Dashboard
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 <Button onClick={handleJoin} disabled={joining} className="w-full">

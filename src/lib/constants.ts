@@ -21,3 +21,9 @@ export const SESSION_DEFAULTS = {
   START_TIME: '18:00',
   END_TIME: '22:00',
 } as const;
+
+// Usage limits to prevent abuse
+export const USAGE_LIMITS = {
+  MAX_GAMES_PER_USER: 20,
+  MAX_PLAYERS_PER_GAME: 50,
+} as const;

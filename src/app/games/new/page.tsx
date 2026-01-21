@@ -2,12 +2,12 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
-import { DAY_OPTIONS, SESSION_DEFAULTS } from '@/lib/constants';
+import { DAY_OPTIONS, SESSION_DEFAULTS, USAGE_LIMITS } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 
 export default function NewGamePage() {
@@ -23,8 +23,22 @@ export default function NewGamePage() {
   const [defaultEndTime, setDefaultEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [gameCount, setGameCount] = useState<number | null>(null);
 
   useAuthRedirect({ requireGM: true });
+
+  // Fetch the user's current game count to check limits
+  useEffect(() => {
+    async function fetchGameCount() {
+      if (!profile?.id) return;
+      const { count } = await supabase
+        .from('games')
+        .select('*', { count: 'exact', head: true })
+        .eq('gm_id', profile.id);
+      setGameCount(count ?? 0);
+    }
+    fetchGameCount();
+  }, [profile?.id, supabase]);
 
   const toggleDay = (day: number) => {
     setPlayDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
@@ -37,6 +51,12 @@ export default function NewGamePage() {
     const validation = validateGameForm({ name, playDays });
     if (!validation.valid) {
       setError(validation.errors[0]);
+      return;
+    }
+
+    // Check game limit
+    if (gameCount !== null && gameCount >= USAGE_LIMITS.MAX_GAMES_PER_USER) {
+      setError(`You have reached the maximum of ${USAGE_LIMITS.MAX_GAMES_PER_USER} games. Please delete an existing game to create a new one.`);
       return;
     }
 
@@ -59,7 +79,12 @@ export default function NewGamePage() {
       });
 
     if (insertError) {
-      setError('Failed to create game. Please try again.');
+      // Check if it's a policy violation (likely game limit exceeded)
+      if (insertError.code === '42501') {
+        setError(`You have reached the maximum of ${USAGE_LIMITS.MAX_GAMES_PER_USER} games. Please delete an existing game to create a new one.`);
+      } else {
+        setError('Failed to create game. Please try again.');
+      }
       setCreating(false);
       return;
     }
@@ -83,9 +108,20 @@ export default function NewGamePage() {
     );
   }
 
+  const atGameLimit = gameCount !== null && gameCount >= USAGE_LIMITS.MAX_GAMES_PER_USER;
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-2xl font-bold text-foreground mb-8">Create New Game</h1>
+
+      {atGameLimit && (
+        <div className="mb-6 p-4 bg-danger/10 border border-danger/20 rounded-lg">
+          <p className="text-sm text-danger">
+            You have reached the maximum of {USAGE_LIMITS.MAX_GAMES_PER_USER} games.
+            Please delete an existing game before creating a new one.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleCreate}>
         <Card>
@@ -188,7 +224,7 @@ export default function NewGamePage() {
             {error && <p className="text-sm text-danger">{error}</p>}
 
             <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={creating} className="flex-1">
+              <Button type="submit" disabled={creating || atGameLimit} className="flex-1">
                 {creating ? 'Creating...' : 'Create Game'}
               </Button>
               <Button

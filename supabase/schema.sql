@@ -170,6 +170,33 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- Count how many games a user has created (used by RLS to enforce limit)
+CREATE OR REPLACE FUNCTION public.count_user_games(user_id_param UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  game_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO game_count
+  FROM public.games
+  WHERE gm_id = user_id_param;
+  RETURN game_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Count how many players are in a game (members + GM)
+CREATE OR REPLACE FUNCTION public.count_game_players(game_id_param UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  member_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO member_count
+  FROM public.game_memberships
+  WHERE game_id = game_id_param;
+  -- Add 1 for the GM (who is not in game_memberships)
+  RETURN member_count + 1;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
 -- ============================================
 -- 5. Triggers
 -- ============================================
@@ -206,7 +233,10 @@ CREATE POLICY "Users can update own record" ON users
 CREATE POLICY "Users can view games they are part of" ON games
   FOR SELECT USING (public.is_game_participant(id, (select auth.uid())));
 CREATE POLICY "GMs can insert games" ON games
-  FOR INSERT WITH CHECK ((select auth.uid()) = gm_id);
+  FOR INSERT WITH CHECK (
+    (select auth.uid()) = gm_id
+    AND public.count_user_games((select auth.uid())) < 20
+  );
 CREATE POLICY "GMs and co-GMs can update games" ON games
   FOR UPDATE USING (public.is_game_gm_or_co_gm(id, (select auth.uid())));
 CREATE POLICY "GMs can delete own games" ON games
@@ -216,7 +246,10 @@ CREATE POLICY "GMs can delete own games" ON games
 CREATE POLICY "Members can view memberships" ON game_memberships
   FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
 CREATE POLICY "Users can join games" ON game_memberships
-  FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+  FOR INSERT WITH CHECK (
+    (select auth.uid()) = user_id
+    AND public.count_game_players(game_id) < 50
+  );
 CREATE POLICY "Users, GMs, or co-GMs can delete memberships" ON game_memberships
   FOR DELETE USING (
     -- User can always remove themselves

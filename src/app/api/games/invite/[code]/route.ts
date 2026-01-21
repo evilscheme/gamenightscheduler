@@ -65,6 +65,14 @@ export async function GET(
       isMember = !!membership;
     }
 
+    // Get current player count (members + GM)
+    const { count: memberCount } = await admin
+      .from('game_memberships')
+      .select('*', { count: 'exact', head: true })
+      .eq('game_id', game.id);
+
+    const playerCount = (memberCount ?? 0) + 1; // +1 for GM
+
     return NextResponse.json({
       game: {
         id: game.id,
@@ -74,6 +82,7 @@ export async function GET(
         gm: game.gm,
       },
       isMember: isMember || isGm,
+      playerCount,
     });
   } catch (error) {
     console.error('Invite lookup error:', error);

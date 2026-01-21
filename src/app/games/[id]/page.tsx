@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import {
   Button,
@@ -69,6 +69,50 @@ export default function GameDetailPage() {
     game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;
   const canDoGmActions = !!(isGm || isCoGm);
   const isMember = game?.members.some((m) => m.id === profile?.id);
+
+  // Calculate availability completion percentage per player
+  const playerCompletionPercentages = useMemo(() => {
+    if (!game) return {};
+
+    const allPlayers = [game.gm, ...game.members];
+    const today = startOfDay(new Date());
+    const endDate = endOfMonth(addMonths(today, game.scheduling_window_months));
+    const specialDates = game.special_play_dates || [];
+
+    // Get all future play dates within the window
+    const playDates = eachDayOfInterval({ start: today, end: endDate })
+      .filter((date) => {
+        const dateStr = format(date, "yyyy-MM-dd");
+        return (
+          game.play_days.includes(getDay(date)) ||
+          specialDates.includes(dateStr)
+        );
+      })
+      .filter(
+        (date) =>
+          isAfter(date, today) ||
+          format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
+      )
+      .map((date) => format(date, "yyyy-MM-dd"));
+
+    const totalDates = playDates.length;
+    if (totalDates === 0) return {};
+
+    const percentages: Record<string, number> = {};
+    allPlayers.forEach((player) => {
+      const playerAvailDates = new Set(
+        allAvailability
+          .filter((a) => a.user_id === player.id)
+          .map((a) => a.date)
+      );
+      const filledCount = playDates.filter((d) =>
+        playerAvailDates.has(d)
+      ).length;
+      percentages[player.id] = Math.round((filledCount / totalDates) * 100);
+    });
+
+    return percentages;
+  }, [game, allAvailability]);
 
   const formatTime = (time: string | null) => {
     if (!time) return "";
@@ -579,9 +623,25 @@ export default function GameDetailPage() {
                           {player.name[0]?.toUpperCase()}
                         </div>
                       )}
-                      <span className="flex-1 text-card-foreground">
-                        {player.name}
-                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-card-foreground">
+                          {player.name}
+                        </span>
+                        {playerCompletionPercentages[player.id] !== undefined && (
+                          <span
+                            className={`ml-2 text-xs ${
+                              playerCompletionPercentages[player.id] === 100
+                                ? "text-success"
+                                : playerCompletionPercentages[player.id] >= 50
+                                  ? "text-warning"
+                                  : "text-muted-foreground"
+                            }`}
+                            title="Availability filled in"
+                          >
+                            {playerCompletionPercentages[player.id]}% filled
+                          </span>
+                        )}
+                      </div>
                       {isOriginalGm && (
                         <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                           GM

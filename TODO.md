@@ -19,7 +19,8 @@
 - [X] make chosen game days a different color than green
 - [X] only show pencil (edit) icon on hover
 - [ ] clean up text in places to be more accurate/explanatory
-- [ ] improve new user experience
+- [ ] improve the experience for new users. give them big shiny buttons to do things. have everyone be a GM by default?
+- [ ] have a separate "past games" section for games that have occurred in the past
 
 ## Integration & Deployment
 - [X] implement google OAuth

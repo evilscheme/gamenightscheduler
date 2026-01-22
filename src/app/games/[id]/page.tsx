@@ -36,7 +36,7 @@ import {
   startOfDay,
   parseISO,
 } from "date-fns";
-import { DAY_LABELS, TIMEOUTS } from "@/lib/constants";
+import { DAY_LABELS, TIMEOUTS, USAGE_LIMITS } from "@/lib/constants";
 import { calculatePlayerCompletionPercentages } from "@/lib/availability";
 import { formatTime } from "@/lib/formatting";
 
@@ -299,8 +299,28 @@ export default function GameDetailPage() {
     date: string,
     startTime: string,
     endTime: string
-  ) => {
-    if (!profile?.id || !gameId) return;
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!profile?.id || !gameId) return { success: false, error: "Not authenticated" };
+
+    // Validate date is not in the past
+    const sessionDate = parseISO(date);
+    const today = startOfDay(new Date());
+    if (sessionDate < today) {
+      return { success: false, error: "Cannot schedule sessions in the past." };
+    }
+
+    // Check if we're updating an existing session or creating a new one
+    const existingSession = sessions.find((s) => s.date === date);
+    if (!existingSession) {
+      // Count future sessions (only for new sessions)
+      const futureSessionCount = sessions.filter(
+        (s) => parseISO(s.date) >= today
+      ).length;
+
+      if (futureSessionCount >= USAGE_LIMITS.MAX_FUTURE_SESSIONS_PER_GAME) {
+        return { success: false, error: `Cannot have more than ${USAGE_LIMITS.MAX_FUTURE_SESSIONS_PER_GAME} future sessions. Please cancel some sessions first.` };
+      }
+    }
 
     const { data, error } = await supabase
       .from("sessions")
@@ -318,7 +338,16 @@ export default function GameDetailPage() {
       .select()
       .single();
 
-    if (!error && data) {
+    if (error) {
+      // Check for RLS policy violation
+      if (error.code === "42501") {
+        // Could be past date or session limit
+        return { success: false, error: "Cannot schedule this session. It may be in the past or the game has reached the session limit." };
+      }
+      return { success: false, error: "Failed to confirm session. Please try again." };
+    }
+
+    if (data) {
       setSessions((prev) => {
         const existing = prev.findIndex((s) => s.date === date);
         if (existing >= 0) {
@@ -329,6 +358,8 @@ export default function GameDetailPage() {
         return [...prev, data].sort((a, b) => a.date.localeCompare(b.date));
       });
     }
+
+    return { success: true };
   };
 
   const handleCancelSession = async (date: string) => {

@@ -7,7 +7,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
-import { DAY_OPTIONS, SESSION_DEFAULTS, USAGE_LIMITS } from '@/lib/constants';
+import { DAY_OPTIONS, SESSION_DEFAULTS, USAGE_LIMITS, TEXT_LIMITS } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 
 export default function NewGamePage() {
@@ -48,7 +48,7 @@ export default function NewGamePage() {
     e.preventDefault();
     if (!profile?.id) return;
 
-    const validation = validateGameForm({ name, playDays });
+    const validation = validateGameForm({ name, description, playDays });
     if (!validation.valid) {
       setError(validation.errors[0]);
       return;
@@ -134,6 +134,7 @@ export default function NewGamePage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Friday Night Board Games"
+              maxLength={TEXT_LIMITS.GAME_NAME}
               required
             />
 
@@ -142,6 +143,7 @@ export default function NewGamePage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="A brief description of your game..."
+              maxLength={TEXT_LIMITS.GAME_DESCRIPTION}
               rows={3}
             />
 

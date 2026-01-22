@@ -15,7 +15,7 @@ interface SchedulingSuggestionsProps {
   gameName: string;
   defaultStartTime?: string | null;
   defaultEndTime?: string | null;
-  onConfirm: (date: string, startTime: string, endTime: string) => void;
+  onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (date: string) => void;
 }
 
@@ -37,6 +37,8 @@ export function SchedulingSuggestions({
   const [confirmingDate, setConfirmingDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const confirmedDates = new Set(sessions.filter((s) => s.status === 'confirmed').map((s) => s.date));
   const confirmedSessions = sessions.filter((s) => s.status === 'confirmed');
@@ -45,13 +47,21 @@ export function SchedulingSuggestions({
     // Reset to defaults each time the modal opens
     setStartTime(initialStartTime);
     setEndTime(initialEndTime);
+    setLocalError(null);
     setConfirmingDate(date);
   };
 
-  const handleConfirmSubmit = () => {
+  const handleConfirmSubmit = async () => {
     if (confirmingDate) {
-      onConfirm(confirmingDate, startTime, endTime);
-      setConfirmingDate(null);
+      setIsConfirming(true);
+      setLocalError(null);
+      const result = await onConfirm(confirmingDate, startTime, endTime);
+      setIsConfirming(false);
+      if (result.success) {
+        setConfirmingDate(null);
+      } else if (result.error) {
+        setLocalError(result.error);
+      }
     }
   };
 
@@ -434,19 +444,25 @@ export function SchedulingSuggestions({
               </div>
             </div>
 
+            {localError && (
+              <p className="text-sm text-danger mt-4">{localError}</p>
+            )}
+
             <div className="flex gap-3 mt-6">
               <Button
                 variant="secondary"
                 className="flex-1"
                 onClick={() => setConfirmingDate(null)}
+                disabled={isConfirming}
               >
                 Cancel
               </Button>
               <Button
                 className="flex-1"
                 onClick={handleConfirmSubmit}
+                disabled={isConfirming}
               >
-                Confirm Session
+                {isConfirming ? 'Confirming...' : 'Confirm Session'}
               </Button>
             </div>
           </div>

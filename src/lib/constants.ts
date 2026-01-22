@@ -26,4 +26,12 @@ export const SESSION_DEFAULTS = {
 export const USAGE_LIMITS = {
   MAX_GAMES_PER_USER: 20,
   MAX_PLAYERS_PER_GAME: 50,
+  MAX_FUTURE_SESSIONS_PER_GAME: 100,
+} as const;
+
+// Text field length limits
+export const TEXT_LIMITS = {
+  GAME_NAME: 100,
+  GAME_DESCRIPTION: 1000,
+  USER_DISPLAY_NAME: 50,
 } as const;

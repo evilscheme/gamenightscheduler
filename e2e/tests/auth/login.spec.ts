@@ -61,36 +61,5 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL('/settings');
   });
 
-  test('GM users see "Create New Game" button on dashboard', async ({ page }) => {
-    // Create and sign in a GM user (automatically navigates to dashboard)
-    await loginTestUser(page, {
-      email: `gm-dashboard-${Date.now()}@e2e.local`,
-      name: 'GM Dashboard User',
-      is_gm: true,
-    });
-
-    // Wait for dashboard content to load (includes client-side data fetch)
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
-
-    // Should see Create New Game button
-    await expect(page.getByRole('link', { name: /create new game/i })).toBeVisible();
-  });
-
-  test('non-GM users do not see "Create New Game" button', async ({ page }) => {
-    // Create and sign in a non-GM user (automatically navigates to dashboard)
-    await loginTestUser(page, {
-      email: `player-dashboard-${Date.now()}@e2e.local`,
-      name: 'Player Dashboard User',
-      is_gm: false,
-    });
-
-    // Wait for dashboard content to load (includes client-side data fetch)
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
-
-    // Should NOT see Create New Game button
-    await expect(page.getByRole('link', { name: /create new game/i })).not.toBeVisible();
-
-    // Should see message about enabling GM mode
-    await expect(page.getByText(/want to create your own games/i)).toBeVisible();
-  });
+  // Note: "Create New Game" button tests removed - all users are now GMs by default
 });

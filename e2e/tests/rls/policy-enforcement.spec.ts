@@ -42,19 +42,7 @@ test.describe('RLS Policy Enforcement', () => {
     await expect(page.getByText(/private game/i)).not.toBeVisible();
   });
 
-  test('non-GM cannot access create game page', async ({ page }) => {
-    await loginTestUser(page, {
-      email: `non-gm-create-${Date.now()}@e2e.local`,
-      name: 'Non-GM User',
-      is_gm: false,
-    });
-
-    await page.goto('/games/new');
-    
-    // Should be redirected to dashboard (non-GM users can't create games)
-    // Wait for client-side redirect after profile loads and is_gm check fails
-    await expect(page).toHaveURL('/dashboard', );
-  });
+  // Note: "non-GM cannot access create game page" test removed - all users are now GMs by default
 
   test('member can view game they belong to', async ({ page, request }) => {
     const gm = await createTestUser(request, {
@@ -177,22 +165,7 @@ test.describe('RLS Policy Enforcement', () => {
     await expect(page.getByText(/badge test gm/i).first()).toBeVisible({ timeout: TEST_TIMEOUTS.SHORT });
   });
 
-  test('settings page shows correct GM status', async ({ page }) => {
-    // Create a non-GM user
-    await loginTestUser(page, {
-      email: `settings-test-${Date.now()}@e2e.local`,
-      name: 'Settings User',
-      is_gm: false,
-    });
-
-    await page.goto('/settings');
-    
-    // Wait for settings page to load with profile data
-    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible();
-
-    // Should see GM mode toggle in unchecked state
-    await expect(page.getByText(/game master mode/i)).toBeVisible({ timeout: TEST_TIMEOUTS.SHORT });
-  });
+  // Note: "settings page shows correct GM status" test removed - GM toggle no longer exists
 
   test('invite link only visible to GM of the game', async ({ page, request }) => {
     const gm = await createTestUser(request, {

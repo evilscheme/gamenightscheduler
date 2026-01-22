@@ -9,7 +9,6 @@ import { createClient } from '@/lib/supabase/client';
 export default function SettingsPage() {
   const { profile, isLoading, refreshProfile, session } = useAuth();
   const [name, setName] = useState('');
-  const [isGm, setIsGm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const supabase = createClient();
@@ -21,7 +20,6 @@ export default function SettingsPage() {
   useEffect(() => {
     if (profile) {
       setName(profile.name || '');
-      setIsGm(profile.is_gm || false);
     }
   }, [profile]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -34,7 +32,7 @@ export default function SettingsPage() {
 
     const { error } = await supabase
       .from('users')
-      .update({ name, is_gm: isGm })
+      .update({ name })
       .eq('id', profile.id);
 
     if (error) {
@@ -78,30 +76,6 @@ export default function SettingsPage() {
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name"
           />
-
-          <div className="border-t border-border pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-foreground">Game Master Mode</h3>
-                <p className="text-sm text-muted-foreground">
-                  Enable this to create and manage your own games
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsGm(!isGm)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background ${
-                  isGm ? 'bg-primary' : 'bg-muted'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    isGm ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-          </div>
 
           {message && (
             <p

@@ -4,18 +4,18 @@ import { createTestGame, addPlayerToGame } from '../../helpers/seed';
 import { TEST_TIMEOUTS } from '../../constants';
 
 test.describe('Dashboard Games', () => {
-  test('shows empty state when user has no games', async ({ page, request }) => {
+  test('shows welcome empty state when user has no games', async ({ page, request }) => {
     // Create a fresh user with no games
     const user = await createTestUser(request, {
       email: `user-empty-${Date.now()}@e2e.local`,
       name: 'Empty Dashboard User',
-      is_gm: false,
+      is_gm: true,
     });
 
     await loginTestUser(page, {
       email: user.email,
       name: user.name,
-      is_gm: false,
+      is_gm: true,
     });
 
     await page.goto('/dashboard');
@@ -25,14 +25,77 @@ test.describe('Dashboard Games', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Should show empty state
-    await expect(page.getByText(/no games yet/i)).toBeVisible();
+    // Should show welcome empty state
+    await expect(page.getByText(/welcome to can we play/i)).toBeVisible();
 
-    // Non-GM should see message about joining via invite or enabling GM mode
-    await expect(page.getByText(/join a game using an invite link/i)).toBeVisible();
+    // Should show both options: Create and Join
+    await expect(page.getByRole('heading', { name: /create a game/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /join a game/i })).toBeVisible();
 
-    // Should have button to go to settings (within the empty state action)
-    await expect(page.getByRole('button', { name: /go to settings/i })).toBeVisible();
+    // Should have Create New Game button
+    await expect(page.getByRole('button', { name: /create new game/i })).toBeVisible();
+
+    // Should have invite code input and Join Game button
+    await expect(page.getByPlaceholder(/paste invite link or code/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /join game/i })).toBeVisible();
+  });
+
+  test('can navigate to join page from empty state invite code input', async ({ page, request }) => {
+    const user = await createTestUser(request, {
+      email: `user-join-${Date.now()}@e2e.local`,
+      name: 'Join Test User',
+      is_gm: true,
+    });
+
+    await loginTestUser(page, {
+      email: user.email,
+      name: user.name,
+      is_gm: true,
+    });
+
+    await page.goto('/dashboard');
+
+    // Wait for page to load
+    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Enter an invite code
+    await page.getByPlaceholder(/paste invite link or code/i).fill('TESTCODE123');
+    await page.getByRole('button', { name: /join game/i }).click();
+
+    // Should navigate to join page with the code
+    await expect(page).toHaveURL('/games/join/TESTCODE123');
+  });
+
+  test('can extract invite code from full URL', async ({ page, request }) => {
+    const user = await createTestUser(request, {
+      email: `user-url-${Date.now()}@e2e.local`,
+      name: 'URL Test User',
+      is_gm: true,
+    });
+
+    await loginTestUser(page, {
+      email: user.email,
+      name: user.name,
+      is_gm: true,
+    });
+
+    await page.goto('/dashboard');
+
+    // Wait for page to load
+    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Paste a full invite URL
+    await page
+      .getByPlaceholder(/paste invite link or code/i)
+      .fill('https://canweplay.example.com/games/join/ABC123XYZ');
+    await page.getByRole('button', { name: /join game/i }).click();
+
+    // Should navigate to join page with just the extracted code
+    await expect(page).toHaveURL('/games/join/ABC123XYZ');
   });
 
   test('game cards display correct information', async ({ page, request }) => {

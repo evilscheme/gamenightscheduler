@@ -17,7 +17,7 @@ CREATE TABLE users (
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   avatar_url TEXT,
-  is_gm BOOLEAN DEFAULT FALSE,
+  is_gm BOOLEAN DEFAULT TRUE,
   is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -124,7 +124,7 @@ BEGIN
       NEW.raw_user_meta_data->>'avatar_url',
       NEW.raw_user_meta_data->>'picture'
     ),
-    false,
+    true,
     false
   );
   RETURN NEW;

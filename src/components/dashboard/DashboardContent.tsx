@@ -7,12 +7,12 @@ import {
   Button,
   Card,
   CardContent,
-  EmptyState,
   LoadingSpinner,
 } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { GameWithGM } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
+import { WelcomeEmptyState } from "./WelcomeEmptyState";
 
 interface GameWithGMAndCount extends GameWithGM {
   member_count: number;
@@ -113,7 +113,7 @@ export function DashboardContent() {
             Manage your games and sessions
           </p>
         </div>
-        {profile?.is_gm && (
+        {profile?.is_gm && games.length > 0 && (
           <Link href="/games/new">
             <Button>Create New Game</Button>
           </Link>
@@ -121,30 +121,7 @@ export function DashboardContent() {
       </div>
 
       {games.length === 0 ? (
-        <Card>
-          <CardContent className="py-12">
-            <EmptyState
-              icon="🎲"
-              title="No games yet"
-              description={
-                profile?.is_gm
-                  ? "Create your first game to start scheduling sessions with your group."
-                  : "Join a game using an invite link from your GM, or enable GM status in settings to create your own."
-              }
-              action={
-                profile?.is_gm ? (
-                  <Link href="/games/new">
-                    <Button>Create Your First Game</Button>
-                  </Link>
-                ) : (
-                  <Link href="/settings">
-                    <Button variant="secondary">Go to Settings</Button>
-                  </Link>
-                )
-              }
-            />
-          </CardContent>
-        </Card>
+        <WelcomeEmptyState />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {games.map((game) => (
@@ -196,18 +173,6 @@ export function DashboardContent() {
               </Card>
             </Link>
           ))}
-        </div>
-      )}
-
-      {!profile?.is_gm && (
-        <div className="mt-8 p-4 bg-warning/10 border border-warning/20 rounded-lg">
-          <p className="text-warning text-sm">
-            <strong>Want to create your own games?</strong> Go to{" "}
-            <Link href="/settings" className="underline">
-              Settings
-            </Link>{" "}
-            to enable GM mode.
-          </p>
         </div>
       )}
     </div>

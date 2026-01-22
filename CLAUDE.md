@@ -70,8 +70,12 @@ RLS uses `auth.uid()` and a `is_game_participant()` helper function (SECURITY DE
 ### Key Patterns
 
 - All page components use `'use client'` directive
-- Users must enable "GM mode" in Settings (`is_gm` flag) to create games
+- All users have GM capabilities by default (`is_gm: true`)
 - Games use invite codes (nanoid) for players to join
+
+### Assets
+
+- `public/logo.png` - App logo. Use this instead of emojis for hero sections, welcome screens, and other prominent branding locations. Import with Next.js `Image` component.
 
 ### Shared Utilities
 

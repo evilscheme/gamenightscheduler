@@ -3,6 +3,8 @@ import { loginTestUser, createTestUser } from '../../helpers/test-auth';
 import { createTestGame, addPlayerToGame } from '../../helpers/seed';
 import { TEST_TIMEOUTS } from '../../constants';
 
+// Note: GM toggle test removed - all users are now GMs by default
+
 test.describe('Settings Profile', () => {
   test('user can update display name', async ({ page, request }) => {
     const user = await createTestUser(request, {
@@ -140,56 +142,4 @@ test.describe('Settings Profile', () => {
     });
   });
 
-  test('can toggle GM mode on and create games', async ({ page, request }) => {
-    // Create non-GM user
-    const user = await createTestUser(request, {
-      email: `user-toggl-gm-${Date.now()}@e2e.local`,
-      name: 'Toggle GM User',
-      is_gm: false,
-    });
-
-    await loginTestUser(page, {
-      email: user.email,
-      name: user.name,
-      is_gm: false,
-    });
-
-    // Go directly to settings (skip the redirect test to avoid session issues)
-    await page.goto('/settings');
-    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({
-      timeout: TEST_TIMEOUTS.LONG,
-    });
-
-    // Find the GM toggle button (it's the button within Game Master Mode section)
-    const gmToggle = page.locator('button').filter({ has: page.locator('span.rounded-full') });
-    await expect(gmToggle).toBeVisible();
-
-    // Toggle should be off (bg-muted)
-    await expect(gmToggle).toHaveClass(/bg-muted/);
-
-    // Click to enable GM mode
-    await gmToggle.click();
-
-    // Toggle should now be on (bg-primary)
-    await expect(gmToggle).toHaveClass(/bg-primary/);
-
-    // Save changes
-    await page.getByRole('button', { name: /save changes/i }).click();
-    await expect(page.getByText(/saved successfully/i)).toBeVisible();
-
-    // The profile needs to refresh - navigate to dashboard first to trigger full profile reload
-    await page.goto('/dashboard');
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({
-      timeout: TEST_TIMEOUTS.LONG,
-    });
-
-    // GM should now see "Create New Game" button on dashboard
-    await expect(page.getByRole('link', { name: /create new game/i })).toBeVisible();
-
-    // Click to go to create page
-    await page.getByRole('link', { name: /create new game/i }).click();
-    await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible({
-      timeout: TEST_TIMEOUTS.LONG,
-    });
-  });
 });

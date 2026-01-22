@@ -54,6 +54,8 @@ export function AvailabilityCalendar({
   const [commentText, setCommentText] = useState("");
   const [bulkDayFilter, setBulkDayFilter] = useState<string>("remaining");
   const [bulkStatus, setBulkStatus] = useState<AvailabilityStatus>("available");
+  // Action menu for GM long-press on special play dates
+  const [actionMenuDate, setActionMenuDate] = useState<string | null>(null);
 
   // Generate array of months to display
   const months = useMemo(() => {
@@ -107,6 +109,29 @@ export function AvailabilityCalendar({
   const handleCancelComment = () => {
     setCommentingDate(null);
     setCommentText("");
+  };
+
+  // Action menu handlers for GM on special play dates
+  const handleOpenActionMenu = (dateStr: string) => {
+    setActionMenuDate(dateStr);
+  };
+
+  const handleCloseActionMenu = () => {
+    setActionMenuDate(null);
+  };
+
+  const handleActionMenuEditNote = () => {
+    if (actionMenuDate) {
+      handleEditComment(actionMenuDate);
+      setActionMenuDate(null);
+    }
+  };
+
+  const handleActionMenuRemoveSpecial = () => {
+    if (actionMenuDate && onToggleSpecialDate) {
+      onToggleSpecialDate(actionMenuDate);
+      setActionMenuDate(null);
+    }
   };
 
   const bulkSetDays = (filter: string, status: AvailabilityStatus) => {
@@ -193,6 +218,7 @@ export function AvailabilityCalendar({
             specialPlayDates={specialPlayDates}
             isGmOrCoGm={isGmOrCoGm}
             onToggleSpecialDate={onToggleSpecialDate}
+            onOpenActionMenu={handleOpenActionMenu}
           />
         ))}
       </div>
@@ -278,6 +304,49 @@ export function AvailabilityCalendar({
           </div>
         </div>
       )}
+
+      {/* Action menu for GM long-press on special play dates */}
+      {actionMenuDate && (
+        <div
+          className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
+          onClick={handleCloseActionMenu}
+        >
+          <div
+            className="bg-card rounded-lg shadow-lg border border-border p-4 w-full max-w-xs mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-card-foreground">
+                {format(parseISO(actionMenuDate), "MMM d")}
+              </span>
+              <button
+                onClick={handleCloseActionMenu}
+                className="text-muted-foreground hover:text-foreground text-lg leading-none"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full justify-start"
+                onClick={handleActionMenuEditNote}
+              >
+                Add/Edit note
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                className="w-full justify-start"
+                onClick={handleActionMenuRemoveSpecial}
+              >
+                Remove special play day
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -295,6 +364,7 @@ interface MonthCalendarProps {
   specialPlayDates: string[];
   isGmOrCoGm: boolean;
   onToggleSpecialDate?: (date: string) => void;
+  onOpenActionMenu?: (dateStr: string) => void;
 }
 
 function MonthCalendar({
@@ -309,6 +379,7 @@ function MonthCalendar({
   specialPlayDates,
   isGmOrCoGm,
   onToggleSpecialDate,
+  onOpenActionMenu,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),
@@ -321,15 +392,22 @@ function MonthCalendar({
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressTriggered = useRef(false);
 
-  const handleTouchStart = (dateStr: string, isPlayDay: boolean) => {
+  const handleTouchStart = (
+    dateStr: string,
+    isRegularPlayDay: boolean,
+    isSpecialPlayDate: boolean
+  ) => {
     longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
-      if (isPlayDay) {
-        // For play days, long-press opens comment editor
+      if (isSpecialPlayDate && isGmOrCoGm && onOpenActionMenu) {
+        // For special play dates, GM gets action menu (edit note or remove)
+        onOpenActionMenu(dateStr);
+      } else if (isRegularPlayDay || isSpecialPlayDate) {
+        // For regular play days (or special dates for non-GM), long-press opens comment editor
         onEditComment(dateStr);
       } else if (isGmOrCoGm && onToggleSpecialDate) {
-        // For non-play days, GM can toggle special date
+        // For non-play days, GM can add as special date
         onToggleSpecialDate(dateStr);
       }
     }, 500);
@@ -436,7 +514,8 @@ function MonthCalendar({
               key={dateStr}
               onClick={() => handleDayClickWithLongPressCheck(date)}
               onTouchStart={() =>
-                !isPast && handleTouchStart(dateStr, isPlayDay)
+                !isPast &&
+                handleTouchStart(dateStr, isRegularPlayDay, isSpecialPlayDate)
               }
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}

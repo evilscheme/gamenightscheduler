@@ -460,6 +460,11 @@ function MonthCalendar({
                   className="absolute top-0.5 left-0.5 text-[10px] leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
+                    // Prevent click after long-press (mobile)
+                    if (longPressTriggered.current) {
+                      longPressTriggered.current = false;
+                      return;
+                    }
                     onToggleSpecialDate(dateStr);
                   }}
                   title="Enable as special play date"
@@ -473,6 +478,11 @@ function MonthCalendar({
                   className="absolute top-0.5 left-0.5 text-[10px] leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-danger"
                   onClick={(e) => {
                     e.stopPropagation();
+                    // Prevent click after long-press (mobile)
+                    if (longPressTriggered.current) {
+                      longPressTriggered.current = false;
+                      return;
+                    }
                     onToggleSpecialDate(dateStr);
                   }}
                   title="Remove special play date"
@@ -490,6 +500,11 @@ function MonthCalendar({
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
+                    // Prevent duplicate open after long-press (mobile)
+                    if (longPressTriggered.current) {
+                      longPressTriggered.current = false;
+                      return;
+                    }
                     onEditComment(dateStr);
                   }}
                   title={hasComment ? "Edit note" : "Add note"}

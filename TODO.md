@@ -15,11 +15,11 @@
 - [X] add "mark all remaining unspecified days as [yes/no]" capability
 - [X] add a way for users to give feedback and report bugs (github issues?)
 - [X] make the non-play days more visually obvious with some cross-hatching
-- [ ] sensible usage limits (20 games per person, 50 players per game)
+- [X] sensible usage limits (20 games per person, 50 players per game)
 - [X] make chosen game days a different color than green
 - [X] only show pencil (edit) icon on hover
 - [ ] clean up text in places to be more accurate/explanatory
-- [ ] improve the experience for new users. give them big shiny buttons to do things. have everyone be a GM by default?
+- [X] improve the experience for new users. give them big shiny buttons to do things. have everyone be a GM by default?
 - [ ] have a separate "past games" section for games that have occurred in the past
 
 ## Integration & Deployment

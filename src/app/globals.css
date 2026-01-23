@@ -1,42 +1,59 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #1e293b;
+  /* Vibrant Purple theme - light mode */
+  --background: #faf5ff;
+  --foreground: #3b0764;
   --card: #ffffff;
-  --card-foreground: #1e293b;
-  --primary: #4f46e5;
+  --card-foreground: #3b0764;
+  --primary: #7c3aed;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #374151;
-  --muted: #f1f5f9;
-  --muted-foreground: #475569;
-  --border: #e2e8f0;
-  --ring: #4f46e5;
+  --secondary: #f3e8ff;
+  --secondary-foreground: #6b21a8;
+  --muted: #f3e8ff;
+  --muted-foreground: #6b21a8;
+  --border: #e9d5ff;
+  --ring: #7c3aed;
 
   /* Semantic status colors - light mode (optimized for contrast) */
   --success: #15803d;
   --success-muted: #166534;
-  --warning: #e5a101;
-  --warning-muted: #855d0e;
+  --warning: #d97706;
+  --warning-muted: #92400e;
   --danger: #dc2626;
   --danger-muted: #b91c1c;
-  --scheduled: #0891b2;
+  --scheduled: #7c3aed;
+
+  /* Calendar-specific colors - light mode (bold & vibrant) */
+  --cal-available-bg: #22c55e;
+  --cal-available-text: #ffffff;
+  --cal-maybe-bg: #f59e0b;
+  --cal-maybe-text: #ffffff;
+  --cal-unavailable-bg: #ef4444;
+  --cal-unavailable-text: #ffffff;
+  --cal-unset-bg: #f5f0ff;
+  --cal-unset-text: #7c3aed;
+  --cal-unset-border: #c4b5fd;
+  --cal-disabled-bg: #f9f7fc;
+  --cal-disabled-text: #d4d0e0;
+  --cal-scheduled-bg: #7c3aed;
+  --cal-scheduled-text: #ffffff;
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --card: #1e293b;
-  --card-foreground: #f1f5f9;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --secondary: #334155;
-  --secondary-foreground: #cbd5e1;
-  --muted: #334155;
-  --muted-foreground: #94a3b8;
-  --border: #334155;
-  --ring: #6366f1;
+  /* Vibrant Purple theme - dark mode */
+  --background: #0c0a1a;
+  --foreground: #f3e8ff;
+  --card: #1a1529;
+  --card-foreground: #f3e8ff;
+  --primary: #a78bfa;
+  --primary-foreground: #0c0a1a;
+  --secondary: #2e1a47;
+  --secondary-foreground: #e9d5ff;
+  --muted: #2e1a47;
+  --muted-foreground: #a78bfa;
+  --border: #3b2656;
+  --ring: #a78bfa;
 
   /* Semantic status colors - dark mode */
   --success: #4ade80;
@@ -45,7 +62,22 @@
   --warning-muted: #f59e0b;
   --danger: #f87171;
   --danger-muted: #ef4444;
-  --scheduled: #22d3ee;
+  --scheduled: #a78bfa;
+
+  /* Calendar-specific colors - dark mode (jewel tones) */
+  --cal-available-bg: #166534;
+  --cal-available-text: #86efac;
+  --cal-maybe-bg: #854d0e;
+  --cal-maybe-text: #fde68a;
+  --cal-unavailable-bg: #991b1b;
+  --cal-unavailable-text: #fecaca;
+  --cal-unset-bg: #1f1a2e;
+  --cal-unset-text: #a78bfa;
+  --cal-unset-border: #5b21b6;
+  --cal-disabled-bg: #0a0810;
+  --cal-disabled-text: #2a2235;
+  --cal-scheduled-bg: #7c3aed;
+  --cal-scheduled-text: #ffffff;
 }
 
 @theme inline {
@@ -69,6 +101,21 @@
   --color-danger-muted: var(--danger-muted);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Calendar colors */
+  --color-cal-available-bg: var(--cal-available-bg);
+  --color-cal-available-text: var(--cal-available-text);
+  --color-cal-maybe-bg: var(--cal-maybe-bg);
+  --color-cal-maybe-text: var(--cal-maybe-text);
+  --color-cal-unavailable-bg: var(--cal-unavailable-bg);
+  --color-cal-unavailable-text: var(--cal-unavailable-text);
+  --color-cal-unset-bg: var(--cal-unset-bg);
+  --color-cal-unset-text: var(--cal-unset-text);
+  --color-cal-unset-border: var(--cal-unset-border);
+  --color-cal-disabled-bg: var(--cal-disabled-bg);
+  --color-cal-disabled-text: var(--cal-disabled-text);
+  --color-cal-scheduled-bg: var(--cal-scheduled-bg);
+  --color-cal-scheduled-text: var(--cal-scheduled-text);
 }
 
 body {
@@ -77,40 +124,4 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-/* Diagonal cross-hatching pattern for non-play days */
-.non-play-day {
-  background:
-    repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 10px,
-      color-mix(in srgb, var(--muted-foreground) 20%, transparent) 10px,
-      color-mix(in srgb, var(--muted-foreground) 20%, transparent) 11px
-    ),
-    /* repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 10px,
-      color-mix(in srgb, var(--muted-foreground) 20%, transparent) 10px,
-      color-mix(in srgb, var(--muted-foreground) 20%, transparent) 11px
-    ), */
-    var(--muted);
-}
 
-/* Festive star pattern for scheduled/confirmed sessions */
-.scheduled-session {
-  background-color: color-mix(in srgb, var(--scheduled) 15%, transparent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M8 2 L9.5 6 L14 6 L10.5 9 L12 14 L8 11 L4 14 L5.5 9 L2 6 L6.5 6 Z' fill='%230891b2' opacity='0.35'/%3E%3C/svg%3E");
-  background-size: 10px 10px;
-  animation: twinkle 2s ease-in-out infinite;
-}
-
-.dark .scheduled-session {
-  background-color: color-mix(in srgb, var(--scheduled) 20%, transparent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M8 2 L9.5 6 L14 6 L10.5 9 L12 14 L8 11 L4 14 L5.5 9 L2 6 L6.5 6 Z' fill='%2322d3ee' opacity='0.45'/%3E%3C/svg%3E");
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-}

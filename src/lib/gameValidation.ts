@@ -1,5 +1,8 @@
+import { TEXT_LIMITS } from "./constants";
+
 export interface GameFormData {
   name: string;
+  description?: string;
   playDays: number[];
 }
 
@@ -20,6 +23,13 @@ export function validateGameForm(data: GameFormData): ValidationResult {
   // Validate name
   if (!data.name || !data.name.trim()) {
     errors.push("Please enter a game name");
+  } else if (data.name.length > TEXT_LIMITS.GAME_NAME) {
+    errors.push(`Game name must be ${TEXT_LIMITS.GAME_NAME} characters or less`);
+  }
+
+  // Validate description length if provided
+  if (data.description && data.description.length > TEXT_LIMITS.GAME_DESCRIPTION) {
+    errors.push(`Description must be ${TEXT_LIMITS.GAME_DESCRIPTION} characters or less`);
   }
 
   // Validate play days

@@ -15,7 +15,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
+  name TEXT NOT NULL CHECK (char_length(name) <= 50),
   avatar_url TEXT,
   is_gm BOOLEAN DEFAULT TRUE,
   is_admin BOOLEAN DEFAULT FALSE,
@@ -25,8 +25,8 @@ CREATE TABLE users (
 -- Games table
 CREATE TABLE games (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
-  description TEXT,
+  name TEXT NOT NULL CHECK (char_length(name) <= 100),
+  description TEXT CHECK (description IS NULL OR char_length(description) <= 1000),
   gm_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   play_days INTEGER[] NOT NULL DEFAULT '{}',
   special_play_dates DATE[] NOT NULL DEFAULT '{}',
@@ -170,6 +170,47 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- Count how many games a user has created (used by RLS to enforce limit)
+CREATE OR REPLACE FUNCTION public.count_user_games(user_id_param UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  game_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO game_count
+  FROM public.games
+  WHERE gm_id = user_id_param;
+  RETURN game_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Count how many players are in a game (members + GM)
+CREATE OR REPLACE FUNCTION public.count_game_players(game_id_param UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  member_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO member_count
+  FROM public.game_memberships
+  WHERE game_id = game_id_param;
+  -- Add 1 for the GM (who is not in game_memberships)
+  RETURN member_count + 1;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Count how many future sessions exist for a game (used by RLS to enforce limit)
+CREATE OR REPLACE FUNCTION public.count_future_sessions(game_id_param UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  session_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO session_count
+  FROM public.sessions
+  WHERE game_id = game_id_param
+    AND date >= CURRENT_DATE;
+  RETURN session_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
 -- ============================================
 -- 5. Triggers
 -- ============================================
@@ -206,7 +247,10 @@ CREATE POLICY "Users can update own record" ON users
 CREATE POLICY "Users can view games they are part of" ON games
   FOR SELECT USING (public.is_game_participant(id, (select auth.uid())));
 CREATE POLICY "GMs can insert games" ON games
-  FOR INSERT WITH CHECK ((select auth.uid()) = gm_id);
+  FOR INSERT WITH CHECK (
+    (select auth.uid()) = gm_id
+    AND public.count_user_games((select auth.uid())) < 20
+  );
 CREATE POLICY "GMs and co-GMs can update games" ON games
   FOR UPDATE USING (public.is_game_gm_or_co_gm(id, (select auth.uid())));
 CREATE POLICY "GMs can delete own games" ON games
@@ -216,7 +260,10 @@ CREATE POLICY "GMs can delete own games" ON games
 CREATE POLICY "Members can view memberships" ON game_memberships
   FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
 CREATE POLICY "Users can join games" ON game_memberships
-  FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+  FOR INSERT WITH CHECK (
+    (select auth.uid()) = user_id
+    AND public.count_game_players(game_id) < 50
+  );
 CREATE POLICY "Users, GMs, or co-GMs can delete memberships" ON game_memberships
   FOR DELETE USING (
     -- User can always remove themselves
@@ -248,7 +295,11 @@ CREATE POLICY "Users can delete own availability" ON availability
 CREATE POLICY "Game participants can view sessions" ON sessions
   FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
 CREATE POLICY "GMs and co-GMs can insert sessions" ON sessions
-  FOR INSERT WITH CHECK (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
+  FOR INSERT WITH CHECK (
+    public.is_game_gm_or_co_gm(game_id, (select auth.uid()))
+    AND date >= CURRENT_DATE
+    AND public.count_future_sessions(game_id) < 100
+  );
 CREATE POLICY "GMs and co-GMs can update sessions" ON sessions
   FOR UPDATE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
 CREATE POLICY "GMs and co-GMs can delete sessions" ON sessions

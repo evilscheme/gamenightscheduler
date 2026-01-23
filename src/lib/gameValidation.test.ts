@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateGameForm } from "./gameValidation";
+import { TEXT_LIMITS } from "./constants";
 
 describe("validateGameForm", () => {
   it("returns valid for valid form data", () => {
@@ -100,5 +101,68 @@ describe("validateGameForm", () => {
 
     expect(result.valid).toBe(false);
     expect(result.errors).toContain("Please select at least one play day");
+  });
+
+  it("fails for game name exceeding max length", () => {
+    const longName = "A".repeat(TEXT_LIMITS.GAME_NAME + 1);
+    const result = validateGameForm({
+      name: longName,
+      playDays: [5],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain(`Game name must be ${TEXT_LIMITS.GAME_NAME} characters or less`);
+  });
+
+  it("passes for game name at exactly max length", () => {
+    const exactLengthName = "A".repeat(TEXT_LIMITS.GAME_NAME);
+    const result = validateGameForm({
+      name: exactLengthName,
+      playDays: [5],
+    });
+
+    expect(result.valid).toBe(true);
+  });
+
+  it("fails for description exceeding max length", () => {
+    const longDescription = "A".repeat(TEXT_LIMITS.GAME_DESCRIPTION + 1);
+    const result = validateGameForm({
+      name: "Game Night",
+      description: longDescription,
+      playDays: [5],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain(`Description must be ${TEXT_LIMITS.GAME_DESCRIPTION} characters or less`);
+  });
+
+  it("passes for description at exactly max length", () => {
+    const exactLengthDescription = "A".repeat(TEXT_LIMITS.GAME_DESCRIPTION);
+    const result = validateGameForm({
+      name: "Game Night",
+      description: exactLengthDescription,
+      playDays: [5],
+    });
+
+    expect(result.valid).toBe(true);
+  });
+
+  it("passes for undefined description", () => {
+    const result = validateGameForm({
+      name: "Game Night",
+      playDays: [5],
+    });
+
+    expect(result.valid).toBe(true);
+  });
+
+  it("passes for empty description", () => {
+    const result = validateGameForm({
+      name: "Game Night",
+      description: "",
+      playDays: [5],
+    });
+
+    expect(result.valid).toBe(true);
   });
 });

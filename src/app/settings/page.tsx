@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
+import { TEXT_LIMITS } from '@/lib/constants';
 
 export default function SettingsPage() {
   const { profile, isLoading, refreshProfile, session } = useAuth();
@@ -27,16 +28,31 @@ export default function SettingsPage() {
   const handleSave = async () => {
     if (!profile?.id) return;
 
+    // Validate name length
+    if (!name.trim()) {
+      setMessage('Display name cannot be empty.');
+      return;
+    }
+    if (name.length > TEXT_LIMITS.USER_DISPLAY_NAME) {
+      setMessage(`Display name must be ${TEXT_LIMITS.USER_DISPLAY_NAME} characters or less.`);
+      return;
+    }
+
     setSaving(true);
     setMessage('');
 
     const { error } = await supabase
       .from('users')
-      .update({ name })
+      .update({ name: name.trim() })
       .eq('id', profile.id);
 
     if (error) {
-      setMessage('Error saving settings. Please try again.');
+      // Check if it's a constraint violation
+      if (error.code === '23514') {
+        setMessage(`Display name must be ${TEXT_LIMITS.USER_DISPLAY_NAME} characters or less.`);
+      } else {
+        setMessage('Error saving settings. Please try again.');
+      }
     } else {
       setMessage('Settings saved successfully!');
       // Refresh profile data
@@ -75,6 +91,7 @@ export default function SettingsPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Your name"
+            maxLength={TEXT_LIMITS.USER_DISPLAY_NAME}
           />
 
           {message && (

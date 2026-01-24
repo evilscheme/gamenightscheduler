@@ -501,7 +501,7 @@ function MonthCalendar({
           let bgColor = "bg-cal-disabled-bg"; // Non-play day
           let textColor = "text-cal-disabled-text";
           let cursor = "cursor-default";
-          let extraStyles = "";
+          const extraStyles = "";
           const isTodayDate = isToday(date);
 
           // Scheduled sessions get priority styling (solid purple)

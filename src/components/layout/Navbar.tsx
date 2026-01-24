@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
-import { ThemeToggle } from './ThemeToggle';
 
 const GITHUB_ISSUES_URL = 'https://github.com/evilscheme/gamenightscheduler/issues';
 
@@ -85,7 +84,6 @@ export function Navbar() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <HelpDropdown />
-            <ThemeToggle />
             {isLoading ? (
               <div className="h-8 w-8 animate-pulse bg-muted rounded-full shrink-0" />
             ) : profile ? (

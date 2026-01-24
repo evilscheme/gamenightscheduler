@@ -6,6 +6,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { TEXT_LIMITS } from '@/lib/constants';
+import { ThemePicker } from '@/components/settings/ThemePicker';
 
 export default function SettingsPage() {
   const { profile, isLoading, refreshProfile, session } = useAuth();
@@ -107,6 +108,15 @@ export default function SettingsPage() {
               {saving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-card-foreground">Appearance</h2>
+        </CardHeader>
+        <CardContent>
+          <ThemePicker />
         </CardContent>
       </Card>
     </div>

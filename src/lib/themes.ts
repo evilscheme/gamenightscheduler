@@ -62,7 +62,7 @@ export const themes: Theme[] = [
   },
 ];
 
-export const DEFAULT_THEME_ID = 'purple';
+export const DEFAULT_THEME_ID = 'ocean';
 
 export function getThemeById(id: string): Theme | undefined {
   return themes.find((t) => t.id === id);

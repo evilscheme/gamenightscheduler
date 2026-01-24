@@ -15,6 +15,7 @@
 /test-results/
 /playwright-report/
 /playwright/.cache/
+/.playwright-mcp/
 
 # next.js
 /.next/
@@ -26,6 +27,9 @@
 # misc
 .DS_Store
 *.pem
+
+# claude local settings
+.claude/settings.local.json
 
 # database backups
 /backups/

@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <div className="min-h-[calc(100vh-4rem)]">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800 overflow-hidden">
+      <div className="relative bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-700 overflow-hidden">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32 relative">
           <div className="text-center">
@@ -41,18 +41,18 @@ export default function Home() {
             />
             <h1 className="text-4xl sm:text-6xl font-bold text-white mb-6">
               Can We Play?
-              <span className="block text-indigo-200 text-2xl sm:text-3xl mt-2 font-normal">
+              <span className="block text-purple-200 text-2xl sm:text-3xl mt-2 font-normal">
                 Never miss a game night again
               </span>
             </h1>
-            <p className="max-w-2xl mx-auto text-lg text-indigo-100 mb-8">
+            <p className="max-w-2xl mx-auto text-lg text-purple-100 mb-8">
               Coordinate your game nights with ease. Track availability, suggest dates, and keep
               your group together.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center px-6 py-3 text-base font-medium rounded-lg bg-white text-indigo-600 hover:bg-indigo-50 transition-colors"
+                className="inline-flex items-center justify-center px-6 py-3 text-base font-medium rounded-lg bg-white text-purple-700 hover:bg-purple-50 transition-colors"
               >
                 Get Started
               </Link>

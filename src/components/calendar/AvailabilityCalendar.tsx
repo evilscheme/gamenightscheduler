@@ -226,31 +226,51 @@ export function AvailabilityCalendar({
       {/* Compact Legend */}
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-success/20 border border-success/30" />
+          <div className="w-3.5 h-3.5 rounded-sm bg-cal-available-bg" />
           <span>Available</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-warning/20 border border-warning/30" />
+          <div className="w-3.5 h-3.5 rounded-sm bg-cal-maybe-bg" />
           <span>Maybe</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-danger/20 border border-danger/30" />
+          <div className="w-3.5 h-3.5 rounded-sm bg-cal-unavailable-bg" />
           <span>Unavailable</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-card border border-border" />
-          <span>Availability not set</span>
+          <div className="w-3.5 h-3.5 rounded-sm bg-cal-unset-bg border-2 border-dashed border-cal-unset-border" />
+          <span>Not set</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm non-play-day" />
-          <span>Not a play day</span>
+          <div className="w-3.5 h-3.5 rounded-sm bg-cal-disabled-bg" />
+          <span>Non-play day</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm bg-card border border-primary border-dashed" />
+          <div className="w-3.5 h-3.5 rounded-sm bg-cal-unset-bg shadow-[0_0_0_2px_var(--primary)]" />
+          <span>Today</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-unset-bg border border-cal-unset-border">
+            <span className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-t-primary border-l-[6px] border-l-transparent" />
+          </div>
           <span>Special play day</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm scheduled-session" />
+          <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-scheduled-bg flex items-center justify-center">
+            <svg
+              className="w-2.5 h-2.5 text-cal-scheduled-text/40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+              />
+            </svg>
+          </div>
           <span>Game scheduled</span>
         </div>
       </div>
@@ -478,33 +498,47 @@ function MonthCalendar({
           // Can GM remove this special play date?
           const canRemoveSpecial = isGmOrCoGm && isSpecialPlayDate && !isPast;
 
-          let bgColor = "non-play-day"; // Non-play day (cross-hatched)
-          let textColor = "text-muted-foreground";
+          let bgColor = "bg-cal-disabled-bg"; // Non-play day
+          let textColor = "text-cal-disabled-text";
           let cursor = "cursor-default";
-          let extraStyles = "";
+          const extraStyles = "";
+          const isTodayDate = isToday(date);
 
-          if (isPlayDay && !isPast) {
-            cursor = "cursor-pointer hover:ring-1 hover:ring-primary/50";
-            if (avail?.status === "available") {
-              bgColor = "bg-success/20";
-              textColor = "text-success";
-            } else if (avail?.status === "maybe") {
-              bgColor = "bg-warning/20";
-              textColor = "text-warning";
-            } else if (avail?.status === "unavailable") {
-              bgColor = "bg-danger/20";
-              textColor = "text-danger";
-            } else {
-              bgColor = "bg-card border border-border";
-              textColor = "text-card-foreground";
+          // Scheduled sessions get priority styling (solid purple)
+          if (isConfirmed) {
+            bgColor = "bg-cal-scheduled-bg";
+            textColor = "text-cal-scheduled-text font-semibold";
+            if (!isPast) {
+              cursor = "cursor-pointer hover:brightness-110 transition-all";
             }
-            // Add dashed border for special play dates
-            if (isSpecialPlayDate) {
-              extraStyles = "border-primary border-dashed !border-2";
+          } else if (isPlayDay && !isPast) {
+            cursor = "cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-transform";
+            if (avail?.status === "available") {
+              bgColor = "bg-cal-available-bg";
+              textColor = "text-cal-available-text font-medium";
+            } else if (avail?.status === "maybe") {
+              bgColor = "bg-cal-maybe-bg";
+              textColor = "text-cal-maybe-text font-medium";
+            } else if (avail?.status === "unavailable") {
+              bgColor = "bg-cal-unavailable-bg";
+              textColor = "text-cal-unavailable-text font-medium";
+            } else {
+              // Unset play day - but not if it's today (today gets solid styling)
+              if (isTodayDate) {
+                bgColor = "bg-cal-unset-bg";
+              } else {
+                bgColor = "bg-cal-unset-bg border-2 border-dashed border-cal-unset-border";
+              }
+              textColor = "text-cal-unset-text";
             }
           } else if (isPast) {
-            textColor = "text-muted-foreground/50";
+            textColor = "text-cal-disabled-text/50";
           }
+
+          // Today indicator - bold shadow ring effect (doesn't conflict with borders)
+          const todayStyles = isTodayDate
+            ? "shadow-[0_0_0_3px_var(--primary)] font-bold z-10"
+            : "";
 
           const hasComment = !!avail?.comment;
           const hasAvailability = !!avail;
@@ -520,18 +554,32 @@ function MonthCalendar({
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
               disabled={(!isPlayDay && !canAddAsSpecial) || isPast}
-              className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${
-                isToday(date) ? "ring-1 ring-primary font-bold" : ""
-              } ${isConfirmed ? "scheduled-session" : ""}`}
+              className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               title={avail?.comment ? `${dateStr}\n${avail.comment}` : dateStr}
             >
-              {isConfirmed ? (
-                <span className="bg-card/80 px-1 rounded-sm">
-                  {format(date, "d")}
+              {/* Scheduled game star decoration - visible indicator beyond color */}
+              {isConfirmed && (
+                <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <svg
+                    className="w-[85%] h-[85%] text-cal-scheduled-text/30"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                    />
+                  </svg>
                 </span>
-              ) : (
-                format(date, "d")
+              )}
+              {format(date, "d")}
+              {/* Special play date indicator - corner triangle */}
+              {isSpecialPlayDate && !isPast && (
+                <span className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-t-primary border-l-[10px] border-l-transparent" />
               )}
               {/* GM: Add special play date icon on non-play days */}
               {canAddAsSpecial && onToggleSpecialDate && (

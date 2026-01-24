@@ -142,7 +142,7 @@ test.describe('Special Play Dates', () => {
     await removeIcon.click();
 
     // After removing, the day should go back to being a non-play day (cross-hatched)
-    await expect(dayButton).toHaveClass(/non-play-day/);
+    await expect(dayButton).toHaveClass(/bg-cal-disabled-bg/);
   });
 
   test('special play dates appear as playable for availability marking', async ({ page, request }) => {
@@ -178,11 +178,11 @@ test.describe('Special Play Dates', () => {
     await dayButton.click();
 
     // Should turn green (available)
-    await expect(dayButton).toHaveClass(/bg-success/);
+    await expect(dayButton).toHaveClass(/bg-cal-available-bg/);
 
     // Click again to cycle to unavailable
     await dayButton.click();
-    await expect(dayButton).toHaveClass(/bg-danger/);
+    await expect(dayButton).toHaveClass(/bg-cal-unavailable-bg/);
   });
 
   test('players can mark availability on special play dates', async ({ page, request }) => {
@@ -227,7 +227,7 @@ test.describe('Special Play Dates', () => {
     await dayButton.click();
 
     // Should turn green (available)
-    await expect(dayButton).toHaveClass(/bg-success/);
+    await expect(dayButton).toHaveClass(/bg-cal-available-bg/);
   });
 
   test('players cannot enable/disable special play dates (no +/- icons)', async ({ page, request }) => {

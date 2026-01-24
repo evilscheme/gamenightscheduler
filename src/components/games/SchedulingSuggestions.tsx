@@ -165,7 +165,7 @@ export function SchedulingSuggestions({
                                   )}
                                   {pendingPercent > 0 && (
                                     <div
-                                      className="h-2.5 bg-muted-foreground/50"
+                                      className="h-2.5 bg-slate-400 dark:bg-slate-500"
                                       style={{ width: `${pendingPercent}%` }}
                                     />
                                   )}
@@ -182,7 +182,7 @@ export function SchedulingSuggestions({
                                 <span className="text-danger">
                                   {suggestion.unavailableCount} unavailable
                                 </span>
-                                <span className="text-muted-foreground">
+                                <span className="text-slate-500 dark:text-slate-400">
                                   {suggestion.pendingCount} pending
                                 </span>
                               </div>
@@ -214,7 +214,7 @@ export function SchedulingSuggestions({
                                 )}
                                 {suggestion.pendingPlayers.length > 0 && (
                                   <p className="text-muted-foreground">
-                                    <span className="text-muted-foreground">Pending:</span>{' '}
+                                    <span className="text-slate-500 dark:text-slate-400">Pending:</span>{' '}
                                     {suggestion.pendingPlayers.map((p) => p.name).join(', ')}
                                   </p>
                                 )}
@@ -326,7 +326,7 @@ export function SchedulingSuggestions({
                               )}
                               {pendingPercent > 0 && (
                                 <div
-                                  className="h-2.5 bg-muted-foreground/50"
+                                  className="h-2.5 bg-slate-400 dark:bg-slate-500"
                                   style={{ width: `${pendingPercent}%` }}
                                 />
                               )}
@@ -343,7 +343,7 @@ export function SchedulingSuggestions({
                             <span className="text-danger">
                               {suggestion.unavailableCount} unavailable
                             </span>
-                            <span className="text-muted-foreground">
+                            <span className="text-slate-500 dark:text-slate-400">
                               {suggestion.pendingCount} pending
                             </span>
                           </div>
@@ -375,7 +375,7 @@ export function SchedulingSuggestions({
                             )}
                             {suggestion.pendingPlayers.length > 0 && (
                               <p className="text-muted-foreground">
-                                <span className="text-muted-foreground">Pending:</span>{' '}
+                                <span className="text-slate-500 dark:text-slate-400">Pending:</span>{' '}
                                 {suggestion.pendingPlayers.map((p) => p.name).join(', ')}
                               </p>
                             )}

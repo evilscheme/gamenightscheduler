@@ -413,9 +413,7 @@ test.describe('Session Scheduling', () => {
 
     // The past sessions card should be visible now
     // Since we only have past sessions (no upcoming), there should be no Cancel buttons on the page
-    // in the sessions area. First verify the past session date is visible.
-    const pastDate = pastDates[0];
-    // Wait a moment for content to load
+    // in the sessions area. Wait a moment for content to load.
     await page.waitForTimeout(500);
 
     // There should be no Cancel button visible (past sessions don't have them)

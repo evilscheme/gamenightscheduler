@@ -20,7 +20,7 @@
 - [X] only show pencil (edit) icon on hover
 - [ ] clean up text in places to be more accurate/explanatory
 - [X] improve the experience for new users. give them big shiny buttons to do things. have everyone be a GM by default?
-- [ ] have a separate "past games" section for games that have occurred in the past
+- [X] have a separate "past games" section for games that have occurred in the past
 
 ## Integration & Deployment
 - [X] implement google OAuth
@@ -41,6 +41,6 @@
 - [ ] Remove unused `session_status` enum values from schema: 'suggested' and 'cancelled' are never used. Sessions are created directly as 'confirmed', and cancelled sessions are deleted rather than marked as cancelled. Either remove these values or implement the intended workflow.
 
 ## Possible future features
-- have the app publish a calendar URL that clients can subscribe to?
+- [X] have the app publish a calendar URL that clients can subscribe to?
 - [X] allow for co-GMs?
 - [X] allow GM to punch in special play options that aren't normally a play day?

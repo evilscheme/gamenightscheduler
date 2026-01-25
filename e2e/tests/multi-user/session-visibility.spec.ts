@@ -72,7 +72,7 @@ test.describe('Multi-User Session Visibility', () => {
       await gmPage.getByRole('button', { name: /confirm session/i }).click();
 
       // GM sees confirmed session
-      await expect(gmPage.getByText(/confirmed sessions/i)).toBeVisible({
+      await expect(gmPage.getByText(/upcoming sessions/i)).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
@@ -83,7 +83,7 @@ test.describe('Multi-User Session Visibility', () => {
       });
       await playerPage.getByRole('button', { name: /schedule/i }).click();
 
-      await expect(playerPage.getByText(/confirmed sessions/i)).toBeVisible({
+      await expect(playerPage.getByText(/upcoming sessions/i)).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
@@ -143,7 +143,7 @@ test.describe('Multi-User Session Visibility', () => {
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // New player should see the existing confirmed session
-    await expect(page.getByText(/confirmed sessions/i)).toBeVisible({
+    await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 

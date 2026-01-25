@@ -118,7 +118,7 @@ test.describe('Session Confirmation', () => {
     await expect(page.getByRole('heading', { name: /schedule session/i })).not.toBeVisible();
 
     // Session should appear in confirmed sessions section
-    await expect(page.getByText(/confirmed sessions/i)).toBeVisible({
+    await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
@@ -170,7 +170,7 @@ test.describe('Session Confirmation', () => {
     await page.getByRole('button', { name: /confirm session/i }).click();
 
     // Now confirmed sessions should be visible
-    await expect(page.getByText(/confirmed sessions/i)).toBeVisible({
+    await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 

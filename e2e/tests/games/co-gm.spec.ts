@@ -221,7 +221,7 @@ test.describe('Co-GM Feature', () => {
       await page.getByRole('button', { name: /confirm session/i }).click();
 
       // Should see confirmed session
-      await expect(page.getByText(/confirmed sessions/i)).toBeVisible({
+      await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
     });

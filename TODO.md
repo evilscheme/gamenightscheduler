@@ -38,7 +38,33 @@
 - [~] supabase URL is super sketchy, improve it! (probably can't do w/o paying)
 
 ## Technical Debt / Cleanup
+
+### Schema Issues
 - [ ] Remove unused `session_status` enum values from schema: 'suggested' and 'cancelled' are never used. Sessions are created directly as 'confirmed', and cancelled sessions are deleted rather than marked as cancelled. Either remove these values or implement the intended workflow.
+- [ ] Schema default for sessions.status is 'suggested' but sessions are always created as 'confirmed' - change default to 'confirmed' or remove it
+
+### Type System Issues
+- [ ] Duplicate `PlayerWithComment` interface defined in both `src/types/index.ts` and `src/lib/suggestions.ts` - consolidate to single exported type
+- [ ] `SessionStatus` type in `src/types/index.ts` is not exported but used internally - either export it or remove if unused
+- [ ] Multiple unsafe `as unknown as` type casts in:
+  - `src/app/api/games/preview/[code]/route.ts:38` (gm relation)
+  - `src/app/games/join/[code]/layout.tsx:26` (gm relation)
+  - `src/app/games/[id]/page.tsx:115-119` (member relations)
+  - Consider creating proper Supabase query return types
+
+### Code Organization
+- [ ] `src/app/games/[id]/page.tsx` is 928 lines - extract tab content into separate components (OverviewTab, AvailabilityTab, ScheduleTab)
+- [ ] Suggestion calculation logic duplicated between page component and `src/lib/suggestions.ts` - use the exported utility functions instead of inline calculation
+- [ ] `getPlayDatesInWindow` function in availability.ts is exported but only used in tests - either use it in the app or unexport
+
+### ESLint Suppressions (review if still needed)
+- [ ] `react-hooks/set-state-in-effect` disabled in ThemeContext.tsx and settings/page.tsx - valid for hydration from localStorage but should document why
+- [ ] `react-hooks/exhaustive-deps` disabled in multiple data-fetching useEffects - consider using React Query or SWR for cleaner data fetching
+- [ ] `@next/next/no-img-element` disabled for external avatar URLs - acceptable, but could use next/image with remotePatterns config
+
+### Low Priority
+- [ ] Console.error statements in API routes (admin/games, admin/stats, test-auth, calendar, invite, preview) - acceptable for error logging but could use structured logging
+- [ ] Calendar events have no timezone (noted in Bugs section) - ICS DTSTART/DTEND should include TZID or use UTC
 
 ## Possible future features
 - [X] have the app publish a calendar URL that clients can subscribe to?

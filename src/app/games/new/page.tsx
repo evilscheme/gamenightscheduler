@@ -168,7 +168,7 @@ export default function NewGamePage() {
                 ))}
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Players will only be able to mark availability on these days
+                Players mark availability on these days. You can add special one-off dates later.
               </p>
             </div>
 

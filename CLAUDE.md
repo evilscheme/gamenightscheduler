@@ -34,7 +34,7 @@ npm run test:e2e:debug    # Run in debug mode
 
 ## Architecture
 
-This is a Next.js 16 App Router application for scheduling game nights. Players mark availability on a calendar, and the app suggests optimal dates.
+This is a Next.js 16 App Router application for scheduling game nights. Players mark availability on a calendar, and the app suggests optimal dates. Key features include three-state availability (available/unavailable/maybe), co-GM support, calendar subscription feeds, and special play dates.
 
 ### Authentication
 
@@ -60,18 +60,21 @@ Supabase PostgreSQL with Row Level Security. Schema in `supabase/schema.sql`.
 
 Key tables:
 - `users` - Profiles linked to `auth.users` via id (auto-created on signup via trigger)
-- `games` - Games with host (GM), play days array, invite code
-- `game_memberships` - Players in each game
-- `availability` - Available/unavailable dates per player per game
-- `sessions` - Scheduled game nights (suggested/confirmed/cancelled)
+- `games` - Games with host (GM), play days array, invite code, scheduling window, default session times, special play dates
+- `game_memberships` - Players in each game (includes `is_co_gm` flag)
+- `availability` - Available/unavailable/maybe dates per player per game (with optional comment)
+- `sessions` - Scheduled game nights (confirmed status with start/end times)
 
-RLS uses `auth.uid()` and a `is_game_participant()` helper function (SECURITY DEFINER) to avoid recursion issues.
+RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_participant()` and `is_game_gm_or_co_gm()` to avoid recursion issues.
 
 ### Key Patterns
 
 - All page components use `'use client'` directive
 - All users have GM capabilities by default (`is_gm: true`)
-- Games use invite codes (nanoid) for players to join
+- Games use invite codes (nanoid-10) for players to join
+- GMs can promote members to co-GMs who can edit games and confirm sessions
+- Availability has three states: available, unavailable, maybe (with optional comment on any state)
+- GMs/co-GMs can add special play dates for one-off sessions outside regular play days
 
 ### Assets
 
@@ -80,7 +83,13 @@ RLS uses `auth.uid()` and a `is_game_participant()` helper function (SECURITY DE
 ### Shared Utilities
 
 - `src/hooks/useAuthRedirect.ts` - Hook for protected pages (redirects to login, optionally requires GM)
-- `src/lib/constants.ts` - Shared constants (day labels, timeout values, session defaults)
+- `src/lib/constants.ts` - Shared constants (day labels, timeouts, session defaults, usage limits, text limits)
+- `src/lib/availability.ts` - Player completion percentage calculations
+- `src/lib/availabilityStatus.ts` - Availability state cycling (available → unavailable → maybe)
+- `src/lib/suggestions.ts` - Date suggestion ranking algorithm
+- `src/lib/ics.ts` - ICS (iCalendar) file generation for calendar export
+- `src/lib/formatting.ts` - Time formatting utilities (24h to 12h conversion)
+- `src/lib/gameValidation.ts` - Game form validation
 - `src/components/ui/` - Reusable components: Button, Card, Input, Textarea, LoadingSpinner, EmptyState
 
 ### Layout Components
@@ -93,13 +102,32 @@ RLS uses `auth.uid()` and a `is_game_participant()` helper function (SECURITY DE
 ### API Routes
 
 - `src/app/api/games/invite/[code]/route.ts` - GET game by invite code (authenticated, checks membership)
-- `src/app/api/games/preview/[code]/route.ts` - GET game preview for OG crawlers (public, cached)
+- `src/app/api/games/preview/[code]/route.ts` - GET game preview for OG crawlers (public, cached 5min)
+- `src/app/api/games/calendar/[code]/route.ts` - GET ICS calendar feed for confirmed sessions (public, cached 5min)
+- `src/app/api/admin/games/route.ts` - Admin game listing
+- `src/app/api/admin/stats/route.ts` - Admin statistics
 - `src/app/api/test-auth/route.ts` - Test user management for E2E tests (dev only, blocked in production)
 
 ### OG Image Generation
 
 - `src/app/opengraph-image.tsx` - Default OG image for the app
 - `src/app/games/join/[code]/opengraph-image.tsx` - Dynamic OG image for game invite links
+
+### Calendar Components
+
+- `src/components/calendar/AvailabilityCalendar.tsx` - Interactive multi-month calendar
+  - Click dates to cycle: available → unavailable → maybe
+  - Long-press/hover for notes on any date
+  - Bulk actions: "Mark all remaining/[day] as [status]"
+  - GMs can add special play dates on non-play days
+  - Visual indicators: play days, confirmed sessions, today
+
+### Game Components
+
+- `src/components/games/SchedulingSuggestions.tsx` - Date suggestions ranked by availability
+  - Shows player breakdown (available/maybe/unavailable/pending)
+  - Separates upcoming vs past sessions
+  - Export to calendar (.ics download or webcal://)
 
 ### E2E Testing
 
@@ -124,6 +152,13 @@ npx playwright test e2e/tests/multi-user --project=chromium
 
 ### Tools
 - psql is the postgres client library, not pgsql
+
+### Usage Limits
+
+Enforced via RLS policies in the database:
+- 20 games per user (as GM)
+- 50 players per game
+- 100 future sessions per game
 
 ### Development Practices to Follow
 when adding a significant new feature, make sure to add tests for that feature as well

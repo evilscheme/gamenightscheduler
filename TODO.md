@@ -18,7 +18,7 @@
 - [X] sensible usage limits (20 games per person, 50 players per game)
 - [X] make chosen game days a different color than green
 - [X] only show pencil (edit) icon on hover
-- [ ] clean up text in places to be more accurate/explanatory
+- [X] clean up text in places to be more accurate/explanatory
 - [X] improve the experience for new users. give them big shiny buttons to do things. have everyone be a GM by default?
 - [X] have a separate "past games" section for games that have occurred in the past
 

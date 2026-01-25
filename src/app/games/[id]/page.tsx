@@ -771,7 +771,7 @@ export default function GameDetailPage() {
                   Calendar Subscription
                 </p>
                 <p className="text-xs text-muted-foreground mt-1 mb-2">
-                  Subscribe to get confirmed sessions in your calendar app
+                  Add this URL to your calendar app to auto-sync confirmed sessions
                 </p>
                 <Button
                   onClick={copyCalendarUrl}
@@ -793,13 +793,9 @@ export default function GameDetailPage() {
               Mark Your Availability
             </h2>
             <p className="text-muted-foreground">
-              Click on dates to cycle through: available (green) → unavailable
-              (red) → maybe (yellow).
-            </p>
-            <p className="text-muted-foreground">
-              Hover over a date to see the pencil icon for adding a note, or
-              long-press on mobile. Hatched days are not play days for this
-              game.
+              Click on dates to cycle through: available → unavailable → maybe.
+              Add notes by hovering and clicking the pencil icon (or long-press
+              on mobile).
             </p>
           </div>
           <AvailabilityCalendar

@@ -87,7 +87,7 @@ export default function Home() {
             <FeatureCard
               icon="📤"
               title="Calendar Export"
-              description="Export confirmed sessions to Google Calendar or download an .ics file for any calendar app."
+              description="Download .ics files or subscribe to a calendar feed that auto-syncs confirmed sessions."
             />
             <FeatureCard
               icon="👥"

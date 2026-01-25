@@ -5,10 +5,13 @@ A web app to help groups coordinate game nights. Hosts create games, players mar
 ## Features
 
 - **Multiple Games**: Manage several games at once, each with its own players
-- **Availability Calendar**: Players mark when they're free on designated play days
-- **Smart Suggestions**: Dates ranked by player availability
+- **Availability Calendar**: Mark availability as available, unavailable, or maybe with optional notes
+- **Smart Suggestions**: Dates ranked by player availability with detailed breakdowns
 - **Easy Invites**: Share a simple invite link to add players
-- **Calendar Export**: Export sessions to Google Calendar or download .ics files
+- **Calendar Export**: Download .ics files or subscribe to calendar feeds
+- **Co-GM Support**: Delegate game management to trusted players
+- **Special Play Dates**: Schedule one-off sessions outside regular play days
+- **Past Sessions**: View history of completed game nights
 
 ## Tech Stack
 
@@ -70,12 +73,12 @@ Open [http://localhost:3000](http://localhost:3000)
 ## Usage
 
 1. **Sign in** with Google or Discord
-2. **Enable GM mode** in Settings to create games
-3. **Create a game** with your desired play days (any combination of Mon-Sun)
-4. **Share the invite link** with your players
-5. Players **mark their availability** on the calendar
-6. View **suggested dates** ranked by player availability
-7. **Confirm sessions** and export to your calendar
+2. **Create a game** with your desired play days and default session times
+3. **Share the invite link** with your players
+4. Players **mark their availability** on the calendar (available, unavailable, or maybe)
+5. View **suggested dates** ranked by player availability
+6. **Confirm sessions** and set specific times
+7. **Export to calendar** via .ics download or subscribe via webcal:// URL
 
 ## Testing
 
@@ -95,31 +98,40 @@ Tests require a `.env.test.local` file with test database credentials.
 ```
 src/
 ├── app/                    # Next.js App Router pages
+│   ├── api/               # API routes (invite, preview, calendar feed, admin)
 │   ├── auth/callback/     # OAuth callback handler
 │   ├── dashboard/         # User dashboard
-│   ├── games/             # Game pages (create, view, join)
+│   ├── games/             # Game pages (create, view, edit, join)
+│   ├── admin/             # Admin dashboard
 │   ├── login/             # Login page
 │   └── settings/          # User settings
 ├── components/
-│   ├── calendar/          # Availability calendar
-│   ├── games/             # Game-related components
+│   ├── calendar/          # Availability calendar with bulk actions
+│   ├── dashboard/         # Dashboard content and empty states
+│   ├── games/             # Scheduling suggestions component
 │   ├── layout/            # Navbar, Providers, ThemeToggle
-│   └── ui/                # Reusable UI components (Button, Card, Input, etc.)
+│   ├── settings/          # Theme picker
+│   └── ui/                # Reusable UI components
 ├── contexts/
-│   └── AuthContext.tsx    # Supabase Auth context
+│   ├── AuthContext.tsx    # Supabase Auth context
+│   └── ThemeContext.tsx   # Theme state management
 ├── hooks/
 │   └── useAuthRedirect.ts # Auth redirect hook for protected pages
 ├── lib/
-│   ├── constants.ts       # Shared constants (day labels, timeouts)
-│   ├── ics.ts             # Calendar export utilities
+│   ├── availability.ts    # Availability completion calculations
+│   ├── availabilityStatus.ts # Status cycling logic
+│   ├── constants.ts       # Shared constants and limits
+│   ├── formatting.ts      # Time formatting utilities
+│   ├── gameValidation.ts  # Form validation
+│   ├── ics.ts             # ICS calendar file generation
+│   ├── suggestions.ts     # Date suggestion ranking
 │   └── supabase/          # Supabase clients (browser, server, admin)
-├── proxy.ts               # Next.js proxy configuration
 └── types/                 # TypeScript types
 
 e2e/
 ├── fixtures/              # Playwright test fixtures
 ├── helpers/               # Test utilities (auth, seeding)
-└── tests/                 # Test specs by feature
+└── tests/                 # Test specs organized by feature
 ```
 
 ## License

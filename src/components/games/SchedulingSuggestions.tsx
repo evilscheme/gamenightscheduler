@@ -297,7 +297,7 @@ export function SchedulingSuggestions({
                           </p>
                           {suggestion && (
                             <p className="text-sm text-muted-foreground mt-1">
-                              {suggestion.availableCount} attended, {suggestion.maybeCount} maybe, {suggestion.unavailableCount} unavailable
+                              {suggestion.availableCount} available, {suggestion.maybeCount} maybe, {suggestion.unavailableCount} unavailable
                             </p>
                           )}
                         </div>
@@ -316,7 +316,7 @@ export function SchedulingSuggestions({
         <CardHeader>
           <h2 className="text-lg font-semibold text-card-foreground">Date Suggestions</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Ranked by player availability. {isGm ? 'Click confirm to schedule a session.' : 'Ask your GM to confirm dates.'}
+            Ranked by player availability. {isGm ? 'Click confirm to schedule a session.' : 'Ask your GM or co-GM to confirm dates.'}
           </p>
         </CardHeader>
         <CardContent>

@@ -174,7 +174,7 @@ export default function EditGamePage() {
                 ))}
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Players will only be able to mark availability on these days
+                Players mark availability on these days. You can add special one-off dates from the calendar.
               </p>
             </div>
 

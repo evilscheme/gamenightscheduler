@@ -163,10 +163,36 @@ test.describe('Game Detail Page', () => {
     });
 
     await page.goto(`/games/${game.id}`);
-    
+
     // Should show both GM and player in members list (wait for page to load)
     // Use the member list section specifically to avoid matching navbar
     await expect(page.getByRole('list').getByText(/members test gm/i)).toBeVisible();
     await expect(page.getByRole('list').getByText(/test player member/i)).toBeVisible();
+  });
+
+  test('shows calendar subscription button', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-calendar-${Date.now()}@e2e.local`,
+      name: 'Calendar Test GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Calendar Test Campaign',
+      play_days: [5, 6],
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Should see calendar subscription section in Game Details
+    await expect(page.getByText(/calendar subscription/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /copy calendar url/i })).toBeVisible();
   });
 });

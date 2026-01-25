@@ -59,6 +59,7 @@ export default function GameDetailPage() {
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
   const [copied, setCopied] = useState(false);
+  const [calendarCopied, setCalendarCopied] = useState(false);
   const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -382,6 +383,15 @@ export default function GameDetailPage() {
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), TIMEOUTS.NOTIFICATION);
+  };
+
+  const copyCalendarUrl = () => {
+    if (!game) return;
+    // Use webcal:// protocol for calendar subscription
+    const webcalUrl = `webcal://${window.location.host}/api/games/calendar/${game.invite_code}`;
+    navigator.clipboard.writeText(webcalUrl);
+    setCalendarCopied(true);
+    setTimeout(() => setCalendarCopied(false), TIMEOUTS.NOTIFICATION);
   };
 
   const handleLeaveGame = async () => {
@@ -756,6 +766,21 @@ export default function GameDetailPage() {
                   </ul>
                 </div>
               )}
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Calendar Subscription
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 mb-2">
+                  Subscribe to get confirmed sessions in your calendar app
+                </p>
+                <Button
+                  onClick={copyCalendarUrl}
+                  variant="secondary"
+                  className="text-sm"
+                >
+                  {calendarCopied ? "Copied!" : "Copy Calendar URL"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

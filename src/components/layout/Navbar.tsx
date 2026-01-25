@@ -181,9 +181,11 @@ export function Navbar() {
                     {profile.name}
                   </span>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={() => signOut()} className="hidden sm:inline-flex shrink-0">
-                  Sign out
-                </Button>
+                <div className="hidden sm:block">
+                  <Button variant="ghost" size="sm" onClick={() => signOut()}>
+                    Sign out
+                  </Button>
+                </div>
                 <MobileMenu profile={profile} signOut={signOut} />
               </>
             ) : (

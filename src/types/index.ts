@@ -37,7 +37,9 @@ export interface Availability {
   updated_at: string;
 }
 
-type SessionStatus = 'suggested' | 'confirmed' | 'cancelled';
+// Note: Sessions are always created as 'confirmed' and cancelled by deletion.
+// The 'suggested' and 'cancelled' values existed historically but were never used.
+export type SessionStatus = 'confirmed';
 
 export interface GameSession {
   id: string;
@@ -65,9 +67,34 @@ export interface GameWithMembers extends Game {
   members: MemberWithRole[];
 }
 
+// Supabase query result types for relations
+// These help avoid unsafe type casts when querying with joins
+// Note: Supabase infers FK relations as arrays, so we type them as such
+// and extract the first element when using them.
+
+/** Result type for game queries that select only GM name via relation */
+export interface GameWithGMNameRaw {
+  name: string;
+  description: string | null;
+  play_days: number[];
+  gm: { name: string }[];
+}
+
+/** Helper to extract GM name from Supabase relation result */
+export function getGMName(game: GameWithGMNameRaw): string {
+  return game.gm?.[0]?.name || 'Unknown';
+}
+
+/** Result type for game_memberships query with nested user */
+export interface MembershipWithUser {
+  user_id: string;
+  is_co_gm: boolean;
+  users: User | null;
+}
+
 // Scheduling types
 
-interface PlayerWithComment {
+export interface PlayerWithComment {
   user: User;
   comment: string | null;
 }

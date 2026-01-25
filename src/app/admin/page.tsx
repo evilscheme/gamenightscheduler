@@ -11,11 +11,6 @@ interface AdminStats {
   totalUsers: number;
   totalGames: number;
   totalSessions: number;
-  sessionsByStatus: {
-    suggested: number;
-    confirmed: number;
-    cancelled: number;
-  };
   recentUsers: Array<{
     id: string;
     name: string;
@@ -262,7 +257,7 @@ function ActivityTab({ stats }: { stats: AdminStats }) {
               >
                 <div className="flex items-center gap-3">
                   {user.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                    // eslint-disable-next-line @next/next/no-img-element -- external avatar URL from OAuth provider
                     <img
                       src={user.avatar_url}
                       alt={user.name}

@@ -64,7 +64,9 @@ CREATE TABLE availability (
 );
 
 -- Sessions (Scheduled Game Nights) table
-CREATE TYPE session_status AS ENUM ('suggested', 'confirmed', 'cancelled');
+-- Note: Sessions are always created as 'confirmed' and cancelled by deletion.
+-- The 'suggested' and 'cancelled' values existed historically but were never used.
+CREATE TYPE session_status AS ENUM ('confirmed');
 
 CREATE TABLE sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -72,7 +74,7 @@ CREATE TABLE sessions (
   date DATE NOT NULL,
   start_time TIME,
   end_time TIME,
-  status session_status DEFAULT 'suggested',
+  status session_status DEFAULT 'confirmed',
   confirmed_by UUID REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(game_id, date)

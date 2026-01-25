@@ -6,6 +6,7 @@ import {
   setAvailability,
   createTestSession,
   getPlayDates,
+  getPastPlayDates,
 } from '../../helpers/seed';
 
 test.describe('Session Scheduling', () => {
@@ -215,5 +216,211 @@ test.describe('Session Scheduling', () => {
 
     // Export functionality should be present if there are sessions
     expect(hasExport).toBe(true);
+  });
+
+  test('separates upcoming sessions from past sessions', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-past-${Date.now()}@e2e.local`,
+      name: 'Separation GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Separation Campaign',
+      play_days: [5, 6],
+    });
+
+    // Create an upcoming session
+    const futureDates = getPlayDates([5, 6], 4);
+    if (futureDates.length > 0) {
+      await createTestSession({
+        game_id: game.id,
+        date: futureDates[0],
+        confirmed_by: gm.id,
+        start_time: '18:00',
+        end_time: '22:00',
+      });
+    }
+
+    // Create a past session
+    const pastDates = getPastPlayDates([5, 6], 4);
+    if (pastDates.length > 0) {
+      await createTestSession({
+        game_id: game.id,
+        date: pastDates[0],
+        confirmed_by: gm.id,
+        start_time: '18:00',
+        end_time: '22:00',
+      });
+    }
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Switch to schedule tab
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    // Should see "Upcoming Sessions" heading
+    await expect(page.getByRole('heading', { name: /upcoming sessions/i })).toBeVisible();
+
+    // Should see "Past Sessions" toggle button (collapsed by default)
+    await expect(page.getByRole('button', { name: /past sessions \(\d+\)/i })).toBeVisible();
+  });
+
+  test('past sessions section is collapsed by default', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-collapsed-${Date.now()}@e2e.local`,
+      name: 'Collapsed GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Collapsed Campaign',
+      play_days: [5, 6],
+    });
+
+    // Create a past session
+    const pastDates = getPastPlayDates([5, 6], 4);
+    if (pastDates.length > 0) {
+      await createTestSession({
+        game_id: game.id,
+        date: pastDates[0],
+        confirmed_by: gm.id,
+        start_time: '18:00',
+        end_time: '22:00',
+      });
+    }
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Switch to schedule tab
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    // Past sessions toggle button should be visible with down arrow (collapsed)
+    const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\).*▼/i });
+    await expect(pastSessionsButton).toBeVisible();
+  });
+
+  test('past sessions can be expanded and collapsed', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-toggle-${Date.now()}@e2e.local`,
+      name: 'Toggle GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Toggle Campaign',
+      play_days: [5, 6],
+    });
+
+    // Create a past session
+    const pastDates = getPastPlayDates([5, 6], 4);
+    if (pastDates.length > 0) {
+      await createTestSession({
+        game_id: game.id,
+        date: pastDates[0],
+        confirmed_by: gm.id,
+        start_time: '18:00',
+        end_time: '22:00',
+      });
+    }
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Switch to schedule tab
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    // Click to expand past sessions
+    const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\)/i });
+    await pastSessionsButton.click();
+
+    // Should now show up arrow (expanded)
+    await expect(page.getByRole('button', { name: /past sessions \(\d+\).*▲/i })).toBeVisible();
+
+    // Click again to collapse
+    await pastSessionsButton.click();
+
+    // Should show down arrow again (collapsed)
+    await expect(page.getByRole('button', { name: /past sessions \(\d+\).*▼/i })).toBeVisible();
+  });
+
+  test('past sessions do not have Cancel button for GM', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-no-cancel-${Date.now()}@e2e.local`,
+      name: 'No Cancel GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'No Cancel Campaign',
+      play_days: [5, 6],
+    });
+
+    // Create only a past session (no upcoming sessions)
+    const pastDates = getPastPlayDates([5, 6], 4);
+    if (pastDates.length > 0) {
+      await createTestSession({
+        game_id: game.id,
+        date: pastDates[0],
+        confirmed_by: gm.id,
+        start_time: '18:00',
+        end_time: '22:00',
+      });
+    }
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Switch to schedule tab
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    // Expand past sessions
+    const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\)/i });
+    await pastSessionsButton.click();
+
+    // Wait for the content to be visible (up arrow showing)
+    await expect(page.getByRole('button', { name: /past sessions \(\d+\).*▲/i })).toBeVisible();
+
+    // The past sessions card should be visible now
+    // Since we only have past sessions (no upcoming), there should be no Cancel buttons on the page
+    // in the sessions area. First verify the past session date is visible.
+    const pastDate = pastDates[0];
+    // Wait a moment for content to load
+    await page.waitForTimeout(500);
+
+    // There should be no Cancel button visible (past sessions don't have them)
+    // The only Cancel buttons on the schedule tab would be in upcoming sessions
+    const cancelButtons = page.locator('[class*="Card"]').filter({ hasText: /past sessions/i }).getByRole('button', { name: /^cancel$/i });
+    await expect(cancelButtons).toHaveCount(0);
   });
 });

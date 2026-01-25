@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfDay, isBefore } from 'date-fns';
 import { Button, Card, CardContent, CardHeader, EmptyState } from '@/components/ui';
 import { DateSuggestion, GameSession } from '@/types';
 import { generateICS } from '@/lib/ics';
@@ -34,6 +34,7 @@ export function SchedulingSuggestions({
   const initialEndTime = defaultEndTime?.slice(0, 5) || SESSION_DEFAULTS.END_TIME;
 
   const [showAll, setShowAll] = useState(false);
+  const [showPastSessions, setShowPastSessions] = useState(false);
   const [confirmingDate, setConfirmingDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
@@ -42,6 +43,15 @@ export function SchedulingSuggestions({
 
   const confirmedDates = new Set(sessions.filter((s) => s.status === 'confirmed').map((s) => s.date));
   const confirmedSessions = sessions.filter((s) => s.status === 'confirmed');
+
+  // Split sessions into upcoming and past
+  const today = startOfDay(new Date());
+  const upcomingSessions = confirmedSessions.filter(
+    (s) => !isBefore(parseISO(s.date), today)
+  );
+  const pastSessions = confirmedSessions.filter(
+    (s) => isBefore(parseISO(s.date), today)
+  );
 
   const handleConfirmClick = (date: string) => {
     // Reset to defaults each time the modal opens
@@ -68,7 +78,7 @@ export function SchedulingSuggestions({
   const displayedSuggestions = showAll ? suggestions : suggestions.slice(0, 10);
 
   const handleExportAll = () => {
-    const events = confirmedSessions.map((session) => ({
+    const events = upcomingSessions.map((session) => ({
       date: session.date,
       startTime: session.start_time || undefined,
       endTime: session.end_time || undefined,
@@ -100,18 +110,18 @@ export function SchedulingSuggestions({
 
   return (
     <div className="space-y-6">
-      {/* Confirmed Sessions */}
-      {confirmedSessions.length > 0 && (
+      {/* Upcoming Sessions */}
+      {upcomingSessions.length > 0 && (
         <Card>
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-semibold text-card-foreground">Confirmed Sessions</h2>
+            <h2 className="text-lg font-semibold text-card-foreground">Upcoming Sessions</h2>
             <Button size="sm" variant="secondary" onClick={handleExportAll} className="w-full sm:w-auto">
               📅 Export All to Calendar
             </Button>
           </CardHeader>
           <CardContent>
             <ul className="divide-y divide-border">
-              {confirmedSessions.map((session) => {
+              {upcomingSessions.map((session) => {
                 const suggestion = suggestions.find((s) => s.date === session.date);
                 const availablePercent = suggestion
                   ? Math.round((suggestion.availableCount / suggestion.totalPlayers) * 100)
@@ -247,6 +257,57 @@ export function SchedulingSuggestions({
               })}
             </ul>
           </CardContent>
+        </Card>
+      )}
+
+      {/* Past Sessions */}
+      {pastSessions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <button
+              onClick={() => setShowPastSessions(!showPastSessions)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <h2 className="text-lg font-semibold text-muted-foreground">
+                Past Sessions ({pastSessions.length})
+              </h2>
+              <span className="text-muted-foreground">
+                {showPastSessions ? '▲' : '▼'}
+              </span>
+            </button>
+          </CardHeader>
+          {showPastSessions && (
+            <CardContent>
+              <ul className="divide-y divide-border">
+                {pastSessions.map((session) => {
+                  const suggestion = suggestions.find((s) => s.date === session.date);
+
+                  return (
+                    <li key={session.id} className="py-3 opacity-70">
+                      <div className="flex items-start gap-3">
+                        <span className="text-xl shrink-0 grayscale">🎲</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-muted-foreground">
+                            {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {session.start_time && session.end_time
+                              ? `${formatTime(session.start_time)} - ${formatTime(session.end_time)}`
+                              : DAY_LABELS.full[parseISO(session.date).getDay()]}
+                          </p>
+                          {suggestion && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {suggestion.availableCount} attended, {suggestion.maybeCount} maybe, {suggestion.unavailableCount} unavailable
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CardContent>
+          )}
         </Card>
       )}
 

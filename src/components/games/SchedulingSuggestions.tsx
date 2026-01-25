@@ -348,7 +348,7 @@ export function SchedulingSuggestions({
                       key={suggestion.date}
                       className={`py-4 -mx-4 px-4 rounded-lg ${
                         isConfirmed
-                          ? 'bg-green-500/10 dark:bg-green-500/15'
+                          ? 'bg-cal-scheduled-bg/10'
                           : ''
                       }`}
                     >
@@ -359,7 +359,7 @@ export function SchedulingSuggestions({
                               {format(parseISO(suggestion.date), 'EEEE, MMMM d')}
                             </p>
                             {isConfirmed && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-success/20 text-success rounded">
+                              <span className="px-2 py-0.5 text-xs font-medium bg-cal-scheduled-bg text-cal-scheduled-text rounded">
                                 Confirmed
                               </span>
                             )}

@@ -5,7 +5,7 @@ import { Button, Card, CardContent, CardHeader } from "@/components/ui";
 import { GameSession } from "@/types";
 import { DAY_LABELS, TIMEOUTS } from "@/lib/constants";
 import { formatTime } from "@/lib/formatting";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfDay, isBefore } from "date-fns";
 
 interface GameDetailsCardProps {
   playDays: number[];
@@ -60,18 +60,24 @@ export function GameDetailsCard({
             {formatTime(defaultStartTime)} - {formatTime(defaultEndTime)}
           </p>
         </div>
-        {confirmedSessions.length > 0 && (
-          <div>
-            <p className="text-sm text-muted-foreground">Upcoming Sessions</p>
-            <ul className="mt-1 space-y-1">
-              {confirmedSessions.slice(0, 3).map((s) => (
-                <li key={s.id} className="text-card-foreground">
-                  {format(parseISO(s.date), "EEEE, MMMM d, yyyy")}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {(() => {
+          const today = startOfDay(new Date());
+          const upcomingSessions = confirmedSessions.filter(
+            (s) => !isBefore(parseISO(s.date), today)
+          );
+          return upcomingSessions.length > 0 ? (
+            <div>
+              <p className="text-sm text-muted-foreground">Upcoming Sessions</p>
+              <ul className="mt-1 space-y-1">
+                {upcomingSessions.slice(0, 3).map((s) => (
+                  <li key={s.id} className="text-card-foreground">
+                    {format(parseISO(s.date), "EEEE, MMMM d, yyyy")}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null;
+        })()}
         <div>
           <p className="text-sm text-muted-foreground">Calendar Subscription</p>
           <p className="text-xs text-muted-foreground mt-1 mb-2">

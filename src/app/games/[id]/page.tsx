@@ -4,13 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
-import {
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  LoadingSpinner,
-} from "@/components/ui";
+import { Button, LoadingSpinner } from "@/components/ui";
+import { PlayersCard } from "@/components/games/PlayersCard";
+import { GameDetailsCard } from "@/components/games/GameDetailsCard";
 import { createClient } from "@/lib/supabase/client";
 import {
   User,
@@ -20,6 +16,7 @@ import {
   DateSuggestion,
   GameWithMembers,
   MemberWithRole,
+  MembershipWithUser,
 } from "@/types";
 import {
   AvailabilityCalendar,
@@ -36,9 +33,9 @@ import {
   startOfDay,
   parseISO,
 } from "date-fns";
-import { DAY_LABELS, TIMEOUTS, USAGE_LIMITS } from "@/lib/constants";
+import { TIMEOUTS, USAGE_LIMITS } from "@/lib/constants";
 import { calculatePlayerCompletionPercentages } from "@/lib/availability";
-import { formatTime } from "@/lib/formatting";
+import { calculateDateSuggestions } from "@/lib/suggestions";
 
 type Tab = "overview" | "availability" | "schedule";
 
@@ -59,13 +56,11 @@ export default function GameDetailPage() {
   const [sessions, setSessions] = useState<GameSession[]>([]);
   const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
   const [copied, setCopied] = useState(false);
-  const [calendarCopied, setCalendarCopied] = useState(false);
   const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [openPlayerMenu, setOpenPlayerMenu] = useState<string | null>(null);
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
@@ -110,11 +105,14 @@ export default function GameDetailPage() {
       .select("user_id, is_co_gm, users(*)")
       .eq("game_id", gameId);
 
-    const members =
-      (memberships?.map((m) => ({
-        ...(m.users as unknown as User),
+    // Type the memberships properly and map to MemberWithRole
+    const typedMemberships = memberships as MembershipWithUser[] | null;
+    const members: MemberWithRole[] = typedMemberships
+      ?.filter((m) => m.users !== null)
+      .map((m) => ({
+        ...m.users!,
         is_co_gm: m.is_co_gm,
-      })) as MemberWithRole[]) || [];
+      })) || [];
 
     setGame({ ...gameData, members } as GameWithMembers);
 
@@ -167,75 +165,26 @@ export default function GameDetailPage() {
     const endDate = endOfMonth(addMonths(today, game.scheduling_window_months));
     const specialDates = game.special_play_dates || [];
 
-    const playDates = eachDayOfInterval({ start: today, end: endDate }).filter(
-      (date) => {
+    // Get play dates within the scheduling window
+    const playDates = eachDayOfInterval({ start: today, end: endDate })
+      .filter((date) => {
         const dateStr = format(date, "yyyy-MM-dd");
         return game.play_days.includes(getDay(date)) || specialDates.includes(dateStr);
-      }
-    );
-
-    const suggestionList: DateSuggestion[] = playDates
+      })
       .filter(
         (date) =>
           isAfter(date, today) ||
           format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
-      )
-      .map((date) => {
-        const dateStr = format(date, "yyyy-MM-dd");
-        const availablePlayers: { user: User; comment: string | null }[] = [];
-        const maybePlayers: { user: User; comment: string | null }[] = [];
-        const unavailablePlayers: { user: User; comment: string | null }[] = [];
-        const pendingPlayers: User[] = [];
+      );
 
-        allPlayers.forEach((player) => {
-          const playerAvail = allAvailability.find(
-            (a) => a.user_id === player.id && a.date === dateStr
-          );
-          // No record = pending (hasn't responded yet)
-          if (!playerAvail) {
-            pendingPlayers.push(player);
-          } else if (playerAvail.status === "available") {
-            availablePlayers.push({
-              user: player,
-              comment: playerAvail.comment,
-            });
-          } else if (playerAvail.status === "maybe") {
-            maybePlayers.push({ user: player, comment: playerAvail.comment });
-          } else {
-            unavailablePlayers.push({
-              user: player,
-              comment: playerAvail.comment,
-            });
-          }
-        });
-
-        return {
-          date: dateStr,
-          dayOfWeek: getDay(date),
-          availableCount: availablePlayers.length,
-          maybeCount: maybePlayers.length,
-          unavailableCount: unavailablePlayers.length,
-          pendingCount: pendingPlayers.length,
-          totalPlayers: allPlayers.length,
-          availablePlayers,
-          maybePlayers,
-          unavailablePlayers,
-          pendingPlayers,
-        };
-      })
-      .sort((a, b) => {
-        // Sort by available count (descending), then by maybe count, then by pending count (ascending), then by date
-        if (b.availableCount !== a.availableCount) {
-          return b.availableCount - a.availableCount;
-        }
-        if (b.maybeCount !== a.maybeCount) {
-          return b.maybeCount - a.maybeCount;
-        }
-        if (a.pendingCount !== b.pendingCount) {
-          return a.pendingCount - b.pendingCount;
-        }
-        return a.date.localeCompare(b.date);
-      });
+    // Use the shared utility function to calculate suggestions
+    const suggestionList = calculateDateSuggestions({
+      playDates,
+      players: allPlayers,
+      availability: allAvailability,
+      getDayOfWeek: getDay,
+      formatDate: (date) => format(date, "yyyy-MM-dd"),
+    });
 
     setSuggestions(suggestionList);
   }, [game, allAvailability]);
@@ -383,15 +332,6 @@ export default function GameDetailPage() {
     navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), TIMEOUTS.NOTIFICATION);
-  };
-
-  const copyCalendarUrl = () => {
-    if (!game) return;
-    // Use webcal:// protocol for calendar subscription
-    const webcalUrl = `webcal://${window.location.host}/api/games/calendar/${game.invite_code}`;
-    navigator.clipboard.writeText(webcalUrl);
-    setCalendarCopied(true);
-    setTimeout(() => setCalendarCopied(false), TIMEOUTS.NOTIFICATION);
   };
 
   const handleLeaveGame = async () => {
@@ -591,198 +531,24 @@ export default function GameDetailPage() {
       {/* Tab Content */}
       {activeTab === "overview" && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-card-foreground">
-                Players ({allPlayers.length})
-              </h2>
-            </CardHeader>
-            <CardContent>
-              <ul className="divide-y divide-border">
-                {allPlayers.map((player) => {
-                  const memberData = game.members.find(
-                    (m) => m.id === player.id
-                  );
-                  const playerIsCoGm = memberData?.is_co_gm ?? false;
-                  const isOriginalGm = player.id === game.gm_id;
-                  // Co-GMs can only remove non-co-GM members
-                  const canRemovePlayer =
-                    isGm || (isCoGm && !playerIsCoGm && !isOriginalGm);
-                  const showMenu = (isGm || canRemovePlayer) && !isOriginalGm;
-
-                  return (
-                    <li
-                      key={player.id}
-                      className="py-3 flex items-center gap-3"
-                    >
-                      {player.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- external avatar URL
-                        <img
-                          src={player.avatar_url}
-                          alt={player.name}
-                          className="w-8 h-8 rounded-full"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
-                          {player.name[0]?.toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <span className="text-card-foreground">
-                          {player.name}
-                        </span>
-                        {playerCompletionPercentages[player.id] !== undefined && (
-                          <span
-                            className={`ml-2 text-xs ${
-                              playerCompletionPercentages[player.id] === 100
-                                ? "text-success"
-                                : playerCompletionPercentages[player.id] >= 50
-                                  ? "text-warning"
-                                  : "text-muted-foreground"
-                            }`}
-                            title="Availability filled in"
-                          >
-                            {playerCompletionPercentages[player.id]}% filled
-                          </span>
-                        )}
-                      </div>
-                      {isOriginalGm && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                          GM
-                        </span>
-                      )}
-                      {playerIsCoGm && (
-                        <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded">
-                          Co-GM
-                        </span>
-                      )}
-                      {showMenu && (
-                        <div className="relative">
-                          <button
-                            onClick={() =>
-                              setOpenPlayerMenu(
-                                openPlayerMenu === player.id ? null : player.id
-                              )
-                            }
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                            aria-label="Player actions"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                            </svg>
-                          </button>
-                          {openPlayerMenu === player.id && (
-                            <>
-                              {/* Backdrop to close menu on click outside */}
-                              <div
-                                className="fixed inset-0 z-10"
-                                onClick={() => setOpenPlayerMenu(null)}
-                              />
-                              <div className="absolute right-0 mt-1 w-40 bg-card border border-border rounded-lg shadow-lg z-20 py-1">
-                                {isGm && (
-                                  <button
-                                    onClick={() => {
-                                      handleToggleCoGm(
-                                        player.id,
-                                        !playerIsCoGm
-                                      );
-                                      setOpenPlayerMenu(null);
-                                    }}
-                                    className="w-full px-3 py-2 text-left text-sm text-card-foreground hover:bg-secondary transition-colors"
-                                  >
-                                    {playerIsCoGm
-                                      ? "Remove Co-GM"
-                                      : "Make Co-GM"}
-                                  </button>
-                                )}
-                                {canRemovePlayer && (
-                                  <button
-                                    onClick={() => {
-                                      setPlayerToRemove(player);
-                                      setOpenPlayerMenu(null);
-                                    }}
-                                    className="w-full px-3 py-2 text-left text-sm text-danger hover:bg-danger/10 transition-colors"
-                                  >
-                                    Remove from Game
-                                  </button>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-card-foreground">
-                Game Details
-              </h2>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Play Days</p>
-                <p className="text-card-foreground">
-                  {game.play_days.map((d) => DAY_LABELS.full[d]).join(", ")}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Scheduling Window
-                </p>
-                <p className="text-card-foreground">
-                  {game.scheduling_window_months} month(s) ahead
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Default Session Time
-                </p>
-                <p className="text-card-foreground">
-                  {formatTime(game.default_start_time)} -{" "}
-                  {formatTime(game.default_end_time)}
-                </p>
-              </div>
-              {confirmedSessions.length > 0 && (
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Upcoming Sessions
-                  </p>
-                  <ul className="mt-1 space-y-1">
-                    {confirmedSessions.slice(0, 3).map((s) => (
-                      <li key={s.id} className="text-card-foreground">
-                        {format(parseISO(s.date), "EEEE, MMMM d, yyyy")}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Calendar Subscription
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 mb-2">
-                  Add this URL to your calendar app to auto-sync confirmed sessions
-                </p>
-                <Button
-                  onClick={copyCalendarUrl}
-                  variant="secondary"
-                  className="text-sm"
-                >
-                  {calendarCopied ? "Copied!" : "Copy Calendar URL"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <PlayersCard
+            allPlayers={allPlayers}
+            gmId={game.gm_id}
+            isGm={isGm}
+            isCoGm={isCoGm}
+            members={game.members}
+            playerCompletionPercentages={playerCompletionPercentages}
+            onToggleCoGm={handleToggleCoGm}
+            onRemovePlayer={(player) => setPlayerToRemove(player)}
+          />
+          <GameDetailsCard
+            playDays={game.play_days}
+            schedulingWindowMonths={game.scheduling_window_months}
+            defaultStartTime={game.default_start_time}
+            defaultEndTime={game.default_end_time}
+            confirmedSessions={confirmedSessions}
+            inviteCode={game.invite_code}
+          />
         </div>
       )}
 

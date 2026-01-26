@@ -1,9 +1,4 @@
-import { User, Availability, DateSuggestion } from "@/types";
-
-interface PlayerWithComment {
-  user: User;
-  comment: string | null;
-}
+import { User, Availability, DateSuggestion, PlayerWithComment } from "@/types";
 
 interface CategorizedPlayers {
   available: PlayerWithComment[];

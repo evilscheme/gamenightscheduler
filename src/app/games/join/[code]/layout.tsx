@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { DAY_LABELS } from '@/lib/constants';
+import { GameWithGMNameResult } from '@/types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -26,10 +27,11 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       };
     }
 
-    const playDays = game.play_days.map((d: number) => DAY_LABELS.short[d]).join(', ');
-    // The gm relation returns an object (single FK relation)
-    const gm = game.gm as unknown as { name: string } | null;
-    const gmName = gm?.name || 'Unknown';
+    // TypeScript infers FK relations as arrays, but at runtime Supabase
+    // returns single objects for one-to-one relations
+    const typedGame = game as unknown as GameWithGMNameResult;
+    const playDays = typedGame.play_days.map((d: number) => DAY_LABELS.short[d]).join(', ');
+    const gmName = typedGame.gm?.name || 'Unknown';
 
     return {
       title: `${game.name} - Game Invite - Can We Play?`,

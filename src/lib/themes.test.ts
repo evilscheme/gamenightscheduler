@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { themes, getThemeById, DEFAULT_THEME_ID, Theme } from "./themes";
+import { themes, getThemeById, DEFAULT_THEME_ID } from "./themes";
 
 describe("themes", () => {
   describe("themes array", () => {

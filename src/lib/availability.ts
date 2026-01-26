@@ -72,6 +72,10 @@ export function calculatePlayerCompletionPercentages({
 /**
  * Get all play dates within the scheduling window.
  * Useful for determining the total number of dates a player should fill in.
+ *
+ * Note: This function is exported primarily for testing purposes, to enable
+ * deterministic tests of calculatePlayerCompletionPercentages by providing
+ * the expected play dates for a given reference date.
  */
 export function getPlayDatesInWindow({
   playDays,

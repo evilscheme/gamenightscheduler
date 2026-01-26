@@ -42,28 +42,15 @@ export async function GET(): Promise<Response> {
     ] = await Promise.all([
       admin.from('users').select('id', { count: 'exact', head: true }),
       admin.from('games').select('id', { count: 'exact', head: true }),
-      admin.from('sessions').select('status'),
+      admin.from('sessions').select('id', { count: 'exact', head: true }),
       admin.from('users').select('id, name, email, avatar_url, is_gm, is_admin, created_at').order('created_at', { ascending: false }).limit(10),
       admin.from('games').select('id, name, created_at, gm:users!games_gm_id_fkey(name)').order('created_at', { ascending: false }).limit(10),
     ]);
 
-    // Count sessions by status
-    const sessionsByStatus = {
-      suggested: 0,
-      confirmed: 0,
-      cancelled: 0,
-    };
-    sessionsResult.data?.forEach((session) => {
-      if (session.status in sessionsByStatus) {
-        sessionsByStatus[session.status as keyof typeof sessionsByStatus]++;
-      }
-    });
-
     return NextResponse.json({
       totalUsers: usersResult.count ?? 0,
       totalGames: gamesResult.count ?? 0,
-      totalSessions: sessionsResult.data?.length ?? 0,
-      sessionsByStatus,
+      totalSessions: sessionsResult.count ?? 0,
       recentUsers: recentUsersResult.data ?? [],
       recentGames: recentGamesResult.data ?? [],
     });

@@ -68,21 +68,17 @@ export interface GameWithMembers extends Game {
 }
 
 // Supabase query result types for relations
-// These help avoid unsafe type casts when querying with joins
-// Note: Supabase infers FK relations as arrays, so we type them as such
-// and extract the first element when using them.
+// These help document expected shapes when querying with joins.
+// Note: TypeScript infers FK relations as arrays, but at runtime Supabase
+// returns single objects for one-to-one relations. We use type assertions
+// in the route files to handle this mismatch.
 
 /** Result type for game queries that select only GM name via relation */
-export interface GameWithGMNameRaw {
+export interface GameWithGMNameResult {
   name: string;
   description: string | null;
   play_days: number[];
-  gm: { name: string }[];
-}
-
-/** Helper to extract GM name from Supabase relation result */
-export function getGMName(game: GameWithGMNameRaw): string {
-  return game.gm?.[0]?.name || 'Unknown';
+  gm: { name: string } | null;
 }
 
 /** Result type for game_memberships query with nested user */

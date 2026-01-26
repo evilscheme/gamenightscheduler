@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { GameWithGMNameRaw, getGMName } from '@/types';
+import { GameWithGMNameResult } from '@/types';
 
 /**
  * Public endpoint for OG crawlers to fetch game preview data.
@@ -35,14 +35,15 @@ export async function GET(
       );
     }
 
-    // Type the result - Supabase infers FK relations as arrays
-    const typedGame = game as GameWithGMNameRaw;
+    // TypeScript infers FK relations as arrays, but at runtime Supabase
+    // returns single objects for one-to-one relations
+    const typedGame = game as unknown as GameWithGMNameResult;
 
     return NextResponse.json({
       name: typedGame.name,
       description: typedGame.description,
       play_days: typedGame.play_days,
-      gm_name: getGMName(typedGame),
+      gm_name: typedGame.gm?.name || 'Unknown',
     });
   } catch (error) {
     console.error('Preview lookup error:', error);

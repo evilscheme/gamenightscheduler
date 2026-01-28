@@ -43,16 +43,12 @@ Uses Supabase Auth with Google and Discord OAuth. OAuth providers are configured
 - `src/contexts/AuthContext.tsx` - Auth context providing `useAuth()` hook
 - `src/lib/supabase/client.ts` - Browser client (uses anon key)
 - `src/lib/supabase/server.ts` - Server client for server components
+- `src/lib/supabase/admin.ts` - Admin client (service role key, bypasses RLS)
 - `src/app/auth/callback/route.ts` - OAuth callback handler
 
-The `useAuth()` hook provides: `user`, `session`, `profile`, `isLoading`, `signInWithGoogle()`, `signInWithDiscord()`, `signOut()`, `refreshProfile()`.
+The `useAuth()` hook provides user, session, profile, loading state, OAuth sign-in methods, and sign-out.
 
-**Supabase URL Configuration:** In Supabase Dashboard > Authentication > URL Configuration, the "Redirect URLs" allowlist must include wildcard patterns for OAuth callbacks with query parameters to work (e.g., for post-login redirects to invite links). Use `/**` suffix:
-```
-http://localhost:3000/**
-https://your-production-domain.com/**
-```
-Without the wildcard, Supabase may strip query parameters like `?next=/games/join/ABC` from redirect URLs.
+**Gotcha:** Supabase Redirect URLs must use `/**` wildcard suffix or query parameters (e.g., `?next=/games/join/ABC`) get stripped.
 
 ### Database
 
@@ -90,14 +86,17 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - `src/lib/ics.ts` - ICS (iCalendar) file generation for calendar export
 - `src/lib/formatting.ts` - Time formatting utilities (24h to 12h conversion)
 - `src/lib/gameValidation.ts` - Game form validation
+- `src/lib/bulkAvailability.ts` - Bulk availability marking logic
+- `src/lib/themes.ts` - Theme configuration and utilities
+- `src/contexts/ThemeContext.tsx` - Theme context (uses next-themes)
 - `src/components/ui/` - Reusable components: Button, Card, Input, Textarea, LoadingSpinner, EmptyState
 
 ### Layout Components
 
 - `src/components/layout/Providers.tsx` - Wraps app with ThemeProvider and AuthProvider
 - `src/components/layout/Navbar.tsx` - Navigation bar with user menu and help dropdown
-- `src/components/layout/ThemeToggle.tsx` - Dark/light mode toggle
 - `src/components/dashboard/DashboardContent.tsx` - Main dashboard view for authenticated users
+- `src/components/dashboard/WelcomeEmptyState.tsx` - Empty state for new users with no games
 
 ### API Routes
 
@@ -124,6 +123,8 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 
 ### Game Components
 
+- `src/components/games/GameDetailsCard.tsx` - Game settings and info display
+- `src/components/games/PlayersCard.tsx` - Player list and management
 - `src/components/games/SchedulingSuggestions.tsx` - Date suggestions ranked by availability
   - Shows player breakdown (available/maybe/unavailable/pending)
   - Separates upcoming vs past sessions
@@ -150,9 +151,6 @@ npx playwright test "e2e/tests/settings/profile.spec.ts:46" --project=chromium
 npx playwright test e2e/tests/multi-user --project=chromium
 ```
 
-### Tools
-- psql is the postgres client library, not pgsql
-
 ### Usage Limits
 
 Enforced via RLS policies in the database:
@@ -160,5 +158,13 @@ Enforced via RLS policies in the database:
 - 50 players per game
 - 100 future sessions per game
 
-### Development Practices to Follow
-when adding a significant new feature, make sure to add tests for that feature as well
+### Environment Files
+
+- `.env.local` - Cloud Supabase credentials (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, DATABASE_URL)
+- `.env.local.supabase` - Local Supabase credentials (same keys, local values)
+- `.env.test.local` - Test database credentials for E2E tests
+
+### Development Practices
+
+- When adding a significant new feature, add tests for that feature as well
+- Use `psql` (not `pgsql`) as the Postgres client tool

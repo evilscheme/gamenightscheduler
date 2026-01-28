@@ -147,7 +147,7 @@ export async function setSpecialPlayDates(
 export async function setAvailability(
   userId: string,
   gameId: string,
-  dates: { date: string; is_available?: boolean; status?: 'available' | 'unavailable' | 'maybe'; comment?: string }[]
+  dates: { date: string; is_available?: boolean; status?: 'available' | 'unavailable' | 'maybe'; comment?: string; available_after?: string; available_until?: string }[]
 ): Promise<void> {
   const admin = getAdminClient();
 
@@ -158,6 +158,8 @@ export async function setAvailability(
     // Support both old is_available and new status format
     status: d.status ?? (d.is_available ? 'available' : 'unavailable'),
     comment: d.comment ?? null,
+    available_after: d.available_after ?? null,
+    available_until: d.available_until ?? null,
   }));
 
   const { error } = await admin

@@ -33,6 +33,8 @@ export interface Availability {
   date: string; // ISO date string
   status: AvailabilityStatus;
   comment: string | null;
+  available_after: string | null; // HH:MM:SS
+  available_until: string | null; // HH:MM:SS
   created_at: string;
   updated_at: string;
 }
@@ -93,6 +95,8 @@ export interface MembershipWithUser {
 export interface PlayerWithComment {
   user: User;
   comment: string | null;
+  availableAfter: string | null;
+  availableUntil: string | null;
 }
 
 export interface DateSuggestion {
@@ -107,4 +111,6 @@ export interface DateSuggestion {
   maybePlayers: PlayerWithComment[];
   unavailablePlayers: PlayerWithComment[];
   pendingPlayers: User[];
+  earliestStartTime: string | null; // latest "available_after" among available players
+  latestEndTime: string | null; // earliest "available_until" among available players
 }

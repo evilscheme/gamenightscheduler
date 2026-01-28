@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatTime } from "./formatting";
+import { formatTime, formatTimeShort } from "./formatting";
 
 describe("formatTime", () => {
   it("returns empty string for null input", () => {
@@ -46,5 +46,38 @@ describe("formatTime", () => {
 
   it("formats 11 AM correctly", () => {
     expect(formatTime("11:00")).toBe("11:00 AM");
+  });
+});
+
+describe("formatTimeShort", () => {
+  it("returns empty string for null input", () => {
+    expect(formatTimeShort(null)).toBe("");
+  });
+
+  it("returns empty string for empty string input", () => {
+    expect(formatTimeShort("")).toBe("");
+  });
+
+  it("omits minutes when they are :00", () => {
+    expect(formatTimeShort("19:00")).toBe("7pm");
+    expect(formatTimeShort("09:00")).toBe("9am");
+    expect(formatTimeShort("12:00")).toBe("12pm");
+    expect(formatTimeShort("00:00")).toBe("12am");
+  });
+
+  it("includes minutes when they are not :00", () => {
+    expect(formatTimeShort("19:30")).toBe("7:30pm");
+    expect(formatTimeShort("09:15")).toBe("9:15am");
+    expect(formatTimeShort("14:45")).toBe("2:45pm");
+  });
+
+  it("handles HH:MM:SS format", () => {
+    expect(formatTimeShort("19:00:00")).toBe("7pm");
+    expect(formatTimeShort("19:30:00")).toBe("7:30pm");
+  });
+
+  it("uses lowercase am/pm", () => {
+    expect(formatTimeShort("08:00")).toBe("8am");
+    expect(formatTimeShort("20:00")).toBe("8pm");
   });
 });

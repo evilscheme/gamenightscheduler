@@ -3,6 +3,8 @@ import { AvailabilityStatus } from "@/types";
 export interface AvailabilityEntry {
   status: AvailabilityStatus;
   comment: string | null;
+  available_after: string | null;
+  available_until: string | null;
 }
 
 /**

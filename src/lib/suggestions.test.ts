@@ -20,7 +20,9 @@ const makeAvailability = (
   userId: string,
   date: string,
   status: "available" | "unavailable" | "maybe",
-  comment: string | null = null
+  comment: string | null = null,
+  available_after: string | null = null,
+  available_until: string | null = null
 ): Availability => ({
   id: `${userId}-${date}`,
   user_id: userId,
@@ -28,6 +30,8 @@ const makeAvailability = (
   date,
   status,
   comment,
+  available_after,
+  available_until,
   created_at: "2025-01-01",
   updated_at: "2025-01-01",
 });
@@ -111,6 +115,36 @@ describe("categorizePlayers", () => {
     expect(result.available[0].comment).toBe("Works for me!");
     expect(result.maybe[0].comment).toBe("Depends on work");
   });
+
+  it("includes time constraint fields in categorized players", () => {
+    const availability = [
+      makeAvailability("1", "2025-01-20", "available", null, "19:00:00", "23:00:00"),
+      makeAvailability("2", "2025-01-20", "maybe", null, "18:00:00", null),
+      makeAvailability("3", "2025-01-20", "unavailable", null, null, "21:00:00"),
+    ];
+    const result = categorizePlayers(
+      [player1, player2, player3],
+      availability,
+      "2025-01-20"
+    );
+
+    expect(result.available[0].availableAfter).toBe("19:00:00");
+    expect(result.available[0].availableUntil).toBe("23:00:00");
+    expect(result.maybe[0].availableAfter).toBe("18:00:00");
+    expect(result.maybe[0].availableUntil).toBeNull();
+    expect(result.unavailable[0].availableAfter).toBeNull();
+    expect(result.unavailable[0].availableUntil).toBe("21:00:00");
+  });
+
+  it("returns null time fields when availability has no time constraints", () => {
+    const availability = [
+      makeAvailability("1", "2025-01-20", "available"),
+    ];
+    const result = categorizePlayers([player1], availability, "2025-01-20");
+
+    expect(result.available[0].availableAfter).toBeNull();
+    expect(result.available[0].availableUntil).toBeNull();
+  });
 });
 
 describe("sortSuggestions", () => {
@@ -132,6 +166,8 @@ describe("sortSuggestions", () => {
     maybePlayers: [],
     unavailablePlayers: [],
     pendingPlayers: [],
+    earliestStartTime: null,
+    latestEndTime: null,
   });
 
   it("sorts by available count (descending)", () => {
@@ -296,5 +332,100 @@ describe("calculateDateSuggestions", () => {
     });
 
     expect(suggestions.length).toBe(0);
+  });
+
+  it("computes earliestStartTime as latest available_after among available players", () => {
+    const playDates = [new Date("2025-01-20")];
+    const availability = [
+      makeAvailability("1", "2025-01-20", "available", null, "17:00:00", null),
+      makeAvailability("2", "2025-01-20", "available", null, "19:00:00", null),
+    ];
+
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability,
+      getDayOfWeek,
+      formatDate,
+    });
+
+    // Latest available_after = 19:00 (everyone must be free)
+    expect(suggestions[0].earliestStartTime).toBe("19:00:00");
+  });
+
+  it("computes latestEndTime as earliest available_until among available players", () => {
+    const playDates = [new Date("2025-01-20")];
+    const availability = [
+      makeAvailability("1", "2025-01-20", "available", null, null, "22:00:00"),
+      makeAvailability("2", "2025-01-20", "available", null, null, "21:00:00"),
+    ];
+
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability,
+      getDayOfWeek,
+      formatDate,
+    });
+
+    // Earliest available_until = 21:00 (everyone must still be free)
+    expect(suggestions[0].latestEndTime).toBe("21:00:00");
+  });
+
+  it("returns null time constraints when no players have time fields", () => {
+    const playDates = [new Date("2025-01-20")];
+    const availability = [
+      makeAvailability("1", "2025-01-20", "available"),
+      makeAvailability("2", "2025-01-20", "available"),
+    ];
+
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability,
+      getDayOfWeek,
+      formatDate,
+    });
+
+    expect(suggestions[0].earliestStartTime).toBeNull();
+    expect(suggestions[0].latestEndTime).toBeNull();
+  });
+
+  it("only considers available players for time constraints, not maybe or unavailable", () => {
+    const playDates = [new Date("2025-01-20")];
+    const availability = [
+      makeAvailability("1", "2025-01-20", "available", null, "18:00:00", null),
+      makeAvailability("2", "2025-01-20", "maybe", null, "21:00:00", null),
+    ];
+
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability,
+      getDayOfWeek,
+      formatDate,
+    });
+
+    // Only player1 is available, so their time is the constraint
+    expect(suggestions[0].earliestStartTime).toBe("18:00:00");
+  });
+
+  it("handles mixed time constraints (some players have after, some have until)", () => {
+    const playDates = [new Date("2025-01-20")];
+    const availability = [
+      makeAvailability("1", "2025-01-20", "available", null, "19:00:00", null),
+      makeAvailability("2", "2025-01-20", "available", null, null, "22:00:00"),
+    ];
+
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability,
+      getDayOfWeek,
+      formatDate,
+    });
+
+    expect(suggestions[0].earliestStartTime).toBe("19:00:00");
+    expect(suggestions[0].latestEndTime).toBe("22:00:00");
   });
 });

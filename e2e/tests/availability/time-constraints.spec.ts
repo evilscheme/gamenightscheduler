@@ -39,7 +39,7 @@ test.describe('Time Availability Constraints', () => {
     const playDates = getPlayDates([5, 6], 2);
     const targetDate = playDates[0];
 
-    const dateButton = page.locator(`button[title*="${targetDate}"]`);
+    const dateButton = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
     // Click to mark as available
@@ -72,7 +72,7 @@ test.describe('Time Availability Constraints', () => {
     });
     await page.getByRole('button', { name: /availability/i }).click();
 
-    const dateButtonAfterReload = page.locator(`button[title*="${targetDate}"]`);
+    const dateButtonAfterReload = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButtonAfterReload.locator('span:has-text("🕐")')).toBeVisible();
 
     // Open note editor again and verify the time is still there
@@ -113,7 +113,7 @@ test.describe('Time Availability Constraints', () => {
     const playDates = getPlayDates([5, 6], 2);
     const targetDate = playDates[0];
 
-    const dateButton = page.locator(`button[title*="${targetDate}"]`);
+    const dateButton = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
     // Click twice: unset -> available -> unavailable
@@ -275,7 +275,7 @@ test.describe('Time Availability Constraints', () => {
     const playDates = getPlayDates([5, 6], 2);
     const targetDate = playDates[0];
 
-    const dateButton = page.locator(`button[title*="${targetDate}"]`);
+    const dateButton = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
     // Mark as available and set time constraint

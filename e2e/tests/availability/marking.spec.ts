@@ -38,8 +38,8 @@ test.describe('Availability Marking', () => {
     const playDates = getPlayDates([5, 6], 2);
     const targetDate = playDates[0];
 
-    // Find the date button by its title attribute (which contains the date string)
-    const dateButton = page.locator(`button[title="${targetDate}"]`);
+    // Find the date button by its data-date attribute (which contains the date string)
+    const dateButton = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
     // Initial state: should have card background (not green or red)
@@ -69,7 +69,7 @@ test.describe('Availability Marking', () => {
     });
     await page.getByRole('button', { name: /availability/i }).click();
 
-    const dateButtonAfterReload = page.locator(`button[title="${targetDate}"]`);
+    const dateButtonAfterReload = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButtonAfterReload).toHaveClass(/bg-cal-available-bg/);
   });
 
@@ -112,7 +112,7 @@ test.describe('Availability Marking', () => {
     const playDates = getPlayDates([5, 6], 2);
     const targetDate = playDates[0];
 
-    const dateButton = page.locator(`button[title="${targetDate}"]`);
+    const dateButton = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
     // Cycle: unset -> available (yes) -> unavailable (no) -> maybe -> available
@@ -170,7 +170,7 @@ test.describe('Availability Marking', () => {
     const yesterdayStr = `${year}-${month}-${day}`;
 
     // Try to find a past date button
-    const pastDateButton = page.locator(`button[title="${yesterdayStr}"]`);
+    const pastDateButton = page.locator(`button[data-date="${yesterdayStr}"]`);
 
     // Past date button should be disabled
     if (await pastDateButton.count() > 0) {
@@ -226,7 +226,7 @@ test.describe('Availability Marking', () => {
     nextMonday.setDate(today.getDate() + daysUntilMonday);
     const mondayStr = nextMonday.toISOString().split('T')[0];
 
-    const mondayButton = page.locator(`button[title="${mondayStr}"]`);
+    const mondayButton = page.locator(`button[data-date="${mondayStr}"]`);
 
     // Monday should be disabled since it's not a play day (for players)
     if (await mondayButton.count() > 0) {
@@ -267,7 +267,7 @@ test.describe('Availability Marking', () => {
     const targetDate = playDates[0];
 
     // Use contains selector since title changes after adding a comment
-    const dateButton = page.locator(`button[title*="${targetDate}"]`);
+    const dateButton = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
     // Click once to mark as available
@@ -300,7 +300,7 @@ test.describe('Availability Marking', () => {
     });
     await page.getByRole('button', { name: /availability/i }).click();
 
-    const dateButtonAfterReload = page.locator(`button[title*="${targetDate}"]`);
+    const dateButtonAfterReload = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButtonAfterReload.locator('span:has-text("💬")')).toBeVisible();
   });
 
@@ -334,7 +334,7 @@ test.describe('Availability Marking', () => {
     const playDates = getPlayDates([5, 6], 2);
     const targetDate = playDates[0];
 
-    const dateButton = page.locator(`button[title*="${targetDate}"]`);
+    const dateButton = page.locator(`button[data-date="${targetDate}"]`);
     await expect(dateButton).toBeVisible();
 
     // Click to mark as available and add a note

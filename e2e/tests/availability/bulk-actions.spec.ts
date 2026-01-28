@@ -47,12 +47,12 @@ test.describe('Bulk Availability Actions', () => {
     const fridays = getPlayDates([5], 4); // Next 4 weeks of Fridays
 
     // Wait for the first Friday to turn green (async operations need time)
-    const firstFriday = page.locator(`button[title="${fridays[0]}"]`);
+    const firstFriday = page.locator(`button[data-date="${fridays[0]}"]`);
     await expect(firstFriday).toHaveClass(/bg-cal-available-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // Verify another Friday is also green
     if (fridays.length > 1) {
-      const secondFriday = page.locator(`button[title="${fridays[1]}"]`);
+      const secondFriday = page.locator(`button[data-date="${fridays[1]}"]`);
       if (await secondFriday.count() > 0) {
         await expect(secondFriday).toHaveClass(/bg-cal-available-bg/);
       }
@@ -106,12 +106,12 @@ test.describe('Bulk Availability Actions', () => {
     const saturdays = getPlayDates([6], 4); // Next 4 weeks of Saturdays
 
     // Wait for the first Saturday to turn red (async operations need time)
-    const firstSaturday = page.locator(`button[title="${saturdays[0]}"]`);
+    const firstSaturday = page.locator(`button[data-date="${saturdays[0]}"]`);
     await expect(firstSaturday).toHaveClass(/bg-cal-unavailable-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // Verify another Saturday is also red
     if (saturdays.length > 1) {
-      const secondSaturday = page.locator(`button[title="${saturdays[1]}"]`);
+      const secondSaturday = page.locator(`button[data-date="${saturdays[1]}"]`);
       if (await secondSaturday.count() > 0) {
         await expect(secondSaturday).toHaveClass(/bg-cal-unavailable-bg/);
       }
@@ -161,7 +161,7 @@ test.describe('Bulk Availability Actions', () => {
     const firstFriday = fridays[0];
 
     // Verify it's green before reload (wait for async operation)
-    const dateButton = page.locator(`button[title="${firstFriday}"]`);
+    const dateButton = page.locator(`button[data-date="${firstFriday}"]`);
     await expect(dateButton).toHaveClass(/bg-cal-available-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // Reload the page
@@ -177,7 +177,7 @@ test.describe('Bulk Availability Actions', () => {
     });
 
     // Verify the Friday is still green after reload
-    const dateButtonAfterReload = page.locator(`button[title="${firstFriday}"]`);
+    const dateButtonAfterReload = page.locator(`button[data-date="${firstFriday}"]`);
     await expect(dateButtonAfterReload).toHaveClass(/bg-cal-available-bg/);
   });
 
@@ -213,7 +213,7 @@ test.describe('Bulk Availability Actions', () => {
 
     // First, manually mark the first Friday as unavailable by clicking it
     const fridays = getPlayDates([5], 4);
-    const firstFriday = page.locator(`button[title="${fridays[0]}"]`);
+    const firstFriday = page.locator(`button[data-date="${fridays[0]}"]`);
     await firstFriday.click(); // available
     await firstFriday.click(); // unavailable
     await expect(firstFriday).toHaveClass(/bg-cal-unavailable-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
@@ -230,7 +230,7 @@ test.describe('Bulk Availability Actions', () => {
 
     // But other Fridays should be green (available)
     if (fridays.length > 1) {
-      const secondFriday = page.locator(`button[title="${fridays[1]}"]`);
+      const secondFriday = page.locator(`button[data-date="${fridays[1]}"]`);
       if (await secondFriday.count() > 0) {
         await expect(secondFriday).toHaveClass(/bg-cal-available-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
       }
@@ -238,7 +238,7 @@ test.describe('Bulk Availability Actions', () => {
 
     // Saturdays should also be green
     const saturdays = getPlayDates([6], 4);
-    const firstSaturday = page.locator(`button[title="${saturdays[0]}"]`);
+    const firstSaturday = page.locator(`button[data-date="${saturdays[0]}"]`);
     if (await firstSaturday.count() > 0) {
       await expect(firstSaturday).toHaveClass(/bg-cal-available-bg/);
     }
@@ -286,7 +286,7 @@ test.describe('Bulk Availability Actions', () => {
 
     // Verify Fridays are yellow/warning (maybe)
     const fridays = getPlayDates([5], 4);
-    const firstFriday = page.locator(`button[title="${fridays[0]}"]`);
+    const firstFriday = page.locator(`button[data-date="${fridays[0]}"]`);
     await expect(firstFriday).toHaveClass(/bg-cal-maybe-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
   });
 });

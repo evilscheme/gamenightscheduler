@@ -51,7 +51,7 @@ test.describe('Special Play Dates', () => {
     const nonPlayDate = getNonPlayDayDate();
 
     // Find the button for this day and hover
-    const dayButton = page.locator(`button[title*="${nonPlayDate}"]`);
+    const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.hover();
 
     // Should see the "+" icon appear on hover
@@ -87,7 +87,7 @@ test.describe('Special Play Dates', () => {
     const nonPlayDate = getNonPlayDayDate();
 
     // Find the non-play day button and click the "+" icon
-    const dayButton = page.locator(`button[title*="${nonPlayDate}"]`);
+    const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.hover();
 
     const addIcon = dayButton.locator('span:has-text("+")');
@@ -133,7 +133,7 @@ test.describe('Special Play Dates', () => {
     await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
     // Find the special play date - it should have dashed border
-    const dayButton = page.locator(`button[title*="${nonPlayDate}"]`);
+    const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await expect(dayButton).toHaveClass(/border-dashed/);
 
     // Hover and click the "-" icon to remove
@@ -174,7 +174,7 @@ test.describe('Special Play Dates', () => {
     await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
     // Click on the special play date to mark availability
-    const dayButton = page.locator(`button[title*="${nonPlayDate}"]`);
+    const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.click();
 
     // Should turn green (available)
@@ -223,7 +223,7 @@ test.describe('Special Play Dates', () => {
     await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
     // Player should be able to click on special play date
-    const dayButton = page.locator(`button[title*="${nonPlayDate}"]`);
+    const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.click();
 
     // Should turn green (available)
@@ -267,7 +267,7 @@ test.describe('Special Play Dates', () => {
     await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
     // Find a non-play day and hover
-    const dayButton = page.locator(`button[title*="${nonPlayDate}"]`);
+    const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.hover();
 
     // Should NOT see any "+/-" icons as player

@@ -593,6 +593,7 @@ function MonthCalendar({
               disabled={(!isPlayDay && !canAddAsSpecial) || isPast}
               className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
+              data-date={dateStr}
               title={cellTooltip}
             >
               {/* Scheduled game star decoration - visible indicator beyond color */}

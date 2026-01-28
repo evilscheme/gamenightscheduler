@@ -30,7 +30,9 @@ interface AvailabilityCalendarProps {
   onToggle: (
     date: string,
     status: AvailabilityStatus,
-    comment: string | null
+    comment: string | null,
+    availableAfter: string | null,
+    availableUntil: string | null
   ) => void;
   confirmedSessions: GameSession[];
   specialPlayDates?: string[];
@@ -52,6 +54,8 @@ export function AvailabilityCalendar({
   const maxDate = endOfMonth(addMonths(today, windowMonths));
   const [commentingDate, setCommentingDate] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
+  const [availableAfterText, setAvailableAfterText] = useState("");
+  const [availableUntilText, setAvailableUntilText] = useState("");
   const [bulkDayFilter, setBulkDayFilter] = useState<string>("remaining");
   const [bulkStatus, setBulkStatus] = useState<AvailabilityStatus>("available");
   // Action menu for GM long-press on special play dates
@@ -87,28 +91,45 @@ export function AvailabilityCalendar({
     const currentAvail = availability[dateStr];
     const nextStatus = getNextStatus(currentAvail);
 
-    // Cycle through states - preserve existing comment regardless of status
+    // Cycle through states - preserve existing comment and time constraints
     const comment = currentAvail?.comment || null;
-    onToggle(dateStr, nextStatus, comment);
+    const after = currentAvail?.available_after || null;
+    const until = currentAvail?.available_until || null;
+    onToggle(dateStr, nextStatus, comment, after, until);
   };
 
   const handleEditComment = (dateStr: string) => {
     setCommentingDate(dateStr);
     setCommentText(availability[dateStr]?.comment || "");
+    // Load time fields, converting HH:MM:SS to HH:MM for input
+    const after = availability[dateStr]?.available_after;
+    const until = availability[dateStr]?.available_until;
+    setAvailableAfterText(after ? after.slice(0, 5) : "");
+    setAvailableUntilText(until ? until.slice(0, 5) : "");
   };
 
   const handleSaveComment = () => {
     if (commentingDate) {
       const currentStatus = availability[commentingDate]?.status || "available";
-      onToggle(commentingDate, currentStatus, commentText.trim() || null);
+      onToggle(
+        commentingDate,
+        currentStatus,
+        commentText.trim() || null,
+        availableAfterText || null,
+        availableUntilText || null
+      );
       setCommentingDate(null);
       setCommentText("");
+      setAvailableAfterText("");
+      setAvailableUntilText("");
     }
   };
 
   const handleCancelComment = () => {
     setCommentingDate(null);
     setCommentText("");
+    setAvailableAfterText("");
+    setAvailableUntilText("");
   };
 
   // Action menu handlers for GM on special play dates
@@ -156,9 +177,15 @@ export function AvailabilityCalendar({
 
     datesInWindow.forEach((date) => {
       const dateStr = format(date, "yyyy-MM-dd");
-      // Preserve existing comments when bulk setting
-      const existingComment = availability[dateStr]?.comment || null;
-      onToggle(dateStr, status, existingComment);
+      // Preserve existing comments and time constraints when bulk setting
+      const existing = availability[dateStr];
+      onToggle(
+        dateStr,
+        status,
+        existing?.comment || null,
+        existing?.available_after || null,
+        existing?.available_until || null
+      );
     });
   };
 
@@ -275,54 +302,23 @@ export function AvailabilityCalendar({
         </div>
       </div>
 
-      {/* Compact note editor popover */}
+      {/* Note & time editor popover */}
       {commentingDate && (
-        <div
-          className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
-          onClick={handleCancelComment}
-        >
-          <div
-            className="bg-card rounded-lg shadow-lg border border-border p-4 w-full max-w-sm mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-card-foreground">
-                Note for {format(parseISO(commentingDate), "MMM d")}
-              </span>
-              <button
-                onClick={handleCancelComment}
-                className="text-muted-foreground hover:text-foreground text-lg leading-none"
-              >
-                &times;
-              </button>
-            </div>
-            <input
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="e.g., Depends on work schedule"
-              className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary mb-3"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveComment();
-                if (e.key === "Escape") handleCancelComment();
-              }}
-            />
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="flex-1"
-                onClick={handleCancelComment}
-              >
-                Cancel
-              </Button>
-              <Button size="sm" className="flex-1" onClick={handleSaveComment}>
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
+        <NoteEditorPopover
+          commentingDate={commentingDate}
+          showTimeFields={
+            availability[commentingDate]?.status === "available" ||
+            availability[commentingDate]?.status === "maybe"
+          }
+          commentText={commentText}
+          availableAfterText={availableAfterText}
+          availableUntilText={availableUntilText}
+          onCommentChange={setCommentText}
+          onAvailableAfterChange={setAvailableAfterText}
+          onAvailableUntilChange={setAvailableUntilText}
+          onSave={handleSaveComment}
+          onCancel={handleCancelComment}
+        />
       )}
 
       {/* Action menu for GM long-press on special play dates */}
@@ -541,6 +537,7 @@ function MonthCalendar({
             : "";
 
           const hasComment = !!avail?.comment;
+          const hasTimeConstraint = !!(avail?.available_after || avail?.available_until);
           const hasAvailability = !!avail;
 
           return (
@@ -617,6 +614,15 @@ function MonthCalendar({
                   -
                 </span>
               )}
+              {/* Time constraint clock icon */}
+              {isPlayDay && !isPast && hasTimeConstraint && (
+                <span
+                  className="absolute bottom-0.5 left-1 text-[10px] leading-none pointer-events-none"
+                  title="Has time constraints"
+                >
+                  🕐
+                </span>
+              )}
               {/* Note/comment icon for play days */}
               {isPlayDay && !isPast && hasAvailability && (
                 <span
@@ -642,6 +648,140 @@ function MonthCalendar({
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// Time options for availability selects (30-minute increments)
+const TIME_OPTIONS: { value: string; label: string }[] = (() => {
+  const options: { value: string; label: string }[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 30]) {
+      const value = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      const h12 = h % 12 || 12;
+      const ampm = h >= 12 ? "PM" : "AM";
+      const label = m === 0 ? `${h12}:00 ${ampm}` : `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+      options.push({ value, label });
+    }
+  }
+  return options;
+})();
+
+// Extracted component to avoid IIFE in JSX (Turbopack compatibility)
+interface NoteEditorPopoverProps {
+  commentingDate: string;
+  showTimeFields: boolean;
+  commentText: string;
+  availableAfterText: string;
+  availableUntilText: string;
+  onCommentChange: (value: string) => void;
+  onAvailableAfterChange: (value: string) => void;
+  onAvailableUntilChange: (value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+function NoteEditorPopover({
+  commentingDate,
+  showTimeFields,
+  commentText,
+  availableAfterText,
+  availableUntilText,
+  onCommentChange,
+  onAvailableAfterChange,
+  onAvailableUntilChange,
+  onSave,
+  onCancel,
+}: NoteEditorPopoverProps) {
+  return (
+    <div
+      className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-card rounded-lg shadow-lg border border-border p-4 w-full max-w-sm mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium text-card-foreground">
+            Note for {format(parseISO(commentingDate), "MMM d")}
+          </span>
+          <button
+            onClick={onCancel}
+            className="text-muted-foreground hover:text-foreground text-lg leading-none"
+          >
+            &times;
+          </button>
+        </div>
+        {showTimeFields && (
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">
+                Available after
+              </label>
+              <select
+                value={availableAfterText}
+                onChange={(e) => onAvailableAfterChange(e.target.value)}
+                className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">—</option>
+                {TIME_OPTIONS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">
+                Available until
+              </label>
+              <select
+                value={availableUntilText}
+                onChange={(e) => onAvailableUntilChange(e.target.value)}
+                className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">—</option>
+                {TIME_OPTIONS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+        <div className="mb-3">
+          <label className="block text-xs text-muted-foreground mb-1">
+            Note
+          </label>
+          <input
+            type="text"
+            value={commentText}
+            onChange={(e) => onCommentChange(e.target.value)}
+            placeholder="e.g., Depends on work schedule"
+            className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onSave();
+              if (e.key === "Escape") onCancel();
+            }}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="flex-1"
+            onClick={onCancel}
+          >
+            Cancel
+          </Button>
+          <Button size="sm" className="flex-1" onClick={onSave}>
+            Save
+          </Button>
+        </div>
       </div>
     </div>
   );

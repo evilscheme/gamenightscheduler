@@ -125,7 +125,12 @@ export default function GameDetailPage() {
 
     const availMap: Record<string, AvailabilityEntry> = {};
     userAvail?.forEach((a) => {
-      availMap[a.date] = { status: a.status, comment: a.comment };
+      availMap[a.date] = {
+        status: a.status,
+        comment: a.comment,
+        available_after: a.available_after,
+        available_until: a.available_until,
+      };
     });
     setAvailability(availMap);
 
@@ -192,12 +197,22 @@ export default function GameDetailPage() {
   const handleAvailabilityChange = async (
     date: string,
     status: AvailabilityStatus,
-    comment: string | null
+    comment: string | null,
+    availableAfter: string | null,
+    availableUntil: string | null
   ) => {
     if (!profile?.id || !gameId) return;
 
     // Optimistic update
-    setAvailability((prev) => ({ ...prev, [date]: { status, comment } }));
+    setAvailability((prev) => ({
+      ...prev,
+      [date]: {
+        status,
+        comment,
+        available_after: availableAfter,
+        available_until: availableUntil,
+      },
+    }));
 
     const { error } = await supabase.from("availability").upsert(
       {
@@ -206,6 +221,8 @@ export default function GameDetailPage() {
         date,
         status,
         comment,
+        available_after: availableAfter,
+        available_until: availableUntil,
       },
       { onConflict: "user_id,game_id,date" }
     );
@@ -225,7 +242,13 @@ export default function GameDetailPage() {
         );
         if (existing >= 0) {
           const updated = [...prev];
-          updated[existing] = { ...updated[existing], status, comment };
+          updated[existing] = {
+            ...updated[existing],
+            status,
+            comment,
+            available_after: availableAfter,
+            available_until: availableUntil,
+          };
           return updated;
         }
         return [
@@ -237,6 +260,8 @@ export default function GameDetailPage() {
             date,
             status,
             comment,
+            available_after: availableAfter,
+            available_until: availableUntil,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
@@ -560,7 +585,7 @@ export default function GameDetailPage() {
             </h2>
             <p className="text-muted-foreground">
               Click on dates to cycle through: available → unavailable → maybe.
-              Add notes by hovering and clicking the pencil icon (or long-press
+              Add notes or time constraints by hovering and clicking the pencil icon (or long-press
               on mobile).
             </p>
           </div>

@@ -6,7 +6,7 @@ import { Button, Card, CardContent, CardHeader, EmptyState } from '@/components/
 import { DateSuggestion, GameSession } from '@/types';
 import { generateICS } from '@/lib/ics';
 import { DAY_LABELS, SESSION_DEFAULTS } from '@/lib/constants';
-import { formatTime } from '@/lib/formatting';
+import { formatTime, formatTimeShort } from '@/lib/formatting';
 
 interface SchedulingSuggestionsProps {
   suggestions: DateSuggestion[];
@@ -54,9 +54,24 @@ export function SchedulingSuggestions({
   );
 
   const handleConfirmClick = (date: string) => {
-    // Reset to defaults each time the modal opens
-    setStartTime(initialStartTime);
-    setEndTime(initialEndTime);
+    // Pre-fill with constrained times when available
+    const suggestion = suggestions.find((s) => s.date === date);
+    let start = initialStartTime;
+    let end = initialEndTime;
+
+    if (suggestion?.earliestStartTime) {
+      const constrainedStart = suggestion.earliestStartTime.slice(0, 5);
+      // Use the later of game default and player constraint
+      if (constrainedStart > start) start = constrainedStart;
+    }
+    if (suggestion?.latestEndTime) {
+      const constrainedEnd = suggestion.latestEndTime.slice(0, 5);
+      // Use the earlier of game default and player constraint
+      if (constrainedEnd < end) end = constrainedEnd;
+    }
+
+    setStartTime(start);
+    setEndTime(end);
     setLocalError(null);
     setConfirmingDate(date);
   };
@@ -73,6 +88,14 @@ export function SchedulingSuggestions({
         setLocalError(result.error);
       }
     }
+  };
+
+  const formatPlayerName = (p: DateSuggestion['availablePlayers'][number]) => {
+    const parts: string[] = [];
+    if (p.availableAfter) parts.push(`after ${formatTimeShort(p.availableAfter)}`);
+    if (p.availableUntil) parts.push(`until ${formatTimeShort(p.availableUntil)}`);
+    if (p.comment) parts.push(p.comment);
+    return parts.length > 0 ? `${p.user.name} (${parts.join(', ')})` : p.user.name;
   };
 
   const displayedSuggestions = showAll ? suggestions : suggestions.slice(0, 10);
@@ -196,30 +219,35 @@ export function SchedulingSuggestions({
                                   {suggestion.pendingCount} pending
                                 </span>
                               </div>
+                              {/* Time constraints */}
+                              {(suggestion.earliestStartTime || suggestion.latestEndTime) && (
+                                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                                  {suggestion.earliestStartTime && (
+                                    <span>Earliest start: {formatTime(suggestion.earliestStartTime)}</span>
+                                  )}
+                                  {suggestion.latestEndTime && (
+                                    <span>Latest end: {formatTime(suggestion.latestEndTime)}</span>
+                                  )}
+                                </div>
+                              )}
                               {/* Player details */}
                               <div className="mt-2 text-sm space-y-1">
                                 {suggestion.availablePlayers.length > 0 && (
                                   <p className="text-muted-foreground">
                                     <span className="text-success">Available:</span>{' '}
-                                    {suggestion.availablePlayers.map((p) =>
-                                      p.comment ? `${p.user.name} (${p.comment})` : p.user.name
-                                    ).join(', ')}
+                                    {suggestion.availablePlayers.map(formatPlayerName).join(', ')}
                                   </p>
                                 )}
                                 {suggestion.maybePlayers.length > 0 && (
                                   <p className="text-muted-foreground">
                                     <span className="text-warning">Maybe:</span>{' '}
-                                    {suggestion.maybePlayers.map((p) =>
-                                      p.comment ? `${p.user.name} (${p.comment})` : p.user.name
-                                    ).join(', ')}
+                                    {suggestion.maybePlayers.map(formatPlayerName).join(', ')}
                                   </p>
                                 )}
                                 {suggestion.unavailablePlayers.length > 0 && (
                                   <p className="text-muted-foreground">
                                     <span className="text-danger">Unavailable:</span>{' '}
-                                    {suggestion.unavailablePlayers.map((p) =>
-                                      p.comment ? `${p.user.name} (${p.comment})` : p.user.name
-                                    ).join(', ')}
+                                    {suggestion.unavailablePlayers.map(formatPlayerName).join(', ')}
                                   </p>
                                 )}
                                 {suggestion.pendingPlayers.length > 0 && (
@@ -408,30 +436,35 @@ export function SchedulingSuggestions({
                               {suggestion.pendingCount} pending
                             </span>
                           </div>
+                          {/* Time constraints */}
+                          {(suggestion.earliestStartTime || suggestion.latestEndTime) && (
+                            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                              {suggestion.earliestStartTime && (
+                                <span>Earliest start: {formatTime(suggestion.earliestStartTime)}</span>
+                              )}
+                              {suggestion.latestEndTime && (
+                                <span>Latest end: {formatTime(suggestion.latestEndTime)}</span>
+                              )}
+                            </div>
+                          )}
                           {/* Player details */}
                           <div className="mt-2 text-sm space-y-1">
                             {suggestion.availablePlayers.length > 0 && (
                               <p className="text-muted-foreground">
                                 <span className="text-success">Available:</span>{' '}
-                                {suggestion.availablePlayers.map((p) =>
-                                  p.comment ? `${p.user.name} (${p.comment})` : p.user.name
-                                ).join(', ')}
+                                {suggestion.availablePlayers.map(formatPlayerName).join(', ')}
                               </p>
                             )}
                             {suggestion.maybePlayers.length > 0 && (
                               <p className="text-muted-foreground">
                                 <span className="text-warning">Maybe:</span>{' '}
-                                {suggestion.maybePlayers.map((p) =>
-                                  p.comment ? `${p.user.name} (${p.comment})` : p.user.name
-                                ).join(', ')}
+                                {suggestion.maybePlayers.map(formatPlayerName).join(', ')}
                               </p>
                             )}
                             {suggestion.unavailablePlayers.length > 0 && (
                               <p className="text-muted-foreground">
                                 <span className="text-danger">Unavailable:</span>{' '}
-                                {suggestion.unavailablePlayers.map((p) =>
-                                  p.comment ? `${p.user.name} (${p.comment})` : p.user.name
-                                ).join(', ')}
+                                {suggestion.unavailablePlayers.map(formatPlayerName).join(', ')}
                               </p>
                             )}
                             {suggestion.pendingPlayers.length > 0 && (

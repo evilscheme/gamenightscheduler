@@ -28,11 +28,26 @@ export function categorizePlayers(
     if (!playerAvail) {
       pending.push(player);
     } else if (playerAvail.status === "available") {
-      available.push({ user: player, comment: playerAvail.comment });
+      available.push({
+        user: player,
+        comment: playerAvail.comment,
+        availableAfter: playerAvail.available_after ?? null,
+        availableUntil: playerAvail.available_until ?? null,
+      });
     } else if (playerAvail.status === "maybe") {
-      maybe.push({ user: player, comment: playerAvail.comment });
+      maybe.push({
+        user: player,
+        comment: playerAvail.comment,
+        availableAfter: playerAvail.available_after ?? null,
+        availableUntil: playerAvail.available_until ?? null,
+      });
     } else {
-      unavailable.push({ user: player, comment: playerAvail.comment });
+      unavailable.push({
+        user: player,
+        comment: playerAvail.comment,
+        availableAfter: playerAvail.available_after ?? null,
+        availableUntil: playerAvail.available_until ?? null,
+      });
     }
   });
 
@@ -93,6 +108,25 @@ export function calculateDateSuggestions({
       dateStr
     );
 
+    // Compute time constraints from available players
+    // earliestStartTime = latest "available_after" (everyone must be free)
+    // latestEndTime = earliest "available_until" (everyone must still be free)
+    let earliestStartTime: string | null = null;
+    let latestEndTime: string | null = null;
+
+    for (const p of available) {
+      if (p.availableAfter) {
+        if (!earliestStartTime || p.availableAfter > earliestStartTime) {
+          earliestStartTime = p.availableAfter;
+        }
+      }
+      if (p.availableUntil) {
+        if (!latestEndTime || p.availableUntil < latestEndTime) {
+          latestEndTime = p.availableUntil;
+        }
+      }
+    }
+
     return {
       date: dateStr,
       dayOfWeek: getDayOfWeek(date),
@@ -105,6 +139,8 @@ export function calculateDateSuggestions({
       maybePlayers: maybe,
       unavailablePlayers: unavailable,
       pendingPlayers: pending,
+      earliestStartTime,
+      latestEndTime,
     };
   });
 

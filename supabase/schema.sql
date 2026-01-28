@@ -58,6 +58,8 @@ CREATE TABLE availability (
   date DATE NOT NULL,
   status availability_status NOT NULL DEFAULT 'available',
   comment TEXT,
+  available_after TIME,
+  available_until TIME,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, game_id, date)

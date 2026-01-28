@@ -14,12 +14,13 @@ import {
   parseISO,
 } from "date-fns";
 import { Button } from "@/components/ui";
-import { GameSession, AvailabilityStatus } from "@/types";
+import type { GameSession, AvailabilityStatus } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
 import {
   getNextStatus,
   AvailabilityEntry,
 } from "@/lib/availabilityStatus";
+import { formatTimeShort } from "@/lib/formatting";
 
 export type { AvailabilityEntry };
 
@@ -76,6 +77,10 @@ export function AvailabilityCalendar({
   }, [today, maxDate]);
 
   const confirmedDates = new Set(confirmedSessions.map((s) => s.date));
+  const confirmedSessionsByDate = useMemo(
+    () => new Map(confirmedSessions.map((s) => [s.date, s])),
+    [confirmedSessions]
+  );
 
   const handleDayClick = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
@@ -238,6 +243,7 @@ export function AvailabilityCalendar({
             playDays={playDays}
             availability={availability}
             confirmedDates={confirmedDates}
+            confirmedSessionsByDate={confirmedSessionsByDate}
             today={today}
             onDayClick={handleDayClick}
             onEditComment={handleEditComment}
@@ -373,6 +379,7 @@ interface MonthCalendarProps {
   playDays: number[];
   availability: Record<string, AvailabilityEntry>;
   confirmedDates: Set<string>;
+  confirmedSessionsByDate: Map<string, GameSession>;
   today: Date;
   onDayClick: (date: Date) => void;
   onEditComment: (dateStr: string) => void;
@@ -388,6 +395,7 @@ function MonthCalendar({
   playDays,
   availability,
   confirmedDates,
+  confirmedSessionsByDate,
   today,
   onDayClick,
   onEditComment,
@@ -540,6 +548,38 @@ function MonthCalendar({
           const hasTimeConstraint = !!(avail?.available_after || avail?.available_until);
           const hasAvailability = !!avail;
 
+          // Build tooltip
+          const tooltipParts = [format(date, "EEEE, MMM d")];
+          if (isConfirmed) {
+            const session = confirmedSessionsByDate.get(dateStr);
+            const startStr = formatTimeShort(session?.start_time ?? null);
+            const endStr = formatTimeShort(session?.end_time ?? null);
+            if (startStr && endStr) {
+              tooltipParts.push(`Scheduled: ${startStr}–${endStr}`);
+            } else if (startStr) {
+              tooltipParts.push(`Scheduled: starts ${startStr}`);
+            } else if (endStr) {
+              tooltipParts.push(`Scheduled: ends ${endStr}`);
+            } else {
+              tooltipParts.push("Scheduled");
+            }
+          }
+          if (hasTimeConstraint) {
+            const after = formatTimeShort(avail?.available_after ?? null);
+            const until = formatTimeShort(avail?.available_until ?? null);
+            if (after && until) {
+              tooltipParts.push(`Available ${after}–${until}`);
+            } else if (after) {
+              tooltipParts.push(`Available after ${after}`);
+            } else if (until) {
+              tooltipParts.push(`Available until ${until}`);
+            }
+          }
+          if (hasComment) {
+            tooltipParts.push(`Note: ${avail!.comment}`);
+          }
+          const cellTooltip = tooltipParts.join("\n");
+
           return (
             <button
               key={dateStr}
@@ -553,7 +593,7 @@ function MonthCalendar({
               disabled={(!isPlayDay && !canAddAsSpecial) || isPast}
               className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
-              title={avail?.comment ? `${dateStr}\n${avail.comment}` : dateStr}
+              title={cellTooltip}
             >
               {/* Scheduled game star decoration - visible indicator beyond color */}
               {isConfirmed && (
@@ -618,7 +658,13 @@ function MonthCalendar({
               {isPlayDay && !isPast && hasTimeConstraint && (
                 <span
                   className="absolute bottom-0.5 left-1 text-[10px] leading-none pointer-events-none"
-                  title="Has time constraints"
+                  title={(() => {
+                    const after = formatTimeShort(avail?.available_after ?? null);
+                    const until = formatTimeShort(avail?.available_until ?? null);
+                    if (after && until) return `${after}–${until}`;
+                    if (after) return `After ${after}`;
+                    return `Until ${until}`;
+                  })()}
                 >
                   🕐
                 </span>
@@ -640,7 +686,7 @@ function MonthCalendar({
                     }
                     onEditComment(dateStr);
                   }}
-                  title={hasComment ? "Edit note" : "Add note"}
+                  title={hasComment ? `Edit note: ${avail!.comment}` : "Add note"}
                 >
                   {hasComment ? "💬" : "✏️"}
                 </span>

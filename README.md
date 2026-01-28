@@ -5,8 +5,8 @@ A web app to help groups coordinate game nights. Hosts create games, players mar
 ## Features
 
 - **Multiple Games**: Manage several games at once, each with its own players
-- **Availability Calendar**: Mark availability as available, unavailable, or maybe with optional notes
-- **Smart Suggestions**: Dates ranked by player availability with detailed breakdowns
+- **Availability Calendar**: Mark availability as available, unavailable, or maybe with optional notes and time-of-day constraints
+- **Smart Suggestions**: Dates ranked by player availability with detailed breakdowns and computed time windows
 - **Easy Invites**: Share a simple invite link to add players
 - **Calendar Export**: Download .ics files or subscribe to calendar feeds
 - **Co-GM Support**: Delegate game management to trusted players

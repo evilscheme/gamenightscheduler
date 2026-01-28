@@ -58,7 +58,7 @@ Key tables:
 - `users` - Profiles linked to `auth.users` via id (auto-created on signup via trigger)
 - `games` - Games with host (GM), play days array, invite code, scheduling window, default session times, special play dates
 - `game_memberships` - Players in each game (includes `is_co_gm` flag)
-- `availability` - Available/unavailable/maybe dates per player per game (with optional comment)
+- `availability` - Available/unavailable/maybe dates per player per game (with optional comment, optional `available_after`/`available_until` time constraints)
 - `sessions` - Scheduled game nights (confirmed status with start/end times)
 
 RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_participant()` and `is_game_gm_or_co_gm()` to avoid recursion issues.
@@ -69,7 +69,7 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - All users have GM capabilities by default (`is_gm: true`)
 - Games use invite codes (nanoid-10) for players to join
 - GMs can promote members to co-GMs who can edit games and confirm sessions
-- Availability has three states: available, unavailable, maybe (with optional comment on any state)
+- Availability has three states: available, unavailable, maybe (with optional comment and optional time-of-day constraints on available/maybe)
 - GMs/co-GMs can add special play dates for one-off sessions outside regular play days
 
 ### Assets
@@ -84,7 +84,7 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - `src/lib/availabilityStatus.ts` - Availability state cycling (available → unavailable → maybe)
 - `src/lib/suggestions.ts` - Date suggestion ranking algorithm
 - `src/lib/ics.ts` - ICS (iCalendar) file generation for calendar export
-- `src/lib/formatting.ts` - Time formatting utilities (24h to 12h conversion)
+- `src/lib/formatting.ts` - Time formatting utilities (24h to 12h conversion, compact `formatTimeShort`)
 - `src/lib/gameValidation.ts` - Game form validation
 - `src/lib/bulkAvailability.ts` - Bulk availability marking logic
 - `src/lib/themes.ts` - Theme configuration and utilities
@@ -116,7 +116,7 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 
 - `src/components/calendar/AvailabilityCalendar.tsx` - Interactive multi-month calendar
   - Click dates to cycle: available → unavailable → maybe
-  - Long-press/hover for notes on any date
+  - Long-press/hover for notes and time-of-day constraints on any date
   - Bulk actions: "Mark all remaining/[day] as [status]"
   - GMs can add special play dates on non-play days
   - Visual indicators: play days, confirmed sessions, today
@@ -126,7 +126,9 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - `src/components/games/GameDetailsCard.tsx` - Game settings and info display
 - `src/components/games/PlayersCard.tsx` - Player list and management
 - `src/components/games/SchedulingSuggestions.tsx` - Date suggestions ranked by availability
-  - Shows player breakdown (available/maybe/unavailable/pending)
+  - Shows player breakdown (available/maybe/unavailable/pending) with time annotations
+  - Displays computed time window (earliest start / latest end) from player constraints
+  - Confirm modal pre-fills times based on player constraints and game defaults
   - Separates upcoming vs past sessions
   - Export to calendar (.ics download or webcal://)
 

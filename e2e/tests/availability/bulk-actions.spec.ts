@@ -46,15 +46,15 @@ test.describe('Bulk Availability Actions', () => {
     // Get upcoming Fridays to verify
     const fridays = getPlayDates([5], 4); // Next 4 weeks of Fridays
 
-    // Wait for the first Friday to turn green (async operations need time)
+    // Wait for the first Friday to be marked as available
     const firstFriday = page.locator(`button[data-date="${fridays[0]}"]`);
-    await expect(firstFriday).toHaveClass(/bg-cal-available-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(firstFriday).toHaveAttribute('data-status', 'available', { timeout: TEST_TIMEOUTS.DEFAULT });
 
-    // Verify another Friday is also green
+    // Verify another Friday is also available
     if (fridays.length > 1) {
       const secondFriday = page.locator(`button[data-date="${fridays[1]}"]`);
       if (await secondFriday.count() > 0) {
-        await expect(secondFriday).toHaveClass(/bg-cal-available-bg/);
+        await expect(secondFriday).toHaveAttribute('data-status', 'available');
       }
     }
   });
@@ -105,15 +105,15 @@ test.describe('Bulk Availability Actions', () => {
     // Get upcoming Saturdays to verify
     const saturdays = getPlayDates([6], 4); // Next 4 weeks of Saturdays
 
-    // Wait for the first Saturday to turn red (async operations need time)
+    // Wait for the first Saturday to be marked as unavailable
     const firstSaturday = page.locator(`button[data-date="${saturdays[0]}"]`);
-    await expect(firstSaturday).toHaveClass(/bg-cal-unavailable-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(firstSaturday).toHaveAttribute('data-status', 'unavailable', { timeout: TEST_TIMEOUTS.DEFAULT });
 
-    // Verify another Saturday is also red
+    // Verify another Saturday is also unavailable
     if (saturdays.length > 1) {
       const secondSaturday = page.locator(`button[data-date="${saturdays[1]}"]`);
       if (await secondSaturday.count() > 0) {
-        await expect(secondSaturday).toHaveClass(/bg-cal-unavailable-bg/);
+        await expect(secondSaturday).toHaveAttribute('data-status', 'unavailable');
       }
     }
   });
@@ -160,9 +160,9 @@ test.describe('Bulk Availability Actions', () => {
     const fridays = getPlayDates([5], 4);
     const firstFriday = fridays[0];
 
-    // Verify it's green before reload (wait for async operation)
+    // Verify it's available before reload (wait for async operation)
     const dateButton = page.locator(`button[data-date="${firstFriday}"]`);
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(dateButton).toHaveAttribute('data-status', 'available', { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // Reload the page
     await page.reload();
@@ -176,9 +176,9 @@ test.describe('Bulk Availability Actions', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Verify the Friday is still green after reload
+    // Verify the Friday is still available after reload
     const dateButtonAfterReload = page.locator(`button[data-date="${firstFriday}"]`);
-    await expect(dateButtonAfterReload).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButtonAfterReload).toHaveAttribute('data-status', 'available');
   });
 
   test('bulk mark remaining days only affects unset dates', async ({ page, request }) => {
@@ -216,7 +216,7 @@ test.describe('Bulk Availability Actions', () => {
     const firstFriday = page.locator(`button[data-date="${fridays[0]}"]`);
     await firstFriday.click(); // available
     await firstFriday.click(); // unavailable
-    await expect(firstFriday).toHaveClass(/bg-cal-unavailable-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(firstFriday).toHaveAttribute('data-status', 'unavailable', { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // Now use "remaining days" to mark all unset dates as available
     const dayDropdown = page.locator('select').first();
@@ -225,22 +225,22 @@ test.describe('Bulk Availability Actions', () => {
     const applyButton = page.getByRole('button', { name: /apply/i });
     await applyButton.click();
 
-    // The first Friday should still be red (unavailable) - not overwritten
-    await expect(firstFriday).toHaveClass(/bg-cal-unavailable-bg/);
+    // The first Friday should still be unavailable - not overwritten
+    await expect(firstFriday).toHaveAttribute('data-status', 'unavailable');
 
-    // But other Fridays should be green (available)
+    // But other Fridays should be available
     if (fridays.length > 1) {
       const secondFriday = page.locator(`button[data-date="${fridays[1]}"]`);
       if (await secondFriday.count() > 0) {
-        await expect(secondFriday).toHaveClass(/bg-cal-available-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
+        await expect(secondFriday).toHaveAttribute('data-status', 'available', { timeout: TEST_TIMEOUTS.DEFAULT });
       }
     }
 
-    // Saturdays should also be green
+    // Saturdays should also be available
     const saturdays = getPlayDates([6], 4);
     const firstSaturday = page.locator(`button[data-date="${saturdays[0]}"]`);
     if (await firstSaturday.count() > 0) {
-      await expect(firstSaturday).toHaveClass(/bg-cal-available-bg/);
+      await expect(firstSaturday).toHaveAttribute('data-status', 'available');
     }
   });
 
@@ -284,9 +284,9 @@ test.describe('Bulk Availability Actions', () => {
     const applyButton = page.getByRole('button', { name: /apply/i });
     await applyButton.click();
 
-    // Verify Fridays are yellow/warning (maybe)
+    // Verify Fridays are marked as maybe
     const fridays = getPlayDates([5], 4);
     const firstFriday = page.locator(`button[data-date="${fridays[0]}"]`);
-    await expect(firstFriday).toHaveClass(/bg-cal-maybe-bg/, { timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(firstFriday).toHaveAttribute('data-status', 'maybe', { timeout: TEST_TIMEOUTS.DEFAULT });
   });
 });

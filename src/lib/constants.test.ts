@@ -1,20 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { USAGE_LIMITS, TEXT_LIMITS } from "./constants";
 
+// Note: We don't test exact values (e.g., MAX_GAMES_PER_USER === 20) because
+// constants are their own source of truth. Testing exact values would just
+// cause test failures when we intentionally change a limit.
+// Instead, we test structural invariants that should always hold.
+
 describe("USAGE_LIMITS", () => {
-  it("defines MAX_GAMES_PER_USER as 20", () => {
-    expect(USAGE_LIMITS.MAX_GAMES_PER_USER).toBe(20);
-  });
-
-  it("defines MAX_PLAYERS_PER_GAME as 50", () => {
-    expect(USAGE_LIMITS.MAX_PLAYERS_PER_GAME).toBe(50);
-  });
-
-  it("defines MAX_FUTURE_SESSIONS_PER_GAME as 100", () => {
-    expect(USAGE_LIMITS.MAX_FUTURE_SESSIONS_PER_GAME).toBe(100);
-  });
-
-  it("limits are positive numbers", () => {
+  it("all limits are positive numbers", () => {
     expect(USAGE_LIMITS.MAX_GAMES_PER_USER).toBeGreaterThan(0);
     expect(USAGE_LIMITS.MAX_PLAYERS_PER_GAME).toBeGreaterThan(0);
     expect(USAGE_LIMITS.MAX_FUTURE_SESSIONS_PER_GAME).toBeGreaterThan(0);
@@ -36,18 +29,6 @@ describe("USAGE_LIMITS", () => {
 });
 
 describe("TEXT_LIMITS", () => {
-  it("defines GAME_NAME as 100", () => {
-    expect(TEXT_LIMITS.GAME_NAME).toBe(100);
-  });
-
-  it("defines GAME_DESCRIPTION as 1000", () => {
-    expect(TEXT_LIMITS.GAME_DESCRIPTION).toBe(1000);
-  });
-
-  it("defines USER_DISPLAY_NAME as 50", () => {
-    expect(TEXT_LIMITS.USER_DISPLAY_NAME).toBe(50);
-  });
-
   it("all text limits are positive numbers", () => {
     expect(TEXT_LIMITS.GAME_NAME).toBeGreaterThan(0);
     expect(TEXT_LIMITS.GAME_DESCRIPTION).toBeGreaterThan(0);

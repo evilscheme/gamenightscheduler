@@ -16,7 +16,7 @@ import * as path from 'path';
 const SUPABASE_URL = 'http://localhost:54321';
 const SUPABASE_SERVICE_KEY = 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz';
 
-function getAdminClient() {
+export function getAdminClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
     auth: {
       autoRefreshToken: false,

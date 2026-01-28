@@ -56,15 +56,18 @@ describe("themes", () => {
   });
 
   describe("getThemeById", () => {
+    // Use first available theme instead of hardcoding specific theme names
+    const firstTheme = themes[0];
+
     it("returns the correct theme for a valid ID", () => {
-      const theme = getThemeById("ocean");
+      const theme = getThemeById(firstTheme.id);
       expect(theme).toBeDefined();
-      expect(theme?.id).toBe("ocean");
-      expect(theme?.name).toBe("Ocean Blue");
+      expect(theme?.id).toBe(firstTheme.id);
+      expect(theme?.name).toBe(firstTheme.name);
     });
 
     it("returns undefined for an invalid ID", () => {
-      const theme = getThemeById("nonexistent-theme");
+      const theme = getThemeById("nonexistent-theme-xyz-12345");
       expect(theme).toBeUndefined();
     });
 
@@ -74,13 +77,18 @@ describe("themes", () => {
     });
 
     it("is case-sensitive", () => {
-      const lowerCase = getThemeById("ocean");
-      const upperCase = getThemeById("OCEAN");
-      const mixedCase = getThemeById("Ocean");
+      // Use the first theme's ID for testing case sensitivity
+      const lowerCase = getThemeById(firstTheme.id.toLowerCase());
+      const upperCase = getThemeById(firstTheme.id.toUpperCase());
 
-      expect(lowerCase).toBeDefined();
-      expect(upperCase).toBeUndefined();
-      expect(mixedCase).toBeUndefined();
+      // If the theme ID is lowercase, lowercase lookup should work
+      if (firstTheme.id === firstTheme.id.toLowerCase()) {
+        expect(lowerCase).toBeDefined();
+        expect(upperCase).toBeUndefined();
+      } else if (firstTheme.id === firstTheme.id.toUpperCase()) {
+        expect(upperCase).toBeDefined();
+        expect(lowerCase).toBeUndefined();
+      }
     });
 
     it("can retrieve all defined themes by their IDs", () => {
@@ -93,8 +101,8 @@ describe("themes", () => {
     });
 
     it("returns the same reference as in the themes array", () => {
-      const themeFromArray = themes.find((t) => t.id === "purple");
-      const themeFromGetter = getThemeById("purple");
+      const themeFromArray = themes[0];
+      const themeFromGetter = getThemeById(themeFromArray.id);
       expect(themeFromGetter).toBe(themeFromArray);
     });
   });

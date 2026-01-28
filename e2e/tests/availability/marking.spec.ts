@@ -48,19 +48,19 @@ test.describe('Availability Marking', () => {
     await dateButton.click();
 
     // First click: unset -> available (green)
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     // Second click: available -> unavailable (red)
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-unavailable-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'unavailable');
 
     // Third click: unavailable -> maybe (yellow)
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-maybe-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'maybe');
 
     // Fourth click: maybe -> available (green)
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     // Verify persistence after reload
     await page.reload();
@@ -70,7 +70,7 @@ test.describe('Availability Marking', () => {
     await page.getByRole('button', { name: /availability/i }).click();
 
     const dateButtonAfterReload = page.locator(`button[data-date="${targetDate}"]`);
-    await expect(dateButtonAfterReload).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButtonAfterReload).toHaveAttribute('data-status', 'available');
   });
 
   test('click available date to toggle to unavailable', async ({ page, request }) => {
@@ -118,19 +118,19 @@ test.describe('Availability Marking', () => {
     // Cycle: unset -> available (yes) -> unavailable (no) -> maybe -> available
     // Click to get to available first
     await dateButton.click(); // unset -> available (green)
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     // Click to get to unavailable (red)
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-unavailable-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'unavailable');
 
     // Click to get to maybe (yellow)
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-maybe-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'maybe');
 
     // Click again to toggle back to available (green)
     await dateButton.click(); // maybe -> available (green)
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
   });
 
   test('cannot mark past dates', async ({ page, request }) => {
@@ -231,8 +231,8 @@ test.describe('Availability Marking', () => {
     // Monday should be disabled since it's not a play day (for players)
     if (await mondayButton.count() > 0) {
       await expect(mondayButton).toBeDisabled();
-      // Should have non-play day styling (cross-hatched)
-      await expect(mondayButton).toHaveClass(/bg-cal-disabled-bg/);
+      // Should have non-play day status
+      await expect(mondayButton).toHaveAttribute('data-status', 'disabled');
     }
   });
 
@@ -272,7 +272,7 @@ test.describe('Availability Marking', () => {
 
     // Click once to mark as available
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     // Available date should show edit icon (pencil emoji) for adding notes
     const editIcon = dateButton.locator('span:has-text("✏️")');
@@ -339,7 +339,7 @@ test.describe('Availability Marking', () => {
 
     // Click to mark as available and add a note
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     const editIcon = dateButton.locator('span:has-text("✏️")');
     await editIcon.click();
@@ -353,17 +353,17 @@ test.describe('Availability Marking', () => {
 
     // Cycle to unavailable - note should persist
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-unavailable-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'unavailable');
     await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
 
     // Cycle to maybe - note should persist
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-maybe-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'maybe');
     await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
 
     // Cycle back to available - note should still persist
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
     await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
 
     // Verify the note content is still there by clicking edit

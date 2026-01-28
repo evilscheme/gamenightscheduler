@@ -1,20 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
-import { createTestGame } from '../../helpers/seed';
-import { createClient } from '@supabase/supabase-js';
+import { createTestGame, getAdminClient } from '../../helpers/seed';
 import { USAGE_LIMITS } from '../../../src/lib/constants';
 
-// Admin client for direct database access
-const admin = createClient(
-  'http://localhost:54321',
-  'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz',
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
+// Admin client for direct database access (imported from seed.ts for consistency)
+const admin = getAdminClient();
 
 /**
  * Usage Limits Tests

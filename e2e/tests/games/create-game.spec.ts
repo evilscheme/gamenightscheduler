@@ -34,20 +34,8 @@ test.describe('Game Creation', () => {
     await expect(page.getByRole('heading', { name: /test game night/i })).toBeVisible();
   });
 
-  test('non-GM is redirected away from create game page', async ({ page }) => {
-    // Create a non-GM user
-    await loginTestUser(page, {
-      email: `player-create-${Date.now()}@e2e.local`,
-      name: 'Player User',
-      is_gm: false,
-    });
-
-    // Try to navigate to create game page - will redirect non-GM to dashboard
-    await page.goto('/games/new');
-
-    // Should be redirected to dashboard (wait for auth/profile to load and redirect to trigger)
-    await expect(page).toHaveURL('/dashboard', );
-  });
+  // Note: "non-GM is redirected away from create game page" test removed
+  // - All users have GM capabilities by default (is_gm: true)
 
   test('shows validation error when no play days selected', async ({ page }) => {
     await loginTestUser(page, {

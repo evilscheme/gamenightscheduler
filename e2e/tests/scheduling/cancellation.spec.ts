@@ -146,12 +146,9 @@ test.describe('Session Cancellation', () => {
       play_days: [5, 6],
     });
 
-    // Add player to game
-    const { createClient } = await import('@supabase/supabase-js');
-    const admin = createClient(
-      'http://localhost:54321',
-      'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz'
-    );
+    // Add player to game using the centralized admin client
+    const { getAdminClient } = await import('../../helpers/seed');
+    const admin = getAdminClient();
     await admin.from('game_memberships').insert({
       game_id: game.id,
       user_id: player.id,

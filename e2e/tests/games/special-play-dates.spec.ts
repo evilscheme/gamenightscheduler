@@ -93,9 +93,8 @@ test.describe('Special Play Dates', () => {
     const addIcon = dayButton.locator('span:has-text("+")');
     await addIcon.click();
 
-    // After clicking, the day should now have a dashed border (special play date indicator)
-    // and the "+" icon should be replaced with "-"
-    await expect(dayButton).toHaveClass(/border-dashed/);
+    // After clicking, the day should now be marked as a special play date
+    await expect(dayButton).toHaveAttribute('data-special', 'true');
 
     // Now hover again to verify the "-" icon appears
     await dayButton.hover();
@@ -132,17 +131,17 @@ test.describe('Special Play Dates', () => {
     await page.getByRole('button', { name: /availability/i }).click();
     await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
-    // Find the special play date - it should have dashed border
+    // Find the special play date - it should have data-special attribute
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
-    await expect(dayButton).toHaveClass(/border-dashed/);
+    await expect(dayButton).toHaveAttribute('data-special', 'true');
 
     // Hover and click the "-" icon to remove
     await dayButton.hover();
     const removeIcon = dayButton.locator('span:has-text("-")');
     await removeIcon.click();
 
-    // After removing, the day should go back to being a non-play day (cross-hatched)
-    await expect(dayButton).toHaveClass(/bg-cal-disabled-bg/);
+    // After removing, the day should go back to being a non-play day (disabled status)
+    await expect(dayButton).toHaveAttribute('data-status', 'disabled');
   });
 
   test('special play dates appear as playable for availability marking', async ({ page, request }) => {
@@ -177,12 +176,12 @@ test.describe('Special Play Dates', () => {
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.click();
 
-    // Should turn green (available)
-    await expect(dayButton).toHaveClass(/bg-cal-available-bg/);
+    // Should be marked as available
+    await expect(dayButton).toHaveAttribute('data-status', 'available');
 
     // Click again to cycle to unavailable
     await dayButton.click();
-    await expect(dayButton).toHaveClass(/bg-cal-unavailable-bg/);
+    await expect(dayButton).toHaveAttribute('data-status', 'unavailable');
   });
 
   test('players can mark availability on special play dates', async ({ page, request }) => {
@@ -226,8 +225,8 @@ test.describe('Special Play Dates', () => {
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.click();
 
-    // Should turn green (available)
-    await expect(dayButton).toHaveClass(/bg-cal-available-bg/);
+    // Should be marked as available
+    await expect(dayButton).toHaveAttribute('data-status', 'available');
   });
 
   test('players cannot enable/disable special play dates (no +/- icons)', async ({ page, request }) => {

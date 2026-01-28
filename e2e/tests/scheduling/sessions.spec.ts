@@ -54,45 +54,9 @@ test.describe('Session Scheduling', () => {
     await expect(page.getByText(/date suggestions/i)).toBeVisible();
   });
 
-  test('GM can see confirm button on suggestions', async ({ page, request }) => {
-    const gm = await createTestUser(request, {
-      email: `gm-confirm-${Date.now()}@e2e.local`,
-      name: 'Confirm GM',
-      is_gm: true,
-    });
-
-    const game = await createTestGame({
-      gm_id: gm.id,
-      name: 'Confirm Campaign',
-      play_days: [5, 6],
-    });
-
-    // Add availability
-    const playDates = getPlayDates([5, 6], 2);
-    if (playDates.length > 0) {
-      await setAvailability(gm.id, game.id, [{ date: playDates[0], is_available: true }]);
-    }
-
-    await loginTestUser(page, {
-      email: gm.email,
-      name: gm.name,
-      is_gm: true,
-    });
-
-    await page.goto(`/games/${game.id}`);
-
-    // Switch to schedule tab (wait for button then click)
-    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
-    await page.getByRole('button', { name: /schedule/i }).click();
-
-    // Should see confirm button (only for GM)
-    const confirmButtons = page.getByRole('button', { name: /confirm/i });
-    const count = await confirmButtons.count();
-
-    // May or may not have suggestions depending on availability data
-    // This test verifies the UI renders correctly
-    expect(count).toBeGreaterThanOrEqual(0);
-  });
+  // Note: "GM can see confirm button" test removed - it was a no-op assertion
+  // (toBeGreaterThanOrEqual(0) always passes). Confirm button functionality
+  // is tested thoroughly in confirmation.spec.ts
 
   test('player does not see confirm button', async ({ page, request }) => {
     const gm = await createTestUser(request, {

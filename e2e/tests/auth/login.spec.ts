@@ -63,7 +63,7 @@ test.describe('Authentication', () => {
 
   // Note: "Create New Game" button tests removed - all users are now GMs by default
 
-  test('user can sign out', async ({ page }) => {
+  test('user can sign out and session is properly cleared', async ({ page }) => {
     // Create and sign in a test user
     await loginTestUser(page, {
       email: `signout-test-${Date.now()}@e2e.local`,
@@ -76,65 +76,18 @@ test.describe('Authentication', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Click sign out button (desktop version)
+    // Click sign out button
     await page.getByRole('button', { name: /sign out/i }).click();
 
     // Should be redirected to login page
     await expect(page).toHaveURL(/\/login/);
-
-    // Should see login page elements
     await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible();
-  });
 
-  test('signed out user cannot access protected routes', async ({ page }) => {
-    // Create and sign in a test user
-    await loginTestUser(page, {
-      email: `signout-protect-${Date.now()}@e2e.local`,
-      name: 'Protect User',
-      is_gm: false,
-    });
-
-    // Verify we're authenticated
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({
-      timeout: TEST_TIMEOUTS.LONG,
-    });
-
-    // Sign out
-    await page.getByRole('button', { name: /sign out/i }).click();
-
-    // Wait for redirect to login
-    await expect(page).toHaveURL(/\/login/);
-
-    // Try to access dashboard directly
+    // Verify session is cleared - protected routes should redirect to login
     await page.goto('/dashboard');
-
-    // Should be redirected back to login
-    await expect(page).toHaveURL(/\/login/);
-  });
-
-  test('sign out clears session properly', async ({ page }) => {
-    // Create and sign in a test user
-    await loginTestUser(page, {
-      email: `signout-session-${Date.now()}@e2e.local`,
-      name: 'Session User',
-      is_gm: false,
-    });
-
-    // Verify we're authenticated
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({
-      timeout: TEST_TIMEOUTS.LONG,
-    });
-
-    // Sign out
-    await page.getByRole('button', { name: /sign out/i }).click();
-
-    // Wait for redirect to login
     await expect(page).toHaveURL(/\/login/);
 
-    // Try to access settings directly
     await page.goto('/settings');
-
-    // Should be redirected to login
     await expect(page).toHaveURL(/\/login/);
   });
 });

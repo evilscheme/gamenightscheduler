@@ -44,7 +44,7 @@ test.describe('Time Availability Constraints', () => {
 
     // Click to mark as available
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     // Open note editor via pencil icon
     const editIcon = dateButton.locator('span:has-text("✏️")');
@@ -119,7 +119,7 @@ test.describe('Time Availability Constraints', () => {
     // Click twice: unset -> available -> unavailable
     await dateButton.click();
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-unavailable-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'unavailable');
 
     // Open note editor
     const editIcon = dateButton.locator('span:has-text("✏️")');
@@ -280,7 +280,7 @@ test.describe('Time Availability Constraints', () => {
 
     // Mark as available and set time constraint
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     const editIcon = dateButton.locator('span:has-text("✏️")');
     await editIcon.click();
@@ -294,18 +294,18 @@ test.describe('Time Availability Constraints', () => {
 
     // Cycle to unavailable
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-unavailable-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'unavailable');
 
     // Cycle to maybe
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-maybe-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'maybe');
 
     // Clock icon should still be visible on maybe
     await expect(dateButton.locator('span:has-text("🕐")')).toBeVisible();
 
     // Cycle back to available
     await dateButton.click();
-    await expect(dateButton).toHaveClass(/bg-cal-available-bg/);
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     // Clock icon should persist
     await expect(dateButton.locator('span:has-text("🕐")')).toBeVisible();

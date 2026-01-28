@@ -580,6 +580,21 @@ function MonthCalendar({
           }
           const cellTooltip = tooltipParts.join("\n");
 
+          // Data attribute for testing - represents the cell state
+          const dataStatus = isConfirmed
+            ? "scheduled"
+            : isPast
+              ? "past"
+              : !isPlayDay
+                ? "disabled"
+                : avail?.status === "available"
+                  ? "available"
+                  : avail?.status === "unavailable"
+                    ? "unavailable"
+                    : avail?.status === "maybe"
+                      ? "maybe"
+                      : "unset";
+
           return (
             <button
               key={dateStr}
@@ -594,6 +609,8 @@ function MonthCalendar({
               className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}
+              data-status={dataStatus}
+              data-special={isSpecialPlayDate ? "true" : undefined}
               title={cellTooltip}
             >
               {/* Scheduled game star decoration - visible indicator beyond color */}

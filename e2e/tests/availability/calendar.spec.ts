@@ -31,9 +31,10 @@ test.describe('Availability Calendar', () => {
     // Should see "Mark Your Availability" heading
     await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
-    // Should see day headers (S, M, T, W, T, F, S in the calendar)
-    await expect(page.getByText(/^S$/).first()).toBeVisible();
-    await expect(page.getByText(/^F$/).first()).toBeVisible();
+    // Verify calendar grid is rendered by checking for day buttons with data-date attribute
+    // This is more robust than checking for single-letter day headers which can match other text
+    const calendarDays = page.locator('button[data-date]');
+    await expect(calendarDays.first()).toBeVisible();
   });
 
   test('player can see availability tab', async ({ page, request }) => {

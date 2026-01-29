@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Dice6, Frown } from 'lucide-react';
 import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { DAY_LABELS, USAGE_LIMITS } from '@/lib/constants';
@@ -111,7 +112,7 @@ export default function JoinGamePage() {
       {error ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <span className="text-5xl mb-4 block">😕</span>
+            <Frown className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold text-card-foreground mb-2">Invite Not Found</h2>
             <p className="text-muted-foreground mb-6">{error}</p>
             <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
@@ -121,7 +122,11 @@ export default function JoinGamePage() {
         <Card>
           <CardContent className="py-8">
             <div className="text-center mb-6">
-              <span className="text-5xl mb-4 block">{isGameFull && !alreadyMember ? '😕' : '🎲'}</span>
+              {isGameFull && !alreadyMember ? (
+                <Frown className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              ) : (
+                <Dice6 className="w-12 h-12 mx-auto mb-4 text-primary" />
+              )}
               <h1 className="text-2xl font-bold text-card-foreground">
                 {alreadyMember
                   ? "You're already in this game!"

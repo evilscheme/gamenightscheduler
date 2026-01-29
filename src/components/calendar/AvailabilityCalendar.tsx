@@ -13,6 +13,7 @@ import {
   startOfDay,
   parseISO,
 } from "date-fns";
+import { Clock, MessageSquare, Pencil, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import type { GameSession, AvailabilityStatus } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
@@ -639,7 +640,7 @@ function MonthCalendar({
               {/* GM: Add special play date icon on non-play days */}
               {canAddAsSpecial && onToggleSpecialDate && (
                 <span
-                  className="absolute top-0.5 left-0.5 text-[10px] leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-primary"
+                  className="absolute top-0.5 left-0.5 leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
                     // Prevent click after long-press (mobile)
@@ -651,13 +652,13 @@ function MonthCalendar({
                   }}
                   title="Enable as special play date"
                 >
-                  +
+                  <Plus className="w-2.5 h-2.5" />
                 </span>
               )}
               {/* GM: Remove special play date icon */}
               {canRemoveSpecial && onToggleSpecialDate && (
                 <span
-                  className="absolute top-0.5 left-0.5 text-[10px] leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-danger"
+                  className="absolute top-0.5 left-0.5 leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-danger"
                   onClick={(e) => {
                     e.stopPropagation();
                     // Prevent click after long-press (mobile)
@@ -669,13 +670,13 @@ function MonthCalendar({
                   }}
                   title="Remove special play date"
                 >
-                  -
+                  <X className="w-2.5 h-2.5" />
                 </span>
               )}
               {/* Time constraint clock icon */}
               {isPlayDay && !isPast && hasTimeConstraint && (
                 <span
-                  className="absolute bottom-0.5 left-1 text-[10px] leading-none pointer-events-none"
+                  className="absolute bottom-0.5 left-1 leading-none pointer-events-none"
                   title={(() => {
                     const after = formatTimeShort(avail?.available_after ?? null);
                     const until = formatTimeShort(avail?.available_until ?? null);
@@ -684,13 +685,13 @@ function MonthCalendar({
                     return `Until ${until}`;
                   })()}
                 >
-                  🕐
+                  <Clock className="w-2.5 h-2.5" />
                 </span>
               )}
               {/* Note/comment icon for play days */}
               {isPlayDay && !isPast && hasAvailability && (
                 <span
-                  className={`absolute bottom-0.5 right-1 text-xs leading-none cursor-pointer hover:scale-125 transition-all ${
+                  className={`absolute bottom-0.5 right-1 leading-none cursor-pointer hover:scale-125 transition-all ${
                     hasComment
                       ? "opacity-100"
                       : "opacity-0 group-hover:opacity-100"
@@ -706,7 +707,7 @@ function MonthCalendar({
                   }}
                   title={hasComment ? `Edit note: ${avail!.comment}` : "Add note"}
                 >
-                  {hasComment ? "💬" : "✏️"}
+                  {hasComment ? <MessageSquare className="w-2.5 h-2.5" /> : <Pencil className="w-2.5 h-2.5" />}
                 </span>
               )}
             </button>

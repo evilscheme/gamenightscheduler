@@ -275,7 +275,7 @@ test.describe('Availability Marking', () => {
     await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     // Available date should show edit icon (pencil emoji) for adding notes
-    const editIcon = dateButton.locator('span:has-text("✏️")');
+    const editIcon = dateButton.locator('span[title="Add note"]');
     await expect(editIcon).toBeVisible();
 
     // Click the edit icon to open note popover
@@ -290,7 +290,7 @@ test.describe('Availability Marking', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Note icon should now show comment bubble instead of pencil
-    const commentIcon = dateButton.locator('span:has-text("💬")');
+    const commentIcon = dateButton.locator('span[title^="Edit note"]');
     await expect(commentIcon).toBeVisible();
 
     // Verify note persists after reload
@@ -301,7 +301,7 @@ test.describe('Availability Marking', () => {
     await page.getByRole('button', { name: /availability/i }).click();
 
     const dateButtonAfterReload = page.locator(`button[data-date="${targetDate}"]`);
-    await expect(dateButtonAfterReload.locator('span:has-text("💬")')).toBeVisible();
+    await expect(dateButtonAfterReload.locator('span[title^="Edit note"]')).toBeVisible();
   });
 
   test('notes persist when cycling through availability states', async ({ page, request }) => {
@@ -341,7 +341,7 @@ test.describe('Availability Marking', () => {
     await dateButton.click();
     await expect(dateButton).toHaveAttribute('data-status', 'available');
 
-    const editIcon = dateButton.locator('span:has-text("✏️")');
+    const editIcon = dateButton.locator('span[title="Add note"]');
     await editIcon.click();
 
     const noteInput = page.locator('input[placeholder*="Depends on work"]');
@@ -349,25 +349,25 @@ test.describe('Availability Marking', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Verify note icon shows
-    await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
+    await expect(dateButton.locator('span[title^="Edit note"]')).toBeVisible();
 
     // Cycle to unavailable - note should persist
     await dateButton.click();
     await expect(dateButton).toHaveAttribute('data-status', 'unavailable');
-    await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
+    await expect(dateButton.locator('span[title^="Edit note"]')).toBeVisible();
 
     // Cycle to maybe - note should persist
     await dateButton.click();
     await expect(dateButton).toHaveAttribute('data-status', 'maybe');
-    await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
+    await expect(dateButton.locator('span[title^="Edit note"]')).toBeVisible();
 
     // Cycle back to available - note should still persist
     await dateButton.click();
     await expect(dateButton).toHaveAttribute('data-status', 'available');
-    await expect(dateButton.locator('span:has-text("💬")')).toBeVisible();
+    await expect(dateButton.locator('span[title^="Edit note"]')).toBeVisible();
 
     // Verify the note content is still there by clicking edit
-    const commentIcon = dateButton.locator('span:has-text("💬")');
+    const commentIcon = dateButton.locator('span[title^="Edit note"]');
     await commentIcon.click();
 
     const noteInputAfterCycle = page.locator('input[placeholder*="Depends on work"]');

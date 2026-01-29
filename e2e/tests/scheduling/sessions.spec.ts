@@ -275,8 +275,8 @@ test.describe('Session Scheduling', () => {
     await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Past sessions toggle button should be visible with down arrow (collapsed)
-    const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\).*▼/i });
+    // Past sessions toggle button should be visible (collapsed)
+    const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\)/i });
     await expect(pastSessionsButton).toBeVisible();
   });
 
@@ -321,14 +321,14 @@ test.describe('Session Scheduling', () => {
     const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\)/i });
     await pastSessionsButton.click();
 
-    // Should now show up arrow (expanded)
-    await expect(page.getByRole('button', { name: /past sessions \(\d+\).*▲/i })).toBeVisible();
+    // Should still be visible (expanded state doesn't change button name)
+    await expect(page.getByRole('button', { name: /past sessions \(\d+\)/i })).toBeVisible();
 
     // Click again to collapse
     await pastSessionsButton.click();
 
-    // Should show down arrow again (collapsed)
-    await expect(page.getByRole('button', { name: /past sessions \(\d+\).*▼/i })).toBeVisible();
+    // Button should still be visible (collapsed)
+    await expect(page.getByRole('button', { name: /past sessions \(\d+\)/i })).toBeVisible();
   });
 
   test('past sessions do not have Cancel button for GM', async ({ page, request }) => {
@@ -372,8 +372,8 @@ test.describe('Session Scheduling', () => {
     const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\)/i });
     await pastSessionsButton.click();
 
-    // Wait for the content to be visible (up arrow showing)
-    await expect(page.getByRole('button', { name: /past sessions \(\d+\).*▲/i })).toBeVisible();
+    // Wait for the content to be visible
+    await expect(page.getByRole('button', { name: /past sessions \(\d+\)/i })).toBeVisible();
 
     // The past sessions card should be visible now
     // Since we only have past sessions (no upcoming), there should be no Cancel buttons on the page

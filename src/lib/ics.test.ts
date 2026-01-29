@@ -220,4 +220,65 @@ describe("generateICS", () => {
 
     expect(result).not.toContain("LOCATION:");
   });
+
+  it("includes TZID when timezone is provided for timed event", () => {
+    const result = generateICS([
+      {
+        date: "2025-01-20",
+        startTime: "18:00",
+        endTime: "22:00",
+        title: "Game Night",
+        timezone: "America/Los_Angeles",
+      },
+    ]);
+
+    expect(result).toContain("DTSTART;TZID=America/Los_Angeles:20250120T180000");
+    expect(result).toContain("DTEND;TZID=America/Los_Angeles:20250120T220000");
+  });
+
+  it("uses floating time when no timezone provided", () => {
+    const result = generateICS([
+      {
+        date: "2025-01-20",
+        startTime: "18:00",
+        endTime: "22:00",
+        title: "Game Night",
+      },
+    ]);
+
+    // No TZID - floating time format
+    expect(result).toContain("DTSTART:20250120T180000");
+    expect(result).toContain("DTEND:20250120T220000");
+    expect(result).not.toContain("TZID");
+  });
+
+  it("handles various timezone identifiers", () => {
+    const result = generateICS([
+      {
+        date: "2025-01-20",
+        startTime: "18:00",
+        endTime: "22:00",
+        title: "Game Night",
+        timezone: "Europe/London",
+      },
+    ]);
+
+    expect(result).toContain("DTSTART;TZID=Europe/London:20250120T180000");
+    expect(result).toContain("DTEND;TZID=Europe/London:20250120T220000");
+  });
+
+  it("does not include TZID for all-day events", () => {
+    const result = generateICS([
+      {
+        date: "2025-01-20",
+        title: "Game Night",
+        timezone: "America/Los_Angeles",
+      },
+    ]);
+
+    // All-day events use VALUE=DATE format, no TZID
+    expect(result).toContain("DTSTART;VALUE=DATE:20250120");
+    expect(result).toContain("DTEND;VALUE=DATE:20250120");
+    expect(result).not.toContain("TZID");
+  });
 });

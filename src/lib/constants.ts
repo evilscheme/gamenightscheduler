@@ -35,3 +35,25 @@ export const TEXT_LIMITS = {
   GAME_DESCRIPTION: 1000,
   USER_DISPLAY_NAME: 50,
 } as const;
+
+// Default timezone for new games (used when browser detection fails)
+export const DEFAULT_TIMEZONE = 'America/Los_Angeles';
+
+// Common timezones for the dropdown (grouped by region)
+export const TIMEZONE_OPTIONS = [
+  // North America
+  { value: 'America/Los_Angeles', label: 'Pacific Time (Los Angeles)' },
+  { value: 'America/Denver', label: 'Mountain Time (Denver)' },
+  { value: 'America/Chicago', label: 'Central Time (Chicago)' },
+  { value: 'America/New_York', label: 'Eastern Time (New York)' },
+  // Europe
+  { value: 'Europe/London', label: 'UK Time (London)' },
+  { value: 'Europe/Paris', label: 'Central European Time (Paris)' },
+  { value: 'Europe/Berlin', label: 'Central European Time (Berlin)' },
+  // Asia/Pacific
+  { value: 'Asia/Tokyo', label: 'Japan Time (Tokyo)' },
+  { value: 'Asia/Shanghai', label: 'China Time (Shanghai)' },
+  { value: 'Australia/Sydney', label: 'Australian Eastern Time (Sydney)' },
+  // UTC
+  { value: 'UTC', label: 'UTC' },
+] as const;

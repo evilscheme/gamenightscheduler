@@ -152,7 +152,7 @@ test.describe('Game Edit Page', () => {
     await expect(page.getByRole('button', { name: 'Friday' })).toHaveClass(/bg-primary/);
 
     // Check scheduling window
-    await expect(page.getByRole('combobox')).toHaveValue('3');
+    await expect(page.locator('label:has-text("Scheduling Window")').locator('..').locator('select')).toHaveValue('3');
 
     // Check default times
     const startTimeInput = page.locator('input[type="time"]').first();

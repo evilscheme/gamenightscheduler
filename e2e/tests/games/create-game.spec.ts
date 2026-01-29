@@ -94,7 +94,7 @@ test.describe('Game Creation', () => {
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Change scheduling window to 3 months
-    await page.getByRole('combobox').selectOption('3');
+    await page.locator('label:has-text("Scheduling Window")').locator('..').locator('select').selectOption('3');
 
     // Fill required fields
     await page.getByPlaceholder(/friday night board games/i).fill('Long Window Game');

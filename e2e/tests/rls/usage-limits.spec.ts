@@ -156,27 +156,27 @@ test.describe('Usage Limits - RLS Policy Enforcement', () => {
 
       // Create 100 future sessions using admin client
       const today = new Date();
-      const sessionPromises = [];
       for (let i = 0; i < USAGE_LIMITS.MAX_FUTURE_SESSIONS_PER_GAME; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i + 1);
-        const dateStr = date.toISOString().split('T')[0];
+        // Use local date format (not UTC) to avoid timezone shifts
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
 
-        sessionPromises.push(
-          admin.from('sessions').insert({
-            game_id: game.id,
-            date: dateStr,
-            status: 'confirmed',
-            confirmed_by: gm.id,
-            start_time: '18:00',
-            end_time: '22:00',
-          })
-        );
-      }
+        const { error } = await admin.from('sessions').insert({
+          game_id: game.id,
+          date: dateStr,
+          status: 'confirmed',
+          confirmed_by: gm.id,
+          start_time: '18:00',
+          end_time: '22:00',
+        });
 
-      // Insert in batches to avoid connection limits
-      for (let i = 0; i < sessionPromises.length; i += 10) {
-        await Promise.all(sessionPromises.slice(i, i + 10));
+        if (error) {
+          throw new Error(`Failed to insert session ${i}: ${error.message}`);
+        }
       }
 
       // Verify we have 100 sessions

@@ -26,7 +26,7 @@ export async function GET(
     // Fetch game by invite code
     const { data: game, error: gameError } = await admin
       .from('games')
-      .select('id, name, description, default_start_time, default_end_time')
+      .select('id, name, description, default_start_time, default_end_time, timezone')
       .eq('invite_code', code)
       .single();
 
@@ -34,7 +34,7 @@ export async function GET(
       return new Response('Game not found', { status: 404 });
     }
 
-    const typedGame = game as Pick<Game, 'id' | 'name' | 'description' | 'default_start_time' | 'default_end_time'>;
+    const typedGame = game as Pick<Game, 'id' | 'name' | 'description' | 'default_start_time' | 'default_end_time' | 'timezone'>;
 
     // Fetch confirmed sessions for this game
     const { data: sessions, error: sessionsError } = await admin
@@ -58,6 +58,7 @@ export async function GET(
       endTime: session.end_time || typedGame.default_end_time || undefined,
       title: typedGame.name,
       description: typedGame.description || undefined,
+      timezone: typedGame.timezone || undefined,
     }));
 
     // Generate ICS content

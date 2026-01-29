@@ -26,7 +26,7 @@ test.describe('Dashboard Games', () => {
     });
 
     // Should show welcome empty state
-    await expect(page.getByText(/welcome to can we play/i)).toBeVisible();
+    await expect(page.getByText(/can we play/i)).toBeVisible();
 
     // Should show both options: Create and Join
     await expect(page.getByRole('heading', { name: /create a game/i })).toBeVisible();

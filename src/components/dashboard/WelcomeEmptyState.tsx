@@ -45,7 +45,7 @@ export function WelcomeEmptyState() {
           className="mx-auto mb-4"
         />
         <h2 className="text-2xl font-bold text-foreground mb-2">
-          Welcome to Can We Play?
+          Can We Play?
         </h2>
         <p className="text-muted-foreground max-w-md mx-auto">
           Schedule game nights with your group. Create a new game or join an

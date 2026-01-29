@@ -33,7 +33,7 @@ function LoginContent() {
         <div className="bg-card rounded-xl shadow-lg border border-border p-8">
           <div className="text-center mb-8">
             <Image src="/logo.png" alt="Can We Play?" width={64} height={64} className="mx-auto" />
-            <h1 className="text-2xl font-bold text-card-foreground mt-4">Welcome to Can We Play?</h1>
+            <h1 className="text-2xl font-bold text-card-foreground mt-4">Can We Play?</h1>
             <p className="text-muted-foreground mt-2">Sign in to start scheduling your game nights</p>
           </div>
 

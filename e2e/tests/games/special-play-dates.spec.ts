@@ -20,7 +20,7 @@ function getNonPlayDayDate(): string {
 }
 
 test.describe('Special Play Dates', () => {
-  test('GM can see "+" icon on non-play days when hovering', async ({ page, request }) => {
+  test('GM can see add icon on non-play days when hovering', async ({ page, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-special-${Date.now()}@e2e.local`,
       name: 'Special Dates GM',
@@ -54,8 +54,8 @@ test.describe('Special Play Dates', () => {
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.hover();
 
-    // Should see the "+" icon appear on hover
-    const addIcon = dayButton.locator('span:has-text("+")');
+    // Should see the add icon appear on hover
+    const addIcon = dayButton.locator('span[title="Enable as special play date"]');
     await expect(addIcon).toBeVisible();
   });
 
@@ -86,19 +86,19 @@ test.describe('Special Play Dates', () => {
 
     const nonPlayDate = getNonPlayDayDate();
 
-    // Find the non-play day button and click the "+" icon
+    // Find the non-play day button and click the add icon
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.hover();
 
-    const addIcon = dayButton.locator('span:has-text("+")');
+    const addIcon = dayButton.locator('span[title="Enable as special play date"]');
     await addIcon.click();
 
     // After clicking, the day should now be marked as a special play date
     await expect(dayButton).toHaveAttribute('data-special', 'true');
 
-    // Now hover again to verify the "-" icon appears
+    // Now hover again to verify the remove icon appears
     await dayButton.hover();
-    const removeIcon = dayButton.locator('span:has-text("-")');
+    const removeIcon = dayButton.locator('span[title="Remove special play date"]');
     await expect(removeIcon).toBeVisible();
   });
 
@@ -135,9 +135,9 @@ test.describe('Special Play Dates', () => {
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await expect(dayButton).toHaveAttribute('data-special', 'true');
 
-    // Hover and click the "-" icon to remove
+    // Hover and click the remove icon
     await dayButton.hover();
-    const removeIcon = dayButton.locator('span:has-text("-")');
+    const removeIcon = dayButton.locator('span[title="Remove special play date"]');
     await removeIcon.click();
 
     // After removing, the day should go back to being a non-play day (disabled status)
@@ -229,7 +229,7 @@ test.describe('Special Play Dates', () => {
     await expect(dayButton).toHaveAttribute('data-status', 'available');
   });
 
-  test('players cannot enable/disable special play dates (no +/- icons)', async ({ page, request }) => {
+  test('players cannot enable/disable special play dates (no add/remove icons)', async ({ page, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-no-icons-${Date.now()}@e2e.local`,
       name: 'No Icons GM',
@@ -269,8 +269,8 @@ test.describe('Special Play Dates', () => {
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.hover();
 
-    // Should NOT see any "+/-" icons as player
-    const addIcon = dayButton.locator('span:has-text("+")');
+    // Should NOT see any add/remove icons as player
+    const addIcon = dayButton.locator('span[title="Enable as special play date"]');
     await expect(addIcon).not.toBeVisible();
   });
 

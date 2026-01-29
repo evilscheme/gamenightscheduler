@@ -9,6 +9,7 @@ interface CalendarEvent {
   title: string;
   description?: string;
   location?: string;
+  timezone?: string; // IANA timezone identifier (e.g., 'America/Los_Angeles')
 }
 
 export function generateICS(events: CalendarEvent[]): string {
@@ -33,8 +34,16 @@ export function generateICS(events: CalendarEvent[]): string {
     if (event.startTime && event.endTime) {
       const startTimeStr = event.startTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
       const endTimeStr = event.endTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
-      lines.push(`DTSTART:${dateStr}T${startTimeStr}`);
-      lines.push(`DTEND:${dateStr}T${endTimeStr}`);
+
+      // Include TZID if timezone is provided
+      if (event.timezone) {
+        lines.push(`DTSTART;TZID=${event.timezone}:${dateStr}T${startTimeStr}`);
+        lines.push(`DTEND;TZID=${event.timezone}:${dateStr}T${endTimeStr}`);
+      } else {
+        // Floating time (no timezone) - interpreted in viewer's local timezone
+        lines.push(`DTSTART:${dateStr}T${startTimeStr}`);
+        lines.push(`DTEND:${dateStr}T${endTimeStr}`);
+      }
     } else {
       lines.push(`DTSTART;VALUE=DATE:${dateStr}`);
       lines.push(`DTEND;VALUE=DATE:${dateStr}`);

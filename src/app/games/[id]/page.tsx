@@ -572,6 +572,7 @@ export default function GameDetailPage() {
             schedulingWindowMonths={game.scheduling_window_months}
             defaultStartTime={game.default_start_time}
             defaultEndTime={game.default_end_time}
+            timezone={game.timezone}
             minPlayersNeeded={game.min_players_needed || 0}
             confirmedSessions={confirmedSessions}
             inviteCode={game.invite_code}
@@ -612,6 +613,7 @@ export default function GameDetailPage() {
           gameName={game.name}
           defaultStartTime={game.default_start_time}
           defaultEndTime={game.default_end_time}
+          timezone={game.timezone}
           minPlayersNeeded={game.min_players_needed || 0}
           onConfirm={handleConfirmSession}
           onCancel={handleCancelSession}

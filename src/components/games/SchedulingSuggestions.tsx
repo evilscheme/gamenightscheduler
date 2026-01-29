@@ -15,6 +15,7 @@ interface SchedulingSuggestionsProps {
   gameName: string;
   defaultStartTime?: string | null;
   defaultEndTime?: string | null;
+  timezone?: string | null;
   minPlayersNeeded?: number;
   onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (date: string) => void;
@@ -27,6 +28,7 @@ export function SchedulingSuggestions({
   gameName,
   defaultStartTime,
   defaultEndTime,
+  timezone,
   minPlayersNeeded = 0,
   onConfirm,
   onCancel,
@@ -108,6 +110,7 @@ export function SchedulingSuggestions({
       startTime: session.start_time || undefined,
       endTime: session.end_time || undefined,
       title: gameName,
+      timezone: timezone || undefined,
     }));
     const ics = generateICS(events);
     downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-sessions.ics`);
@@ -119,6 +122,7 @@ export function SchedulingSuggestions({
       startTime: session.start_time || undefined,
       endTime: session.end_time || undefined,
       title: gameName,
+      timezone: timezone || undefined,
     }]);
     downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-${session.date}.ics`);
   };

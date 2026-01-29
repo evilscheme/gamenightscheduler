@@ -5,6 +5,7 @@ import { Button, Card, CardContent, CardHeader } from "@/components/ui";
 import { GameSession } from "@/types";
 import { DAY_LABELS, TIMEOUTS } from "@/lib/constants";
 import { formatTime } from "@/lib/formatting";
+import { formatTimezoneDisplay } from "@/lib/timezone";
 import { format, parseISO, startOfDay, isBefore } from "date-fns";
 
 interface GameDetailsCardProps {
@@ -12,6 +13,7 @@ interface GameDetailsCardProps {
   schedulingWindowMonths: number;
   defaultStartTime: string | null;
   defaultEndTime: string | null;
+  timezone: string | null;
   minPlayersNeeded?: number;
   confirmedSessions: GameSession[];
   inviteCode: string;
@@ -22,6 +24,7 @@ export function GameDetailsCard({
   schedulingWindowMonths,
   defaultStartTime,
   defaultEndTime,
+  timezone,
   minPlayersNeeded = 0,
   confirmedSessions,
   inviteCode,
@@ -62,6 +65,12 @@ export function GameDetailsCard({
             {formatTime(defaultStartTime)} - {formatTime(defaultEndTime)}
           </p>
         </div>
+        {timezone && (
+          <div>
+            <p className="text-sm text-muted-foreground">Timezone</p>
+            <p className="text-card-foreground">{formatTimezoneDisplay(timezone)}</p>
+          </div>
+        )}
         {minPlayersNeeded > 0 && (
           <div>
             <p className="text-sm text-muted-foreground">Minimum Players</p>

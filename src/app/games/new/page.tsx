@@ -7,7 +7,8 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
-import { DAY_OPTIONS, SESSION_DEFAULTS, USAGE_LIMITS, TEXT_LIMITS } from '@/lib/constants';
+import { DAY_OPTIONS, SESSION_DEFAULTS, USAGE_LIMITS, TEXT_LIMITS, TIMEZONE_OPTIONS, DEFAULT_TIMEZONE } from '@/lib/constants';
+import { getBrowserTimezone, isValidTimezone } from '@/lib/timezone';
 import { validateGameForm } from '@/lib/gameValidation';
 
 export default function NewGamePage() {
@@ -21,6 +22,10 @@ export default function NewGamePage() {
   const [windowMonths, setWindowMonths] = useState(2);
   const [defaultStartTime, setDefaultStartTime] = useState<string>(SESSION_DEFAULTS.START_TIME);
   const [defaultEndTime, setDefaultEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
+  const [timezone, setTimezone] = useState<string>(() => {
+    const browserTz = getBrowserTimezone();
+    return browserTz && isValidTimezone(browserTz) ? browserTz : DEFAULT_TIMEZONE;
+  });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [gameCount, setGameCount] = useState<number | null>(null);
@@ -76,6 +81,7 @@ export default function NewGamePage() {
         scheduling_window_months: windowMonths,
         default_start_time: defaultStartTime,
         default_end_time: defaultEndTime,
+        timezone: timezone || null,
       });
 
     if (insertError) {
@@ -220,6 +226,26 @@ export default function NewGamePage() {
               </div>
               <p className="text-sm text-muted-foreground mt-2">
                 Default times used when scheduling sessions
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Timezone
+              </label>
+              <select
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+              >
+                {TIMEZONE_OPTIONS.map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-sm text-muted-foreground mt-1">
+                Used for calendar exports so events appear at the correct time
               </p>
             </div>
 

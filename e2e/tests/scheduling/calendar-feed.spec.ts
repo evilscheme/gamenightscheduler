@@ -179,4 +179,41 @@ test.describe('Calendar Subscription Feed', () => {
     // Should sanitize special characters in filename
     expect(contentDisposition).toMatch(/Test_Game/);
   });
+
+  test('includes timezone TZID when game has timezone set', async ({ request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-cal-tz-${Date.now()}@e2e.local`,
+      name: 'Calendar Timezone GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Timezone Campaign',
+      play_days: [5, 6],
+      default_start_time: '18:00',
+      default_end_time: '22:00',
+      timezone: 'Europe/London',
+    });
+
+    const playDates = getPlayDates([5, 6], 4);
+    await createTestSession({
+      game_id: game.id,
+      date: playDates[0],
+      confirmed_by: gm.id,
+      start_time: '19:00',
+      end_time: '23:00',
+    });
+
+    const response = await request.get(`/api/games/calendar/${game.invite_code}`);
+
+    expect(response.status()).toBe(200);
+
+    const icsContent = await response.text();
+
+    // Should include TZID parameter
+    expect(icsContent).toContain('TZID=Europe/London');
+    expect(icsContent).toMatch(/DTSTART;TZID=Europe\/London:/);
+    expect(icsContent).toMatch(/DTEND;TZID=Europe\/London:/);
+  });
 });

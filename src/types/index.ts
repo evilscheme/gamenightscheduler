@@ -21,6 +21,7 @@ export interface Game {
   scheduling_window_months: number;
   default_start_time: string | null; // HH:MM:SS format
   default_end_time: string | null; // HH:MM:SS format
+  timezone: string | null; // IANA timezone identifier (e.g., 'America/Los_Angeles')
   min_players_needed: number; // 0 means no minimum
   created_at: string;
 }

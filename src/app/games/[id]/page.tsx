@@ -476,7 +476,7 @@ export default function GameDetailPage() {
   if (isLoading || loading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

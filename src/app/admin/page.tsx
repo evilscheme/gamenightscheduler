@@ -86,7 +86,7 @@ export default function AdminPage() {
   if (authLoading || (session && !profile)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -95,7 +95,7 @@ export default function AdminPage() {
   if (!profile?.is_admin) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function AdminPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <LoadingSpinner />
+          <LoadingSpinner size="lg" />
         </div>
       ) : error ? (
         <div className="text-danger text-center py-12">{error}</div>

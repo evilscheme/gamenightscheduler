@@ -54,10 +54,6 @@ function LoginContent() {
               Continue with Discord
             </button>
           </div>
-
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            By signing in, you agree to our terms of service and privacy policy.
-          </p>
         </div>
       </div>
     </div>

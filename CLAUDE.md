@@ -63,6 +63,8 @@ Key tables:
 
 RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_participant()` and `is_game_gm_or_co_gm()` to avoid recursion issues.
 
+**Migrations:** The `supabase/migrations/00000000000000_initial_schema.sql` is a symlink to `schema.sql`. When adding new columns or tables, modify `schema.sql` directly—do NOT create a separate migration file. The symlink ensures schema changes are applied automatically. Creating a separate migration causes "column already exists" errors in E2E tests.
+
 ### Key Patterns
 
 - All page components use `'use client'` directive

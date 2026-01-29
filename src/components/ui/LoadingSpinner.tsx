@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  /** When true, shows the crit face (20) facing forward without animation */
+  staticCritFace?: boolean;
 }
 
 // Larger sizes for 3D readability
@@ -62,6 +64,9 @@ const FACES: [number, number, number][] = [
   [3, 2, 10],
   [3, 10, 6],
 ];
+
+// The "crit" face - face index 0 will have "20" on it
+const CRIT_FACE_INDEX = 0;
 
 // Rotation matrix multiplication
 function rotateX(point: [number, number, number], angle: number): [number, number, number] {
@@ -160,7 +165,11 @@ function parseColor(color: string): { h: number; s: number; l: number } | null {
   return null;
 }
 
-export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerProps) {
+export function LoadingSpinner({
+  size = 'md',
+  className = '',
+  staticCritFace = false,
+}: LoadingSpinnerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const dimension = sizes[size];
@@ -199,14 +208,20 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
     const speedY = 1.1;
     const speedZ = 0.4;
 
+    // Pre-calculated angles to orient face 0 (crit face) toward viewer
+    // These rotate the die so the "20" face normal aligns with +Z axis
+    const staticAngleX = -0.46;
+    const staticAngleY = -0.32;
+    const staticAngleZ = 0;
+
     const render = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const elapsed = (timestamp - startTime) / 1000;
 
-      // Continuous rotation - perpetual tumbling
-      const angleX = elapsed * speedX;
-      const angleY = elapsed * speedY;
-      const angleZ = elapsed * speedZ;
+      // Use static angles or animated rotation
+      const angleX = staticCritFace ? staticAngleX : elapsed * speedX;
+      const angleY = staticCritFace ? staticAngleY : elapsed * speedY;
+      const angleZ = staticCritFace ? staticAngleZ : elapsed * speedZ;
 
       ctx.clearRect(0, 0, dimension, dimension);
 
@@ -231,7 +246,7 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
       const foregroundHSL = parseColor(foreground);
 
       // Prepare faces with depth and lighting info
-      const facesWithDepth = FACES.map((face) => {
+      const facesWithDepth = FACES.map((face, faceIndex) => {
         const [i, j, k] = face;
         const v0 = transformed[i];
         const v1 = transformed[j];
@@ -241,8 +256,15 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
         const normal = calculateNormal(v0, v1, v2);
         const normalLength = Math.sqrt(normal[0] ** 2 + normal[1] ** 2 + normal[2] ** 2);
         const lightIntensity = normalLength > 0 ? (normal[2] / normalLength + 1) / 2 : 0.5;
+        const normalizedNormalZ = normalLength > 0 ? normal[2] / normalLength : 0;
 
-        return { face, centerZ, lightIntensity };
+        return {
+          face,
+          faceIndex,
+          centerZ,
+          lightIntensity,
+          normalizedNormalZ,
+        };
       });
 
       // Sort faces back to front
@@ -252,46 +274,157 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
       const isDarkTheme = foregroundHSL ? foregroundHSL.l > 50 : false;
 
       // Draw filled faces
-      facesWithDepth.forEach(({ face, lightIntensity }) => {
-        const [i, j, k] = face;
-        const [x0, y0] = projected[i];
-        const [x1, y1] = projected[j];
-        const [x2, y2] = projected[k];
+      facesWithDepth.forEach(
+        ({ face, faceIndex, lightIntensity, normalizedNormalZ }) => {
+          const [i, j, k] = face;
+          const [x0, y0] = projected[i];
+          const [x1, y1] = projected[j];
+          const [x2, y2] = projected[k];
 
-        ctx.beginPath();
-        ctx.moveTo(x0, y0);
-        ctx.lineTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.closePath();
+          const isCritFace = faceIndex === CRIT_FACE_INDEX;
+          const faceIsVisible = normalizedNormalZ > 0;
 
-        // Face fill with lighting
-        const hue = primaryHSL?.h ?? 220;
-        const sat = primaryHSL?.s ?? 80;
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.closePath();
 
-        let minL: number, maxL: number;
-        if (isDarkTheme) {
-          minL = 40;
-          maxL = 70;
-        } else {
-          minL = 35;
-          maxL = 60;
+          // Face fill with lighting - all faces use primary color
+          const hue = primaryHSL?.h ?? 220;
+          const sat = primaryHSL?.s ?? 80;
+
+          let minL: number, maxL: number;
+          if (isDarkTheme) {
+            minL = 40;
+            maxL = 70;
+          } else {
+            minL = 35;
+            maxL = 60;
+          }
+          const adjustedLightness = minL + lightIntensity * (maxL - minL);
+
+          ctx.fillStyle = `hsl(${hue}, ${sat}%, ${adjustedLightness}%)`;
+          ctx.fill();
+
+          // Edge stroke
+          if (isDarkTheme) {
+            ctx.strokeStyle = `hsl(${hue}, 60%, 25%)`;
+          } else {
+            ctx.strokeStyle = `hsl(${hue}, 50%, 25%)`;
+          }
+          ctx.lineWidth = Math.max(0.5, dimension / 48);
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+
+          // Draw "20" on the crit face when it's facing the viewer
+          if (isCritFace && faceIsVisible) {
+            // Get the 3D transformed vertices for this face
+            const v0 = transformed[i];
+            const v1 = transformed[j];
+            const v2 = transformed[k];
+
+            // Calculate face centroid in 3D
+            const centroid3D: [number, number, number] = [
+              (v0[0] + v1[0] + v2[0]) / 3,
+              (v0[1] + v1[1] + v2[1]) / 3,
+              (v0[2] + v1[2] + v2[2]) / 3,
+            ];
+
+            // Use v0 as fixed "up" reference for consistent text orientation
+            // This keeps the text stable as the die rotates (no flipping)
+            const upDir: [number, number, number] = [
+              v0[0] - centroid3D[0],
+              v0[1] - centroid3D[1],
+              v0[2] - centroid3D[2],
+            ];
+            const upLen = Math.sqrt(upDir[0] ** 2 + upDir[1] ** 2 + upDir[2] ** 2);
+            const localY: [number, number, number] = [
+              upDir[0] / upLen,
+              upDir[1] / upLen,
+              upDir[2] / upLen,
+            ];
+
+            // Calculate face normal (edge1 x edge2)
+            const edge1: [number, number, number] = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
+            const edge2: [number, number, number] = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
+            const faceNormal: [number, number, number] = [
+              edge1[1] * edge2[2] - edge1[2] * edge2[1],
+              edge1[2] * edge2[0] - edge1[0] * edge2[2],
+              edge1[0] * edge2[1] - edge1[1] * edge2[0],
+            ];
+            const normalLen = Math.sqrt(
+              faceNormal[0] ** 2 + faceNormal[1] ** 2 + faceNormal[2] ** 2
+            );
+            const normalizedNormal: [number, number, number] = [
+              faceNormal[0] / normalLen,
+              faceNormal[1] / normalLen,
+              faceNormal[2] / normalLen,
+            ];
+
+            // localX = normal × localY (right direction when facing the face)
+            // Combined with negated Y transform, this gives correct non-mirrored text
+            const localX: [number, number, number] = [
+              normalizedNormal[1] * localY[2] - normalizedNormal[2] * localY[1],
+              normalizedNormal[2] * localY[0] - normalizedNormal[0] * localY[2],
+              normalizedNormal[0] * localY[1] - normalizedNormal[1] * localY[0],
+            ];
+
+            // Project centroid and offset points to get 2D transform
+            const textScale = 0.4; // Scale factor for text size relative to face
+            const centroidProj = project(centroid3D, scale, center, center);
+
+            // Project points offset along local X and Y axes
+            const xOffset3D: [number, number, number] = [
+              centroid3D[0] + localX[0] * textScale,
+              centroid3D[1] + localX[1] * textScale,
+              centroid3D[2] + localX[2] * textScale,
+            ];
+            const yOffset3D: [number, number, number] = [
+              centroid3D[0] + localY[0] * textScale,
+              centroid3D[1] + localY[1] * textScale,
+              centroid3D[2] + localY[2] * textScale,
+            ];
+
+            const xOffsetProj = project(xOffset3D, scale, center, center);
+            const yOffsetProj = project(yOffset3D, scale, center, center);
+
+            // Calculate the 2D transform vectors
+            // Note: Y axis is negated because canvas text has top in -Y direction,
+            // but we want the top of "20" to point toward the apex
+            const ax = xOffsetProj[0] - centroidProj[0];
+            const ay = xOffsetProj[1] - centroidProj[1];
+            const bx = centroidProj[0] - yOffsetProj[0]; // negated
+            const by = centroidProj[1] - yOffsetProj[1]; // negated
+
+            // Apply affine transform: maps unit vectors to face-aligned vectors
+            ctx.save();
+            ctx.setTransform(ax, ay, bx, by, centroidProj[0], centroidProj[1]);
+
+            // Draw text with offset toward base of triangle for better visual centering
+            const fontSize = 1.1; // In transform units
+            const textY = 0.45; // Y offset moves toward base (away from apex)
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Gold text with dark outline for contrast on all backgrounds
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.lineWidth = 0.15;
+            ctx.lineJoin = 'round';
+            ctx.strokeText('20', 0, textY);
+            ctx.fillStyle = 'hsl(45, 100%, 50%)';
+            ctx.fillText('20', 0, textY);
+
+            ctx.restore();
+          }
         }
-        const adjustedLightness = minL + lightIntensity * (maxL - minL);
-        ctx.fillStyle = `hsl(${hue}, ${sat}%, ${adjustedLightness}%)`;
-        ctx.fill();
+      );
 
-        // Edge stroke
-        if (isDarkTheme) {
-          ctx.strokeStyle = `hsl(${hue}, 60%, 25%)`;
-        } else {
-          ctx.strokeStyle = `hsl(${hue}, 50%, 25%)`;
-        }
-        ctx.lineWidth = Math.max(0.5, dimension / 48);
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-      });
-
-      animationRef.current = requestAnimationFrame(render);
+      // Only continue animation loop if not static
+      if (!staticCritFace) {
+        animationRef.current = requestAnimationFrame(render);
+      }
     };
 
     animationRef.current = requestAnimationFrame(render);
@@ -299,7 +432,7 @@ export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerPr
     return () => {
       cancelAnimationFrame(animationRef.current);
     };
-  }, [dimension, colors]);
+  }, [dimension, colors, staticCritFace]);
 
   return (
     <canvas

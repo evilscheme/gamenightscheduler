@@ -32,7 +32,7 @@ describe("filterDatesForBulkSet", () => {
   it('filters "remaining" - only unset dates', () => {
     const playDays = [5, 6]; // Fri, Sat
     const existingAvailability: Record<string, AvailabilityEntry> = {
-      "2025-01-17": { status: "available", comment: null },
+      "2025-01-17": { status: "available", comment: null, available_after: null, available_until: null },
     };
 
     const result = filterDatesForBulkSet({
@@ -165,8 +165,8 @@ describe("filterDatesForBulkSet", () => {
   it('returns empty array for "remaining" when all dates are set', () => {
     const playDays = [5]; // Only Fridays
     const existingAvailability: Record<string, AvailabilityEntry> = {
-      "2025-01-17": { status: "available", comment: null },
-      "2025-01-24": { status: "unavailable", comment: null },
+      "2025-01-17": { status: "available", comment: null, available_after: null, available_until: null },
+      "2025-01-24": { status: "unavailable", comment: null, available_after: null, available_until: null },
     };
 
     const result = filterDatesForBulkSet({

@@ -155,11 +155,13 @@ test.describe('Usage Limits - RLS Policy Enforcement', () => {
       });
 
       // Create 100 future sessions using admin client
+      // Use UTC date operations to avoid timezone issues with toISOString()
       const today = new Date();
+      today.setUTCHours(12, 0, 0, 0); // Set to noon UTC to avoid edge cases
       const sessionPromises = [];
       for (let i = 0; i < USAGE_LIMITS.MAX_FUTURE_SESSIONS_PER_GAME; i++) {
         const date = new Date(today);
-        date.setDate(today.getDate() + i + 1);
+        date.setUTCDate(today.getUTCDate() + i + 1);
         const dateStr = date.toISOString().split('T')[0];
 
         sessionPromises.push(

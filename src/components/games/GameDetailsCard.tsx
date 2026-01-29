@@ -12,6 +12,7 @@ interface GameDetailsCardProps {
   schedulingWindowMonths: number;
   defaultStartTime: string | null;
   defaultEndTime: string | null;
+  minPlayersNeeded?: number;
   confirmedSessions: GameSession[];
   inviteCode: string;
 }
@@ -21,6 +22,7 @@ export function GameDetailsCard({
   schedulingWindowMonths,
   defaultStartTime,
   defaultEndTime,
+  minPlayersNeeded = 0,
   confirmedSessions,
   inviteCode,
 }: GameDetailsCardProps) {
@@ -60,6 +62,14 @@ export function GameDetailsCard({
             {formatTime(defaultStartTime)} - {formatTime(defaultEndTime)}
           </p>
         </div>
+        {minPlayersNeeded > 0 && (
+          <div>
+            <p className="text-sm text-muted-foreground">Minimum Players</p>
+            <p className="text-card-foreground">
+              {minPlayersNeeded} players needed
+            </p>
+          </div>
+        )}
         {(() => {
           const today = startOfDay(new Date());
           const upcomingSessions = confirmedSessions.filter(

@@ -21,6 +21,7 @@ export interface Game {
   scheduling_window_months: number;
   default_start_time: string | null; // HH:MM:SS format
   default_end_time: string | null; // HH:MM:SS format
+  min_players_needed: number; // 0 means no minimum
   created_at: string;
 }
 
@@ -113,4 +114,5 @@ export interface DateSuggestion {
   pendingPlayers: User[];
   earliestStartTime: string | null; // latest "available_after" among available players
   latestEndTime: string | null; // earliest "available_until" among available players
+  meetsThreshold: boolean; // true if availableCount >= minPlayersNeeded (or no threshold set)
 }

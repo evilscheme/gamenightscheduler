@@ -189,6 +189,7 @@ export default function GameDetailPage() {
       availability: allAvailability,
       getDayOfWeek: getDay,
       formatDate: (date) => format(date, "yyyy-MM-dd"),
+      minPlayersNeeded: game.min_players_needed || 0,
     });
 
     setSuggestions(suggestionList);
@@ -571,6 +572,7 @@ export default function GameDetailPage() {
             schedulingWindowMonths={game.scheduling_window_months}
             defaultStartTime={game.default_start_time}
             defaultEndTime={game.default_end_time}
+            minPlayersNeeded={game.min_players_needed || 0}
             confirmedSessions={confirmedSessions}
             inviteCode={game.invite_code}
           />
@@ -610,6 +612,7 @@ export default function GameDetailPage() {
           gameName={game.name}
           defaultStartTime={game.default_start_time}
           defaultEndTime={game.default_end_time}
+          minPlayersNeeded={game.min_players_needed || 0}
           onConfirm={handleConfirmSession}
           onCancel={handleCancelSession}
         />

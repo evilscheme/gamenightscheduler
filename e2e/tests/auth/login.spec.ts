@@ -7,7 +7,7 @@ test.describe('Authentication', () => {
     await page.goto('/login');
 
     // Should see login page elements
-    await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /can we play/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /continue with discord/i })).toBeVisible();
   });
@@ -81,7 +81,7 @@ test.describe('Authentication', () => {
 
     // Should be redirected to login page
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByRole('heading', { name: /welcome/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /can we play/i })).toBeVisible();
 
     // Verify session is cleared - protected routes should redirect to login
     await page.goto('/dashboard');

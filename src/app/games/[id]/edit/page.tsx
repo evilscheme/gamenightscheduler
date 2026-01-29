@@ -7,7 +7,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
-import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_OPTIONS, DEFAULT_TIMEZONE } from '@/lib/constants';
+import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_OPTIONS, DEFAULT_TIMEZONE, USAGE_LIMITS } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 
 export default function EditGamePage() {
@@ -26,6 +26,7 @@ export default function EditGamePage() {
   const [defaultStartTime, setDefaultStartTime] = useState<string>(SESSION_DEFAULTS.START_TIME);
   const [defaultEndTime, setDefaultEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
   const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
+  const [minPlayersNeeded, setMinPlayersNeeded] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -72,6 +73,7 @@ export default function EditGamePage() {
       setDefaultStartTime(data.default_start_time?.slice(0, 5) || SESSION_DEFAULTS.START_TIME);
       setDefaultEndTime(data.default_end_time?.slice(0, 5) || SESSION_DEFAULTS.END_TIME);
       setTimezone(data.timezone || DEFAULT_TIMEZONE);
+      setMinPlayersNeeded(data.min_players_needed || 0);
       setLoading(false);
     }
 
@@ -108,6 +110,7 @@ export default function EditGamePage() {
         default_start_time: defaultStartTime,
         default_end_time: defaultEndTime,
         timezone: timezone || null,
+        min_players_needed: minPlayersNeeded,
       })
       .eq('id', gameId);
 
@@ -249,6 +252,23 @@ export default function EditGamePage() {
               </select>
               <p className="text-sm text-muted-foreground mt-1">
                 Used for calendar exports so events appear at the correct time
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Minimum Players Needed
+              </label>
+              <input
+                type="number"
+                min="0"
+                max={USAGE_LIMITS.MAX_PLAYERS_PER_GAME}
+                value={minPlayersNeeded}
+                onChange={(e) => setMinPlayersNeeded(Math.max(0, Math.min(USAGE_LIMITS.MAX_PLAYERS_PER_GAME, parseInt(e.target.value) || 0)))}
+                className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Dates with fewer available players will be ranked lower. Set to 0 to disable.
               </p>
             </div>
 

@@ -16,6 +16,7 @@ interface SchedulingSuggestionsProps {
   defaultStartTime?: string | null;
   defaultEndTime?: string | null;
   timezone?: string | null;
+  minPlayersNeeded?: number;
   onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (date: string) => void;
 }
@@ -28,6 +29,7 @@ export function SchedulingSuggestions({
   defaultStartTime,
   defaultEndTime,
   timezone,
+  minPlayersNeeded = 0,
   onConfirm,
   onCancel,
 }: SchedulingSuggestionsProps) {
@@ -348,7 +350,7 @@ export function SchedulingSuggestions({
         <CardHeader>
           <h2 className="text-lg font-semibold text-card-foreground">Date Suggestions</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Ranked by player availability. {isGm ? 'Click confirm to schedule a session.' : 'Ask your GM or co-GM to confirm dates.'}
+            Ranked by player availability.{minPlayersNeeded > 0 && ` Need at least ${minPlayersNeeded} players.`} {isGm ? 'Click confirm to schedule a session.' : 'Ask your GM or co-GM to confirm dates.'}
           </p>
         </CardHeader>
         <CardContent>
@@ -381,6 +383,8 @@ export function SchedulingSuggestions({
                       className={`py-4 -mx-4 px-4 rounded-lg ${
                         isConfirmed
                           ? 'bg-cal-scheduled-bg/10'
+                          : !suggestion.meetsThreshold
+                          ? 'opacity-60'
                           : ''
                       }`}
                     >
@@ -393,6 +397,11 @@ export function SchedulingSuggestions({
                             {isConfirmed && (
                               <span className="px-2 py-0.5 text-xs font-medium bg-cal-scheduled-bg text-cal-scheduled-text rounded">
                                 Confirmed
+                              </span>
+                            )}
+                            {!isConfirmed && minPlayersNeeded > 0 && !suggestion.meetsThreshold && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-danger/10 text-danger rounded">
+                                Below threshold
                               </span>
                             )}
                           </div>
@@ -427,9 +436,15 @@ export function SchedulingSuggestions({
                           </div>
                           {/* Status counts */}
                           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-                            <span className="text-success">
-                              {suggestion.availableCount} available
-                            </span>
+                            {minPlayersNeeded > 0 ? (
+                              <span className={suggestion.meetsThreshold ? 'text-success font-medium' : 'text-danger font-medium'}>
+                                {suggestion.availableCount}/{minPlayersNeeded} needed
+                              </span>
+                            ) : (
+                              <span className="text-success">
+                                {suggestion.availableCount} available
+                              </span>
+                            )}
                             <span className="text-warning">
                               {suggestion.maybeCount} maybe
                             </span>

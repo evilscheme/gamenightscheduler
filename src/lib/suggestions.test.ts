@@ -153,7 +153,8 @@ describe("sortSuggestions", () => {
     available: number,
     maybe: number,
     unavailable: number,
-    pending: number
+    pending: number,
+    meetsThreshold = true
   ): DateSuggestion => ({
     date,
     dayOfWeek: 5, // Friday
@@ -168,6 +169,7 @@ describe("sortSuggestions", () => {
     pendingPlayers: [],
     earliestStartTime: null,
     latestEndTime: null,
+    meetsThreshold,
   });
 
   it("sorts by available count (descending)", () => {
@@ -249,6 +251,34 @@ describe("sortSuggestions", () => {
     sortSuggestions(suggestions);
 
     expect(suggestions[0].date).toBe(originalFirst);
+  });
+
+  it("sorts dates meeting threshold before those that don't", () => {
+    const suggestions = [
+      makeSuggestion("2025-01-20", 4, 0, 0, 0, false), // more available but doesn't meet threshold
+      makeSuggestion("2025-01-21", 2, 0, 0, 0, true),  // fewer available but meets threshold
+      makeSuggestion("2025-01-22", 3, 0, 0, 0, false), // doesn't meet threshold
+    ];
+
+    const sorted = sortSuggestions(suggestions);
+
+    expect(sorted[0].date).toBe("2025-01-21"); // meets threshold
+    expect(sorted[1].date).toBe("2025-01-20"); // 4 available but doesn't meet
+    expect(sorted[2].date).toBe("2025-01-22"); // 3 available but doesn't meet
+  });
+
+  it("within threshold group, still sorts by available count", () => {
+    const suggestions = [
+      makeSuggestion("2025-01-20", 2, 0, 0, 0, true),
+      makeSuggestion("2025-01-21", 4, 0, 0, 0, true),
+      makeSuggestion("2025-01-22", 3, 0, 0, 0, true),
+    ];
+
+    const sorted = sortSuggestions(suggestions);
+
+    expect(sorted[0].date).toBe("2025-01-21"); // 4 available
+    expect(sorted[1].date).toBe("2025-01-22"); // 3 available
+    expect(sorted[2].date).toBe("2025-01-20"); // 2 available
   });
 });
 
@@ -427,5 +457,124 @@ describe("calculateDateSuggestions", () => {
 
     expect(suggestions[0].earliestStartTime).toBe("19:00:00");
     expect(suggestions[0].latestEndTime).toBe("22:00:00");
+  });
+
+  it("sets meetsThreshold to true when no minimum is specified", () => {
+    const playDates = [new Date("2025-01-20")];
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability: [],
+      getDayOfWeek,
+      formatDate,
+    });
+
+    expect(suggestions[0].meetsThreshold).toBe(true);
+  });
+
+  it("sets meetsThreshold to true when minPlayersNeeded is 0", () => {
+    const playDates = [new Date("2025-01-20")];
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability: [],
+      getDayOfWeek,
+      formatDate,
+      minPlayersNeeded: 0,
+    });
+
+    expect(suggestions[0].meetsThreshold).toBe(true);
+  });
+
+  it("sets meetsThreshold correctly based on available count vs minimum", () => {
+    const playDates = [
+      new Date("2025-01-20"),
+      new Date("2025-01-21"),
+    ];
+    const availability = [
+      makeAvailability("1", "2025-01-20", "available"),
+      makeAvailability("2", "2025-01-20", "available"),
+      makeAvailability("1", "2025-01-21", "available"),
+      makeAvailability("2", "2025-01-21", "unavailable"),
+    ];
+
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability,
+      getDayOfWeek,
+      formatDate,
+      minPlayersNeeded: 2,
+    });
+
+    // 2025-01-20 has 2 available, meets threshold of 2
+    const jan20 = suggestions.find(s => s.date === "2025-01-20");
+    expect(jan20?.meetsThreshold).toBe(true);
+    expect(jan20?.availableCount).toBe(2);
+
+    // 2025-01-21 has 1 available, doesn't meet threshold of 2
+    const jan21 = suggestions.find(s => s.date === "2025-01-21");
+    expect(jan21?.meetsThreshold).toBe(false);
+    expect(jan21?.availableCount).toBe(1);
+  });
+
+  it("does not count maybe players toward threshold", () => {
+    const playDates = [new Date("2025-01-20")];
+    const availability = [
+      makeAvailability("1", "2025-01-20", "available"),
+      makeAvailability("2", "2025-01-20", "maybe"),
+    ];
+
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability,
+      getDayOfWeek,
+      formatDate,
+      minPlayersNeeded: 2,
+    });
+
+    // Only 1 available (maybe doesn't count), doesn't meet threshold of 2
+    expect(suggestions[0].meetsThreshold).toBe(false);
+    expect(suggestions[0].availableCount).toBe(1);
+    expect(suggestions[0].maybeCount).toBe(1);
+  });
+
+  it("sorts dates meeting threshold first", () => {
+    const playDates = [
+      new Date("2025-01-20"),
+      new Date("2025-01-21"),
+      new Date("2025-01-22"),
+    ];
+    const availability = [
+      // 2025-01-20: 1 available
+      makeAvailability("1", "2025-01-20", "available"),
+      makeAvailability("2", "2025-01-20", "unavailable"),
+      // 2025-01-21: 2 available
+      makeAvailability("1", "2025-01-21", "available"),
+      makeAvailability("2", "2025-01-21", "available"),
+      // 2025-01-22: 0 available
+      makeAvailability("1", "2025-01-22", "unavailable"),
+      makeAvailability("2", "2025-01-22", "unavailable"),
+    ];
+
+    const suggestions = calculateDateSuggestions({
+      playDates,
+      players,
+      availability,
+      getDayOfWeek,
+      formatDate,
+      minPlayersNeeded: 2,
+    });
+
+    // 2025-01-21 (2 available, meets threshold) should be first
+    expect(suggestions[0].date).toBe("2025-01-21");
+    expect(suggestions[0].meetsThreshold).toBe(true);
+
+    // Other dates don't meet threshold and are sorted by available count
+    expect(suggestions[1].date).toBe("2025-01-20"); // 1 available
+    expect(suggestions[1].meetsThreshold).toBe(false);
+    expect(suggestions[2].date).toBe("2025-01-22"); // 0 available
+    expect(suggestions[2].meetsThreshold).toBe(false);
   });
 });

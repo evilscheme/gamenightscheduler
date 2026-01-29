@@ -56,12 +56,14 @@ Supabase PostgreSQL with Row Level Security. Schema in `supabase/schema.sql`.
 
 Key tables:
 - `users` - Profiles linked to `auth.users` via id (auto-created on signup via trigger)
-- `games` - Games with host (GM), play days array, invite code, scheduling window, default session times, special play dates
+- `games` - Games with host (GM), play days array, invite code, scheduling window, default session times, special play dates, minimum players needed
 - `game_memberships` - Players in each game (includes `is_co_gm` flag)
 - `availability` - Available/unavailable/maybe dates per player per game (with optional comment, optional `available_after`/`available_until` time constraints)
 - `sessions` - Scheduled game nights (confirmed status with start/end times)
 
 RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_participant()` and `is_game_gm_or_co_gm()` to avoid recursion issues.
+
+**Migrations:** The `supabase/migrations/00000000000000_initial_schema.sql` is a symlink to `schema.sql`. When adding new columns or tables, modify `schema.sql` directly—do NOT create a separate migration file. The symlink ensures schema changes are applied automatically. Creating a separate migration causes "column already exists" errors in E2E tests.
 
 ### Key Patterns
 
@@ -128,6 +130,7 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - `src/components/games/SchedulingSuggestions.tsx` - Date suggestions ranked by availability
   - Shows player breakdown (available/maybe/unavailable/pending) with time annotations
   - Displays computed time window (earliest start / latest end) from player constraints
+  - Minimum player threshold: GMs can set a minimum, dates below threshold show "X/Y needed" and are ranked lower
   - Confirm modal pre-fills times based on player constraints and game defaults
   - Separates upcoming vs past sessions
   - Export to calendar (.ics download or webcal://)

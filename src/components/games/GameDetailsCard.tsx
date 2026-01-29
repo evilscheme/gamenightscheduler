@@ -14,6 +14,7 @@ interface GameDetailsCardProps {
   defaultStartTime: string | null;
   defaultEndTime: string | null;
   timezone: string | null;
+  minPlayersNeeded?: number;
   confirmedSessions: GameSession[];
   inviteCode: string;
 }
@@ -24,6 +25,7 @@ export function GameDetailsCard({
   defaultStartTime,
   defaultEndTime,
   timezone,
+  minPlayersNeeded = 0,
   confirmedSessions,
   inviteCode,
 }: GameDetailsCardProps) {
@@ -67,6 +69,14 @@ export function GameDetailsCard({
           <div>
             <p className="text-sm text-muted-foreground">Timezone</p>
             <p className="text-card-foreground">{formatTimezoneDisplay(timezone)}</p>
+          </div>
+        )}
+        {minPlayersNeeded > 0 && (
+          <div>
+            <p className="text-sm text-muted-foreground">Minimum Players</p>
+            <p className="text-card-foreground">
+              {minPlayersNeeded} players needed
+            </p>
           </div>
         )}
         {(() => {

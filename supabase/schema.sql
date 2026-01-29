@@ -35,6 +35,7 @@ CREATE TABLE games (
   default_start_time TIME DEFAULT '18:00',
   default_end_time TIME DEFAULT '22:00',
   timezone TEXT DEFAULT 'America/Los_Angeles',
+  min_players_needed INTEGER DEFAULT 0 CHECK (min_players_needed >= 0),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

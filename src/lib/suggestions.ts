@@ -56,15 +56,20 @@ export function categorizePlayers(
 
 /**
  * Sort suggestions by:
- * 1. Available count (descending)
- * 2. Maybe count (descending)
- * 3. Pending count (ascending) - prefer dates where everyone has responded
- * 4. Date (ascending) - earlier dates first for ties
+ * 1. Meets threshold first (if threshold is set)
+ * 2. Available count (descending)
+ * 3. Maybe count (descending)
+ * 4. Pending count (ascending) - prefer dates where everyone has responded
+ * 5. Date (ascending) - earlier dates first for ties
  */
 export function sortSuggestions(
   suggestions: DateSuggestion[]
 ): DateSuggestion[] {
   return [...suggestions].sort((a, b) => {
+    // Sort by meets threshold first (dates meeting threshold come first)
+    if (a.meetsThreshold !== b.meetsThreshold) {
+      return a.meetsThreshold ? -1 : 1;
+    }
     // Sort by available count (descending)
     if (b.availableCount !== a.availableCount) {
       return b.availableCount - a.availableCount;
@@ -88,6 +93,7 @@ interface CalculateSuggestionsParams {
   availability: Availability[];
   getDayOfWeek: (date: Date) => number;
   formatDate: (date: Date) => string;
+  minPlayersNeeded?: number; // 0 or undefined means no minimum
 }
 
 /**
@@ -99,6 +105,7 @@ export function calculateDateSuggestions({
   availability,
   getDayOfWeek,
   formatDate,
+  minPlayersNeeded = 0,
 }: CalculateSuggestionsParams): DateSuggestion[] {
   const suggestions: DateSuggestion[] = playDates.map((date) => {
     const dateStr = formatDate(date);
@@ -127,6 +134,10 @@ export function calculateDateSuggestions({
       }
     }
 
+    // Check if this date meets the minimum player threshold
+    // Only count confirmed available players (not maybe or pending)
+    const meetsThreshold = minPlayersNeeded <= 0 || available.length >= minPlayersNeeded;
+
     return {
       date: dateStr,
       dayOfWeek: getDayOfWeek(date),
@@ -141,6 +152,7 @@ export function calculateDateSuggestions({
       pendingPlayers: pending,
       earliestStartTime,
       latestEndTime,
+      meetsThreshold,
     };
   });
 

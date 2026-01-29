@@ -20,6 +20,10 @@ npm run db:status    # Show local Supabase status and credentials
 # Database backup (requires pg_dump)
 npm run db:backup    # Backup cloud DB (uses DATABASE_URL from .env.local)
 
+# Workspace setup (for git worktrees / Conductor workspaces)
+npm run setup        # Copy .env files from main project, check origin/main sync
+npm run setup -- --force  # Same but overwrite existing .env files
+
 # Unit Testing (Vitest)
 npm run test              # Run unit tests in watch mode
 npm run test:run          # Run unit tests once

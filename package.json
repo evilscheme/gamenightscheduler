@@ -14,6 +14,7 @@
     "db:reset": "supabase db reset",
     "db:status": "supabase status",
     "db:backup": "./scripts/backup-db.sh",
+    "setup": "./scripts/workspace-setup.sh",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",

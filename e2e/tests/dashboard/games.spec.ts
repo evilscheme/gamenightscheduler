@@ -26,7 +26,7 @@ test.describe('Dashboard Games', () => {
     });
 
     // Should show welcome empty state
-    await expect(page.getByText(/can we play/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /can we play/i })).toBeVisible();
 
     // Should show both options: Create and Join
     await expect(page.getByRole('heading', { name: /create a game/i })).toBeVisible();
@@ -35,9 +35,12 @@ test.describe('Dashboard Games', () => {
     // Should have Create New Game button
     await expect(page.getByRole('button', { name: /create new game/i })).toBeVisible();
 
-    // Should have invite code input and Join Game button
-    await expect(page.getByPlaceholder(/paste invite link or code/i)).toBeVisible();
+    // Should have Join Game button (input is hidden until clicked)
     await expect(page.getByRole('button', { name: /join game/i })).toBeVisible();
+
+    // Clicking Join Game should reveal the input
+    await page.getByRole('button', { name: /join game/i }).click();
+    await expect(page.getByPlaceholder(/paste invite link or code/i)).toBeVisible();
   });
 
   test('can navigate to join page from empty state invite code input', async ({ page, request }) => {
@@ -60,9 +63,12 @@ test.describe('Dashboard Games', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Enter an invite code
-    await page.getByPlaceholder(/paste invite link or code/i).fill('TESTCODE123');
+    // Click Join Game button to reveal input
     await page.getByRole('button', { name: /join game/i }).click();
+
+    // Enter an invite code and submit
+    await page.getByPlaceholder(/paste invite link or code/i).fill('TESTCODE123');
+    await page.getByRole('button', { name: /^join$/i }).click();
 
     // Should navigate to join page with the code
     await expect(page).toHaveURL('/games/join/TESTCODE123');
@@ -88,11 +94,14 @@ test.describe('Dashboard Games', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Paste a full invite URL
+    // Click Join Game button to reveal input
+    await page.getByRole('button', { name: /join game/i }).click();
+
+    // Paste a full invite URL and submit
     await page
       .getByPlaceholder(/paste invite link or code/i)
       .fill('https://canweplay.example.com/games/join/ABC123XYZ');
-    await page.getByRole('button', { name: /join game/i }).click();
+    await page.getByRole('button', { name: /^join$/i }).click();
 
     // Should navigate to join page with just the extracted code
     await expect(page).toHaveURL('/games/join/ABC123XYZ');

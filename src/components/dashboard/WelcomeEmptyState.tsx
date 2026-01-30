@@ -21,6 +21,7 @@ function extractInviteCode(input: string): string {
 
 export function WelcomeEmptyState() {
   const router = useRouter();
+  const [showJoinInput, setShowJoinInput] = useState(false);
   const [inviteInput, setInviteInput] = useState("");
   const [error, setError] = useState("");
 
@@ -81,25 +82,49 @@ export function WelcomeEmptyState() {
               </h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4 text-center">
-              Have an invite link from your GM? Paste it below to join their
-              game.
+              Have an invite link from your GM? Use it to join their game.
             </p>
-            <form onSubmit={handleJoinGame}>
-              <div className="space-y-3">
-                <Input
-                  placeholder="Paste invite link or code"
-                  value={inviteInput}
-                  onChange={(e) => {
-                    setInviteInput(e.target.value);
-                    setError("");
-                  }}
-                  error={error}
-                />
-                <Button type="submit" variant="secondary" className="w-full">
-                  Join Game
-                </Button>
-              </div>
-            </form>
+            {showJoinInput ? (
+              <form onSubmit={handleJoinGame}>
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Paste invite link or code"
+                    value={inviteInput}
+                    onChange={(e) => {
+                      setInviteInput(e.target.value);
+                      setError("");
+                    }}
+                    error={error}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="flex-1"
+                      onClick={() => {
+                        setShowJoinInput(false);
+                        setInviteInput("");
+                        setError("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" variant="secondary" className="flex-1">
+                      Join
+                    </Button>
+                  </div>
+                </div>
+              </form>
+            ) : (
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => setShowJoinInput(true)}
+              >
+                Join Game
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

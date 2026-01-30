@@ -406,15 +406,24 @@ export function LoadingSpinner({
             const textY = 0.45; // Y offset moves toward base (away from apex)
             ctx.font = `bold ${fontSize}px sans-serif`;
             ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+            // Use 'alphabetic' baseline (more consistent across browsers) and manually center
+            ctx.textBaseline = 'alphabetic';
+
+            // Calculate true vertical center using actual font metrics
+            const metrics = ctx.measureText('20');
+            const ascent = metrics.actualBoundingBoxAscent;
+            const descent = metrics.actualBoundingBoxDescent;
+            const textHeight = ascent + descent;
+            // Offset to center: move down by ascent, then back up by half height
+            const verticalCenter = ascent - textHeight;
 
             // Gold text with dark outline for contrast on all backgrounds
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.lineWidth = 0.15;
+            ctx.lineWidth = 0.1;
             ctx.lineJoin = 'round';
-            ctx.strokeText('20', 0, textY);
+            ctx.strokeText('20', 0, textY + verticalCenter);
             ctx.fillStyle = 'hsl(45, 100%, 50%)';
-            ctx.fillText('20', 0, textY);
+            ctx.fillText('20', 0, textY + verticalCenter);
 
             ctx.restore();
           }

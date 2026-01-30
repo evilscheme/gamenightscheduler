@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Bug } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
 
@@ -40,7 +41,8 @@ function HelpDropdown() {
             className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors rounded-md whitespace-nowrap"
             onClick={() => setIsOpen(false)}
           >
-            🐛 Report Bug / Feedback
+            <Bug className="w-4 h-4" />
+            Report Bug / Feedback
           </a>
         </div>
       )}

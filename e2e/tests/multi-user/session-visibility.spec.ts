@@ -87,8 +87,8 @@ test.describe('Multi-User Session Visibility', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // Player should see the dice emoji for confirmed session
-      await expect(playerPage.locator('text=🎲').first()).toBeVisible();
+      // Player should see the dice icon for confirmed session
+      await expect(playerPage.locator('svg.lucide-dice-6').first()).toBeVisible();
     } finally {
       await gmContext.close();
       await playerContext.close();

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { CalendarCheck, Brain, Download, Layers, Share2, Dice6 } from 'lucide-react';
 import { Button, LoadingSpinner } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
@@ -75,32 +76,32 @@ export default function Home() {
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard
-              icon="📅"
+              icon={<CalendarCheck className="w-10 h-10" />}
               title="Track Availability"
               description="Players mark when they're free, and the app shows you the best dates for everyone."
             />
             <FeatureCard
-              icon="🎯"
+              icon={<Brain className="w-10 h-10" />}
               title="Smart Suggestions"
               description="Get ranked date suggestions based on player availability. See who can make each date at a glance."
             />
             <FeatureCard
-              icon="📤"
+              icon={<Download className="w-10 h-10" />}
               title="Calendar Export"
               description="Download .ics files or subscribe to a calendar feed that auto-syncs confirmed sessions."
             />
             <FeatureCard
-              icon="👥"
+              icon={<Layers className="w-10 h-10" />}
               title="Multiple Games"
               description="Manage several games at once, each with its own players and schedule."
             />
             <FeatureCard
-              icon="🔗"
+              icon={<Share2 className="w-10 h-10" />}
               title="Easy Invites"
               description="Share a simple invite link to add players to your game."
             />
             <FeatureCard
-              icon="🎲"
+              icon={<Dice6 className="w-10 h-10" />}
               title="Flexible Play Days"
               description="Set which days of the week your group can play - the calendar adapts automatically."
             />
@@ -129,13 +130,13 @@ function FeatureCard({
   title,
   description,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
 }) {
   return (
     <div className="text-center p-6">
-      <div className="text-4xl mb-4">{icon}</div>
+      <div className="flex justify-center text-primary mb-4">{icon}</div>
       <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
       <p className="text-muted-foreground">{description}</p>
     </div>

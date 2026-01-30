@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Users, Calendar } from "lucide-react";
 import {
   Button,
   Card,
@@ -157,13 +158,13 @@ export function DashboardContent() {
                   )}
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <span>👥</span>
+                    <span className="flex items-center gap-1.5">
+                      <Users className="w-4 h-4" />
                       {game.member_count} player
                       {game.member_count !== 1 ? "s" : ""}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <span>📅</span>
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4" />
                       {game.play_days
                         .map((d) => DAY_LABELS.short[d])
                         .join(", ")}

@@ -174,8 +174,8 @@ test.describe('Session Confirmation', () => {
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Should show the dice emoji for confirmed sessions
-    await expect(page.locator('text=🎲').first()).toBeVisible();
+    // Should show the dice icon for confirmed sessions
+    await expect(page.locator('svg.lucide-dice-6').first()).toBeVisible();
 
     // Should have export button
     await expect(page.getByRole('button', { name: /export/i }).first()).toBeVisible();

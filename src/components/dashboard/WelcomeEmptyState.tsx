@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { Sparkles, UserPlus } from "lucide-react";
 import { Button, Card, CardContent, Input } from "@/components/ui";
 
 function extractInviteCode(input: string): string {
@@ -58,7 +59,7 @@ export function WelcomeEmptyState() {
         <Card className="text-left">
           <CardContent className="py-6">
             <div className="text-center mb-4">
-              <span className="text-4xl block mb-2">🎯</span>
+              <Sparkles className="w-10 h-10 mx-auto mb-2 text-primary" />
               <h3 className="text-lg font-semibold text-card-foreground">
                 Create a Game
               </h3>
@@ -76,7 +77,7 @@ export function WelcomeEmptyState() {
         <Card className="text-left">
           <CardContent className="py-6">
             <div className="text-center mb-4">
-              <span className="text-4xl block mb-2">🎫</span>
+              <UserPlus className="w-10 h-10 mx-auto mb-2 text-primary" />
               <h3 className="text-lg font-semibold text-card-foreground">
                 Join a Game
               </h3>

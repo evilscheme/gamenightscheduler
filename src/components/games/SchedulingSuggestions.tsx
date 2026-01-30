@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { format, parseISO, startOfDay, isBefore } from 'date-fns';
+import { Calendar, Dice6, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, EmptyState } from '@/components/ui';
 import { DateSuggestion, GameSession } from '@/types';
 import { generateICS } from '@/lib/ics';
@@ -145,7 +146,8 @@ export function SchedulingSuggestions({
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-card-foreground">Upcoming Sessions</h2>
             <Button size="sm" variant="secondary" onClick={handleExportAll} className="w-full sm:w-auto">
-              📅 Export All to Calendar
+              <Calendar className="w-4 h-4 mr-1.5" />
+              Export All to Calendar
             </Button>
           </CardHeader>
           <CardContent>
@@ -169,7 +171,7 @@ export function SchedulingSuggestions({
                   <li key={session.id} className="py-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <span className="text-2xl shrink-0">🎲</span>
+                        <Dice6 className="w-6 h-6 shrink-0 text-primary" />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-card-foreground">
                             {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
@@ -273,7 +275,8 @@ export function SchedulingSuggestions({
                           variant="ghost"
                           onClick={() => handleExportSingle(session)}
                         >
-                          📅 Add to Calendar
+                          <Calendar className="w-4 h-4 mr-1.5" />
+                          Add to Calendar
                         </Button>
                         {isGm && (
                           <Button
@@ -306,7 +309,7 @@ export function SchedulingSuggestions({
                 Past Sessions ({pastSessions.length})
               </h2>
               <span className="text-muted-foreground">
-                {showPastSessions ? '▲' : '▼'}
+                {showPastSessions ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </span>
             </button>
           </CardHeader>
@@ -319,7 +322,7 @@ export function SchedulingSuggestions({
                   return (
                     <li key={session.id} className="py-3 opacity-70">
                       <div className="flex items-start gap-3">
-                        <span className="text-xl shrink-0 grayscale">🎲</span>
+                        <Dice6 className="w-5 h-5 shrink-0 text-muted-foreground" />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-muted-foreground">
                             {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}

@@ -281,4 +281,62 @@ describe("generateICS", () => {
     expect(result).toContain("DTEND;VALUE=DATE:20250120");
     expect(result).not.toContain("TZID");
   });
+
+  it("includes VTIMEZONE component when timezone is used", () => {
+    const result = generateICS([
+      {
+        date: "2025-01-20",
+        startTime: "18:00",
+        endTime: "22:00",
+        title: "Game Night",
+        timezone: "America/Los_Angeles",
+      },
+    ]);
+
+    // Must include VTIMEZONE for calendar apps to parse correctly
+    expect(result).toContain("BEGIN:VTIMEZONE");
+    expect(result).toContain("TZID:America/Los_Angeles");
+    expect(result).toContain("END:VTIMEZONE");
+    expect(result).toContain("BEGIN:STANDARD");
+    expect(result).toContain("END:STANDARD");
+    expect(result).toContain("BEGIN:DAYLIGHT");
+    expect(result).toContain("END:DAYLIGHT");
+    expect(result).toContain("TZNAME:PST");
+    expect(result).toContain("TZNAME:PDT");
+  });
+
+  it("includes only one VTIMEZONE per unique timezone", () => {
+    const result = generateICS([
+      {
+        date: "2025-01-20",
+        startTime: "18:00",
+        endTime: "22:00",
+        title: "Event 1",
+        timezone: "America/Los_Angeles",
+      },
+      {
+        date: "2025-01-21",
+        startTime: "18:00",
+        endTime: "22:00",
+        title: "Event 2",
+        timezone: "America/Los_Angeles",
+      },
+    ]);
+
+    // Should only include one VTIMEZONE block even with multiple events
+    expect(result.match(/BEGIN:VTIMEZONE/g)?.length).toBe(1);
+  });
+
+  it("does not include VTIMEZONE when no timezone used", () => {
+    const result = generateICS([
+      {
+        date: "2025-01-20",
+        startTime: "18:00",
+        endTime: "22:00",
+        title: "Game Night",
+      },
+    ]);
+
+    expect(result).not.toContain("BEGIN:VTIMEZONE");
+  });
 });

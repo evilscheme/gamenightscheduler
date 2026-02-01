@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   categorizePlayers,
   sortSuggestions,
+  sortSuggestionsChronologically,
   calculateDateSuggestions,
 } from "./suggestions";
 import { User, Availability, DateSuggestion } from "@/types";
@@ -279,6 +280,94 @@ describe("sortSuggestions", () => {
     expect(sorted[0].date).toBe("2025-01-21"); // 4 available
     expect(sorted[1].date).toBe("2025-01-22"); // 3 available
     expect(sorted[2].date).toBe("2025-01-20"); // 2 available
+  });
+});
+
+describe("sortSuggestionsChronologically", () => {
+  const makeSuggestion = (
+    date: string,
+    available: number,
+    maybe: number,
+    unavailable: number,
+    pending: number,
+    meetsThreshold = true
+  ): DateSuggestion => ({
+    date,
+    dayOfWeek: 5,
+    availableCount: available,
+    maybeCount: maybe,
+    unavailableCount: unavailable,
+    pendingCount: pending,
+    totalPlayers: available + maybe + unavailable + pending,
+    availablePlayers: [],
+    maybePlayers: [],
+    unavailablePlayers: [],
+    pendingPlayers: [],
+    earliestStartTime: null,
+    latestEndTime: null,
+    meetsThreshold,
+  });
+
+  it("sorts by date ascending", () => {
+    const suggestions = [
+      makeSuggestion("2025-01-22", 4, 0, 0, 0),
+      makeSuggestion("2025-01-20", 2, 0, 0, 0),
+      makeSuggestion("2025-01-21", 3, 0, 0, 0),
+    ];
+
+    const sorted = sortSuggestionsChronologically(suggestions);
+
+    expect(sorted[0].date).toBe("2025-01-20");
+    expect(sorted[1].date).toBe("2025-01-21");
+    expect(sorted[2].date).toBe("2025-01-22");
+  });
+
+  it("ignores availability counts", () => {
+    const suggestions = [
+      makeSuggestion("2025-01-22", 5, 0, 0, 0),
+      makeSuggestion("2025-01-20", 1, 0, 0, 0),
+    ];
+
+    const sorted = sortSuggestionsChronologically(suggestions);
+
+    expect(sorted[0].date).toBe("2025-01-20");
+    expect(sorted[1].date).toBe("2025-01-22");
+  });
+
+  it("ignores threshold status", () => {
+    const suggestions = [
+      makeSuggestion("2025-01-22", 4, 0, 0, 0, true),
+      makeSuggestion("2025-01-20", 1, 0, 0, 0, false),
+    ];
+
+    const sorted = sortSuggestionsChronologically(suggestions);
+
+    expect(sorted[0].date).toBe("2025-01-20");
+    expect(sorted[1].date).toBe("2025-01-22");
+  });
+
+  it("does not mutate original array", () => {
+    const suggestions = [
+      makeSuggestion("2025-01-22", 1, 0, 0, 0),
+      makeSuggestion("2025-01-20", 3, 0, 0, 0),
+    ];
+    const originalFirst = suggestions[0].date;
+
+    sortSuggestionsChronologically(suggestions);
+
+    expect(suggestions[0].date).toBe(originalFirst);
+  });
+
+  it("handles empty array", () => {
+    expect(sortSuggestionsChronologically([])).toEqual([]);
+  });
+
+  it("handles single item array", () => {
+    const suggestions = [makeSuggestion("2025-01-20", 2, 1, 0, 0)];
+    const sorted = sortSuggestionsChronologically(suggestions);
+
+    expect(sorted.length).toBe(1);
+    expect(sorted[0].date).toBe("2025-01-20");
   });
 });
 

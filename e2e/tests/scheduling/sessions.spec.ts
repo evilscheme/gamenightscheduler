@@ -385,4 +385,86 @@ test.describe('Session Scheduling', () => {
     const cancelButtons = page.locator('[class*="Card"]').filter({ hasText: /past sessions/i }).getByRole('button', { name: /^cancel$/i });
     await expect(cancelButtons).toHaveCount(0);
   });
+
+  test('can toggle between Best Match and By Date sorting', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-sort-toggle-${Date.now()}@e2e.local`,
+      name: 'Sort Toggle GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Sort Toggle Campaign',
+      play_days: [5, 6],
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Switch to schedule tab
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    // Should see the sort toggle buttons
+    const bestMatchButton = page.getByRole('button', { name: /best match/i });
+    const byDateButton = page.getByRole('button', { name: /by date/i });
+
+    await expect(bestMatchButton).toBeVisible();
+    await expect(byDateButton).toBeVisible();
+
+    // Default should be Best Match (aria-pressed=true)
+    await expect(bestMatchButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(byDateButton).toHaveAttribute('aria-pressed', 'false');
+
+    // Click By Date
+    await byDateButton.click();
+    await expect(byDateButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(bestMatchButton).toHaveAttribute('aria-pressed', 'false');
+
+    // Click back to Best Match
+    await bestMatchButton.click();
+    await expect(bestMatchButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(byDateButton).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('sort toggle updates description text', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-sort-desc-${Date.now()}@e2e.local`,
+      name: 'Sort Description GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Sort Description Campaign',
+      play_days: [5, 6],
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Switch to schedule tab
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    // Default description should mention "ranked by"
+    await expect(page.getByText(/ranked by player availability/i)).toBeVisible();
+
+    // Click By Date
+    await page.getByRole('button', { name: /by date/i }).click();
+
+    // Description should now mention "sorted by date"
+    await expect(page.getByText(/sorted by date/i)).toBeVisible();
+  });
 });

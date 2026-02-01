@@ -87,6 +87,17 @@ export function sortSuggestions(
   });
 }
 
+/**
+ * Sort suggestions purely by date (ascending), ignoring availability scores
+ */
+export function sortSuggestionsChronologically(
+  suggestions: DateSuggestion[]
+): DateSuggestion[] {
+  return [...suggestions].sort((a, b) =>
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+}
+
 interface CalculateSuggestionsParams {
   playDates: Date[];
   players: User[];

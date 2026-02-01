@@ -6,6 +6,7 @@ import { Calendar, Dice6, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, EmptyState } from '@/components/ui';
 import { DateSuggestion, GameSession } from '@/types';
 import { generateICS } from '@/lib/ics';
+import { sortSuggestionsChronologically } from '@/lib/suggestions';
 import { DAY_LABELS, SESSION_DEFAULTS } from '@/lib/constants';
 import { formatTime, formatTimeShort } from '@/lib/formatting';
 
@@ -40,6 +41,7 @@ export function SchedulingSuggestions({
 
   const [showAll, setShowAll] = useState(false);
   const [showPastSessions, setShowPastSessions] = useState(false);
+  const [sortMode, setSortMode] = useState<'bestMatch' | 'chronological'>('bestMatch');
   const [confirmingDate, setConfirmingDate] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
@@ -103,7 +105,10 @@ export function SchedulingSuggestions({
     return parts.length > 0 ? `${p.user.name} (${parts.join(', ')})` : p.user.name;
   };
 
-  const displayedSuggestions = showAll ? suggestions : suggestions.slice(0, 10);
+  const sortedSuggestions = sortMode === 'bestMatch'
+    ? suggestions
+    : sortSuggestionsChronologically(suggestions);
+  const displayedSuggestions = showAll ? sortedSuggestions : sortedSuggestions.slice(0, 10);
 
   const handleExportAll = () => {
     const events = upcomingSessions.map((session) => ({
@@ -350,11 +355,37 @@ export function SchedulingSuggestions({
 
       {/* Suggestions */}
       <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold text-card-foreground">Date Suggestions</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Ranked by player availability.{minPlayersNeeded > 0 && ` Need at least ${minPlayersNeeded} players.`} {isGm ? 'Click confirm to schedule a session.' : 'Ask your GM or co-GM to confirm dates.'}
-          </p>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-card-foreground">Date Suggestions</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {sortMode === 'bestMatch' ? 'Ranked by player availability.' : 'Sorted by date.'}{minPlayersNeeded > 0 && ` Need at least ${minPlayersNeeded} players.`} {isGm ? 'Click confirm to schedule a session.' : 'Ask your GM or co-GM to confirm dates.'}
+            </p>
+          </div>
+          <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
+            <button
+              onClick={() => setSortMode('bestMatch')}
+              aria-pressed={sortMode === 'bestMatch'}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                sortMode === 'bestMatch'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Best Match
+            </button>
+            <button
+              onClick={() => setSortMode('chronological')}
+              aria-pressed={sortMode === 'chronological'}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                sortMode === 'chronological'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-background text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              By Date
+            </button>
+          </div>
         </CardHeader>
         <CardContent>
           {suggestions.length === 0 ? (
@@ -511,10 +542,10 @@ export function SchedulingSuggestions({
                   );
                 })}
               </ul>
-              {suggestions.length > 10 && (
+              {sortedSuggestions.length > 10 && (
                 <div className="mt-4 text-center">
                   <Button variant="ghost" onClick={() => setShowAll(!showAll)}>
-                    {showAll ? 'Show Less' : `Show All (${suggestions.length} dates)`}
+                    {showAll ? 'Show Less' : `Show All (${sortedSuggestions.length} dates)`}
                   </Button>
                 </div>
               )}

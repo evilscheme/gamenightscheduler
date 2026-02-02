@@ -175,6 +175,6 @@ Enforced via RLS policies in the database:
 
 ### Development Practices
 
-- When adding a significant new feature, add tests for that feature as well
+- Always propose and create tests when implementing new features - don't wait to be asked
 - Use `psql` (not `pgsql`) as the Postgres client tool
 - don't ever directly migrate the database unless explicitly requested to. Favor creating migration files for a human to apply

@@ -3,11 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Bug } from 'lucide-react';
+import { Bug, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
 
 const GITHUB_ISSUES_URL = 'https://github.com/evilscheme/gamenightscheduler/issues';
+const FEEDBACK_EMAIL = process.env.NEXT_PUBLIC_FEEDBACK_EMAIL;
 
 function HelpDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,17 +34,27 @@ function HelpDropdown() {
         ?
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 bg-card border border-border rounded-md shadow-lg z-50">
+        <div className="absolute right-0 mt-2 bg-card border border-border rounded-md shadow-lg z-50 py-1">
           <a
             href={GITHUB_ISSUES_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors rounded-md whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors whitespace-nowrap"
             onClick={() => setIsOpen(false)}
           >
             <Bug className="w-4 h-4" />
-            Report Bug / Feedback
+            Report Bug
           </a>
+          {FEEDBACK_EMAIL && (
+            <a
+              href={`mailto:${FEEDBACK_EMAIL}`}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+              onClick={() => setIsOpen(false)}
+            >
+              <Mail className="w-4 h-4" />
+              Send Feedback
+            </a>
+          )}
         </div>
       )}
     </div>

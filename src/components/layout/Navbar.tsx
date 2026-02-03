@@ -47,7 +47,7 @@ function HelpDropdown() {
           </a>
           {FEEDBACK_EMAIL && (
             <a
-              href={`mailto:${FEEDBACK_EMAIL}`}
+              href={`mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent('Can We Play? Feedback')}`}
               className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors whitespace-nowrap"
               onClick={() => setIsOpen(false)}
             >

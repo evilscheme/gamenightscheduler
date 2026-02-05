@@ -79,7 +79,7 @@ CREATE TABLE sessions (
   start_time TIME,
   end_time TIME,
   status session_status DEFAULT 'confirmed',
-  confirmed_by UUID REFERENCES users(id),
+  confirmed_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(game_id, date)
 );

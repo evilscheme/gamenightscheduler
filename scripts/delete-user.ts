@@ -108,7 +108,7 @@ async function deleteUser() {
   if (memberships && memberships.length > 0) {
     console.log(`\nGame memberships (will be removed):`);
     for (const m of memberships) {
-      const gameName = (m.games as { name: string } | null)?.name || 'Unknown';
+      const gameName = (m.games as unknown as { name: string } | null)?.name || 'Unknown';
       console.log(`  - ${gameName}`);
     }
   }

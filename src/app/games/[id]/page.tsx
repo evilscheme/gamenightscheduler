@@ -564,6 +564,7 @@ export default function GameDetailPage() {
             isCoGm={isCoGm}
             members={game.members}
             playerCompletionPercentages={playerCompletionPercentages}
+            inviteCode={game.invite_code}
             onToggleCoGm={handleToggleCoGm}
             onRemovePlayer={(player) => setPlayerToRemove(player)}
           />

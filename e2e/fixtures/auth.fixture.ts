@@ -2,6 +2,9 @@ import { test as base, expect, Page } from '@playwright/test';
 import { createTestGM, createTestPlayer, type TestUser } from '../helpers/test-auth';
 import { createTestGame, addPlayerToGame, type TestGame } from '../helpers/seed';
 
+const TEST_AUTH_SECRET = 'test-secret-for-e2e';
+const TEST_AUTH_HEADERS = { 'x-test-auth-secret': TEST_AUTH_SECRET };
+
 /**
  * Custom Playwright fixtures for authenticated testing.
  *
@@ -54,6 +57,7 @@ export const test = base.extend<AuthFixtures>({
         name: gmUser.name,
         is_gm: true,
       },
+      headers: TEST_AUTH_HEADERS,
     });
 
     const page = await context.newPage();
@@ -72,6 +76,7 @@ export const test = base.extend<AuthFixtures>({
         name: playerUser.name,
         is_gm: false,
       },
+      headers: TEST_AUTH_HEADERS,
     });
 
     const page = await context.newPage();

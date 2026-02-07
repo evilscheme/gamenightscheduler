@@ -3,6 +3,11 @@ import { loginTestUser, createTestUser } from '../../helpers/test-auth';
 import { createTestGame, addPlayerToGame } from '../../helpers/seed';
 import { TEST_TIMEOUTS } from '../../constants';
 
+// Local Supabase credentials (same as seed.ts)
+const SUPABASE_URL = 'http://localhost:54321';
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+
 /**
  * RLS (Row Level Security) Policy Tests
  *
@@ -394,5 +399,151 @@ test.describe('Availability Record Isolation', () => {
     // The availability summary shows player counts, which means both records are visible
     // This confirms RLS SELECT policy allows viewing others' availability
     await expect(page.getByText(/available/i).first()).toBeVisible();
+  });
+});
+
+test.describe('Users Table RLS Scoping', () => {
+  /**
+   * Helper to query the users table via the Supabase REST API from the browser.
+   * Uses the authenticated user's session (access token from cookies).
+   */
+  async function queryUsersTable(page: import('@playwright/test').Page): Promise<string[]> {
+    return page.evaluate(
+      async ({ url, anonKey }) => {
+        // Extract the access token from cookies set by @supabase/ssr
+        // Cookie format: sb-localhost-auth-token=base64-<base64-encoded-json>
+        const cookies = document.cookie.split(';').map((c) => c.trim());
+        const authCookies = cookies
+          .filter((c) => c.includes('auth-token'))
+          .sort();
+
+        // Reassemble value from potentially chunked cookies (.0, .1, etc.)
+        let rawValue = '';
+        if (authCookies.length > 0) {
+          for (const c of authCookies) {
+            const val = c.split('=').slice(1).join('=');
+            rawValue += decodeURIComponent(val);
+          }
+        }
+
+        // Strip the "base64-" prefix if present and decode
+        let tokenJson: string;
+        if (rawValue.startsWith('base64-')) {
+          tokenJson = atob(rawValue.slice('base64-'.length));
+        } else {
+          tokenJson = rawValue;
+        }
+
+        let accessToken = '';
+        try {
+          const parsed = JSON.parse(tokenJson);
+          if (parsed.access_token) {
+            accessToken = parsed.access_token;
+          } else if (Array.isArray(parsed)) {
+            accessToken = parsed[0];
+          }
+        } catch {
+          throw new Error(`Could not parse auth token from cookies`);
+        }
+
+        if (!accessToken) {
+          throw new Error('No access token found in cookies');
+        }
+
+        // Query the users table via PostgREST
+        const response = await fetch(`${url}/rest/v1/users?select=id`, {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Supabase query failed: ${response.status}`);
+        }
+
+        const users: { id: string }[] = await response.json();
+        return users.map((u) => u.id);
+      },
+      { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY }
+    );
+  }
+
+  test('non-co-participant cannot see other users', async ({ page, request }) => {
+    // Create GM1 with Game1
+    const gm1 = await createTestUser(request, {
+      email: `gm1-rls-users-${Date.now()}@e2e.local`,
+      name: 'RLS Users GM1',
+      is_gm: true,
+    });
+
+    await createTestGame({
+      gm_id: gm1.id,
+      name: 'RLS Users Game1',
+      play_days: [5],
+    });
+
+    // Create GM2 with Game2 (no shared game)
+    const gm2 = await createTestUser(request, {
+      email: `gm2-rls-users-${Date.now()}@e2e.local`,
+      name: 'RLS Users GM2',
+      is_gm: true,
+    });
+
+    await createTestGame({
+      gm_id: gm2.id,
+      name: 'RLS Users Game2',
+      play_days: [6],
+    });
+
+    // Login as GM1
+    await loginTestUser(page, {
+      email: gm1.email,
+      name: gm1.name,
+      is_gm: true,
+    });
+
+    // Query users table - GM1 should NOT see GM2
+    const visibleUserIds = await queryUsersTable(page);
+
+    expect(visibleUserIds).toContain(gm1.id);
+    expect(visibleUserIds).not.toContain(gm2.id);
+  });
+
+  test('co-participants can see each other', async ({ page, request }) => {
+    // Create GM1 with Game1
+    const gm1 = await createTestUser(request, {
+      email: `gm1-rls-copart-${Date.now()}@e2e.local`,
+      name: 'RLS CoParticipant GM1',
+      is_gm: true,
+    });
+
+    const game1 = await createTestGame({
+      gm_id: gm1.id,
+      name: 'RLS CoParticipant Game1',
+      play_days: [5],
+    });
+
+    // Create GM2 and add as player to Game1
+    const gm2 = await createTestUser(request, {
+      email: `gm2-rls-copart-${Date.now()}@e2e.local`,
+      name: 'RLS CoParticipant GM2',
+      is_gm: true,
+    });
+
+    await addPlayerToGame(game1.id, gm2.id);
+
+    // Login as GM1
+    await loginTestUser(page, {
+      email: gm1.email,
+      name: gm1.name,
+      is_gm: true,
+    });
+
+    // Query users table - GM1 should see GM2 (they share Game1)
+    const visibleUserIds = await queryUsersTable(page);
+
+    expect(visibleUserIds).toContain(gm1.id);
+    expect(visibleUserIds).toContain(gm2.id);
   });
 });

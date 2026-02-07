@@ -13,9 +13,9 @@ import { createAdminClient } from '@/lib/supabase/admin';
  * In production, it returns 404 to avoid exposing its existence.
  */
 
-// CRITICAL: Block access in production
-if (process.env.NODE_ENV === 'production') {
-  console.warn('test-auth route loaded in production - all requests will return 404');
+// CRITICAL: Block access outside development
+if (process.env.NODE_ENV !== 'development') {
+  console.warn('test-auth route loaded outside development - all requests will return 404');
 }
 
 interface TestUserRequest {
@@ -34,8 +34,13 @@ interface TestUserResponse {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  // SECURITY: Return 404 in production (not 403 to avoid revealing route exists)
-  if (process.env.NODE_ENV === 'production') {
+  // SECURITY: Only allow in development (not 403 to avoid revealing route exists)
+  if (process.env.NODE_ENV !== 'development') {
+    return new Response('Not found', { status: 404 });
+  }
+
+  const secret = process.env.TEST_AUTH_SECRET;
+  if (!secret || request.headers.get('x-test-auth-secret') !== secret) {
     return new Response('Not found', { status: 404 });
   }
 
@@ -180,7 +185,12 @@ export async function POST(request: Request): Promise<Response> {
 
 // Also support DELETE to clean up test users
 export async function DELETE(request: Request): Promise<Response> {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV !== 'development') {
+    return new Response('Not found', { status: 404 });
+  }
+
+  const secret = process.env.TEST_AUTH_SECRET;
+  if (!secret || request.headers.get('x-test-auth-secret') !== secret) {
     return new Response('Not found', { status: 404 });
   }
 
@@ -226,8 +236,13 @@ export async function DELETE(request: Request): Promise<Response> {
 }
 
 // Sign out the current user
-export async function PUT(): Promise<Response> {
-  if (process.env.NODE_ENV === 'production') {
+export async function PUT(request: Request): Promise<Response> {
+  if (process.env.NODE_ENV !== 'development') {
+    return new Response('Not found', { status: 404 });
+  }
+
+  const secret = process.env.TEST_AUTH_SECRET;
+  if (!secret || request.headers.get('x-test-auth-secret') !== secret) {
     return new Response('Not found', { status: 404 });
   }
 

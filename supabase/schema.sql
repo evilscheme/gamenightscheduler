@@ -217,6 +217,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- Check if the current user shares a game with the target user (used by users RLS)
+CREATE OR REPLACE FUNCTION public.shares_game_with(target_user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  current_uid UUID := (SELECT auth.uid());
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM (
+      SELECT game_id FROM public.game_memberships WHERE user_id = current_uid
+      UNION ALL
+      SELECT id FROM public.games WHERE gm_id = current_uid
+    ) my_games
+    JOIN (
+      SELECT game_id FROM public.game_memberships WHERE user_id = target_user_id
+      UNION ALL
+      SELECT id FROM public.games WHERE gm_id = target_user_id
+    ) their_games ON my_games.game_id = their_games.game_id
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
 -- ============================================
 -- 5. Triggers
 -- ============================================
@@ -244,8 +266,8 @@ ALTER TABLE availability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
 -- Users policies
-CREATE POLICY "Users are viewable by everyone" ON users
-  FOR SELECT USING (true);
+CREATE POLICY "Users viewable by self or co-participants" ON users
+  FOR SELECT USING (id = (SELECT auth.uid()) OR public.shares_game_with(id));
 CREATE POLICY "Users can update own record" ON users
   FOR UPDATE USING ((select auth.uid()) = id);
 

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Bug, Mail } from 'lucide-react';
+import { BookOpen, Bug, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
 
@@ -35,6 +35,14 @@ function HelpDropdown() {
       </button>
       {isOpen && (
         <div className="absolute right-0 mt-2 bg-card border border-border rounded-md shadow-lg z-50 py-1">
+          <Link
+            href="/help"
+            className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+            onClick={() => setIsOpen(false)}
+          >
+            <BookOpen className="w-4 h-4" />
+            How to Use
+          </Link>
           <a
             href={GITHUB_ISSUES_URL}
             target="_blank"

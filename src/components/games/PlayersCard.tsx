@@ -165,7 +165,7 @@ export function PlayersCard({
               variant="secondary"
               className="mt-2 text-sm"
             >
-              {inviteCopied ? "Copied!" : "Copy Invite Link"}
+              {inviteCopied ? "Copied!" : "Copy Share Link"}
             </Button>
           </div>
         )}

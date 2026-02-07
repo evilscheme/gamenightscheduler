@@ -6,6 +6,9 @@ import type { APIRequestContext, Page } from '@playwright/test';
  * These wrap calls to the /api/test-auth endpoint for easy use in tests.
  */
 
+const TEST_AUTH_SECRET = 'test-secret-for-e2e';
+export const TEST_AUTH_HEADERS = { 'x-test-auth-secret': TEST_AUTH_SECRET };
+
 export interface TestUser {
   id: string;
   email: string;
@@ -38,6 +41,7 @@ export async function createTestUser(
 
   const response = await request.post('http://localhost:3001/api/test-auth', {
     data: { email, name, is_gm, is_admin },
+    headers: TEST_AUTH_HEADERS,
   });
 
   if (!response.ok()) {
@@ -74,6 +78,7 @@ export async function loginTestUser(
 
   const response = await page.request.post('http://localhost:3001/api/test-auth', {
     data: { email, name, is_gm, is_admin },
+    headers: TEST_AUTH_HEADERS,
   });
 
   if (!response.ok()) {

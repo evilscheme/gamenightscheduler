@@ -33,6 +33,7 @@ import {
   startOfDay,
   parseISO,
 } from "date-fns";
+import { nanoid } from "nanoid";
 import { TIMEOUTS, USAGE_LIMITS } from "@/lib/constants";
 import { calculatePlayerCompletionPercentages } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
@@ -61,6 +62,8 @@ export default function GameDetailPage() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
@@ -360,6 +363,30 @@ export default function GameDetailPage() {
     setTimeout(() => setCopied(false), TIMEOUTS.NOTIFICATION);
   };
 
+  const handleRegenerateInvite = async () => {
+    if (!game || !gameId) return;
+
+    setIsRegenerating(true);
+    const newCode = nanoid(10);
+    const oldCode = game.invite_code;
+
+    // Optimistic update
+    setGame((prev) => (prev ? { ...prev, invite_code: newCode } : prev));
+
+    const { error } = await supabase
+      .from("games")
+      .update({ invite_code: newCode })
+      .eq("id", gameId);
+
+    if (error) {
+      // Revert on error
+      setGame((prev) => (prev ? { ...prev, invite_code: oldCode } : prev));
+    }
+
+    setIsRegenerating(false);
+    setShowRegenerateConfirm(false);
+  };
+
   const handleLeaveGame = async () => {
     if (!profile?.id || !gameId) return;
 
@@ -509,6 +536,12 @@ export default function GameDetailPage() {
                 </Button>
                 <Button onClick={copyInviteLink} variant="secondary">
                   {copied ? "Copied!" : "Copy Invite Link"}
+                </Button>
+                <Button
+                  onClick={() => setShowRegenerateConfirm(true)}
+                  variant="secondary"
+                >
+                  Regenerate Invite
                 </Button>
               </>
             )}
@@ -679,6 +712,41 @@ export default function GameDetailPage() {
                 onClick={() => handleRemovePlayer(playerToRemove.id)}
               >
                 Remove Player
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Regenerate Invite Confirmation Modal */}
+      {showRegenerateConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-card-foreground mb-2">
+              Regenerate Invite Code?
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              This will invalidate the current invite link and calendar
+              subscription URL. Anyone using the old link will no longer be able
+              to join, and calendar apps will need to re-subscribe with the new
+              URL.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setShowRegenerateConfirm(false)}
+                disabled={isRegenerating}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={handleRegenerateInvite}
+                disabled={isRegenerating}
+              >
+                {isRegenerating ? "Regenerating..." : "Regenerate"}
               </Button>
             </div>
           </div>

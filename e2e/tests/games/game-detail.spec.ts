@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
-import { createTestGame, addPlayerToGame } from '../../helpers/seed';
+import { createTestGame, addPlayerToGame, getAdminClient } from '../../helpers/seed';
+import { TEST_TIMEOUTS } from '../../constants';
 
 test.describe('Game Detail Page', () => {
   test('shows game overview with tabs', async ({ page, request }) => {
@@ -194,5 +195,166 @@ test.describe('Game Detail Page', () => {
     // Should see calendar subscription section in Game Details
     await expect(page.getByText(/calendar subscription/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /copy calendar url/i })).toBeVisible();
+  });
+});
+
+test.describe('Regenerate Invite Code', () => {
+  test('GM sees Regenerate Invite button', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-regen-view-${Date.now()}@e2e.local`,
+      name: 'Regen View GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Regen View Game',
+      play_days: [5, 6],
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    await expect(page.getByRole('button', { name: /regenerate invite/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+  });
+
+  test('player does not see Regenerate Invite button', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-regen-hidden-${Date.now()}@e2e.local`,
+      name: 'Regen Hidden GM',
+      is_gm: true,
+    });
+
+    const player = await createTestUser(request, {
+      email: `player-regen-hidden-${Date.now()}@e2e.local`,
+      name: 'Regen Hidden Player',
+      is_gm: false,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Regen Hidden Game',
+      play_days: [5, 6],
+    });
+
+    await addPlayerToGame(game.id, player.id);
+
+    await loginTestUser(page, {
+      email: player.email,
+      name: player.name,
+      is_gm: false,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Wait for page to load
+    await expect(page.getByRole('heading', { name: /regen hidden game/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Player should NOT see Regenerate Invite button
+    await expect(page.getByRole('button', { name: /regenerate invite/i })).not.toBeVisible();
+  });
+
+  test('GM can regenerate invite code via confirmation modal', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-regen-${Date.now()}@e2e.local`,
+      name: 'Regen GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Regen Test Game',
+      play_days: [5, 6],
+    });
+
+    const originalInviteCode = game.invite_code;
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Wait for page to load
+    await expect(page.getByRole('button', { name: /regenerate invite/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Click Regenerate Invite button
+    await page.getByRole('button', { name: /regenerate invite/i }).click();
+
+    // Confirmation modal should appear
+    await expect(page.getByText(/regenerate invite code\?/i)).toBeVisible();
+    await expect(page.getByText(/invalidate the current invite link/i)).toBeVisible();
+
+    // Click Regenerate confirm button
+    await page.getByRole('button', { name: /^regenerate$/i }).click();
+
+    // Modal should close
+    await expect(page.getByText(/regenerate invite code\?/i)).not.toBeVisible();
+
+    // Verify the invite code changed in the database
+    const admin = getAdminClient();
+    const { data: updatedGame } = await admin
+      .from('games')
+      .select('invite_code')
+      .eq('id', game.id)
+      .single();
+
+    expect(updatedGame?.invite_code).not.toBe(originalInviteCode);
+    expect(updatedGame?.invite_code).toBeTruthy();
+  });
+
+  test('GM can cancel invite code regeneration', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-regen-cancel-${Date.now()}@e2e.local`,
+      name: 'Regen Cancel GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Regen Cancel Game',
+      play_days: [5, 6],
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Wait for page to load
+    await expect(page.getByRole('button', { name: /regenerate invite/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Click Regenerate Invite button
+    await page.getByRole('button', { name: /regenerate invite/i }).click();
+
+    // Modal should appear
+    await expect(page.getByText(/regenerate invite code\?/i)).toBeVisible();
+
+    // Click Cancel
+    await page.getByRole('button', { name: /cancel/i }).click();
+
+    // Modal should close
+    await expect(page.getByText(/regenerate invite code\?/i)).not.toBeVisible();
+
+    // Still on game page
+    await expect(page.getByText('Regen Cancel Game')).toBeVisible();
   });
 });

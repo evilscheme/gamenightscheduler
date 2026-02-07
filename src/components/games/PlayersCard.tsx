@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui";
+import { Button, Card, CardContent, CardHeader } from "@/components/ui";
 import { User, MemberWithRole } from "@/types";
+import { TIMEOUTS } from "@/lib/constants";
 
 interface PlayersCardProps {
   allPlayers: (User | MemberWithRole)[];
@@ -11,6 +12,7 @@ interface PlayersCardProps {
   isCoGm: boolean;
   members: MemberWithRole[];
   playerCompletionPercentages: Record<string, number>;
+  inviteCode: string;
   onToggleCoGm: (playerId: string, makeCoGm: boolean) => Promise<void>;
   onRemovePlayer: (player: User) => void;
 }
@@ -22,10 +24,19 @@ export function PlayersCard({
   isCoGm,
   members,
   playerCompletionPercentages,
+  inviteCode,
   onToggleCoGm,
   onRemovePlayer,
 }: PlayersCardProps) {
   const [openPlayerMenu, setOpenPlayerMenu] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  const copyInviteLink = () => {
+    const link = `${window.location.origin}/games/join/${inviteCode}`;
+    navigator.clipboard.writeText(link);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), TIMEOUTS.NOTIFICATION);
+  };
 
   return (
     <Card>
@@ -144,6 +155,20 @@ export function PlayersCard({
             );
           })}
         </ul>
+        {allPlayers.length === 1 && (isGm || isCoGm) && (
+          <div className="mt-4 p-3 bg-secondary/50 rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              Invite players by sharing the invite link. They&apos;ll be able to join and mark their availability.
+            </p>
+            <Button
+              onClick={copyInviteLink}
+              variant="secondary"
+              className="mt-2 text-sm"
+            >
+              {inviteCopied ? "Copied!" : "Copy Share Link"}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

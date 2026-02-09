@@ -15,6 +15,9 @@ const makeUser = (id: string, name: string): User => ({
   is_gm: false,
   is_admin: false,
   created_at: "2025-01-01",
+  timezone: null,
+  week_start_day: 0,
+  time_format: '12h',
 });
 
 const makeAvailability = (

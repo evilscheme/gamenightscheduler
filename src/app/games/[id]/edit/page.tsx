@@ -7,11 +7,13 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
-import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_OPTIONS, DEFAULT_TIMEZONE, USAGE_LIMITS } from '@/lib/constants';
+import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE, USAGE_LIMITS } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function EditGamePage() {
   const { profile, isLoading, session } = useAuth();
+  const { weekStartDay } = useUserPreferences();
   const router = useRouter();
   const params = useParams();
   const gameId = params.id as string;
@@ -86,6 +88,11 @@ export default function EditGamePage() {
   const toggleDay = (day: number) => {
     setPlayDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
   };
+
+  // Reorder day options based on user's week start preference
+  const orderedDayOptions = weekStartDay === 0
+    ? DAY_OPTIONS
+    : [...DAY_OPTIONS.slice(weekStartDay), ...DAY_OPTIONS.slice(0, weekStartDay)];
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,7 +171,7 @@ export default function EditGamePage() {
                 Which days can your group play?
               </label>
               <div className="flex flex-wrap gap-2">
-                {DAY_OPTIONS.map((day) => (
+                {orderedDayOptions.map((day) => (
                   <button
                     key={day.value}
                     type="button"
@@ -244,10 +251,14 @@ export default function EditGamePage() {
                 onChange={(e) => setTimezone(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               >
-                {TIMEZONE_OPTIONS.map((tz) => (
-                  <option key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </option>
+                {TIMEZONE_GROUPS.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map((tz) => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               <p className="text-sm text-muted-foreground mt-1">

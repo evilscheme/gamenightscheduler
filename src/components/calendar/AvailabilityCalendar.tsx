@@ -40,6 +40,8 @@ interface AvailabilityCalendarProps {
   specialPlayDates?: string[];
   isGmOrCoGm?: boolean;
   onToggleSpecialDate?: (date: string) => void;
+  weekStartDay?: 0 | 1;
+  use24h?: boolean;
 }
 
 export function AvailabilityCalendar({
@@ -51,6 +53,8 @@ export function AvailabilityCalendar({
   specialPlayDates = [],
   isGmOrCoGm = false,
   onToggleSpecialDate,
+  weekStartDay = 0,
+  use24h = false,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = endOfMonth(addMonths(today, windowMonths));
@@ -76,6 +80,12 @@ export function AvailabilityCalendar({
     }
     return result;
   }, [today, maxDate]);
+
+  // Reorder weekday headers based on week start preference
+  const orderedWeekdays = useMemo(() => {
+    const days = [...DAY_LABELS.abbrev];
+    return [...days.slice(weekStartDay), ...days.slice(0, weekStartDay)];
+  }, [weekStartDay]);
 
   const confirmedDates = new Set(confirmedSessions.map((s) => s.date));
   const confirmedSessionsByDate = useMemo(
@@ -248,11 +258,13 @@ export function AvailabilityCalendar({
             today={today}
             onDayClick={handleDayClick}
             onEditComment={handleEditComment}
-            weekdays={DAY_LABELS.abbrev}
+            weekdays={orderedWeekdays}
             specialPlayDates={specialPlayDates}
             isGmOrCoGm={isGmOrCoGm}
             onToggleSpecialDate={onToggleSpecialDate}
             onOpenActionMenu={handleOpenActionMenu}
+            weekStartDay={weekStartDay}
+            use24h={use24h}
           />
         ))}
       </div>
@@ -325,6 +337,7 @@ export function AvailabilityCalendar({
           onAvailableUntilChange={setAvailableUntilText}
           onSave={handleSaveComment}
           onCancel={handleCancelComment}
+          use24h={use24h}
         />
       )}
 
@@ -384,11 +397,13 @@ interface MonthCalendarProps {
   today: Date;
   onDayClick: (date: Date) => void;
   onEditComment: (dateStr: string) => void;
-  weekdays: readonly string[];
+  weekdays: readonly string[] | string[];
   specialPlayDates: string[];
   isGmOrCoGm: boolean;
   onToggleSpecialDate?: (date: string) => void;
   onOpenActionMenu?: (dateStr: string) => void;
+  weekStartDay: 0 | 1;
+  use24h: boolean;
 }
 
 function MonthCalendar({
@@ -405,13 +420,15 @@ function MonthCalendar({
   isGmOrCoGm,
   onToggleSpecialDate,
   onOpenActionMenu,
+  weekStartDay,
+  use24h,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),
     end: endOfMonth(month),
   });
 
-  const startDayOfWeek = getDay(startOfMonth(month));
+  const startDayOfWeek = (getDay(startOfMonth(month)) - weekStartDay + 7) % 7;
 
   // Long-press handling for mobile
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
@@ -466,7 +483,7 @@ function MonthCalendar({
           <div
             key={`${day}-${i}`}
             className={`text-center text-[10px] font-medium ${
-              playDays.includes(i)
+              playDays.includes((i + weekStartDay) % 7)
                 ? "text-card-foreground"
                 : "text-muted-foreground"
             }`}
@@ -553,8 +570,8 @@ function MonthCalendar({
           const tooltipParts = [format(date, "EEEE, MMM d")];
           if (isConfirmed) {
             const session = confirmedSessionsByDate.get(dateStr);
-            const startStr = formatTimeShort(session?.start_time ?? null);
-            const endStr = formatTimeShort(session?.end_time ?? null);
+            const startStr = formatTimeShort(session?.start_time ?? null, use24h);
+            const endStr = formatTimeShort(session?.end_time ?? null, use24h);
             if (startStr && endStr) {
               tooltipParts.push(`Scheduled: ${startStr}–${endStr}`);
             } else if (startStr) {
@@ -566,8 +583,8 @@ function MonthCalendar({
             }
           }
           if (hasTimeConstraint) {
-            const after = formatTimeShort(avail?.available_after ?? null);
-            const until = formatTimeShort(avail?.available_until ?? null);
+            const after = formatTimeShort(avail?.available_after ?? null, use24h);
+            const until = formatTimeShort(avail?.available_until ?? null, use24h);
             if (after && until) {
               tooltipParts.push(`Available ${after}–${until}`);
             } else if (after) {
@@ -678,8 +695,8 @@ function MonthCalendar({
                 <span
                   className="absolute bottom-0.5 left-1 leading-none pointer-events-none"
                   title={(() => {
-                    const after = formatTimeShort(avail?.available_after ?? null);
-                    const until = formatTimeShort(avail?.available_until ?? null);
+                    const after = formatTimeShort(avail?.available_after ?? null, use24h);
+                    const until = formatTimeShort(avail?.available_until ?? null, use24h);
                     if (after && until) return `${after}–${until}`;
                     if (after) return `After ${after}`;
                     return `Until ${until}`;
@@ -719,19 +736,24 @@ function MonthCalendar({
 }
 
 // Time options for availability selects (30-minute increments)
-const TIME_OPTIONS: { value: string; label: string }[] = (() => {
+function getTimeOptions(use24h: boolean): { value: string; label: string }[] {
   const options: { value: string; label: string }[] = [];
   for (let h = 0; h < 24; h++) {
     for (const m of [0, 30]) {
       const value = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      const h12 = h % 12 || 12;
-      const ampm = h >= 12 ? "PM" : "AM";
-      const label = m === 0 ? `${h12}:00 ${ampm}` : `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+      let label: string;
+      if (use24h) {
+        label = `${h}:${String(m).padStart(2, "0")}`;
+      } else {
+        const h12 = h % 12 || 12;
+        const ampm = h >= 12 ? "PM" : "AM";
+        label = m === 0 ? `${h12}:00 ${ampm}` : `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+      }
       options.push({ value, label });
     }
   }
   return options;
-})();
+}
 
 // Extracted component to avoid IIFE in JSX (Turbopack compatibility)
 interface NoteEditorPopoverProps {
@@ -745,6 +767,7 @@ interface NoteEditorPopoverProps {
   onAvailableUntilChange: (value: string) => void;
   onSave: () => void;
   onCancel: () => void;
+  use24h: boolean;
 }
 
 function NoteEditorPopover({
@@ -758,7 +781,9 @@ function NoteEditorPopover({
   onAvailableUntilChange,
   onSave,
   onCancel,
+  use24h,
 }: NoteEditorPopoverProps) {
+  const timeOptions = getTimeOptions(use24h);
   return (
     <div
       className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
@@ -791,7 +816,7 @@ function NoteEditorPopover({
                 className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">—</option>
-                {TIME_OPTIONS.map((t) => (
+                {timeOptions.map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
                   </option>
@@ -808,7 +833,7 @@ function NoteEditorPopover({
                 className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">—</option>
-                {TIME_OPTIONS.map((t) => (
+                {timeOptions.map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
                   </option>

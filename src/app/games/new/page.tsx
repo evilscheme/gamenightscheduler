@@ -7,12 +7,14 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
-import { DAY_OPTIONS, SESSION_DEFAULTS, USAGE_LIMITS, TEXT_LIMITS, TIMEZONE_OPTIONS, DEFAULT_TIMEZONE } from '@/lib/constants';
+import { DAY_OPTIONS, SESSION_DEFAULTS, USAGE_LIMITS, TEXT_LIMITS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE } from '@/lib/constants';
 import { getBrowserTimezone, isValidTimezone } from '@/lib/timezone';
 import { validateGameForm } from '@/lib/gameValidation';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function NewGamePage() {
   const { profile, isLoading, session } = useAuth();
+  const { weekStartDay, timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
   const supabase = createClient();
 
@@ -22,15 +24,37 @@ export default function NewGamePage() {
   const [windowMonths, setWindowMonths] = useState(2);
   const [defaultStartTime, setDefaultStartTime] = useState<string>(SESSION_DEFAULTS.START_TIME);
   const [defaultEndTime, setDefaultEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
-  const [timezone, setTimezone] = useState<string>(() => {
-    const browserTz = getBrowserTimezone();
-    return browserTz && isValidTimezone(browserTz) ? browserTz : DEFAULT_TIMEZONE;
-  });
+  const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
+  const [tzInitialized, setTzInitialized] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [gameCount, setGameCount] = useState<number | null>(null);
 
   useAuthRedirect({ requireGM: true });
+
+  // Initialize timezone: user preference > browser detection > default
+  // This is a valid pattern for form initialization from async profile data
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!tzInitialized) {
+      if (userTimezone && isValidTimezone(userTimezone)) {
+        setTimezone(userTimezone);
+        setTzInitialized(true);
+      } else {
+        const browserTz = getBrowserTimezone();
+        if (browserTz && isValidTimezone(browserTz)) {
+          setTimezone(browserTz);
+        }
+        setTzInitialized(true);
+      }
+    }
+  }, [userTimezone, tzInitialized]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Reorder day options based on user's week start preference
+  const orderedDayOptions = weekStartDay === 0
+    ? DAY_OPTIONS
+    : [...DAY_OPTIONS.slice(weekStartDay), ...DAY_OPTIONS.slice(0, weekStartDay)];
 
   // Fetch the user's current game count to check limits
   useEffect(() => {
@@ -158,7 +182,7 @@ export default function NewGamePage() {
                 Which days can your group play?
               </label>
               <div className="flex flex-wrap gap-2">
-                {DAY_OPTIONS.map((day) => (
+                {orderedDayOptions.map((day) => (
                   <button
                     key={day.value}
                     type="button"
@@ -238,10 +262,14 @@ export default function NewGamePage() {
                 onChange={(e) => setTimezone(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               >
-                {TIMEZONE_OPTIONS.map((tz) => (
-                  <option key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </option>
+                {TIMEZONE_GROUPS.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map((tz) => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
               <p className="text-sm text-muted-foreground mt-1">

@@ -17,8 +17,10 @@ interface CalendarEvent {
  * Calendar apps require VTIMEZONE definitions when TZID is used in DTSTART/DTEND.
  */
 function generateVTimezone(tzid: string): string[] {
-  // Common US timezone definitions with DST rules
-  const timezones: Record<string, { std: { offset: string; abbr: string; month: number; day: string }; dst: { offset: string; abbr: string; month: number; day: string } }> = {
+  // Timezone definitions with DST rules for ICS VTIMEZONE generation
+  type TzRule = { offset: string; abbr: string; month: number; day: string };
+  const timezones: Record<string, { std: TzRule; dst: TzRule }> = {
+    // --- North America (US DST: 2nd Sun Mar / 1st Sun Nov) ---
     'America/Los_Angeles': {
       std: { offset: '-0800', abbr: 'PST', month: 11, day: '1SU' },
       dst: { offset: '-0700', abbr: 'PDT', month: 3, day: '2SU' },
@@ -35,13 +37,15 @@ function generateVTimezone(tzid: string): string[] {
       std: { offset: '-0500', abbr: 'EST', month: 11, day: '1SU' },
       dst: { offset: '-0400', abbr: 'EDT', month: 3, day: '2SU' },
     },
+    'America/Toronto': {
+      std: { offset: '-0500', abbr: 'EST', month: 11, day: '1SU' },
+      dst: { offset: '-0400', abbr: 'EDT', month: 3, day: '2SU' },
+    },
     'America/Phoenix': {
-      // Arizona doesn't observe DST
       std: { offset: '-0700', abbr: 'MST', month: 1, day: '1SU' },
       dst: { offset: '-0700', abbr: 'MST', month: 1, day: '1SU' },
     },
     'Pacific/Honolulu': {
-      // Hawaii doesn't observe DST
       std: { offset: '-1000', abbr: 'HST', month: 1, day: '1SU' },
       dst: { offset: '-1000', abbr: 'HST', month: 1, day: '1SU' },
     },
@@ -49,9 +53,33 @@ function generateVTimezone(tzid: string): string[] {
       std: { offset: '-0900', abbr: 'AKST', month: 11, day: '1SU' },
       dst: { offset: '-0800', abbr: 'AKDT', month: 3, day: '2SU' },
     },
+    // --- Central & South America ---
+    'America/Mexico_City': {
+      // Mexico abolished DST in 2022
+      std: { offset: '-0600', abbr: 'CST', month: 1, day: '1SU' },
+      dst: { offset: '-0600', abbr: 'CST', month: 1, day: '1SU' },
+    },
+    'America/Bogota': {
+      std: { offset: '-0500', abbr: 'COT', month: 1, day: '1SU' },
+      dst: { offset: '-0500', abbr: 'COT', month: 1, day: '1SU' },
+    },
+    'America/Sao_Paulo': {
+      // Brazil abolished DST in 2019
+      std: { offset: '-0300', abbr: 'BRT', month: 1, day: '1SU' },
+      dst: { offset: '-0300', abbr: 'BRT', month: 1, day: '1SU' },
+    },
+    'America/Argentina/Buenos_Aires': {
+      std: { offset: '-0300', abbr: 'ART', month: 1, day: '1SU' },
+      dst: { offset: '-0300', abbr: 'ART', month: 1, day: '1SU' },
+    },
+    // --- Europe (EU DST: last Sun Mar / last Sun Oct) ---
     'Europe/London': {
       std: { offset: '+0000', abbr: 'GMT', month: 10, day: '-1SU' },
       dst: { offset: '+0100', abbr: 'BST', month: 3, day: '-1SU' },
+    },
+    'Europe/Dublin': {
+      std: { offset: '+0000', abbr: 'GMT', month: 10, day: '-1SU' },
+      dst: { offset: '+0100', abbr: 'IST', month: 3, day: '-1SU' },
     },
     'Europe/Paris': {
       std: { offset: '+0100', abbr: 'CET', month: 10, day: '-1SU' },
@@ -61,20 +89,113 @@ function generateVTimezone(tzid: string): string[] {
       std: { offset: '+0100', abbr: 'CET', month: 10, day: '-1SU' },
       dst: { offset: '+0200', abbr: 'CEST', month: 3, day: '-1SU' },
     },
+    'Europe/Madrid': {
+      std: { offset: '+0100', abbr: 'CET', month: 10, day: '-1SU' },
+      dst: { offset: '+0200', abbr: 'CEST', month: 3, day: '-1SU' },
+    },
+    'Europe/Rome': {
+      std: { offset: '+0100', abbr: 'CET', month: 10, day: '-1SU' },
+      dst: { offset: '+0200', abbr: 'CEST', month: 3, day: '-1SU' },
+    },
+    'Europe/Amsterdam': {
+      std: { offset: '+0100', abbr: 'CET', month: 10, day: '-1SU' },
+      dst: { offset: '+0200', abbr: 'CEST', month: 3, day: '-1SU' },
+    },
+    'Europe/Stockholm': {
+      std: { offset: '+0100', abbr: 'CET', month: 10, day: '-1SU' },
+      dst: { offset: '+0200', abbr: 'CEST', month: 3, day: '-1SU' },
+    },
+    'Europe/Warsaw': {
+      std: { offset: '+0100', abbr: 'CET', month: 10, day: '-1SU' },
+      dst: { offset: '+0200', abbr: 'CEST', month: 3, day: '-1SU' },
+    },
+    'Europe/Helsinki': {
+      std: { offset: '+0200', abbr: 'EET', month: 10, day: '-1SU' },
+      dst: { offset: '+0300', abbr: 'EEST', month: 3, day: '-1SU' },
+    },
+    'Europe/Athens': {
+      std: { offset: '+0200', abbr: 'EET', month: 10, day: '-1SU' },
+      dst: { offset: '+0300', abbr: 'EEST', month: 3, day: '-1SU' },
+    },
+    'Europe/Bucharest': {
+      std: { offset: '+0200', abbr: 'EET', month: 10, day: '-1SU' },
+      dst: { offset: '+0300', abbr: 'EEST', month: 3, day: '-1SU' },
+    },
+    'Europe/Istanbul': {
+      // Turkey uses permanent +03 since 2016
+      std: { offset: '+0300', abbr: 'TRT', month: 1, day: '1SU' },
+      dst: { offset: '+0300', abbr: 'TRT', month: 1, day: '1SU' },
+    },
+    'Europe/Moscow': {
+      // Russia uses permanent +03
+      std: { offset: '+0300', abbr: 'MSK', month: 1, day: '1SU' },
+      dst: { offset: '+0300', abbr: 'MSK', month: 1, day: '1SU' },
+    },
+    // --- Africa (no DST for most) ---
+    'Africa/Lagos': {
+      std: { offset: '+0100', abbr: 'WAT', month: 1, day: '1SU' },
+      dst: { offset: '+0100', abbr: 'WAT', month: 1, day: '1SU' },
+    },
+    'Africa/Cairo': {
+      std: { offset: '+0200', abbr: 'EET', month: 1, day: '1SU' },
+      dst: { offset: '+0200', abbr: 'EET', month: 1, day: '1SU' },
+    },
+    'Africa/Johannesburg': {
+      std: { offset: '+0200', abbr: 'SAST', month: 1, day: '1SU' },
+      dst: { offset: '+0200', abbr: 'SAST', month: 1, day: '1SU' },
+    },
+    // --- Middle East & South Asia ---
+    'Asia/Dubai': {
+      std: { offset: '+0400', abbr: 'GST', month: 1, day: '1SU' },
+      dst: { offset: '+0400', abbr: 'GST', month: 1, day: '1SU' },
+    },
+    'Asia/Karachi': {
+      std: { offset: '+0500', abbr: 'PKT', month: 1, day: '1SU' },
+      dst: { offset: '+0500', abbr: 'PKT', month: 1, day: '1SU' },
+    },
+    'Asia/Kolkata': {
+      std: { offset: '+0530', abbr: 'IST', month: 1, day: '1SU' },
+      dst: { offset: '+0530', abbr: 'IST', month: 1, day: '1SU' },
+    },
+    // --- East & Southeast Asia ---
+    'Asia/Bangkok': {
+      std: { offset: '+0700', abbr: 'ICT', month: 1, day: '1SU' },
+      dst: { offset: '+0700', abbr: 'ICT', month: 1, day: '1SU' },
+    },
+    'Asia/Singapore': {
+      std: { offset: '+0800', abbr: 'SGT', month: 1, day: '1SU' },
+      dst: { offset: '+0800', abbr: 'SGT', month: 1, day: '1SU' },
+    },
+    'Asia/Hong_Kong': {
+      std: { offset: '+0800', abbr: 'HKT', month: 1, day: '1SU' },
+      dst: { offset: '+0800', abbr: 'HKT', month: 1, day: '1SU' },
+    },
+    'Asia/Shanghai': {
+      std: { offset: '+0800', abbr: 'CST', month: 1, day: '1SU' },
+      dst: { offset: '+0800', abbr: 'CST', month: 1, day: '1SU' },
+    },
+    'Asia/Seoul': {
+      std: { offset: '+0900', abbr: 'KST', month: 1, day: '1SU' },
+      dst: { offset: '+0900', abbr: 'KST', month: 1, day: '1SU' },
+    },
     'Asia/Tokyo': {
-      // Japan doesn't observe DST
       std: { offset: '+0900', abbr: 'JST', month: 1, day: '1SU' },
       dst: { offset: '+0900', abbr: 'JST', month: 1, day: '1SU' },
     },
-    'Asia/Shanghai': {
-      // China doesn't observe DST
-      std: { offset: '+0800', abbr: 'CST', month: 1, day: '1SU' },
-      dst: { offset: '+0800', abbr: 'CST', month: 1, day: '1SU' },
+    // --- Oceania ---
+    'Australia/Perth': {
+      std: { offset: '+0800', abbr: 'AWST', month: 1, day: '1SU' },
+      dst: { offset: '+0800', abbr: 'AWST', month: 1, day: '1SU' },
     },
     'Australia/Sydney': {
       std: { offset: '+1000', abbr: 'AEST', month: 4, day: '1SU' },
       dst: { offset: '+1100', abbr: 'AEDT', month: 10, day: '1SU' },
     },
+    'Pacific/Auckland': {
+      std: { offset: '+1200', abbr: 'NZST', month: 4, day: '1SU' },
+      dst: { offset: '+1300', abbr: 'NZDT', month: 9, day: '-1SU' },
+    },
+    // --- Other ---
     'UTC': {
       std: { offset: '+0000', abbr: 'UTC', month: 1, day: '1SU' },
       dst: { offset: '+0000', abbr: 'UTC', month: 1, day: '1SU' },

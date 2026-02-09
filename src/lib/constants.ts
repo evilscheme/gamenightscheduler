@@ -42,7 +42,10 @@ export const DEFAULT_TIMEZONE = 'America/Los_Angeles';
 // Common timezones for the dropdown (grouped by region)
 export const TIMEZONE_OPTIONS = [
   // North America
+  { value: 'America/Anchorage', label: 'Alaska Time (Anchorage)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii Time (Honolulu)' },
   { value: 'America/Los_Angeles', label: 'Pacific Time (Los Angeles)' },
+  { value: 'America/Phoenix', label: 'Arizona Time (Phoenix)' },
   { value: 'America/Denver', label: 'Mountain Time (Denver)' },
   { value: 'America/Chicago', label: 'Central Time (Chicago)' },
   { value: 'America/New_York', label: 'Eastern Time (New York)' },

@@ -57,6 +57,24 @@ function generateVTimezone(tzid: string): string[] {
       std: { offset: '+0100', abbr: 'CET', month: 10, day: '-1SU' },
       dst: { offset: '+0200', abbr: 'CEST', month: 3, day: '-1SU' },
     },
+    'Europe/Berlin': {
+      std: { offset: '+0100', abbr: 'CET', month: 10, day: '-1SU' },
+      dst: { offset: '+0200', abbr: 'CEST', month: 3, day: '-1SU' },
+    },
+    'Asia/Tokyo': {
+      // Japan doesn't observe DST
+      std: { offset: '+0900', abbr: 'JST', month: 1, day: '1SU' },
+      dst: { offset: '+0900', abbr: 'JST', month: 1, day: '1SU' },
+    },
+    'Asia/Shanghai': {
+      // China doesn't observe DST
+      std: { offset: '+0800', abbr: 'CST', month: 1, day: '1SU' },
+      dst: { offset: '+0800', abbr: 'CST', month: 1, day: '1SU' },
+    },
+    'Australia/Sydney': {
+      std: { offset: '+1000', abbr: 'AEST', month: 4, day: '1SU' },
+      dst: { offset: '+1100', abbr: 'AEDT', month: 10, day: '1SU' },
+    },
     'UTC': {
       std: { offset: '+0000', abbr: 'UTC', month: 1, day: '1SU' },
       dst: { offset: '+0000', abbr: 'UTC', month: 1, day: '1SU' },

@@ -21,6 +21,7 @@ export default function NewGamePage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [playDays, setPlayDays] = useState<number[]>([]);
+  const [adHocOnly, setAdHocOnly] = useState(false);
   const [windowMonths, setWindowMonths] = useState(2);
   const [defaultStartTime, setDefaultStartTime] = useState<string>(SESSION_DEFAULTS.START_TIME);
   const [defaultEndTime, setDefaultEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
@@ -77,7 +78,7 @@ export default function NewGamePage() {
     e.preventDefault();
     if (!profile?.id) return;
 
-    const validation = validateGameForm({ name, description, playDays });
+    const validation = validateGameForm({ name, description, playDays, adHocOnly });
     if (!validation.valid) {
       setError(validation.errors[0]);
       return;
@@ -101,6 +102,7 @@ export default function NewGamePage() {
         description: description.trim() || null,
         gm_id: profile.id,
         play_days: playDays.sort((a, b) => a - b),
+        ad_hoc_only: adHocOnly,
         invite_code: inviteCode,
         scheduling_window_months: windowMonths,
         default_start_time: defaultStartTime,
@@ -177,30 +179,58 @@ export default function NewGamePage() {
               rows={3}
             />
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-3">
-                Which days can your group play?
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={adHocOnly}
+                  onChange={(e) => {
+                    setAdHocOnly(e.target.checked);
+                    if (e.target.checked) setPlayDays([]);
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
               </label>
-              <div className="flex flex-wrap gap-2">
-                {orderedDayOptions.map((day) => (
-                  <button
-                    key={day.value}
-                    type="button"
-                    onClick={() => toggleDay(day.value)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      playDays.includes(day.value)
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                    }`}
-                  >
-                    {day.label}
-                  </button>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Players mark availability on these days. You can add special one-off dates later.
-              </p>
+              <span className="text-sm font-medium text-foreground">
+                Ad-hoc scheduling only
+              </span>
             </div>
+
+            {adHocOnly && (
+              <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
+                <p className="text-sm text-warning">
+                  No dates will appear on the calendar automatically. You&apos;ll need to add each potential play date manually from the game calendar using the + button.
+                </p>
+              </div>
+            )}
+
+            {!adHocOnly && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-3">
+                  Which days can your group play?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {orderedDayOptions.map((day) => (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => toggleDay(day.value)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        playDays.includes(day.value)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      }`}
+                    >
+                      {day.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Players mark availability on these days. You can add special one-off dates later.
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">

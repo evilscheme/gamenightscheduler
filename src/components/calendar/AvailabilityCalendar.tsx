@@ -140,14 +140,17 @@ export function AvailabilityCalendar({
 
   const handleSaveComment = () => {
     if (commentingDate) {
-      const currentStatus = availability[commentingDate]?.status || "available";
-      onToggle(
-        commentingDate,
-        currentStatus,
-        commentText.trim() || null,
-        availableAfterText || null,
-        availableUntilText || null
-      );
+      // Only update availability if the user has set a status (don't auto-create one)
+      const currentAvail = availability[commentingDate];
+      if (currentAvail) {
+        onToggle(
+          commentingDate,
+          currentAvail.status,
+          commentText.trim() || null,
+          availableAfterText || null,
+          availableUntilText || null
+        );
+      }
       // Save GM note if changed and user is GM
       const existingNote = playDateNotes.get(commentingDate) || "";
       const newNote = gmNoteText.trim();
@@ -404,6 +407,7 @@ export function AvailabilityCalendar({
       {commentingDate && (
         <NoteEditorPopover
           commentingDate={commentingDate}
+          hasAvailability={!!availability[commentingDate]}
           showTimeFields={
             availability[commentingDate]?.status === "available" ||
             availability[commentingDate]?.status === "maybe"
@@ -812,32 +816,41 @@ function MonthCalendar({
                   <X className="w-2.5 h-2.5" />
                 </span>
               )}
-              {/* Time constraint clock icon */}
-              {isPlayDay && !isPast && hasTimeConstraint && (
+              {/* Bottom-left status icons (clickable — open editor popover) */}
+              {isPlayDay && !isPast && (hasTimeConstraint || playDateNotes?.has(dateStr)) && (
                 <span
-                  className="absolute bottom-0.5 left-1 leading-none pointer-events-none"
-                  title={(() => {
-                    const after = formatTimeShort(avail?.available_after ?? null, use24h);
-                    const until = formatTimeShort(avail?.available_until ?? null, use24h);
-                    if (after && until) return `${after}–${until}`;
-                    if (after) return `After ${after}`;
-                    return `Until ${until}`;
-                  })()}
+                  className="absolute bottom-0 left-0.5 leading-none cursor-pointer flex items-center gap-px hover:scale-125 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (longPressTriggered.current) {
+                      longPressTriggered.current = false;
+                      return;
+                    }
+                    onEditComment(dateStr);
+                  }}
                 >
-                  <Clock className="w-2.5 h-2.5" />
+                  {hasTimeConstraint && (
+                    <span
+                      title={(() => {
+                        const after = formatTimeShort(avail?.available_after ?? null, use24h);
+                        const until = formatTimeShort(avail?.available_until ?? null, use24h);
+                        if (after && until) return `${after}–${until}`;
+                        if (after) return `After ${after}`;
+                        return `Until ${until}`;
+                      })()}
+                    >
+                      <Clock className="w-2.5 h-2.5" />
+                    </span>
+                  )}
+                  {playDateNotes?.has(dateStr) && (
+                    <span title={`GM note: ${playDateNotes.get(dateStr)}`}>
+                      <FileText className="w-2.5 h-2.5" />
+                    </span>
+                  )}
                 </span>
               )}
-              {/* GM play date note indicator */}
-              {isPlayDay && !isPast && playDateNotes?.has(dateStr) && !hasTimeConstraint && (
-                <span
-                  className="absolute bottom-0.5 left-1 leading-none pointer-events-none text-primary"
-                  title={`GM note: ${playDateNotes.get(dateStr)}`}
-                >
-                  <FileText className="w-2.5 h-2.5" />
-                </span>
-              )}
-              {/* Note/comment icon for play days */}
-              {isPlayDay && !isPast && hasAvailability && (
+              {/* Bottom-right edit icon — opens editor popover */}
+              {isPlayDay && !isPast && (hasAvailability || isGmOrCoGm) && (
                 <span
                   className={`absolute bottom-0.5 right-1 leading-none cursor-pointer hover:scale-125 transition-all ${
                     hasComment
@@ -846,7 +859,6 @@ function MonthCalendar({
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    // Prevent duplicate open after long-press (mobile)
                     if (longPressTriggered.current) {
                       longPressTriggered.current = false;
                       return;
@@ -889,6 +901,7 @@ function getTimeOptions(use24h: boolean): { value: string; label: string }[] {
 // Extracted component to avoid IIFE in JSX (Turbopack compatibility)
 interface NoteEditorPopoverProps {
   commentingDate: string;
+  hasAvailability: boolean;
   showTimeFields: boolean;
   commentText: string;
   availableAfterText: string;
@@ -908,6 +921,7 @@ interface NoteEditorPopoverProps {
 
 function NoteEditorPopover({
   commentingDate,
+  hasAvailability,
   showTimeFields,
   commentText,
   availableAfterText,
@@ -936,7 +950,7 @@ function NoteEditorPopover({
       >
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-card-foreground">
-            Note for {format(parseISO(commentingDate), "MMM d")}
+            {format(parseISO(commentingDate), "MMM d")}
           </span>
           <button
             onClick={onCancel}
@@ -945,99 +959,125 @@ function NoteEditorPopover({
             &times;
           </button>
         </div>
-        {showTimeFields && (
-          <div className="grid grid-cols-2 gap-3 mb-3">
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1">
-                Available after
-              </label>
-              <select
-                value={availableAfterText}
-                onChange={(e) => onAvailableAfterChange(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">—</option>
-                {timeOptions.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1">
-                Available until
-              </label>
-              <select
-                value={availableUntilText}
-                onChange={(e) => onAvailableUntilChange(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="">—</option>
-                {timeOptions.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
+
+        {/* GM Note section */}
         {showGmNote && (
           <div className="mb-3">
-            <label className="block text-xs text-muted-foreground mb-1">
-              Date note (visible to all players)
-            </label>
-            {isGmOrCoGm ? (
-              <input
-                type="text"
-                value={gmNoteText || ""}
-                onChange={(e) => onGmNoteChange?.(e.target.value)}
-                placeholder="e.g., Only after 2pm, different location"
-                className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                maxLength={TEXT_LIMITS.PLAY_DATE_NOTE}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") onSave();
-                  if (e.key === "Escape") onCancel();
-                }}
-              />
-            ) : gmNote ? (
-              <p className="text-sm text-foreground bg-secondary/50 rounded-md px-3 py-2">
-                {gmNote}
-              </p>
-            ) : null}
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+              GM Note
+            </div>
+            <div className="bg-secondary/50 rounded-md p-3">
+              {isGmOrCoGm ? (
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">
+                    Visible to all players
+                  </label>
+                  <input
+                    type="text"
+                    value={gmNoteText || ""}
+                    onChange={(e) => onGmNoteChange?.(e.target.value)}
+                    placeholder="e.g., Only after 2pm, different location"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    maxLength={TEXT_LIMITS.PLAY_DATE_NOTE}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") onSave();
+                      if (e.key === "Escape") onCancel();
+                    }}
+                  />
+                </div>
+              ) : gmNote ? (
+                <p className="text-sm text-foreground">
+                  {gmNote}
+                </p>
+              ) : null}
+            </div>
           </div>
         )}
-        <div className="mb-3">
-          <label className="block text-xs text-muted-foreground mb-1">
-            Note
-          </label>
-          <input
-            type="text"
-            value={commentText}
-            onChange={(e) => onCommentChange(e.target.value)}
-            placeholder="e.g., Depends on work schedule"
-            className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onSave();
-              if (e.key === "Escape") onCancel();
-            }}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="flex-1"
-            onClick={onCancel}
-          >
-            Cancel
+
+        {/* Your Availability section — only when user has set availability */}
+        {hasAvailability && (
+          <div className="mb-3">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+              Your Availability
+            </div>
+            <div className="space-y-3">
+              {showTimeFields && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">
+                      Available after
+                    </label>
+                    <select
+                      value={availableAfterText}
+                      onChange={(e) => onAvailableAfterChange(e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">—</option>
+                      {timeOptions.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">
+                      Available until
+                    </label>
+                    <select
+                      value={availableUntilText}
+                      onChange={(e) => onAvailableUntilChange(e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">—</option>
+                      {timeOptions.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">
+                  Note
+                </label>
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => onCommentChange(e.target.value)}
+                  placeholder="e.g., Depends on work schedule"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") onSave();
+                    if (e.key === "Escape") onCancel();
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        {hasAvailability || isGmOrCoGm ? (
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+            <Button size="sm" className="flex-1" onClick={onSave}>
+              Save
+            </Button>
+          </div>
+        ) : (
+          <Button size="sm" className="w-full" onClick={onCancel}>
+            OK
           </Button>
-          <Button size="sm" className="flex-1" onClick={onSave}>
-            Save
-          </Button>
-        </div>
+        )}
       </div>
     </div>
   );

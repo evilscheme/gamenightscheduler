@@ -227,8 +227,8 @@ export default function EditGamePage() {
             )}
 
             {conversionMessage && (
-              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
+              <div className="p-3 bg-primary/10 border border-primary/30 rounded-lg">
+                <p className="text-sm text-primary">
                   {conversionMessage}
                 </p>
               </div>

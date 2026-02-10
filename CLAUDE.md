@@ -189,3 +189,10 @@ Enforced via RLS policies in the database:
 
 - Use `psql` (not `pgsql`) as the Postgres client tool
 - don't ever directly migrate the database unless explicitly requested to. Favor creating migration files for a human to apply
+
+### Styling
+
+- **Never use hardcoded color classes** (e.g., `bg-blue-500`, `text-blue-700`, `dark:text-blue-300`). The app supports multiple color themes, so always use semantic theme classes instead.
+- For info callouts/highlights: `bg-primary/10 border border-primary/30 rounded-lg` with `text-primary`
+- For badges: `bg-primary/10 text-primary`
+- Available semantic color classes: `primary`, `secondary`, `muted`, `accent`, `card`, `destructive`, `foreground`, `border`, `ring` (each with `-foreground` variant where applicable)

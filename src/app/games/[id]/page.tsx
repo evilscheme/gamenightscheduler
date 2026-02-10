@@ -882,17 +882,22 @@ export default function GameDetailPage() {
             {game.ad_hoc_only &&
               specialDateStrings.length === 0 &&
               !canDoGmActions && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Your GM adds play dates manually — check back for new dates.
-                </p>
+                <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
+                  <p className="text-sm text-primary">
+                    No play dates have been added yet. Your GM will add dates to
+                    the calendar when they&apos;re ready — check back soon!
+                  </p>
+                </div>
               )}
             {game.ad_hoc_only &&
               canDoGmActions &&
               specialDateStrings.length === 0 && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Add potential play dates by clicking the + on any date in the
-                  calendar below.
-                </p>
+                <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
+                  <p className="text-sm text-primary">
+                    Add potential play dates by clicking the + on any date in the
+                    calendar below.
+                  </p>
+                </div>
               )}
           </div>
           <AvailabilityCalendar

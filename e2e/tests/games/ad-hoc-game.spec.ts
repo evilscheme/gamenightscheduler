@@ -276,8 +276,8 @@ test.describe('Ad-Hoc Games', () => {
       await page.getByRole('button', { name: /availability/i }).click();
       await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
-      // Player should see message about GM adding dates
-      await expect(page.getByText(/your gm adds play dates manually/i)).toBeVisible();
+      // Player should see message about no play dates yet
+      await expect(page.getByText(/no play dates have been added yet/i)).toBeVisible();
     });
   });
 

@@ -179,22 +179,34 @@ export default function NewGamePage() {
               rows={3}
             />
 
-            <div className="flex items-center gap-3">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={adHocOnly}
-                  onChange={(e) => {
-                    setAdHocOnly(e.target.checked);
-                    if (e.target.checked) setPlayDays([]);
-                  }}
-                  className="sr-only peer"
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-foreground">
+                  Ad-hoc scheduling only
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  No fixed play days &mdash; schedule sessions on any date
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={adHocOnly}
+                onClick={() => {
+                  const next = !adHocOnly;
+                  setAdHocOnly(next);
+                  if (next) setPlayDays([]);
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  adHocOnly ? 'bg-primary' : 'bg-secondary'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    adHocOnly ? 'translate-x-6' : 'translate-x-1'
+                  }`}
                 />
-                <div className="w-9 h-5 bg-secondary rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-              </label>
-              <span className="text-sm font-medium text-foreground">
-                Ad-hoc scheduling only
-              </span>
+              </button>
             </div>
 
             {adHocOnly && (

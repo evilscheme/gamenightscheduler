@@ -30,9 +30,9 @@ test.describe('Ad-Hoc Games', () => {
       // Fill game name
       await page.getByPlaceholder(/friday night board games/i).fill('Ad-Hoc Board Games');
 
-      // Enable ad-hoc scheduling toggle (sr-only checkbox needs force)
-      const toggle = page.locator('input[type="checkbox"]').first();
-      await toggle.check({ force: true });
+      // Enable ad-hoc scheduling toggle
+      const toggle = page.getByRole('switch');
+      await toggle.click();
 
       // Play day buttons should be hidden
       await expect(page.getByRole('button', { name: 'Friday' })).not.toBeVisible();
@@ -63,16 +63,16 @@ test.describe('Ad-Hoc Games', () => {
       // Play day buttons should be visible initially
       await expect(page.getByRole('button', { name: 'Friday' })).toBeVisible();
 
-      // Enable ad-hoc mode (sr-only checkbox needs force)
-      const toggle = page.locator('input[type="checkbox"]').first();
-      await toggle.check({ force: true });
+      // Enable ad-hoc mode
+      const toggle = page.getByRole('switch');
+      await toggle.click();
 
       // Play day buttons should be hidden
       await expect(page.getByRole('button', { name: 'Friday' })).not.toBeVisible();
       await expect(page.getByText(/no dates will appear on the calendar automatically/i)).toBeVisible();
 
       // Disable ad-hoc mode
-      await toggle.uncheck({ force: true });
+      await toggle.click();
 
       // Play day buttons should reappear
       await expect(page.getByRole('button', { name: 'Friday' })).toBeVisible();
@@ -92,9 +92,9 @@ test.describe('Ad-Hoc Games', () => {
       // Fill game name
       await page.getByPlaceholder(/friday night board games/i).fill('No Days Game');
 
-      // Enable ad-hoc mode (no play days selected, sr-only checkbox needs force)
-      const toggle = page.locator('input[type="checkbox"]').first();
-      await toggle.check({ force: true });
+      // Enable ad-hoc mode (no play days selected)
+      const toggle = page.getByRole('switch');
+      await toggle.click();
 
       // Submit should work without selecting play days
       await page.getByRole('button', { name: /create game/i }).click();

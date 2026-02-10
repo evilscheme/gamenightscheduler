@@ -205,7 +205,11 @@ export default function EditGamePage() {
                 type="button"
                 role="switch"
                 aria-checked={adHocOnly}
-                onClick={() => setAdHocOnly(!adHocOnly)}
+                onClick={() => {
+                  const next = !adHocOnly;
+                  setAdHocOnly(next);
+                  if (next) setPlayDays([]);
+                }}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   adHocOnly ? 'bg-primary' : 'bg-secondary'
                 }`}
@@ -219,8 +223,8 @@ export default function EditGamePage() {
             </div>
 
             {adHocOnly && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                <p className="text-sm text-amber-700 dark:text-amber-300">
+              <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg">
+                <p className="text-sm text-warning">
                   With ad-hoc scheduling, players mark availability on specific dates added by the GM from the calendar. No recurring play days are needed.
                 </p>
               </div>

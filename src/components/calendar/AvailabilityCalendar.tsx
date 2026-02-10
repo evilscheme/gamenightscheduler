@@ -513,7 +513,6 @@ function MonthCalendar({
   weekStartDay,
   use24h,
   playDateNotes,
-  adHocOnly,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),

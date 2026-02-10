@@ -886,6 +886,9 @@ export default function GameDetailPage() {
             use24h={use24h}
             otherGames={otherGames}
             onCopyFromGame={handleCopyFromGame}
+            playDateNotes={playDateNotes}
+            onUpdatePlayDateNote={handleUpdatePlayDateNote}
+            adHocOnly={game.ad_hoc_only}
           />
         </div>
       )}
@@ -900,6 +903,7 @@ export default function GameDetailPage() {
           defaultEndTime={game.default_end_time}
           timezone={game.timezone}
           minPlayersNeeded={game.min_players_needed || 0}
+          playDateNotes={playDateNotes}
           onConfirm={handleConfirmSession}
           onCancel={handleCancelSession}
           use24h={use24h}

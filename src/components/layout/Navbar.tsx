@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { BookOpen, Bug, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
+import { createClient } from '@/lib/supabase/client';
 
 const GITHUB_ISSUES_URL = 'https://github.com/evilscheme/gamenightscheduler/issues';
 const FEEDBACK_EMAIL = process.env.NEXT_PUBLIC_FEEDBACK_EMAIL;
@@ -69,7 +70,7 @@ function HelpDropdown() {
   );
 }
 
-function MobileMenu({ profile, signOut }: { profile: { is_gm?: boolean; is_admin?: boolean; name?: string | null } | null; signOut: () => void }) {
+function MobileMenu({ profile, signOut, hasGames }: { profile: { is_gm?: boolean; is_admin?: boolean; name?: string | null } | null; signOut: () => void; hasGames: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -105,6 +106,15 @@ function MobileMenu({ profile, signOut }: { profile: { is_gm?: boolean; is_admin
       </button>
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-md shadow-lg z-50 py-1">
+          {hasGames && (
+            <Link
+              href="/"
+              className="block px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              My Games
+            </Link>
+          )}
           {profile.is_gm && (
             <Link
               href="/games/new"
@@ -147,6 +157,29 @@ function MobileMenu({ profile, signOut }: { profile: { is_gm?: boolean; is_admin
 
 export function Navbar() {
   const { profile, isLoading, signOut } = useAuth();
+  const [hasGames, setHasGames] = useState(false);
+
+  useEffect(() => {
+    if (!profile?.id) {
+      return () => {};
+    }
+
+    let cancelled = false;
+    const supabase = createClient();
+    Promise.all([
+      supabase.from('game_memberships').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
+      supabase.from('games').select('*', { count: 'exact', head: true }).eq('gm_id', profile.id),
+    ]).then(([{ count: memberCount }, { count: gmCount }]) => {
+      if (!cancelled) {
+        setHasGames(((memberCount || 0) + (gmCount || 0)) > 0);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      setHasGames(false);
+    };
+  }, [profile?.id]);
 
   return (
     <nav className="bg-card border-b border-border">
@@ -157,8 +190,16 @@ export function Navbar() {
               <Image src="/logo.png" alt="Can We Play?" width={44} height={44} className="shrink-0" />
               <span className="hidden sm:block font-bold text-xl text-foreground">Can We Play?</span>
             </Link>
-            {(profile?.is_gm || profile?.is_admin) && (
+            {(hasGames || profile?.is_gm || profile?.is_admin) && (
               <div className="hidden sm:ml-8 sm:flex sm:space-x-4">
+                {hasGames && (
+                  <Link
+                    href="/"
+                    className="text-muted-foreground hover:text-foreground px-3 py-2 text-sm font-medium transition-colors"
+                  >
+                    My Games
+                  </Link>
+                )}
                 {profile?.is_gm && (
                   <Link
                     href="/games/new"
@@ -207,7 +248,7 @@ export function Navbar() {
                     Sign out
                   </Button>
                 </div>
-                <MobileMenu profile={profile} signOut={signOut} />
+                <MobileMenu profile={profile} signOut={signOut} hasGames={hasGames} />
               </>
             ) : (
               <Link href="/login">

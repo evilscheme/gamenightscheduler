@@ -30,6 +30,7 @@ import {
   getDay,
   format,
   isAfter,
+  isBefore,
   startOfDay,
   parseISO,
 } from "date-fns";
@@ -37,6 +38,7 @@ import { nanoid } from "nanoid";
 import { TIMEOUTS, USAGE_LIMITS } from "@/lib/constants";
 import { calculatePlayerCompletionPercentages } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
+import { filterAvailabilityForCopy } from "@/lib/copyAvailability";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 
 type Tab = "overview" | "availability" | "schedule";
@@ -66,6 +68,9 @@ export default function GameDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [otherGames, setOtherGames] = useState<{ id: string; name: string }[]>(
+    []
+  );
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
@@ -155,6 +160,28 @@ export default function GameDetailPage() {
       .order("date", { ascending: true });
 
     setSessions(sessionData || []);
+
+    // Fetch user's other games for "Copy from" feature
+    const { data: memberGames } = await supabase
+      .from("game_memberships")
+      .select("game_id, games(id, name)")
+      .eq("user_id", profile.id);
+
+    const { data: gmGames } = await supabase
+      .from("games")
+      .select("id, name")
+      .eq("gm_id", profile.id);
+
+    const gameMap = new Map<string, string>();
+    gmGames?.forEach((g) => gameMap.set(g.id, g.name));
+    memberGames?.forEach((m) => {
+      const g = m.games as unknown as { id: string; name: string } | null;
+      if (g) gameMap.set(g.id, g.name);
+    });
+    gameMap.delete(gameId); // Exclude current game
+    setOtherGames(
+      Array.from(gameMap.entries()).map(([id, name]) => ({ id, name }))
+    );
 
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
@@ -274,6 +301,106 @@ export default function GameDetailPage() {
         ];
       });
     }
+  };
+
+  const handleCopyFromGame = async (sourceGameId: string): Promise<number> => {
+    if (!profile?.id || !gameId || !game) return 0;
+
+    // Fetch user's availability from source game
+    const { data: sourceAvail } = await supabase
+      .from("availability")
+      .select("*")
+      .eq("game_id", sourceGameId)
+      .eq("user_id", profile.id);
+
+    if (!sourceAvail || sourceAvail.length === 0) return 0;
+
+    // Build source availability map
+    const sourceMap: Record<string, AvailabilityEntry> = {};
+    sourceAvail.forEach((a) => {
+      sourceMap[a.date] = {
+        status: a.status,
+        comment: a.comment,
+        available_after: a.available_after,
+        available_until: a.available_until,
+      };
+    });
+
+    const today = startOfDay(new Date());
+    const windowEnd = endOfMonth(
+      addMonths(today, game.scheduling_window_months)
+    );
+
+    // Filter dates eligible for copy
+    const toCopy = filterAvailabilityForCopy({
+      sourceAvailability: sourceMap,
+      destinationAvailability: availability,
+      destinationPlayDays: game.play_days,
+      destinationSpecialPlayDates: game.special_play_dates || [],
+      today,
+      windowEndDate: windowEnd,
+      getDayOfWeek: getDay,
+      isBefore,
+      isAfter,
+      parseDate: (s) => parseISO(s),
+    });
+
+    if (toCopy.length === 0) return 0;
+
+    // Optimistic update
+    setAvailability((prev) => {
+      const next = { ...prev };
+      for (const { date, entry } of toCopy) {
+        next[date] = entry;
+      }
+      return next;
+    });
+
+    // Batch upsert
+    const rows = toCopy.map(({ date, entry }) => ({
+      user_id: profile.id,
+      game_id: gameId,
+      date,
+      status: entry.status,
+      comment: entry.comment,
+      available_after: entry.available_after,
+      available_until: entry.available_until,
+    }));
+
+    const { error } = await supabase
+      .from("availability")
+      .upsert(rows, { onConflict: "user_id,game_id,date" });
+
+    if (error) {
+      // Revert on error
+      setAvailability((prev) => {
+        const next = { ...prev };
+        for (const { date } of toCopy) {
+          delete next[date];
+        }
+        return next;
+      });
+      throw error;
+    }
+
+    // Update allAvailability for suggestions
+    setAllAvailability((prev) => [
+      ...prev,
+      ...toCopy.map(({ date, entry }) => ({
+        id: "temp",
+        user_id: profile.id,
+        game_id: gameId,
+        date,
+        status: entry.status,
+        comment: entry.comment,
+        available_after: entry.available_after,
+        available_until: entry.available_until,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })),
+    ]);
+
+    return toCopy.length;
   };
 
   const handleConfirmSession = async (
@@ -640,6 +767,8 @@ export default function GameDetailPage() {
             onToggleSpecialDate={handleToggleSpecialDate}
             weekStartDay={weekStartDay}
             use24h={use24h}
+            otherGames={otherGames}
+            onCopyFromGame={handleCopyFromGame}
           />
         </div>
       )}

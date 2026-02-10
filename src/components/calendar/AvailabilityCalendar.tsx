@@ -42,6 +42,8 @@ interface AvailabilityCalendarProps {
   onToggleSpecialDate?: (date: string) => void;
   weekStartDay?: 0 | 1;
   use24h?: boolean;
+  otherGames?: { id: string; name: string }[];
+  onCopyFromGame?: (sourceGameId: string) => Promise<number>;
 }
 
 export function AvailabilityCalendar({
@@ -55,6 +57,8 @@ export function AvailabilityCalendar({
   onToggleSpecialDate,
   weekStartDay = 0,
   use24h = false,
+  otherGames,
+  onCopyFromGame,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = endOfMonth(addMonths(today, windowMonths));
@@ -66,6 +70,10 @@ export function AvailabilityCalendar({
   const [bulkStatus, setBulkStatus] = useState<AvailabilityStatus>("available");
   // Action menu for GM long-press on special play dates
   const [actionMenuDate, setActionMenuDate] = useState<string | null>(null);
+  // Copy from game state
+  const [copySourceGameId, setCopySourceGameId] = useState<string>("");
+  const [isCopying, setIsCopying] = useState(false);
+  const [copyResultMessage, setCopyResultMessage] = useState<string | null>(null);
 
   // Generate array of months to display
   const months = useMemo(() => {
@@ -209,6 +217,28 @@ export function AvailabilityCalendar({
     bulkSetDays(bulkDayFilter, bulkStatus);
   };
 
+  const handleCopyFromGame = async () => {
+    if (!copySourceGameId || !onCopyFromGame) return;
+    setIsCopying(true);
+    setCopyResultMessage(null);
+    try {
+      const count = await onCopyFromGame(copySourceGameId);
+      const gameName =
+        otherGames?.find((g) => g.id === copySourceGameId)?.name ?? "game";
+      setCopyResultMessage(
+        count > 0
+          ? `Copied ${count} date${count !== 1 ? "s" : ""} from ${gameName}`
+          : "No new dates to copy"
+      );
+      setTimeout(() => setCopyResultMessage(null), 3000);
+    } catch {
+      setCopyResultMessage("Failed to copy availability");
+      setTimeout(() => setCopyResultMessage(null), 3000);
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Bulk actions */}
@@ -242,6 +272,39 @@ export function AvailabilityCalendar({
           <Button size="sm" onClick={handleBulkSubmit} className="h-8">
             Apply
           </Button>
+          {otherGames && otherGames.length > 0 && onCopyFromGame && (
+            <>
+              <span className="text-border">|</span>
+              <span className="text-muted-foreground">Copy from</span>
+              <select
+                value={copySourceGameId}
+                onChange={(e) => setCopySourceGameId(e.target.value)}
+                className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-[200px]"
+                data-testid="copy-game-select"
+              >
+                <option value="">Select a game</option>
+                {otherGames.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                onClick={handleCopyFromGame}
+                disabled={!copySourceGameId || isCopying}
+                className="h-8"
+                data-testid="copy-game-button"
+              >
+                {isCopying ? "Copying..." : "Copy"}
+              </Button>
+              {copyResultMessage && (
+                <span className="text-xs text-muted-foreground" data-testid="copy-result-message">
+                  {copyResultMessage}
+                </span>
+              )}
+            </>
+          )}
         </div>
       </div>
 

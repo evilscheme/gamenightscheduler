@@ -161,17 +161,24 @@ export function Navbar() {
 
   useEffect(() => {
     if (!profile?.id) {
-      setHasGames(false);
-      return;
+      return () => {};
     }
 
+    let cancelled = false;
     const supabase = createClient();
     Promise.all([
       supabase.from('game_memberships').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
       supabase.from('games').select('*', { count: 'exact', head: true }).eq('gm_id', profile.id),
     ]).then(([{ count: memberCount }, { count: gmCount }]) => {
-      setHasGames(((memberCount || 0) + (gmCount || 0)) > 0);
+      if (!cancelled) {
+        setHasGames(((memberCount || 0) + (gmCount || 0)) > 0);
+      }
     });
+
+    return () => {
+      cancelled = true;
+      setHasGames(false);
+    };
   }, [profile?.id]);
 
   return (

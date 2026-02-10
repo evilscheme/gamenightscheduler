@@ -29,6 +29,8 @@ export default function EditGamePage() {
   const [defaultEndTime, setDefaultEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
   const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
   const [minPlayersNeeded, setMinPlayersNeeded] = useState(0);
+  const [adHocOnly, setAdHocOnly] = useState(false);
+  const [conversionMessage, setConversionMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -76,6 +78,7 @@ export default function EditGamePage() {
       setDefaultEndTime(data.default_end_time?.slice(0, 5) || SESSION_DEFAULTS.END_TIME);
       setTimezone(data.timezone || DEFAULT_TIMEZONE);
       setMinPlayersNeeded(data.min_players_needed || 0);
+      setAdHocOnly(data.ad_hoc_only || false);
       setLoading(false);
     }
 
@@ -98,7 +101,7 @@ export default function EditGamePage() {
     e.preventDefault();
     if (!profile?.id || !game) return;
 
-    const validation = validateGameForm({ name, playDays });
+    const validation = validateGameForm({ name, playDays, adHocOnly });
     if (!validation.valid) {
       setError(validation.errors[0]);
       return;
@@ -106,18 +109,41 @@ export default function EditGamePage() {
 
     setSaving(true);
     setError('');
+    setConversionMessage(null);
+
+    // When switching to ad-hoc mode, preserve confirmed session dates as special play dates
+    if (adHocOnly && !game.ad_hoc_only) {
+      const { data: futureSessions } = await supabase
+        .from('sessions')
+        .select('date')
+        .eq('game_id', gameId)
+        .gte('date', new Date().toISOString().split('T')[0]);
+
+      if (futureSessions && futureSessions.length > 0) {
+        const sessionDates = futureSessions.map((s) => s.date);
+        for (const date of sessionDates) {
+          await supabase
+            .from('game_play_dates')
+            .upsert({ game_id: gameId, date }, { onConflict: 'game_id,date' });
+        }
+        setConversionMessage(
+          `${sessionDates.length} confirmed session date${sessionDates.length !== 1 ? 's were' : ' was'} preserved as special play dates.`
+        );
+      }
+    }
 
     const { error: updateError } = await supabase
       .from('games')
       .update({
         name: name.trim(),
         description: description.trim() || null,
-        play_days: playDays.sort((a, b) => a - b),
+        play_days: adHocOnly ? [] : playDays.sort((a, b) => a - b),
         scheduling_window_months: windowMonths,
         default_start_time: defaultStartTime,
         default_end_time: defaultEndTime,
         timezone: timezone || null,
         min_players_needed: minPlayersNeeded,
+        ad_hoc_only: adHocOnly,
       })
       .eq('id', gameId);
 
@@ -166,6 +192,49 @@ export default function EditGamePage() {
               rows={3}
             />
 
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-sm font-medium text-foreground">
+                  Ad-hoc scheduling only
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  No fixed play days &mdash; schedule sessions on any date
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={adHocOnly}
+                onClick={() => setAdHocOnly(!adHocOnly)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  adHocOnly ? 'bg-primary' : 'bg-secondary'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    adHocOnly ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {adHocOnly && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  With ad-hoc scheduling, players mark availability on specific dates added by the GM from the calendar. No recurring play days are needed.
+                </p>
+              </div>
+            )}
+
+            {conversionMessage && (
+              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  {conversionMessage}
+                </p>
+              </div>
+            )}
+
+            {!adHocOnly && (
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">
                 Which days can your group play?
@@ -190,6 +259,7 @@ export default function EditGamePage() {
                 Players mark availability on these days. You can add special one-off dates from the calendar.
               </p>
             </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">

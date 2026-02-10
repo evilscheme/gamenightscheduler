@@ -18,6 +18,13 @@ export const metadata: Metadata = {
   title: 'Can We Play? - Game Night Scheduler',
   description: 'Coordinate game nights with your group',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  manifest: '/manifest.webmanifest',
+  themeColor: '#0ea5e9',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Can We Play?',
+  },
   openGraph: {
     title: 'Can We Play?',
     description: 'Coordinate game nights with your group',

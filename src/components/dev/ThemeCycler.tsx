@@ -27,7 +27,7 @@ export function ThemeCycler() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+Alt+T (or Cmd+Alt+T on Mac)
-      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 't') {
+      if ((e.ctrlKey || e.metaKey) && e.altKey && e.code === 'KeyT') {
         e.preventDefault();
 
         // Find current combination index

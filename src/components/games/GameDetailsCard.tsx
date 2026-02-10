@@ -18,6 +18,7 @@ interface GameDetailsCardProps {
   confirmedSessions: GameSession[];
   inviteCode: string;
   use24h?: boolean;
+  adHocOnly?: boolean;
 }
 
 export function GameDetailsCard({
@@ -30,6 +31,7 @@ export function GameDetailsCard({
   confirmedSessions,
   inviteCode,
   use24h = false,
+  adHocOnly = false,
 }: GameDetailsCardProps) {
   const [calendarCopied, setCalendarCopied] = useState(false);
 
@@ -50,9 +52,13 @@ export function GameDetailsCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-sm text-muted-foreground">Play Days</p>
+          <p className="text-sm text-muted-foreground">
+            {adHocOnly ? "Scheduling" : "Play Days"}
+          </p>
           <p className="text-card-foreground">
-            {playDays.map((d) => DAY_LABELS.full[d]).join(", ")}
+            {adHocOnly
+              ? "Ad-hoc dates only"
+              : playDays.map((d) => DAY_LABELS.full[d]).join(", ")}
           </p>
         </div>
         <div>

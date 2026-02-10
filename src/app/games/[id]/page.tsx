@@ -13,6 +13,7 @@ import {
   Availability,
   AvailabilityStatus,
   GameSession,
+  GamePlayDate,
   DateSuggestion,
   GameWithMembers,
   MemberWithRole,
@@ -39,6 +40,7 @@ import { TIMEOUTS, USAGE_LIMITS } from "@/lib/constants";
 import { calculatePlayerCompletionPercentages } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
 import { filterAvailabilityForCopy } from "@/lib/copyAvailability";
+import { mergeSpecialPlayDates } from "@/lib/specialPlayDates";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 
 type Tab = "overview" | "availability" | "schedule";
@@ -71,12 +73,37 @@ export default function GameDetailPage() {
   const [otherGames, setOtherGames] = useState<{ id: string; name: string }[]>(
     []
   );
+  const [gamePlayDates, setGamePlayDates] = useState<GamePlayDate[]>([]);
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
     game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;
   const canDoGmActions = !!(isGm || isCoGm);
   const isMember = game?.members.some((m) => m.id === profile?.id);
+
+  const mergedSpecialDates = useMemo(() => {
+    const legacyDates = game?.special_play_dates || [];
+    const tableEntries = gamePlayDates.map((r) => ({
+      date: r.date,
+      note: r.note,
+    }));
+    return mergeSpecialPlayDates(legacyDates, tableEntries);
+  }, [game?.special_play_dates, gamePlayDates]);
+
+  const specialDateStrings = useMemo(
+    () => mergedSpecialDates.map((d) => d.date),
+    [mergedSpecialDates]
+  );
+
+  const playDateNotes = useMemo(
+    () =>
+      new Map(
+        mergedSpecialDates
+          .filter((d) => d.note)
+          .map((d) => [d.date, d.note!])
+      ),
+    [mergedSpecialDates]
+  );
 
   // Calculate availability completion percentage per player
   const playerCompletionPercentages = useMemo(() => {
@@ -87,10 +114,10 @@ export default function GameDetailPage() {
       playerIds: allPlayers.map((p) => p.id),
       playDays: game.play_days,
       schedulingWindowMonths: game.scheduling_window_months,
-      specialPlayDates: game.special_play_dates || [],
+      specialPlayDates: specialDateStrings,
       availabilityRecords: allAvailability,
     });
-  }, [game, allAvailability]);
+  }, [game, allAvailability, specialDateStrings]);
 
   useAuthRedirect();
 
@@ -161,6 +188,14 @@ export default function GameDetailPage() {
 
     setSessions(sessionData || []);
 
+    // Fetch game play dates (new table)
+    const { data: playDateRows } = await supabase
+      .from("game_play_dates")
+      .select("*")
+      .eq("game_id", gameId);
+
+    setGamePlayDates(playDateRows || []);
+
     // Fetch user's other games for "Copy from" feature
     const { data: memberGames } = await supabase
       .from("game_memberships")
@@ -200,13 +235,12 @@ export default function GameDetailPage() {
     const allPlayers = [game.gm, ...game.members];
     const today = startOfDay(new Date());
     const endDate = endOfMonth(addMonths(today, game.scheduling_window_months));
-    const specialDates = game.special_play_dates || [];
 
     // Get play dates within the scheduling window
     const playDates = eachDayOfInterval({ start: today, end: endDate })
       .filter((date) => {
         const dateStr = format(date, "yyyy-MM-dd");
-        return game.play_days.includes(getDay(date)) || specialDates.includes(dateStr);
+        return game.play_days.includes(getDay(date)) || specialDateStrings.includes(dateStr);
       })
       .filter(
         (date) =>
@@ -225,7 +259,7 @@ export default function GameDetailPage() {
     });
 
     setSuggestions(suggestionList);
-  }, [game, allAvailability]);
+  }, [game, allAvailability, specialDateStrings]);
 
   const handleAvailabilityChange = async (
     date: string,
@@ -336,7 +370,7 @@ export default function GameDetailPage() {
       sourceAvailability: sourceMap,
       destinationAvailability: availability,
       destinationPlayDays: game.play_days,
-      destinationSpecialPlayDates: game.special_play_dates || [],
+      destinationSpecialPlayDates: specialDateStrings,
       today,
       windowEndDate: windowEnd,
       getDayOfWeek: getDay,
@@ -596,35 +630,102 @@ export default function GameDetailPage() {
   const handleToggleSpecialDate = async (date: string) => {
     if (!gameId || !game) return;
 
-    const currentSpecialDates = game.special_play_dates || [];
-    const isCurrentlySpecial = currentSpecialDates.includes(date);
+    const isCurrentlySpecial = specialDateStrings.includes(date);
 
-    let newSpecialDates: string[];
     if (isCurrentlySpecial) {
-      // Remove the date
-      newSpecialDates = currentSpecialDates.filter((d) => d !== date);
+      // Remove: delete from new table + legacy array
+      const existingRow = gamePlayDates.find((r) => r.date === date);
+      if (existingRow) {
+        setGamePlayDates((prev) => prev.filter((r) => r.date !== date));
+        await supabase
+          .from("game_play_dates")
+          .delete()
+          .eq("game_id", gameId)
+          .eq("date", date);
+      }
+      // Also clean from legacy array if present
+      const legacyDates = game.special_play_dates || [];
+      if (legacyDates.includes(date)) {
+        const newLegacy = legacyDates.filter((d) => d !== date);
+        setGame((prev) =>
+          prev ? { ...prev, special_play_dates: newLegacy } : prev
+        );
+        await supabase
+          .from("games")
+          .update({ special_play_dates: newLegacy })
+          .eq("id", gameId);
+      }
     } else {
-      // Add the date
-      newSpecialDates = [...currentSpecialDates, date].sort();
+      // Add: insert into new table only
+      const tempRow: GamePlayDate = {
+        id: "temp-" + date,
+        game_id: gameId,
+        date,
+        note: null,
+        created_at: new Date().toISOString(),
+      };
+      setGamePlayDates((prev) =>
+        [...prev, tempRow].sort((a, b) => a.date.localeCompare(b.date))
+      );
+
+      const { data, error } = await supabase
+        .from("game_play_dates")
+        .insert({ game_id: gameId, date, note: null })
+        .select()
+        .single();
+
+      if (error) {
+        setGamePlayDates((prev) => prev.filter((r) => r.date !== date));
+      } else if (data) {
+        setGamePlayDates((prev) =>
+          prev.map((r) =>
+            r.id === tempRow.id ? (data as GamePlayDate) : r
+          )
+        );
+      }
     }
+  };
 
-    // Optimistic update
-    setGame((prev) => {
-      if (!prev) return prev;
-      return { ...prev, special_play_dates: newSpecialDates };
-    });
+  const handleUpdatePlayDateNote = async (
+    date: string,
+    note: string | null
+  ) => {
+    if (!gameId) return;
 
-    const { error } = await supabase
-      .from("games")
-      .update({ special_play_dates: newSpecialDates })
-      .eq("id", gameId);
-
-    if (error) {
-      // Revert on error
-      setGame((prev) => {
-        if (!prev) return prev;
-        return { ...prev, special_play_dates: currentSpecialDates };
-      });
+    const existing = gamePlayDates.find((r) => r.date === date);
+    if (existing) {
+      setGamePlayDates((prev) =>
+        prev.map((r) => (r.date === date ? { ...r, note } : r))
+      );
+      await supabase
+        .from("game_play_dates")
+        .update({ note })
+        .eq("game_id", gameId)
+        .eq("date", date);
+    } else {
+      const tempRow: GamePlayDate = {
+        id: "temp-" + date,
+        game_id: gameId,
+        date,
+        note,
+        created_at: new Date().toISOString(),
+      };
+      setGamePlayDates((prev) => [...prev, tempRow]);
+      const { data } = await supabase
+        .from("game_play_dates")
+        .upsert(
+          { game_id: gameId, date, note },
+          { onConflict: "game_id,date" }
+        )
+        .select()
+        .single();
+      if (data) {
+        setGamePlayDates((prev) =>
+          prev.map((r) =>
+            r.id === tempRow.id ? (data as GamePlayDate) : r
+          )
+        );
+      }
     }
   };
 
@@ -740,6 +841,7 @@ export default function GameDetailPage() {
             confirmedSessions={confirmedSessions}
             inviteCode={game.invite_code}
             use24h={use24h}
+            adHocOnly={game.ad_hoc_only}
           />
         </div>
       )}
@@ -755,6 +857,21 @@ export default function GameDetailPage() {
               Add notes or time constraints by hovering and clicking the pencil icon (or long-press
               on mobile).
             </p>
+            {game.ad_hoc_only &&
+              specialDateStrings.length === 0 &&
+              !canDoGmActions && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your GM adds play dates manually — check back for new dates.
+                </p>
+              )}
+            {game.ad_hoc_only &&
+              canDoGmActions &&
+              specialDateStrings.length === 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Add potential play dates by clicking the + on any date in the
+                  calendar below.
+                </p>
+              )}
           </div>
           <AvailabilityCalendar
             playDays={game.play_days}
@@ -762,7 +879,7 @@ export default function GameDetailPage() {
             availability={availability}
             onToggle={handleAvailabilityChange}
             confirmedSessions={confirmedSessions}
-            specialPlayDates={game.special_play_dates || []}
+            specialPlayDates={specialDateStrings}
             isGmOrCoGm={canDoGmActions}
             onToggleSpecialDate={handleToggleSpecialDate}
             weekStartDay={weekStartDay}

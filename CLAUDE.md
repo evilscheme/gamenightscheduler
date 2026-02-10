@@ -36,6 +36,18 @@ npm run test:e2e:headed   # Run in headed browser mode
 npm run test:e2e:debug    # Run in debug mode
 ```
 
+## Testing Requirements
+
+**IMPORTANT: Every feature or behavior change MUST include tests.**
+
+Before marking any implementation task as complete:
+1. Identify what tests are needed (unit tests for logic in `src/lib/`, E2E tests for user-facing flows in `e2e/tests/`)
+2. Propose the test plan to the user
+3. Write and run the tests
+4. Do NOT consider the task done until tests pass
+
+This applies to: new features, bug fixes, refactors that change behavior, new API routes, and new utility functions. Skip tests only for pure styling/cosmetic changes or config-only changes.
+
 ## Architecture
 
 This is a Next.js 16 App Router application for scheduling game nights. Players mark availability on a calendar, and the app suggests optimal dates. Key features include three-state availability (available/unavailable/maybe), co-GM support, calendar subscription feeds, and special play dates.
@@ -175,6 +187,5 @@ Enforced via RLS policies in the database:
 
 ### Development Practices
 
-- Always propose and create tests when implementing new features - don't wait to be asked
 - Use `psql` (not `pgsql`) as the Postgres client tool
 - don't ever directly migrate the database unless explicitly requested to. Favor creating migration files for a human to apply

@@ -7,6 +7,9 @@ export interface User {
   avatar_url: string | null;
   is_gm: boolean;
   is_admin: boolean;
+  timezone: string | null;
+  week_start_day: number;
+  time_format: string;
   created_at: string;
 }
 

@@ -17,6 +17,7 @@ interface GameDetailsCardProps {
   minPlayersNeeded?: number;
   confirmedSessions: GameSession[];
   inviteCode: string;
+  use24h?: boolean;
 }
 
 export function GameDetailsCard({
@@ -28,6 +29,7 @@ export function GameDetailsCard({
   minPlayersNeeded = 0,
   confirmedSessions,
   inviteCode,
+  use24h = false,
 }: GameDetailsCardProps) {
   const [calendarCopied, setCalendarCopied] = useState(false);
 
@@ -62,7 +64,7 @@ export function GameDetailsCard({
         <div>
           <p className="text-sm text-muted-foreground">Default Session Time</p>
           <p className="text-card-foreground">
-            {formatTime(defaultStartTime)} - {formatTime(defaultEndTime)}
+            {formatTime(defaultStartTime, use24h)} - {formatTime(defaultEndTime, use24h)}
           </p>
         </div>
         {timezone && (

@@ -81,3 +81,69 @@ describe("formatTimeShort", () => {
     expect(formatTimeShort("20:00")).toBe("8pm");
   });
 });
+
+describe("formatTime (24h mode)", () => {
+  it("formats PM times in 24-hour format", () => {
+    expect(formatTime("14:30", true)).toBe("14:30");
+  });
+
+  it("formats midnight as 0:00", () => {
+    expect(formatTime("00:00", true)).toBe("0:00");
+  });
+
+  it("strips leading zero from single-digit hours", () => {
+    expect(formatTime("09:05", true)).toBe("9:05");
+  });
+
+  it("keeps noon as 12:00", () => {
+    expect(formatTime("12:00", true)).toBe("12:00");
+  });
+
+  it("formats end-of-day 23:59", () => {
+    expect(formatTime("23:59", true)).toBe("23:59");
+  });
+
+  it("returns empty string for null input", () => {
+    expect(formatTime(null, true)).toBe("");
+  });
+
+  it("returns empty string for empty string input", () => {
+    expect(formatTime("", true)).toBe("");
+  });
+});
+
+describe("formatTimeShort (24h mode)", () => {
+  it("formats on-the-hour times with :00", () => {
+    expect(formatTimeShort("18:00", true)).toBe("18:00");
+  });
+
+  it("includes minutes when not on the hour", () => {
+    expect(formatTimeShort("18:30", true)).toBe("18:30");
+  });
+
+  it("formats midnight as 0:00", () => {
+    expect(formatTimeShort("00:00", true)).toBe("0:00");
+  });
+
+  it("strips leading zero from single-digit hours on the hour", () => {
+    expect(formatTimeShort("09:00", true)).toBe("9:00");
+  });
+
+  it("strips leading zero from single-digit hours with minutes", () => {
+    expect(formatTimeShort("09:30", true)).toBe("9:30");
+  });
+
+  it("returns empty string for null input", () => {
+    expect(formatTimeShort(null, true)).toBe("");
+  });
+});
+
+describe("backwards compatibility (explicit use24h=false)", () => {
+  it("formatTime still returns 12h format with explicit false", () => {
+    expect(formatTime("14:30", false)).toBe("2:30 PM");
+  });
+
+  it("formatTimeShort still returns compact 12h format with explicit false", () => {
+    expect(formatTimeShort("19:00", false)).toBe("7pm");
+  });
+});

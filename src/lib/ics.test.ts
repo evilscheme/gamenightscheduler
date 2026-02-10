@@ -339,4 +339,88 @@ describe("generateICS", () => {
 
     expect(result).not.toContain("BEGIN:VTIMEZONE");
   });
+
+  it("generates VTIMEZONE with EU-style DST rules for Europe/Dublin", () => {
+    const result = generateICS([
+      {
+        date: "2025-06-15",
+        startTime: "19:00",
+        endTime: "23:00",
+        title: "Dublin Game Night",
+        timezone: "Europe/Dublin",
+      },
+    ]);
+
+    expect(result).toContain("BEGIN:VTIMEZONE");
+    expect(result).toContain("TZID:Europe/Dublin");
+    expect(result).toContain("BEGIN:DAYLIGHT");
+    expect(result).toContain("END:DAYLIGHT");
+    expect(result).toContain("BEGIN:STANDARD");
+    expect(result).toContain("END:STANDARD");
+    // EU DST starts last Sunday in March (month 3)
+    expect(result).toContain("RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU");
+    // EU standard starts last Sunday in October (month 10)
+    expect(result).toContain("RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU");
+  });
+
+  it("generates VTIMEZONE with only STANDARD for Asia/Kolkata (no DST)", () => {
+    const result = generateICS([
+      {
+        date: "2025-03-10",
+        startTime: "20:00",
+        endTime: "23:30",
+        title: "Kolkata Game Night",
+        timezone: "Asia/Kolkata",
+      },
+    ]);
+
+    expect(result).toContain("BEGIN:VTIMEZONE");
+    expect(result).toContain("TZID:Asia/Kolkata");
+    expect(result).toContain("BEGIN:STANDARD");
+    expect(result).toContain("END:STANDARD");
+    // Kolkata does not observe DST
+    expect(result).not.toContain("BEGIN:DAYLIGHT");
+    // Verify offset is +0530
+    expect(result).toContain("TZOFFSETTO:+0530");
+  });
+
+  it("generates VTIMEZONE with only STANDARD for Europe/Istanbul (permanent +03)", () => {
+    const result = generateICS([
+      {
+        date: "2025-04-05",
+        startTime: "18:00",
+        endTime: "22:00",
+        title: "Istanbul Game Night",
+        timezone: "Europe/Istanbul",
+      },
+    ]);
+
+    expect(result).toContain("BEGIN:VTIMEZONE");
+    expect(result).toContain("TZID:Europe/Istanbul");
+    expect(result).toContain("BEGIN:STANDARD");
+    expect(result).toContain("END:STANDARD");
+    // Istanbul uses permanent +03, no DST
+    expect(result).not.toContain("BEGIN:DAYLIGHT");
+    // Verify offset is +0300
+    expect(result).toContain("TZOFFSETTO:+0300");
+  });
+
+  it("does not include VTIMEZONE for unknown timezone (falls back to floating time)", () => {
+    const result = generateICS([
+      {
+        date: "2025-02-14",
+        startTime: "19:00",
+        endTime: "22:00",
+        title: "Mystery Game Night",
+        timezone: "Fake/Zone",
+      },
+    ]);
+
+    // Unknown timezone should not produce a VTIMEZONE block
+    expect(result).not.toContain("BEGIN:VTIMEZONE");
+    // The event itself should still exist
+    expect(result).toContain("BEGIN:VEVENT");
+    expect(result).toContain("SUMMARY:Mystery Game Night");
+    expect(result).toContain("END:VEVENT");
+  });
 });

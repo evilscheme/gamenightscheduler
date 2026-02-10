@@ -19,6 +19,9 @@ CREATE TABLE users (
   avatar_url TEXT,
   is_gm BOOLEAN DEFAULT TRUE,
   is_admin BOOLEAN DEFAULT FALSE,
+  timezone TEXT DEFAULT NULL,
+  week_start_day INTEGER DEFAULT 0 CHECK (week_start_day IN (0, 1)),
+  time_format TEXT DEFAULT '12h' CHECK (time_format IN ('12h', '24h')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

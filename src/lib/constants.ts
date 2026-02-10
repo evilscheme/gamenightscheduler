@@ -39,24 +39,102 @@ export const TEXT_LIMITS = {
 // Default timezone for new games (used when browser detection fails)
 export const DEFAULT_TIMEZONE = 'America/Los_Angeles';
 
-// Common timezones for the dropdown (grouped by region)
-export const TIMEZONE_OPTIONS = [
-  // North America
-  { value: 'America/Anchorage', label: 'Alaska Time (Anchorage)' },
-  { value: 'Pacific/Honolulu', label: 'Hawaii Time (Honolulu)' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time (Los Angeles)' },
-  { value: 'America/Phoenix', label: 'Arizona Time (Phoenix)' },
-  { value: 'America/Denver', label: 'Mountain Time (Denver)' },
-  { value: 'America/Chicago', label: 'Central Time (Chicago)' },
-  { value: 'America/New_York', label: 'Eastern Time (New York)' },
-  // Europe
-  { value: 'Europe/London', label: 'UK Time (London)' },
-  { value: 'Europe/Paris', label: 'Central European Time (Paris)' },
-  { value: 'Europe/Berlin', label: 'Central European Time (Berlin)' },
-  // Asia/Pacific
-  { value: 'Asia/Tokyo', label: 'Japan Time (Tokyo)' },
-  { value: 'Asia/Shanghai', label: 'China Time (Shanghai)' },
-  { value: 'Australia/Sydney', label: 'Australian Eastern Time (Sydney)' },
-  // UTC
-  { value: 'UTC', label: 'UTC' },
+// Timezone groups for dropdown with <optgroup> rendering
+export const TIMEZONE_GROUPS = [
+  {
+    label: 'North America',
+    options: [
+      { value: 'Pacific/Honolulu', label: 'Hawaii (Honolulu)' },
+      { value: 'America/Anchorage', label: 'Alaska (Anchorage)' },
+      { value: 'America/Los_Angeles', label: 'Pacific Time (Los Angeles)' },
+      { value: 'America/Phoenix', label: 'Arizona (Phoenix)' },
+      { value: 'America/Denver', label: 'Mountain Time (Denver)' },
+      { value: 'America/Chicago', label: 'Central Time (Chicago)' },
+      { value: 'America/New_York', label: 'Eastern Time (New York)' },
+      { value: 'America/Toronto', label: 'Eastern Time (Toronto)' },
+    ],
+  },
+  {
+    label: 'Central & South America',
+    options: [
+      { value: 'America/Mexico_City', label: 'Mexico City' },
+      { value: 'America/Bogota', label: 'Colombia (Bogota)' },
+      { value: 'America/Sao_Paulo', label: 'Brazil (São Paulo)' },
+      { value: 'America/Argentina/Buenos_Aires', label: 'Argentina (Buenos Aires)' },
+    ],
+  },
+  {
+    label: 'Europe',
+    options: [
+      { value: 'Europe/London', label: 'UK (London)' },
+      { value: 'Europe/Dublin', label: 'Ireland (Dublin)' },
+      { value: 'Europe/Paris', label: 'France (Paris)' },
+      { value: 'Europe/Berlin', label: 'Germany (Berlin)' },
+      { value: 'Europe/Madrid', label: 'Spain (Madrid)' },
+      { value: 'Europe/Rome', label: 'Italy (Rome)' },
+      { value: 'Europe/Amsterdam', label: 'Netherlands (Amsterdam)' },
+      { value: 'Europe/Stockholm', label: 'Sweden (Stockholm)' },
+      { value: 'Europe/Warsaw', label: 'Poland (Warsaw)' },
+      { value: 'Europe/Helsinki', label: 'Finland (Helsinki)' },
+      { value: 'Europe/Athens', label: 'Greece (Athens)' },
+      { value: 'Europe/Bucharest', label: 'Romania (Bucharest)' },
+      { value: 'Europe/Istanbul', label: 'Turkey (Istanbul)' },
+      { value: 'Europe/Moscow', label: 'Russia (Moscow)' },
+    ],
+  },
+  {
+    label: 'Africa',
+    options: [
+      { value: 'Africa/Lagos', label: 'West Africa (Lagos)' },
+      { value: 'Africa/Cairo', label: 'Egypt (Cairo)' },
+      { value: 'Africa/Johannesburg', label: 'South Africa (Johannesburg)' },
+    ],
+  },
+  {
+    label: 'Middle East & South Asia',
+    options: [
+      { value: 'Asia/Dubai', label: 'Gulf (Dubai)' },
+      { value: 'Asia/Karachi', label: 'Pakistan (Karachi)' },
+      { value: 'Asia/Kolkata', label: 'India (Kolkata)' },
+    ],
+  },
+  {
+    label: 'East & Southeast Asia',
+    options: [
+      { value: 'Asia/Bangkok', label: 'Indochina (Bangkok)' },
+      { value: 'Asia/Singapore', label: 'Singapore' },
+      { value: 'Asia/Hong_Kong', label: 'Hong Kong' },
+      { value: 'Asia/Shanghai', label: 'China (Shanghai)' },
+      { value: 'Asia/Seoul', label: 'South Korea (Seoul)' },
+      { value: 'Asia/Tokyo', label: 'Japan (Tokyo)' },
+    ],
+  },
+  {
+    label: 'Oceania',
+    options: [
+      { value: 'Australia/Perth', label: 'Western Australia (Perth)' },
+      { value: 'Australia/Sydney', label: 'Eastern Australia (Sydney)' },
+      { value: 'Pacific/Auckland', label: 'New Zealand (Auckland)' },
+    ],
+  },
+  {
+    label: 'Other',
+    options: [
+      { value: 'UTC', label: 'UTC' },
+    ],
+  },
+] as const;
+
+// Flat list of all timezone options (for validation and backward compat)
+export const TIMEZONE_OPTIONS: readonly { value: string; label: string }[] = TIMEZONE_GROUPS.flatMap(g => [...g.options]);
+
+// User preference options
+export const WEEK_START_OPTIONS = [
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+] as const;
+
+export const TIME_FORMAT_OPTIONS = [
+  { value: '12h', label: '12-hour (2:30 PM)' },
+  { value: '24h', label: '24-hour (14:30)' },
 ] as const;

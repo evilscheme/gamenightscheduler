@@ -37,11 +37,13 @@ import { nanoid } from "nanoid";
 import { TIMEOUTS, USAGE_LIMITS } from "@/lib/constants";
 import { calculatePlayerCompletionPercentages } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 
 type Tab = "overview" | "availability" | "schedule";
 
 export default function GameDetailPage() {
   const { profile, isLoading, session } = useAuth();
+  const { weekStartDay, use24h, timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
   const params = useParams();
   const gameId = params.id as string;
@@ -610,6 +612,7 @@ export default function GameDetailPage() {
             minPlayersNeeded={game.min_players_needed || 0}
             confirmedSessions={confirmedSessions}
             inviteCode={game.invite_code}
+            use24h={use24h}
           />
         </div>
       )}
@@ -635,6 +638,8 @@ export default function GameDetailPage() {
             specialPlayDates={game.special_play_dates || []}
             isGmOrCoGm={canDoGmActions}
             onToggleSpecialDate={handleToggleSpecialDate}
+            weekStartDay={weekStartDay}
+            use24h={use24h}
           />
         </div>
       )}
@@ -651,6 +656,8 @@ export default function GameDetailPage() {
           minPlayersNeeded={game.min_players_needed || 0}
           onConfirm={handleConfirmSession}
           onCancel={handleCancelSession}
+          use24h={use24h}
+          userTimezone={userTimezone}
         />
       )}
 

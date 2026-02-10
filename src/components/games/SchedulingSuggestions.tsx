@@ -9,6 +9,7 @@ import { generateICS } from '@/lib/ics';
 import { sortSuggestionsChronologically } from '@/lib/suggestions';
 import { DAY_LABELS, SESSION_DEFAULTS } from '@/lib/constants';
 import { formatTime, formatTimeShort } from '@/lib/formatting';
+import { convertTimeForDisplay } from '@/lib/timezone';
 
 interface SchedulingSuggestionsProps {
   suggestions: DateSuggestion[];
@@ -21,6 +22,8 @@ interface SchedulingSuggestionsProps {
   minPlayersNeeded?: number;
   onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (date: string) => void;
+  use24h?: boolean;
+  userTimezone?: string | null;
 }
 
 export function SchedulingSuggestions({
@@ -34,6 +37,8 @@ export function SchedulingSuggestions({
   minPlayersNeeded = 0,
   onConfirm,
   onCancel,
+  use24h = false,
+  userTimezone = null,
 }: SchedulingSuggestionsProps) {
   // Use game's default times if set, otherwise fall back to SESSION_DEFAULTS
   const initialStartTime = defaultStartTime?.slice(0, 5) || SESSION_DEFAULTS.START_TIME;
@@ -99,8 +104,8 @@ export function SchedulingSuggestions({
 
   const formatPlayerName = (p: DateSuggestion['availablePlayers'][number]) => {
     const parts: string[] = [];
-    if (p.availableAfter) parts.push(`after ${formatTimeShort(p.availableAfter)}`);
-    if (p.availableUntil) parts.push(`until ${formatTimeShort(p.availableUntil)}`);
+    if (p.availableAfter) parts.push(`after ${formatTimeShort(p.availableAfter, use24h)}`);
+    if (p.availableUntil) parts.push(`until ${formatTimeShort(p.availableUntil, use24h)}`);
     if (p.comment) parts.push(p.comment);
     return parts.length > 0 ? `${p.user.name} (${parts.join(', ')})` : p.user.name;
   };
@@ -183,7 +188,19 @@ export function SchedulingSuggestions({
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {session.start_time && session.end_time
-                              ? `${formatTime(session.start_time)} - ${formatTime(session.end_time)}`
+                              ? (() => {
+                                  const timeStr = `${formatTime(session.start_time, use24h)} - ${formatTime(session.end_time, use24h)}`;
+                                  if (timezone) {
+                                    const startConv = convertTimeForDisplay(session.date, session.start_time, timezone, userTimezone, use24h);
+                                    const endConv = convertTimeForDisplay(session.date, session.end_time, timezone, userTimezone, use24h);
+                                    const gameTzStr = `${timeStr} ${startConv.gameTzAbbrev}`;
+                                    if (startConv.isDifferentTz && startConv.userTime && endConv.userTime) {
+                                      return `${gameTzStr} (${startConv.userTime} - ${endConv.userTime} ${startConv.userTzAbbrev} for you)`;
+                                    }
+                                    return gameTzStr;
+                                  }
+                                  return timeStr;
+                                })()
                               : DAY_LABELS.full[parseISO(session.date).getDay()]}
                           </p>
                           {suggestion && (
@@ -236,10 +253,10 @@ export function SchedulingSuggestions({
                               {(suggestion.earliestStartTime || suggestion.latestEndTime) && (
                                 <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                                   {suggestion.earliestStartTime && (
-                                    <span>Earliest start: {formatTime(suggestion.earliestStartTime)}</span>
+                                    <span>Earliest start: {formatTime(suggestion.earliestStartTime, use24h)}</span>
                                   )}
                                   {suggestion.latestEndTime && (
-                                    <span>Latest end: {formatTime(suggestion.latestEndTime)}</span>
+                                    <span>Latest end: {formatTime(suggestion.latestEndTime, use24h)}</span>
                                   )}
                                 </div>
                               )}
@@ -334,7 +351,7 @@ export function SchedulingSuggestions({
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {session.start_time && session.end_time
-                              ? `${formatTime(session.start_time)} - ${formatTime(session.end_time)}`
+                              ? `${formatTime(session.start_time, use24h)} - ${formatTime(session.end_time, use24h)}`
                               : DAY_LABELS.full[parseISO(session.date).getDay()]}
                           </p>
                           {suggestion && (
@@ -493,10 +510,10 @@ export function SchedulingSuggestions({
                           {(suggestion.earliestStartTime || suggestion.latestEndTime) && (
                             <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                               {suggestion.earliestStartTime && (
-                                <span>Earliest start: {formatTime(suggestion.earliestStartTime)}</span>
+                                <span>Earliest start: {formatTime(suggestion.earliestStartTime, use24h)}</span>
                               )}
                               {suggestion.latestEndTime && (
-                                <span>Latest end: {formatTime(suggestion.latestEndTime)}</span>
+                                <span>Latest end: {formatTime(suggestion.latestEndTime, use24h)}</span>
                               )}
                             </div>
                           )}

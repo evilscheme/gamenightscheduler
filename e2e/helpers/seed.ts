@@ -238,6 +238,7 @@ export async function cleanDatabase(): Promise<void> {
 
   // Delete in dependency order (reverse of creation)
   const tables = [
+    'game_play_dates',
     'sessions',
     'availability',
     'game_memberships',
@@ -374,6 +375,7 @@ export function resetDatabaseSchema(): void {
 
   // SQL to drop all app tables and types (in dependency order)
   const dropSql = `
+    DROP TABLE IF EXISTS game_play_dates CASCADE;
     DROP TABLE IF EXISTS sessions CASCADE;
     DROP TABLE IF EXISTS availability CASCADE;
     DROP TABLE IF EXISTS game_memberships CASCADE;

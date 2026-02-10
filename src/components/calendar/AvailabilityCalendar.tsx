@@ -13,7 +13,7 @@ import {
   startOfDay,
   parseISO,
 } from "date-fns";
-import { Clock, MessageSquare, Pencil, Plus, X } from "lucide-react";
+import { Clock, FileText, MessageSquare, Pencil, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import type { GameSession, AvailabilityStatus } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
@@ -44,6 +44,9 @@ interface AvailabilityCalendarProps {
   use24h?: boolean;
   otherGames?: { id: string; name: string }[];
   onCopyFromGame?: (sourceGameId: string) => Promise<number>;
+  playDateNotes?: Map<string, string>;
+  onUpdatePlayDateNote?: (date: string, note: string | null) => void;
+  adHocOnly?: boolean;
 }
 
 export function AvailabilityCalendar({
@@ -59,6 +62,9 @@ export function AvailabilityCalendar({
   use24h = false,
   otherGames,
   onCopyFromGame,
+  playDateNotes = new Map(),
+  onUpdatePlayDateNote,
+  adHocOnly = false,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = endOfMonth(addMonths(today, windowMonths));
@@ -66,6 +72,7 @@ export function AvailabilityCalendar({
   const [commentText, setCommentText] = useState("");
   const [availableAfterText, setAvailableAfterText] = useState("");
   const [availableUntilText, setAvailableUntilText] = useState("");
+  const [gmNoteText, setGmNoteText] = useState("");
   const [bulkDayFilter, setBulkDayFilter] = useState<string>("remaining");
   const [bulkStatus, setBulkStatus] = useState<AvailabilityStatus>("available");
   // Action menu for GM long-press on special play dates
@@ -130,6 +137,7 @@ export function AvailabilityCalendar({
     const until = availability[dateStr]?.available_until;
     setAvailableAfterText(after ? after.slice(0, 5) : "");
     setAvailableUntilText(until ? until.slice(0, 5) : "");
+    setGmNoteText(playDateNotes.get(dateStr) || "");
   };
 
   const handleSaveComment = () => {
@@ -142,10 +150,17 @@ export function AvailabilityCalendar({
         availableAfterText || null,
         availableUntilText || null
       );
+      // Save GM note if changed and user is GM
+      const existingNote = playDateNotes.get(commentingDate) || "";
+      const newNote = gmNoteText.trim();
+      if (onUpdatePlayDateNote && newNote !== existingNote) {
+        onUpdatePlayDateNote(commentingDate, newNote || null);
+      }
       setCommentingDate(null);
       setCommentText("");
       setAvailableAfterText("");
       setAvailableUntilText("");
+      setGmNoteText("");
     }
   };
 
@@ -154,6 +169,7 @@ export function AvailabilityCalendar({
     setCommentText("");
     setAvailableAfterText("");
     setAvailableUntilText("");
+    setGmNoteText("");
   };
 
   // Action menu handlers for GM on special play dates
@@ -328,6 +344,9 @@ export function AvailabilityCalendar({
             onOpenActionMenu={handleOpenActionMenu}
             weekStartDay={weekStartDay}
             use24h={use24h}
+            playDateNotes={playDateNotes}
+            onUpdatePlayDateNote={onUpdatePlayDateNote}
+            adHocOnly={adHocOnly}
           />
         ))}
       </div>
@@ -402,6 +421,10 @@ export function AvailabilityCalendar({
           onSave={handleSaveComment}
           onCancel={handleCancelComment}
           use24h={use24h}
+          gmNote={playDateNotes.get(commentingDate!) ?? null}
+          isGmOrCoGm={isGmOrCoGm}
+          gmNoteText={gmNoteText}
+          onGmNoteChange={setGmNoteText}
         />
       )}
 
@@ -468,6 +491,9 @@ interface MonthCalendarProps {
   onOpenActionMenu?: (dateStr: string) => void;
   weekStartDay: 0 | 1;
   use24h: boolean;
+  playDateNotes?: Map<string, string>;
+  onUpdatePlayDateNote?: (date: string, note: string | null) => void;
+  adHocOnly?: boolean;
 }
 
 function MonthCalendar({
@@ -486,6 +512,8 @@ function MonthCalendar({
   onOpenActionMenu,
   weekStartDay,
   use24h,
+  playDateNotes,
+  adHocOnly,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),
@@ -690,6 +718,10 @@ function MonthCalendar({
           if (hasComment) {
             tooltipParts.push(`Note: ${avail!.comment}`);
           }
+          const gmNote = playDateNotes?.get(dateStr);
+          if (gmNote) {
+            tooltipParts.push(`GM note: ${gmNote}`);
+          }
           const cellTooltip = tooltipParts.join("\n");
 
           // Data attribute for testing - represents the cell state
@@ -801,6 +833,15 @@ function MonthCalendar({
                   <Clock className="w-2.5 h-2.5" />
                 </span>
               )}
+              {/* GM play date note indicator */}
+              {isPlayDay && !isPast && playDateNotes?.has(dateStr) && !hasTimeConstraint && (
+                <span
+                  className="absolute bottom-0.5 left-1 leading-none pointer-events-none text-primary"
+                  title={`GM note: ${playDateNotes.get(dateStr)}`}
+                >
+                  <FileText className="w-2.5 h-2.5" />
+                </span>
+              )}
               {/* Note/comment icon for play days */}
               {isPlayDay && !isPast && hasAvailability && (
                 <span
@@ -864,6 +905,10 @@ interface NoteEditorPopoverProps {
   onSave: () => void;
   onCancel: () => void;
   use24h: boolean;
+  gmNote?: string | null;
+  isGmOrCoGm?: boolean;
+  gmNoteText?: string;
+  onGmNoteChange?: (value: string) => void;
 }
 
 function NoteEditorPopover({
@@ -878,6 +923,10 @@ function NoteEditorPopover({
   onSave,
   onCancel,
   use24h,
+  gmNote,
+  isGmOrCoGm,
+  gmNoteText,
+  onGmNoteChange,
 }: NoteEditorPopoverProps) {
   const timeOptions = getTimeOptions(use24h);
   return (
@@ -936,6 +985,31 @@ function NoteEditorPopover({
                 ))}
               </select>
             </div>
+          </div>
+        )}
+        {gmNote !== undefined && (
+          <div className="mb-3">
+            <label className="block text-xs text-muted-foreground mb-1">
+              Date note (visible to all players)
+            </label>
+            {isGmOrCoGm ? (
+              <input
+                type="text"
+                value={gmNoteText || ""}
+                onChange={(e) => onGmNoteChange?.(e.target.value)}
+                placeholder="e.g., Only after 2pm, different location"
+                className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                maxLength={200}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onSave();
+                  if (e.key === "Escape") onCancel();
+                }}
+              />
+            ) : gmNote ? (
+              <p className="text-sm text-foreground bg-secondary/50 rounded-md px-3 py-2">
+                {gmNote}
+              </p>
+            ) : null}
           </div>
         )}
         <div className="mb-3">

@@ -306,10 +306,10 @@ export function AvailabilityCalendar({
             <svg
               className="w-2.5 h-2.5"
               viewBox="0 0 24 24"
-              fill="white"
-              stroke="black"
+              fill="none"
+              stroke="white"
               strokeWidth="1"
-              opacity="0.4"
+              opacity="0.75"
             >
               <path
                 strokeLinecap="round"
@@ -669,10 +669,10 @@ function MonthCalendar({
                   <svg
                     className="w-[85%] h-[85%]"
                     viewBox="0 0 24 24"
-                    fill="white"
-                    stroke="black"
-                    strokeWidth="0.5"
-                    opacity="0.25"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="1.5"
+                    opacity="0.4"
                   >
                     <path
                       strokeLinecap="round"

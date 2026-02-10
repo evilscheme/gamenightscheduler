@@ -365,13 +365,14 @@ export function AvailabilityCalendar({
           <span>Special play day</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-scheduled-bg flex items-center justify-center">
+          <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-available-bg flex items-center justify-center">
             <svg
-              className="w-2.5 h-2.5 text-cal-scheduled-text/40"
+              className="w-2.5 h-2.5"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+              stroke="white"
+              strokeWidth="1"
+              opacity="0.75"
             >
               <path
                 strokeLinecap="round"
@@ -380,7 +381,7 @@ export function AvailabilityCalendar({
               />
             </svg>
           </div>
-          <span>Game scheduled</span>
+          <span>Scheduled</span>
         </div>
       </div>
 
@@ -589,13 +590,39 @@ function MonthCalendar({
           const extraStyles = "";
           const isTodayDate = isToday(date);
 
-          // Scheduled sessions get priority styling (solid purple)
-          if (isConfirmed) {
-            bgColor = "bg-cal-scheduled-bg";
-            textColor = "text-cal-scheduled-text font-semibold";
-            if (!isPast) {
-              cursor = "cursor-pointer hover:brightness-110 transition-all";
+          // Confirmed sessions show availability color with star overlay
+          // (so players can see + change their status even after a session is confirmed)
+          if (isConfirmed && !isPast) {
+            cursor = "cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-transform";
+            if (avail?.status === "available") {
+              bgColor = "bg-cal-available-bg";
+              textColor = "text-cal-available-text font-semibold";
+            } else if (avail?.status === "maybe") {
+              bgColor = "bg-cal-maybe-bg";
+              textColor = "text-cal-maybe-text font-semibold";
+            } else if (avail?.status === "unavailable") {
+              bgColor = "bg-cal-unavailable-bg";
+              textColor = "text-cal-unavailable-text font-semibold";
+            } else {
+              // Unset - use unset styling so player knows they haven't responded
+              if (isTodayDate) {
+                bgColor = "bg-cal-unset-bg";
+              } else {
+                bgColor = "bg-cal-unset-bg border-2 border-dashed border-cal-unset-border";
+              }
+              textColor = "text-cal-unset-text font-semibold";
             }
+          } else if (isConfirmed && isPast) {
+            if (avail?.status === "available") {
+              bgColor = "bg-cal-available-bg";
+            } else if (avail?.status === "maybe") {
+              bgColor = "bg-cal-maybe-bg";
+            } else if (avail?.status === "unavailable") {
+              bgColor = "bg-cal-unavailable-bg";
+            } else {
+              bgColor = "bg-cal-unset-bg";
+            }
+            textColor = "text-cal-disabled-text/50 font-semibold";
           } else if (isPlayDay && !isPast) {
             cursor = "cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-transform";
             if (avail?.status === "available") {
@@ -644,6 +671,10 @@ function MonthCalendar({
             } else {
               tooltipParts.push("Scheduled");
             }
+            if (!isPast) {
+              const statusLabel = avail?.status === "available" ? "Available" : avail?.status === "maybe" ? "Maybe" : avail?.status === "unavailable" ? "Unavailable" : "Not set";
+              tooltipParts.push(`Your status: ${statusLabel}`);
+            }
           }
           if (hasTimeConstraint) {
             const after = formatTimeShort(avail?.available_after ?? null, use24h);
@@ -691,18 +722,20 @@ function MonthCalendar({
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}
               data-status={dataStatus}
+              data-availability={isConfirmed && !isPast ? (avail?.status ?? "unset") : undefined}
               data-special={isSpecialPlayDate ? "true" : undefined}
               title={cellTooltip}
             >
-              {/* Scheduled game star decoration - visible indicator beyond color */}
+              {/* Scheduled game star decoration */}
               {isConfirmed && (
                 <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <svg
-                    className="w-[85%] h-[85%] text-cal-scheduled-text/30"
+                    className="w-[85%] h-[85%]"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="currentColor"
+                    stroke="white"
                     strokeWidth="1.5"
+                    opacity="0.4"
                   >
                     <path
                       strokeLinecap="round"

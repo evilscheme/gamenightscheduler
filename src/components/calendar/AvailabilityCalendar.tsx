@@ -16,7 +16,7 @@ import {
 import { Clock, FileText, MessageSquare, Pencil, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import type { GameSession, AvailabilityStatus } from "@/types";
-import { DAY_LABELS } from "@/lib/constants";
+import { DAY_LABELS, TEXT_LIMITS } from "@/lib/constants";
 import {
   getNextStatus,
   AvailabilityEntry,
@@ -46,7 +46,6 @@ interface AvailabilityCalendarProps {
   onCopyFromGame?: (sourceGameId: string) => Promise<number>;
   playDateNotes?: Map<string, string>;
   onUpdatePlayDateNote?: (date: string, note: string | null) => void;
-  adHocOnly?: boolean;
 }
 
 export function AvailabilityCalendar({
@@ -64,7 +63,6 @@ export function AvailabilityCalendar({
   onCopyFromGame,
   playDateNotes = new Map(),
   onUpdatePlayDateNote,
-  adHocOnly = false,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = endOfMonth(addMonths(today, windowMonths));
@@ -345,8 +343,6 @@ export function AvailabilityCalendar({
             weekStartDay={weekStartDay}
             use24h={use24h}
             playDateNotes={playDateNotes}
-            onUpdatePlayDateNote={onUpdatePlayDateNote}
-            adHocOnly={adHocOnly}
           />
         ))}
       </div>
@@ -422,6 +418,7 @@ export function AvailabilityCalendar({
           onCancel={handleCancelComment}
           use24h={use24h}
           gmNote={playDateNotes.get(commentingDate!) ?? null}
+          showGmNote={isGmOrCoGm || !!playDateNotes.get(commentingDate!)}
           isGmOrCoGm={isGmOrCoGm}
           gmNoteText={gmNoteText}
           onGmNoteChange={setGmNoteText}
@@ -492,8 +489,6 @@ interface MonthCalendarProps {
   weekStartDay: 0 | 1;
   use24h: boolean;
   playDateNotes?: Map<string, string>;
-  onUpdatePlayDateNote?: (date: string, note: string | null) => void;
-  adHocOnly?: boolean;
 }
 
 function MonthCalendar({
@@ -905,6 +900,7 @@ interface NoteEditorPopoverProps {
   onCancel: () => void;
   use24h: boolean;
   gmNote?: string | null;
+  showGmNote?: boolean;
   isGmOrCoGm?: boolean;
   gmNoteText?: string;
   onGmNoteChange?: (value: string) => void;
@@ -923,6 +919,7 @@ function NoteEditorPopover({
   onCancel,
   use24h,
   gmNote,
+  showGmNote,
   isGmOrCoGm,
   gmNoteText,
   onGmNoteChange,
@@ -986,7 +983,7 @@ function NoteEditorPopover({
             </div>
           </div>
         )}
-        {gmNote !== undefined && (
+        {showGmNote && (
           <div className="mb-3">
             <label className="block text-xs text-muted-foreground mb-1">
               Date note (visible to all players)
@@ -998,7 +995,7 @@ function NoteEditorPopover({
                 onChange={(e) => onGmNoteChange?.(e.target.value)}
                 placeholder="e.g., Only after 2pm, different location"
                 className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                maxLength={200}
+                maxLength={TEXT_LIMITS.PLAY_DATE_NOTE}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") onSave();
                   if (e.key === "Escape") onCancel();

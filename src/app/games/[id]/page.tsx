@@ -637,11 +637,17 @@ export default function GameDetailPage() {
       const existingRow = gamePlayDates.find((r) => r.date === date);
       if (existingRow) {
         setGamePlayDates((prev) => prev.filter((r) => r.date !== date));
-        await supabase
+        const { error } = await supabase
           .from("game_play_dates")
           .delete()
           .eq("game_id", gameId)
           .eq("date", date);
+        if (error) {
+          // Revert: re-add the removed row
+          setGamePlayDates((prev) =>
+            [...prev, existingRow].sort((a, b) => a.date.localeCompare(b.date))
+          );
+        }
       }
       // Also clean from legacy array if present
       const legacyDates = game.special_play_dates || [];
@@ -650,10 +656,16 @@ export default function GameDetailPage() {
         setGame((prev) =>
           prev ? { ...prev, special_play_dates: newLegacy } : prev
         );
-        await supabase
+        const { error } = await supabase
           .from("games")
           .update({ special_play_dates: newLegacy })
           .eq("id", gameId);
+        if (error) {
+          // Revert: restore the legacy array
+          setGame((prev) =>
+            prev ? { ...prev, special_play_dates: legacyDates } : prev
+          );
+        }
       }
     } else {
       // Add: insert into new table only
@@ -694,14 +706,21 @@ export default function GameDetailPage() {
 
     const existing = gamePlayDates.find((r) => r.date === date);
     if (existing) {
+      const oldNote = existing.note;
       setGamePlayDates((prev) =>
         prev.map((r) => (r.date === date ? { ...r, note } : r))
       );
-      await supabase
+      const { error } = await supabase
         .from("game_play_dates")
         .update({ note })
         .eq("game_id", gameId)
         .eq("date", date);
+      if (error) {
+        // Revert to old note
+        setGamePlayDates((prev) =>
+          prev.map((r) => (r.date === date ? { ...r, note: oldNote } : r))
+        );
+      }
     } else {
       const tempRow: GamePlayDate = {
         id: "temp-" + date,
@@ -711,7 +730,7 @@ export default function GameDetailPage() {
         created_at: new Date().toISOString(),
       };
       setGamePlayDates((prev) => [...prev, tempRow]);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("game_play_dates")
         .upsert(
           { game_id: gameId, date, note },
@@ -719,7 +738,10 @@ export default function GameDetailPage() {
         )
         .select()
         .single();
-      if (data) {
+      if (error) {
+        // Revert: remove the temp row
+        setGamePlayDates((prev) => prev.filter((r) => r.id !== tempRow.id));
+      } else if (data) {
         setGamePlayDates((prev) =>
           prev.map((r) =>
             r.id === tempRow.id ? (data as GamePlayDate) : r
@@ -888,7 +910,6 @@ export default function GameDetailPage() {
             onCopyFromGame={handleCopyFromGame}
             playDateNotes={playDateNotes}
             onUpdatePlayDateNote={handleUpdatePlayDateNote}
-            adHocOnly={game.ad_hoc_only}
           />
         </div>
       )}

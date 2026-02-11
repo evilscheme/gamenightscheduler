@@ -22,6 +22,18 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase (background)
+        run: |
+          # Start pulling Docker images and booting services in the background
+          # This overlaps with npm ci and Playwright browser install
+          supabase start --exclude studio,realtime,storage-api,imgproxy,edge-runtime,logflare,vector,mailpit,postgres-meta,supavisor &
+          echo $! > /tmp/supabase-start.pid
+
       - name: Install dependencies
         run: npm ci
 
@@ -40,41 +52,16 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Get Supabase CLI version
-        id: supabase-version
-        run: echo "version=$(supabase --version)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Supabase Docker images
-        id: supabase-cache
-        uses: actions/cache@v4
-        with:
-          path: /tmp/supabase-docker-images.tar.zst
-          key: supabase-docker-${{ steps.supabase-version.outputs.version }}-${{ hashFiles('supabase/config.toml') }}
-
-      - name: Load cached Docker images
-        if: steps.supabase-cache.outputs.cache-hit == 'true'
-        run: zstd -d /tmp/supabase-docker-images.tar.zst --stdout | docker load
-
-      - name: Start Supabase
+      - name: Wait for Supabase
         run: |
-          # Start only the services needed for E2E tests (skip studio, realtime, storage, etc.)
-          supabase start --exclude studio,realtime,storage-api,imgproxy,edge-runtime,logflare,vector,mailpit,postgres-meta,supavisor
+          # Wait for the background supabase start to finish
+          wait "$(cat /tmp/supabase-start.pid)"
 
-          # Apply schema directly (more reliable than db reset which can timeout)
+          # Apply schema
           docker exec -i supabase_db_dndscheduler psql -U postgres -d postgres < supabase/schema.sql
 
           # Show status for debugging
           supabase status
-
-      - name: Save Docker images for cache
-        if: steps.supabase-cache.outputs.cache-hit != 'true'
-        run: |
-          docker images --format '{{.Repository}}:{{.Tag}}' | grep -E 'supabase|kong' | grep -v '<none>' | xargs docker save | zstd -o /tmp/supabase-docker-images.tar.zst
 
       - name: Run E2E Tests
         run: npx playwright test

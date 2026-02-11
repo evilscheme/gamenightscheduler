@@ -85,29 +85,33 @@ test.describe('RLS Policy Enforcement', () => {
   });
 
   test('user can only see their own games on dashboard', async ({ page, request }) => {
+    const ts = Date.now();
+
     // Create first GM with a game
     const gm1 = await createTestUser(request, {
-      email: `gm1-dash-${Date.now()}@e2e.local`,
+      email: `gm1-dash-${ts}@e2e.local`,
       name: 'First GM',
       is_gm: true,
     });
 
+    const game1Name = `First GM Game ${ts}`;
     await createTestGame({
       gm_id: gm1.id,
-      name: 'First GM Game',
+      name: game1Name,
       play_days: [5],
     });
 
     // Create second GM with a different game
     const gm2 = await createTestUser(request, {
-      email: `gm2-dash-${Date.now()}@e2e.local`,
+      email: `gm2-dash-${ts}@e2e.local`,
       name: 'Second GM',
       is_gm: true,
     });
 
+    const game2Name = `Second GM Game ${ts}`;
     await createTestGame({
       gm_id: gm2.id,
-      name: 'Second GM Game',
+      name: game2Name,
       play_days: [6],
     });
 
@@ -120,15 +124,15 @@ test.describe('RLS Policy Enforcement', () => {
 
     // Navigate to dashboard as second GM
     await page.goto('/dashboard');
-    
+
     // Wait for dashboard to load with games
     await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible();
 
     // Should see their own game
-    await expect(page.getByText(/second gm game/i)).toBeVisible({ timeout: TEST_TIMEOUTS.SHORT });
+    await expect(page.getByText(game2Name)).toBeVisible({ timeout: TEST_TIMEOUTS.SHORT });
 
     // Should NOT see the first GM's game
-    await expect(page.getByText(/first gm game/i)).not.toBeVisible();
+    await expect(page.getByText(game1Name)).not.toBeVisible();
   });
 
   test('GM badge only shows for actual GM', async ({ page, request }) => {

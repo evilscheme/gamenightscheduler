@@ -200,7 +200,7 @@ test.describe('Ad-Hoc Games', () => {
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
       await dayButton.hover();
 
-      const addIcon = dayButton.locator('span[title="Enable as special play date"]');
+      const addIcon = dayButton.locator('span[title="Add play date"]');
       await expect(addIcon).toBeVisible();
     });
 
@@ -233,10 +233,10 @@ test.describe('Ad-Hoc Games', () => {
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
       await dayButton.hover();
 
-      const addIcon = dayButton.locator('span[title="Enable as special play date"]');
+      const addIcon = dayButton.locator('span[title="Add play date"]');
       await addIcon.click();
 
-      // Should now be a special play date
+      // Should now be a play date
       await expect(dayButton).toHaveAttribute('data-special', 'true');
 
       // Click it to mark as available

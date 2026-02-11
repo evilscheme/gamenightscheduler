@@ -127,7 +127,7 @@ export default function EditGamePage() {
             .upsert({ game_id: gameId, date }, { onConflict: 'game_id,date' });
         }
         setConversionMessage(
-          `${sessionDates.length} confirmed session date${sessionDates.length !== 1 ? 's were' : ' was'} preserved as special play dates.`
+          `${sessionDates.length} confirmed session date${sessionDates.length !== 1 ? 's were' : ' was'} preserved as play dates.`
         );
       }
     }

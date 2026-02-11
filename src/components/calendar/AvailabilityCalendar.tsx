@@ -376,12 +376,14 @@ export function AvailabilityCalendar({
           <div className="w-3.5 h-3.5 rounded-sm bg-cal-unset-bg shadow-[0_0_0_2px_var(--primary)]" />
           <span>Today</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-unset-bg border border-cal-unset-border">
-            <span className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-t-primary border-l-[6px] border-l-transparent" />
+        {playDays.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-unset-bg border border-cal-unset-border">
+              <span className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-t-primary border-l-[6px] border-l-transparent" />
+            </div>
+            <span>Extra date</span>
           </div>
-          <span>Special play day</span>
-        </div>
+        )}
         <div className="flex items-center gap-1.5">
           <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-available-bg flex items-center justify-center">
             <svg
@@ -465,7 +467,7 @@ export function AvailabilityCalendar({
                 className="w-full justify-start"
                 onClick={handleActionMenuRemoveSpecial}
               >
-                Remove special play day
+                {playDays.length > 0 ? "Remove extra date" : "Remove play date"}
               </Button>
             </div>
           </div>
@@ -776,8 +778,8 @@ function MonthCalendar({
                 </span>
               )}
               {format(date, "d")}
-              {/* Special play date indicator - corner triangle */}
-              {isSpecialPlayDate && !isPast && (
+              {/* Extra date indicator - corner triangle (hidden for ad-hoc games) */}
+              {isSpecialPlayDate && !isPast && playDays.length > 0 && (
                 <span className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-t-primary border-l-[10px] border-l-transparent" />
               )}
               {/* GM: Add special play date icon on non-play days */}
@@ -793,7 +795,7 @@ function MonthCalendar({
                     }
                     onToggleSpecialDate(dateStr);
                   }}
-                  title="Enable as special play date"
+                  title={playDays.length > 0 ? "Add extra date" : "Add play date"}
                 >
                   <Plus className="w-2.5 h-2.5" />
                 </span>
@@ -811,7 +813,7 @@ function MonthCalendar({
                     }
                     onToggleSpecialDate(dateStr);
                   }}
-                  title="Remove special play date"
+                  title={playDays.length > 0 ? "Remove extra date" : "Remove play date"}
                 >
                   <X className="w-2.5 h-2.5" />
                 </span>

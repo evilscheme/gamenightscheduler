@@ -261,7 +261,7 @@ test.describe('Play Date Notes', () => {
   });
 
   test.describe('Notes on Regular Game Play Dates', () => {
-    test('GM can add notes to special play dates on regular games', async ({ page, request }) => {
+    test('GM can add notes to extra dates on regular games', async ({ page, request }) => {
       const gm = await createTestUser(request, {
         email: `gm-note-special-${Date.now()}@e2e.local`,
         name: 'Special Note GM',

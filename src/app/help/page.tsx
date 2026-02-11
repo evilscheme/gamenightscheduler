@@ -103,10 +103,10 @@ export default function HelpPage() {
               </p>
             </Section>
 
-            <Section title="Special Play Dates">
+            <Section title="Extra Play Dates">
               <p>
                 Need to schedule a one-off session on a day you don&apos;t normally play?
-                GMs and co-GMs can add <strong className="text-foreground">special play dates</strong> directly
+                GMs and co-GMs can add <strong className="text-foreground">extra dates</strong> directly
                 on the calendar by clicking any non-play day. These appear alongside regular play
                 days so players can mark availability for them.
               </p>
@@ -114,8 +114,7 @@ export default function HelpPage() {
 
             <Section title="Play Date Notes">
               <p>
-                GMs can add <strong className="text-foreground">notes</strong> to any play date &mdash; regular
-                or special. Click on a date to open the detail popover and add a note (e.g.,
+                GMs can add <strong className="text-foreground">notes</strong> to any play date. Click on a date to open the detail popover and add a note (e.g.,
                 &ldquo;Session zero&rdquo; or &ldquo;Character creation&rdquo;). Notes are visible to all
                 players on the calendar and in scheduling suggestions.
               </p>

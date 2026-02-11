@@ -55,11 +55,11 @@ test.describe('Special Play Dates', () => {
     await dayButton.hover();
 
     // Should see the add icon appear on hover
-    const addIcon = dayButton.locator('span[title="Enable as special play date"]');
+    const addIcon = dayButton.locator('span[title="Add extra date"]');
     await expect(addIcon).toBeVisible();
   });
 
-  test('GM can enable a non-play day as special play date', async ({ page, request }) => {
+  test('GM can enable a non-play day as extra date', async ({ page, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-enable-special-${Date.now()}@e2e.local`,
       name: 'Enable Special GM',
@@ -90,19 +90,19 @@ test.describe('Special Play Dates', () => {
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.hover();
 
-    const addIcon = dayButton.locator('span[title="Enable as special play date"]');
+    const addIcon = dayButton.locator('span[title="Add extra date"]');
     await addIcon.click();
 
-    // After clicking, the day should now be marked as a special play date
+    // After clicking, the day should now be marked as an extra date
     await expect(dayButton).toHaveAttribute('data-special', 'true');
 
     // Now hover again to verify the remove icon appears
     await dayButton.hover();
-    const removeIcon = dayButton.locator('span[title="Remove special play date"]');
+    const removeIcon = dayButton.locator('span[title="Remove extra date"]');
     await expect(removeIcon).toBeVisible();
   });
 
-  test('GM can disable a special play date', async ({ page, request }) => {
+  test('GM can disable an extra date', async ({ page, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-disable-special-${Date.now()}@e2e.local`,
       name: 'Disable Special GM',
@@ -137,7 +137,7 @@ test.describe('Special Play Dates', () => {
 
     // Hover and click the remove icon
     await dayButton.hover();
-    const removeIcon = dayButton.locator('span[title="Remove special play date"]');
+    const removeIcon = dayButton.locator('span[title="Remove extra date"]');
     await removeIcon.click();
 
     // After removing, the day should go back to being a non-play day (disabled status)
@@ -270,11 +270,11 @@ test.describe('Special Play Dates', () => {
     await dayButton.hover();
 
     // Should NOT see any add/remove icons as player
-    const addIcon = dayButton.locator('span[title="Enable as special play date"]');
+    const addIcon = dayButton.locator('span[title="Add extra date"]');
     await expect(addIcon).not.toBeVisible();
   });
 
-  test('special play dates appear in scheduling suggestions', async ({ page, request }) => {
+  test('extra dates appear in scheduling suggestions', async ({ page, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-suggestions-${Date.now()}@e2e.local`,
       name: 'Suggestions GM',
@@ -317,7 +317,7 @@ test.describe('Special Play Dates', () => {
     await expect(page.getByText(new RegExp(`${monthAbbr}.*${dayNum}|${dayNum}.*${monthAbbr}`, 'i'))).toBeVisible();
   });
 
-  test('legend shows "Special play date" entry', async ({ page, request }) => {
+  test('legend shows "Extra date" entry', async ({ page, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-legend-${Date.now()}@e2e.local`,
       name: 'Legend GM',
@@ -342,7 +342,7 @@ test.describe('Special Play Dates', () => {
     await page.getByRole('button', { name: /availability/i }).click();
     await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
-    // Should see "Special play day" in the legend
-    await expect(page.getByText(/special play day/i)).toBeVisible();
+    // Should see "Extra date" in the legend
+    await expect(page.getByText(/extra date/i)).toBeVisible();
   });
 });

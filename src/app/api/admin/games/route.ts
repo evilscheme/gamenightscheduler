@@ -72,10 +72,11 @@ export async function GET(): Promise<Response> {
       return all;
     }
 
-    const [memberships, sessions, availabilityRecords] = await Promise.all([
+    const [memberships, sessions, availabilityRecords, gamePlayDates] = await Promise.all([
       fetchAllRows<{ game_id: string; user_id: string }>('game_memberships', 'game_id, user_id'),
       fetchAllRows<{ game_id: string; status: string; created_at: string }>('sessions', 'game_id, status, created_at'),
       fetchAllRows<{ game_id: string; user_id: string; date: string; updated_at: string }>('availability', 'game_id, user_id, date, updated_at'),
+      fetchAllRows<{ game_id: string; date: string }>('game_play_dates', 'game_id, date'),
     ]);
 
     // Build lookup maps
@@ -98,6 +99,14 @@ export async function GET(): Promise<Response> {
       if (!stats.lastActivity || s.created_at > stats.lastActivity) {
         stats.lastActivity = s.created_at;
       }
+    }
+
+    const playDatesByGame = new Map<string, string[]>();
+    for (const pd of gamePlayDates) {
+      if (!playDatesByGame.has(pd.game_id)) {
+        playDatesByGame.set(pd.game_id, []);
+      }
+      playDatesByGame.get(pd.game_id)!.push(pd.date.substring(0, 10));
     }
 
     const availabilityByGame = new Map<string, { records: Array<{ user_id: string; date: string }>; lastActivity: string | null }>();
@@ -125,11 +134,15 @@ export async function GET(): Promise<Response> {
       const currentPlayerRecords = availabilityStats.records.filter(
         (r) => currentPlayerIds.includes(r.user_id)
       );
+      const legacyDates = (game.special_play_dates ?? []).map((d: string) => d.substring(0, 10));
+      const tableDates = playDatesByGame.get(game.id) ?? [];
+      const allSpecialDates = [...new Set([...legacyDates, ...tableDates])];
+
       const completionPercentages = calculatePlayerCompletionPercentages({
         playerIds: currentPlayerIds,
         playDays: game.play_days ?? [],
         schedulingWindowMonths: game.scheduling_window_months ?? 2,
-        specialPlayDates: (game.special_play_dates ?? []).map((d: string) => d.substring(0, 10)),
+        specialPlayDates: allSpecialDates,
         availabilityRecords: currentPlayerRecords,
       });
       const percentageValues = Object.values(completionPercentages);

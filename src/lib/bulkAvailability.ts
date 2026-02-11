@@ -4,7 +4,7 @@ interface FilterDatesParams {
   filter: string; // "remaining" or day number "0"-"6"
   dates: Date[];
   playDays: number[];
-  specialPlayDates: string[];
+  extraPlayDates: string[];
   existingAvailability: Record<string, AvailabilityEntry>;
   today: Date;
   formatDate: (date: Date) => string;
@@ -18,7 +18,7 @@ interface FilterDatesParams {
  * @param filter - "remaining" to get only unset dates, or a day number "0"-"6" for specific weekday
  * @param dates - All dates in the scheduling window
  * @param playDays - Array of play day numbers (0=Sun, 1=Mon, etc.)
- * @param specialPlayDates - Array of special play date strings (YYYY-MM-DD)
+ * @param extraPlayDates - Array of extra play date strings (YYYY-MM-DD)
  * @param existingAvailability - Map of date strings to availability entries
  * @param today - Today's date for excluding past dates
  * @param formatDate - Function to format Date to "YYYY-MM-DD" string
@@ -30,7 +30,7 @@ export function filterDatesForBulkSet({
   filter,
   dates,
   playDays,
-  specialPlayDates,
+  extraPlayDates,
   existingAvailability,
   today,
   formatDate,
@@ -41,10 +41,10 @@ export function filterDatesForBulkSet({
     .filter((date) => {
       const dayOfWeek = getDayOfWeek(date);
       const dateStr = formatDate(date);
-      const isSpecialPlayDate = specialPlayDates.includes(dateStr);
+      const isExtraPlayDate = extraPlayDates.includes(dateStr);
 
-      // Must be a play day or special play date
-      if (!playDays.includes(dayOfWeek) && !isSpecialPlayDate) {
+      // Must be a play day or extra play date
+      if (!playDays.includes(dayOfWeek) && !isExtraPlayDate) {
         return false;
       }
 

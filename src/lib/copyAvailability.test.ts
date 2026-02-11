@@ -54,7 +54,7 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability,
       destinationAvailability,
       destinationPlayDays: [5], // Friday
-      destinationSpecialPlayDates: [],
+      destinationExtraPlayDates: [],
     });
 
     expect(result).toHaveLength(2);
@@ -72,7 +72,7 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability,
       destinationAvailability: {},
       destinationPlayDays: [5], // Friday
-      destinationSpecialPlayDates: [],
+      destinationExtraPlayDates: [],
     });
 
     expect(result).toHaveLength(1);
@@ -90,7 +90,7 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability,
       destinationAvailability: {},
       destinationPlayDays: [5], // Friday
-      destinationSpecialPlayDates: [],
+      destinationExtraPlayDates: [],
     });
 
     expect(result).toHaveLength(1);
@@ -109,17 +109,17 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability,
       destinationAvailability: {},
       destinationPlayDays: [5], // Only Fridays in destination
-      destinationSpecialPlayDates: [],
+      destinationExtraPlayDates: [],
     });
 
     expect(result).toHaveLength(1);
     expect(result[0].date).toBe("2025-01-17");
   });
 
-  it("includes destination special play dates", () => {
+  it("includes destination extra play dates", () => {
     const sourceAvailability: Record<string, AvailabilityEntry> = {
       "2025-01-17": makeEntry("available"), // Fri - regular play day
-      "2025-01-20": makeEntry("available"), // Mon - special play date
+      "2025-01-20": makeEntry("available"), // Mon - extra play date
       "2025-01-21": makeEntry("available"), // Tue - not a play day
     };
 
@@ -128,7 +128,7 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability,
       destinationAvailability: {},
       destinationPlayDays: [5], // Only Fridays
-      destinationSpecialPlayDates: ["2025-01-20"], // Monday is special
+      destinationExtraPlayDates: ["2025-01-20"], // Monday is extra
     });
 
     expect(result).toHaveLength(2);
@@ -145,7 +145,7 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability,
       destinationAvailability: {},
       destinationPlayDays: [5],
-      destinationSpecialPlayDates: [],
+      destinationExtraPlayDates: [],
     });
 
     expect(result).toHaveLength(1);
@@ -163,7 +163,7 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability: {},
       destinationAvailability: {},
       destinationPlayDays: [5],
-      destinationSpecialPlayDates: [],
+      destinationExtraPlayDates: [],
     });
 
     expect(result).toEqual([]);
@@ -185,7 +185,7 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability,
       destinationAvailability,
       destinationPlayDays: [5],
-      destinationSpecialPlayDates: [],
+      destinationExtraPlayDates: [],
     });
 
     expect(result).toEqual([]);
@@ -203,7 +203,7 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability,
       destinationAvailability: {},
       destinationPlayDays: [5],
-      destinationSpecialPlayDates: [],
+      destinationExtraPlayDates: [],
     });
 
     expect(result.map((r) => r.date)).toEqual([
@@ -224,7 +224,7 @@ describe("filterAvailabilityForCopy", () => {
       sourceAvailability,
       destinationAvailability: {},
       destinationPlayDays: [3], // Wednesday
-      destinationSpecialPlayDates: [],
+      destinationExtraPlayDates: [],
     });
 
     expect(result).toHaveLength(1);

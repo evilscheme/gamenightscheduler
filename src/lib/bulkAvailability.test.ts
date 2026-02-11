@@ -39,7 +39,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "remaining",
       dates,
       playDays,
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability,
       today,
       formatDate,
@@ -61,7 +61,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "5", // Fridays
       dates,
       playDays,
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability: {},
       today,
       formatDate,
@@ -85,7 +85,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "remaining",
       dates: pastDates,
       playDays,
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability: {},
       today,
       formatDate,
@@ -98,15 +98,15 @@ describe("filterDatesForBulkSet", () => {
     expect(result).toContain("2025-01-22"); // future
   });
 
-  it("includes special play dates", () => {
+  it("includes extra play dates", () => {
     const playDays = [5]; // Only Fridays normally
-    const specialPlayDates = ["2025-01-20"]; // Monday as special
+    const extraPlayDates = ["2025-01-20"]; // Monday as extra
 
     const result = filterDatesForBulkSet({
       filter: "remaining",
       dates,
       playDays,
-      specialPlayDates,
+      extraPlayDates,
       existingAvailability: {},
       today,
       formatDate,
@@ -115,9 +115,9 @@ describe("filterDatesForBulkSet", () => {
     });
 
     expect(result).toContain("2025-01-17"); // Friday
-    expect(result).toContain("2025-01-20"); // Special play date (Monday)
+    expect(result).toContain("2025-01-20"); // Extra play date (Monday)
     expect(result).toContain("2025-01-24"); // Friday
-    expect(result).not.toContain("2025-01-21"); // Tuesday, not special
+    expect(result).not.toContain("2025-01-21"); // Tuesday, not extra
   });
 
   it("excludes non-play days", () => {
@@ -127,7 +127,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "remaining",
       dates,
       playDays,
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability: {},
       today,
       formatDate,
@@ -146,7 +146,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "remaining",
       dates,
       playDays,
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability: {},
       today,
       formatDate,
@@ -173,7 +173,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "remaining",
       dates,
       playDays,
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability,
       today,
       formatDate,
@@ -189,7 +189,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "remaining",
       dates: [],
       playDays: [5],
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability: {},
       today,
       formatDate,
@@ -205,7 +205,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "remaining",
       dates,
       playDays: [],
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability: {},
       today,
       formatDate,
@@ -223,7 +223,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "6", // Saturdays
       dates,
       playDays,
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability: {},
       today,
       formatDate,
@@ -242,7 +242,7 @@ describe("filterDatesForBulkSet", () => {
       filter: "6", // Saturdays
       dates,
       playDays,
-      specialPlayDates: [],
+      extraPlayDates: [],
       existingAvailability: {},
       today,
       formatDate,

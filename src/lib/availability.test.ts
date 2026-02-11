@@ -14,7 +14,7 @@ describe("calculatePlayerCompletionPercentages", () => {
       playerIds: ["player-1"],
       playDays: [],
       schedulingWindowMonths: 2,
-      specialPlayDates: [],
+      extraPlayDates: [],
       availabilityRecords: [],
       referenceDate,
     });
@@ -27,7 +27,7 @@ describe("calculatePlayerCompletionPercentages", () => {
       playerIds: ["player-1", "player-2"],
       playDays: [5], // Fridays only
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       availabilityRecords: [],
       referenceDate,
     });
@@ -41,7 +41,7 @@ describe("calculatePlayerCompletionPercentages", () => {
     const playDates = getPlayDatesInWindow({
       playDays: [5], // Fridays
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
@@ -54,7 +54,7 @@ describe("calculatePlayerCompletionPercentages", () => {
       playerIds: ["player-1"],
       playDays: [5],
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       availabilityRecords,
       referenceDate,
     });
@@ -66,7 +66,7 @@ describe("calculatePlayerCompletionPercentages", () => {
     const playDates = getPlayDatesInWindow({
       playDays: [5], // Fridays
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
@@ -81,7 +81,7 @@ describe("calculatePlayerCompletionPercentages", () => {
       playerIds: ["player-1"],
       playDays: [5],
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       availabilityRecords,
       referenceDate,
     });
@@ -94,7 +94,7 @@ describe("calculatePlayerCompletionPercentages", () => {
     const playDates = getPlayDatesInWindow({
       playDays: [5, 6], // Fridays and Saturdays
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
@@ -110,7 +110,7 @@ describe("calculatePlayerCompletionPercentages", () => {
       playerIds: ["player-1", "player-2", "player-3"],
       playDays: [5, 6],
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       availabilityRecords,
       referenceDate,
     });
@@ -120,39 +120,39 @@ describe("calculatePlayerCompletionPercentages", () => {
     expect(result["player-3"]).toBe(0);
   });
 
-  it("includes special play dates in the calculation", () => {
-    // Add a special date that's not a regular play day
+  it("includes extra play dates in the calculation", () => {
+    // Add a extra date that's not a regular play day
     // January 20, 2025 is a Monday
-    const specialDate = "2025-01-20";
+    const extraDate = "2025-01-20";
 
     const result = calculatePlayerCompletionPercentages({
       playerIds: ["player-1"],
       playDays: [5], // Fridays only
       schedulingWindowMonths: 1,
-      specialPlayDates: [specialDate],
-      availabilityRecords: [{ user_id: "player-1", date: specialDate }],
+      extraPlayDates: [extraDate],
+      availabilityRecords: [{ user_id: "player-1", date: extraDate }],
       referenceDate,
     });
 
-    // Player filled in 1 date out of total (Fridays + special date)
+    // Player filled in 1 date out of total (Fridays + extra date)
     const totalDates = getPlayDatesInWindow({
       playDays: [5],
       schedulingWindowMonths: 1,
-      specialPlayDates: [specialDate],
+      extraPlayDates: [extraDate],
       referenceDate,
     }).length;
 
     expect(result["player-1"]).toBe(Math.round((1 / totalDates) * 100));
   });
 
-  it("works for ad-hoc games with no play days and only special dates", () => {
-    const specialDates = ["2025-01-20", "2025-01-22", "2025-01-25"];
+  it("works for ad-hoc games with no play days and only extra dates", () => {
+    const extraDates = ["2025-01-20", "2025-01-22", "2025-01-25"];
 
     const result = calculatePlayerCompletionPercentages({
       playerIds: ["player-1", "player-2"],
       playDays: [], // ad-hoc: no regular play days
       schedulingWindowMonths: 1,
-      specialPlayDates: specialDates,
+      extraPlayDates: extraDates,
       availabilityRecords: [
         { user_id: "player-1", date: "2025-01-20" },
         { user_id: "player-1", date: "2025-01-22" },
@@ -170,7 +170,7 @@ describe("calculatePlayerCompletionPercentages", () => {
     const playDates = getPlayDatesInWindow({
       playDays: [5],
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
@@ -189,7 +189,7 @@ describe("calculatePlayerCompletionPercentages", () => {
       playerIds: ["player-1"],
       playDays: [5],
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       availabilityRecords,
       referenceDate,
     });
@@ -203,7 +203,7 @@ describe("calculatePlayerCompletionPercentages", () => {
     const playDates = getPlayDatesInWindow({
       playDays: [1, 2, 3, 4, 5], // Weekdays
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
@@ -214,7 +214,7 @@ describe("calculatePlayerCompletionPercentages", () => {
       playerIds: ["player-1"],
       playDays: [1, 2, 3, 4, 5],
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       availabilityRecords,
       referenceDate,
     });
@@ -230,7 +230,7 @@ describe("getPlayDatesInWindow", () => {
     const result = getPlayDatesInWindow({
       playDays: [],
       schedulingWindowMonths: 2,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
@@ -241,7 +241,7 @@ describe("getPlayDatesInWindow", () => {
     const result = getPlayDatesInWindow({
       playDays: [5], // Fridays only (day 5)
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
@@ -252,26 +252,26 @@ describe("getPlayDatesInWindow", () => {
     });
   });
 
-  it("includes special play dates even if not regular play days", () => {
-    const specialDate = "2025-01-20"; // Monday
+  it("includes extra play dates even if not regular play days", () => {
+    const extraDate = "2025-01-20"; // Monday
     const result = getPlayDatesInWindow({
       playDays: [5], // Fridays only
       schedulingWindowMonths: 1,
-      specialPlayDates: [specialDate],
+      extraPlayDates: [extraDate],
       referenceDate,
     });
 
-    expect(result).toContain(specialDate);
+    expect(result).toContain(extraDate);
   });
 
-  it("does not include special dates outside the window", () => {
+  it("does not include extra dates outside the window", () => {
     const pastSpecialDate = "2024-01-01";
     const futureSpecialDate = "2026-01-01";
 
     const result = getPlayDatesInWindow({
       playDays: [5],
       schedulingWindowMonths: 1,
-      specialPlayDates: [pastSpecialDate, futureSpecialDate],
+      extraPlayDates: [pastSpecialDate, futureSpecialDate],
       referenceDate,
     });
 
@@ -284,7 +284,7 @@ describe("getPlayDatesInWindow", () => {
     const result = getPlayDatesInWindow({
       playDays: [3], // Wednesdays
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
@@ -295,14 +295,14 @@ describe("getPlayDatesInWindow", () => {
     const result1Month = getPlayDatesInWindow({
       playDays: [5],
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
     const result3Months = getPlayDatesInWindow({
       playDays: [5],
       schedulingWindowMonths: 3,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 
@@ -313,7 +313,7 @@ describe("getPlayDatesInWindow", () => {
     const result = getPlayDatesInWindow({
       playDays: [5],
       schedulingWindowMonths: 1,
-      specialPlayDates: [],
+      extraPlayDates: [],
       referenceDate,
     });
 

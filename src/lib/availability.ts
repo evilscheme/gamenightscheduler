@@ -17,14 +17,14 @@ export interface PlayerCompletionParams {
   playerIds: string[];
   playDays: number[];
   schedulingWindowMonths: number;
-  specialPlayDates: string[];
+  extraPlayDates: string[];
   availabilityRecords: AvailabilityRecord[];
   referenceDate?: Date;
 }
 
 /**
  * Calculate the percentage of play dates each player has filled in their availability for.
- * Only counts future dates (today or later) that match play days or special play dates.
+ * Only counts future dates (today or later) that match play days or extra play dates.
  *
  * @returns A record mapping player IDs to their completion percentage (0-100)
  */
@@ -32,7 +32,7 @@ export function calculatePlayerCompletionPercentages({
   playerIds,
   playDays,
   schedulingWindowMonths,
-  specialPlayDates,
+  extraPlayDates,
   availabilityRecords,
   referenceDate = new Date(),
 }: PlayerCompletionParams): Record<string, number> {
@@ -43,7 +43,7 @@ export function calculatePlayerCompletionPercentages({
   const playDates = eachDayOfInterval({ start: today, end: endDate })
     .filter((date) => {
       const dateStr = format(date, "yyyy-MM-dd");
-      return playDays.includes(getDay(date)) || specialPlayDates.includes(dateStr);
+      return playDays.includes(getDay(date)) || extraPlayDates.includes(dateStr);
     })
     .filter(
       (date) =>
@@ -80,7 +80,7 @@ export function calculatePlayerCompletionPercentages({
 export function getPlayDatesInWindow({
   playDays,
   schedulingWindowMonths,
-  specialPlayDates,
+  extraPlayDates,
   referenceDate = new Date(),
 }: Omit<PlayerCompletionParams, "playerIds" | "availabilityRecords">): string[] {
   const today = startOfDay(referenceDate);
@@ -89,7 +89,7 @@ export function getPlayDatesInWindow({
   return eachDayOfInterval({ start: today, end: endDate })
     .filter((date) => {
       const dateStr = format(date, "yyyy-MM-dd");
-      return playDays.includes(getDay(date)) || specialPlayDates.includes(dateStr);
+      return playDays.includes(getDay(date)) || extraPlayDates.includes(dateStr);
     })
     .filter(
       (date) =>

@@ -81,25 +81,28 @@ export default function GameDetailPage() {
   const canDoGmActions = !!(isGm || isCoGm);
   const isMember = game?.members.some((m) => m.id === profile?.id);
 
-  const mergedSpecialDates = useMemo(() => {
+  const playDateEntries = useMemo(() => {
     return gamePlayDates
       .map((r) => ({ date: r.date, note: r.note }))
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [gamePlayDates]);
 
-  const specialDateStrings = useMemo(
-    () => mergedSpecialDates.map((d) => d.date),
-    [mergedSpecialDates]
-  );
+  // Only dates that are true extra dates (not regular play days with notes)
+  const extraDateStrings = useMemo(() => {
+    const regularDays = new Set(game?.play_days ?? []);
+    return playDateEntries
+      .filter((d) => !regularDays.has(getDay(parseISO(d.date))))
+      .map((d) => d.date);
+  }, [playDateEntries, game?.play_days]);
 
   const playDateNotes = useMemo(
     () =>
       new Map(
-        mergedSpecialDates
+        playDateEntries
           .filter((d) => d.note)
           .map((d) => [d.date, d.note!])
       ),
-    [mergedSpecialDates]
+    [playDateEntries]
   );
 
   // Calculate availability completion percentage per player
@@ -111,10 +114,10 @@ export default function GameDetailPage() {
       playerIds: allPlayers.map((p) => p.id),
       playDays: game.play_days,
       schedulingWindowMonths: game.scheduling_window_months,
-      specialPlayDates: specialDateStrings,
+      extraPlayDates: extraDateStrings,
       availabilityRecords: allAvailability,
     });
-  }, [game, allAvailability, specialDateStrings]);
+  }, [game, allAvailability, extraDateStrings]);
 
   useAuthRedirect();
 
@@ -243,7 +246,7 @@ export default function GameDetailPage() {
     const playDates = eachDayOfInterval({ start: today, end: endDate })
       .filter((date) => {
         const dateStr = format(date, "yyyy-MM-dd");
-        return game.play_days.includes(getDay(date)) || specialDateStrings.includes(dateStr);
+        return game.play_days.includes(getDay(date)) || extraDateStrings.includes(dateStr);
       })
       .filter(
         (date) =>
@@ -262,7 +265,7 @@ export default function GameDetailPage() {
     });
 
     setSuggestions(suggestionList);
-  }, [game, allAvailability, specialDateStrings]);
+  }, [game, allAvailability, extraDateStrings]);
 
   const handleAvailabilityChange = async (
     date: string,
@@ -373,7 +376,7 @@ export default function GameDetailPage() {
       sourceAvailability: sourceMap,
       destinationAvailability: availability,
       destinationPlayDays: game.play_days,
-      destinationSpecialPlayDates: specialDateStrings,
+      destinationExtraPlayDates: extraDateStrings,
       today,
       windowEndDate: windowEnd,
       getDayOfWeek: getDay,
@@ -630,12 +633,12 @@ export default function GameDetailPage() {
     }
   };
 
-  const handleToggleSpecialDate = async (date: string) => {
+  const handleToggleExtraDate = async (date: string) => {
     if (!gameId || !game) return;
 
-    const isCurrentlySpecial = specialDateStrings.includes(date);
+    const isCurrentlyExtra = extraDateStrings.includes(date);
 
-    if (isCurrentlySpecial) {
+    if (isCurrentlyExtra) {
       // Remove: delete from new table + legacy array
       const existingRow = gamePlayDates.find((r) => r.date === date);
       if (existingRow) {
@@ -887,7 +890,7 @@ export default function GameDetailPage() {
               on mobile).
             </p>
             {game.ad_hoc_only &&
-              specialDateStrings.length === 0 &&
+              extraDateStrings.length === 0 &&
               !canDoGmActions && (
                 <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
                   <p className="text-sm text-primary">
@@ -898,7 +901,7 @@ export default function GameDetailPage() {
               )}
             {game.ad_hoc_only &&
               canDoGmActions &&
-              specialDateStrings.length === 0 && (
+              extraDateStrings.length === 0 && (
                 <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
                   <p className="text-sm text-primary">
                     Add potential play dates by clicking the + on any date in the
@@ -913,9 +916,9 @@ export default function GameDetailPage() {
             availability={availability}
             onToggle={handleAvailabilityChange}
             confirmedSessions={confirmedSessions}
-            specialPlayDates={specialDateStrings}
+            extraPlayDates={extraDateStrings}
             isGmOrCoGm={canDoGmActions}
-            onToggleSpecialDate={handleToggleSpecialDate}
+            onToggleExtraDate={handleToggleExtraDate}
             weekStartDay={weekStartDay}
             use24h={use24h}
             otherGames={otherGames}

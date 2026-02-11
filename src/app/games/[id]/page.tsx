@@ -74,6 +74,7 @@ export default function GameDetailPage() {
     []
   );
   const [gamePlayDates, setGamePlayDates] = useState<GamePlayDate[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
@@ -227,6 +228,12 @@ export default function GameDetailPage() {
       fetchData();
     }
   }, [profile?.id, fetchData]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }, [fetchData]);
 
   // Calculate suggestions when availability changes
   useEffect(() => {
@@ -777,7 +784,29 @@ export default function GameDetailPage() {
               {isGm && " (You)"}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              title="Refresh data"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={refreshing ? "animate-spin" : ""}
+              >
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            </button>
             {canDoGmActions && (
               <>
                 <Button

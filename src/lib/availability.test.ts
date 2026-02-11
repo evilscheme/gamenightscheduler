@@ -145,6 +145,27 @@ describe("calculatePlayerCompletionPercentages", () => {
     expect(result["player-1"]).toBe(Math.round((1 / totalDates) * 100));
   });
 
+  it("works for ad-hoc games with no play days and only special dates", () => {
+    const specialDates = ["2025-01-20", "2025-01-22", "2025-01-25"];
+
+    const result = calculatePlayerCompletionPercentages({
+      playerIds: ["player-1", "player-2"],
+      playDays: [], // ad-hoc: no regular play days
+      schedulingWindowMonths: 1,
+      specialPlayDates: specialDates,
+      availabilityRecords: [
+        { user_id: "player-1", date: "2025-01-20" },
+        { user_id: "player-1", date: "2025-01-22" },
+        { user_id: "player-1", date: "2025-01-25" },
+        { user_id: "player-2", date: "2025-01-20" },
+      ],
+      referenceDate,
+    });
+
+    expect(result["player-1"]).toBe(100);
+    expect(result["player-2"]).toBe(Math.round((1 / 3) * 100));
+  });
+
   it("ignores availability records for dates not in the play window", () => {
     const playDates = getPlayDatesInWindow({
       playDays: [5],

@@ -55,13 +55,14 @@ jobs:
       - name: Wait for Supabase
         run: |
           # Wait for the background supabase start to finish
-          wait "$(cat /tmp/supabase-start.pid)"
+          PID=$(cat /tmp/supabase-start.pid)
+          echo "Waiting for Supabase start (PID $PID)..."
+          tail --pid="$PID" -f /dev/null 2>/dev/null || true
+          # Also wait for healthy containers
+          supabase status
 
           # Apply schema
           docker exec -i supabase_db_dndscheduler psql -U postgres -d postgres < supabase/schema.sql
-
-          # Show status for debugging
-          supabase status
 
       - name: Run E2E Tests
         run: npx playwright test

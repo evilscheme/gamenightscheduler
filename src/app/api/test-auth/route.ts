@@ -76,7 +76,7 @@ export async function POST(request: Request): Promise<Response> {
     if (createError) {
       // If user already exists, find them and update password
       if (createError.message?.includes('already')) {
-        const { data: existingUsers } = await admin.auth.admin.listUsers();
+        const { data: existingUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
         const existingUser = existingUsers?.users.find((u) => u.email === email);
         if (!existingUser) {
           return NextResponse.json(
@@ -208,7 +208,7 @@ export async function DELETE(request: Request): Promise<Response> {
     const admin = createAdminClient();
 
     // Find user by email
-    const { data: users } = await admin.auth.admin.listUsers();
+    const { data: users } = await admin.auth.admin.listUsers({ perPage: 1000 });
     const user = users?.users.find((u) => u.email === email);
 
     if (!user) {

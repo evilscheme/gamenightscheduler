@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   format,
   startOfMonth,
@@ -79,6 +79,25 @@ export function AvailabilityCalendar({
   const [copySourceGameId, setCopySourceGameId] = useState<string>("");
   const [isCopying, setIsCopying] = useState(false);
   const [copyResultMessage, setCopyResultMessage] = useState<string | null>(null);
+
+  // Detect whether bulk action groups are on the same row (not wrapping)
+  const bulkActionsRef = useRef<HTMLDivElement>(null);
+  const [bulkOnOneLine, setBulkOnOneLine] = useState(false);
+  useEffect(() => {
+    const el = bulkActionsRef.current;
+    if (!el) return;
+    const check = () => {
+      const children = el.children;
+      if (children.length < 2) return;
+      setBulkOnOneLine(
+        children[0].getBoundingClientRect().top ===
+          children[children.length - 1].getBoundingClientRect().top
+      );
+    };
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Generate array of months to display
   const months = useMemo(() => {
@@ -260,38 +279,41 @@ export function AvailabilityCalendar({
     <div className="space-y-4">
       {/* Bulk actions */}
       <div className="bg-secondary rounded-lg p-3">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Mark all</span>
-          <select
-            value={bulkDayFilter}
-            onChange={(e) => setBulkDayFilter(e.target.value)}
-            className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
-          >
-            <option value="remaining">remaining days</option>
-            {playDays.map((day) => (
-              <option key={day} value={day}>
-                {DAY_LABELS.full[day]}s
-              </option>
-            ))}
-          </select>
-          <span className="text-muted-foreground">as</span>
-          <select
-            value={bulkStatus}
-            onChange={(e) =>
-              setBulkStatus(e.target.value as AvailabilityStatus)
-            }
-            className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
-          >
-            <option value="available">available</option>
-            <option value="unavailable">unavailable</option>
-            <option value="maybe">maybe</option>
-          </select>
-          <Button size="sm" onClick={handleBulkSubmit} className="h-8">
-            Apply
-          </Button>
+        <div ref={bulkActionsRef} className="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm">
+          {/* Mark-all group — stays together as a unit */}
+          <div className={`flex items-center gap-2 border-r-2 pr-2 ${bulkOnOneLine ? "border-muted-foreground/30" : "border-transparent"}`}>
+            <span className="text-muted-foreground">Mark all</span>
+            <select
+              value={bulkDayFilter}
+              onChange={(e) => setBulkDayFilter(e.target.value)}
+              className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
+            >
+              <option value="remaining">remaining days</option>
+              {playDays.map((day) => (
+                <option key={day} value={day}>
+                  {DAY_LABELS.full[day]}s
+                </option>
+              ))}
+            </select>
+            <span className="text-muted-foreground">as</span>
+            <select
+              value={bulkStatus}
+              onChange={(e) =>
+                setBulkStatus(e.target.value as AvailabilityStatus)
+              }
+              className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
+            >
+              <option value="available">available</option>
+              <option value="unavailable">unavailable</option>
+              <option value="maybe">maybe</option>
+            </select>
+            <Button size="sm" onClick={handleBulkSubmit} className="h-8">
+              Apply
+            </Button>
+          </div>
+          {/* Copy-from group — stays together, wraps below on narrow containers */}
           {otherGames && otherGames.length > 0 && onCopyFromGame && (
-            <>
-              <span className="text-border">|</span>
+            <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Copy from</span>
               <select
                 value={copySourceGameId}
@@ -320,7 +342,7 @@ export function AvailabilityCalendar({
                   {copyResultMessage}
                 </span>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

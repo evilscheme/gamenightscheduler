@@ -40,7 +40,6 @@ import { TIMEOUTS, USAGE_LIMITS } from "@/lib/constants";
 import { calculatePlayerCompletionPercentages } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
 import { filterAvailabilityForCopy } from "@/lib/copyAvailability";
-import { mergeSpecialPlayDates } from "@/lib/specialPlayDates";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 
 type Tab = "overview" | "availability" | "schedule";
@@ -82,13 +81,10 @@ export default function GameDetailPage() {
   const isMember = game?.members.some((m) => m.id === profile?.id);
 
   const mergedSpecialDates = useMemo(() => {
-    const legacyDates = game?.special_play_dates || [];
-    const tableEntries = gamePlayDates.map((r) => ({
-      date: r.date,
-      note: r.note,
-    }));
-    return mergeSpecialPlayDates(legacyDates, tableEntries);
-  }, [game?.special_play_dates, gamePlayDates]);
+    return gamePlayDates
+      .map((r) => ({ date: r.date, note: r.note }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [gamePlayDates]);
 
   const specialDateStrings = useMemo(
     () => mergedSpecialDates.map((d) => d.date),
@@ -646,24 +642,6 @@ export default function GameDetailPage() {
           // Revert: re-add the removed row
           setGamePlayDates((prev) =>
             [...prev, existingRow].sort((a, b) => a.date.localeCompare(b.date))
-          );
-        }
-      }
-      // Also clean from legacy array if present
-      const legacyDates = game.special_play_dates || [];
-      if (legacyDates.includes(date)) {
-        const newLegacy = legacyDates.filter((d) => d !== date);
-        setGame((prev) =>
-          prev ? { ...prev, special_play_dates: newLegacy } : prev
-        );
-        const { error } = await supabase
-          .from("games")
-          .update({ special_play_dates: newLegacy })
-          .eq("id", gameId);
-        if (error) {
-          // Revert: restore the legacy array
-          setGame((prev) =>
-            prev ? { ...prev, special_play_dates: legacyDates } : prev
           );
         }
       }

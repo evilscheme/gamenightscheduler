@@ -50,7 +50,7 @@ export async function GET(): Promise<Response> {
     // Fetch all games with GM info
     const { data: games, error: gamesError } = await admin
       .from('games')
-      .select('id, name, created_at, play_days, scheduling_window_months, special_play_dates, gm_id, gm:users!games_gm_id_fkey(id, name, email)')
+      .select('id, name, created_at, play_days, scheduling_window_months, gm_id, gm:users!games_gm_id_fkey(id, name, email)')
       .order('created_at', { ascending: false });
 
     if (gamesError) {
@@ -134,9 +134,7 @@ export async function GET(): Promise<Response> {
       const currentPlayerRecords = availabilityStats.records.filter(
         (r) => currentPlayerIds.includes(r.user_id)
       );
-      const legacyDates = (game.special_play_dates ?? []).map((d: string) => d.substring(0, 10));
-      const tableDates = playDatesByGame.get(game.id) ?? [];
-      const allSpecialDates = [...new Set([...legacyDates, ...tableDates])];
+      const allSpecialDates = playDatesByGame.get(game.id) ?? [];
 
       const completionPercentages = calculatePlayerCompletionPercentages({
         playerIds: currentPlayerIds,

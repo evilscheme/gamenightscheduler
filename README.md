@@ -6,11 +6,16 @@ A web app to help groups coordinate game nights. Hosts create games, players mar
 
 - **Multiple Games**: Manage several games at once, each with its own players
 - **Availability Calendar**: Mark availability as available, unavailable, or maybe with optional notes and time-of-day constraints
-- **Smart Suggestions**: Dates ranked by player availability with detailed breakdowns and computed time windows
+- **Smart Suggestions**: Dates ranked by player availability with detailed breakdowns and computed time windows, with optional chronological sorting
+- **Ad-Hoc Scheduling**: Create games without regular play days — GMs manually add specific dates as needed
+- **Play Date Notes**: GMs can annotate any play date with notes visible to all players
+- **Copy Availability**: Copy your availability from one game to another to save time
 - **Easy Invites**: Share a simple invite link to add players
 - **Calendar Export**: Download .ics files or subscribe to calendar feeds
 - **Co-GM Support**: Delegate game management to trusted players
 - **Special Play Dates**: Schedule one-off sessions outside regular play days
+- **Internationalization**: Timezone support, configurable week start day, and 12h/24h time format
+- **Installable**: Add to your home screen as a PWA on mobile devices
 - **Past Sessions**: View history of completed game nights
 
 ## Tech Stack
@@ -82,16 +87,22 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Testing
 
-The project uses Playwright for end-to-end testing.
+The project uses Vitest for unit tests and Playwright for end-to-end tests.
 
 ```bash
+# Unit tests (Vitest)
+npm run test              # Run in watch mode
+npm run test:run          # Run once
+npm run test:coverage     # Run with coverage
+
+# E2E tests (Playwright)
 npm run test:e2e          # Run all e2e tests
 npm run test:e2e:ui       # Run with Playwright UI
 npm run test:e2e:headed   # Run in headed browser mode
 npm run test:e2e:debug    # Run in debug mode
 ```
 
-Tests require a `.env.test.local` file with test database credentials.
+E2E tests require a `.env.test.local` file with test database credentials.
 
 ## Project Structure
 
@@ -103,6 +114,7 @@ src/
 │   ├── dashboard/         # User dashboard
 │   ├── games/             # Game pages (create, view, edit, join)
 │   ├── admin/             # Admin dashboard
+│   ├── help/              # How to Use guide
 │   ├── login/             # Login page
 │   └── settings/          # User settings
 ├── components/
@@ -120,11 +132,13 @@ src/
 ├── lib/
 │   ├── availability.ts    # Availability completion calculations
 │   ├── availabilityStatus.ts # Status cycling logic
+│   ├── bulkAvailability.ts # Bulk availability marking logic
 │   ├── constants.ts       # Shared constants and limits
 │   ├── formatting.ts      # Time formatting utilities
 │   ├── gameValidation.ts  # Form validation
 │   ├── ics.ts             # ICS calendar file generation
 │   ├── suggestions.ts     # Date suggestion ranking
+│   ├── themes.ts          # Theme configuration and utilities
 │   └── supabase/          # Supabase clients (browser, server, admin)
 └── types/                 # TypeScript types
 

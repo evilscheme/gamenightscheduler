@@ -81,10 +81,25 @@ export default function HelpPage() {
                 who said maybe, and who can&apos;t make it.
               </p>
               <p>
+                You can switch between <strong className="text-foreground">Best Match</strong> (ranked by
+                availability) and <strong className="text-foreground">By Date</strong> (chronological) sorting
+                using the toggle at the top of the suggestions list.
+              </p>
+              <p>
                 When you&apos;re ready, click a date to confirm it as a session. The confirmation dialog
                 pre-fills times based on player constraints and your default session times.
                 Dates that don&apos;t meet the minimum player threshold are flagged so you can
                 make informed decisions.
+              </p>
+            </Section>
+
+            <Section title="Ad-Hoc Scheduling">
+              <p>
+                Not every game has a regular weekly schedule. When creating or editing a game, toggle
+                on <strong className="text-foreground">ad-hoc scheduling</strong> to skip selecting play days entirely.
+                Instead, you&apos;ll add specific dates directly on the calendar using
+                the <strong className="text-foreground">+</strong> button. This is great for irregular schedules,
+                one-shots, or games that meet on different days each time.
               </p>
             </Section>
 
@@ -94,6 +109,15 @@ export default function HelpPage() {
                 GMs and co-GMs can add <strong className="text-foreground">special play dates</strong> directly
                 on the calendar by clicking any non-play day. These appear alongside regular play
                 days so players can mark availability for them.
+              </p>
+            </Section>
+
+            <Section title="Play Date Notes">
+              <p>
+                GMs can add <strong className="text-foreground">notes</strong> to any play date &mdash; regular
+                or special. Click on a date to open the detail popover and add a note (e.g.,
+                &ldquo;Session zero&rdquo; or &ldquo;Character creation&rdquo;). Notes are visible to all
+                players on the calendar and in scheduling suggestions.
               </p>
             </Section>
 
@@ -162,6 +186,15 @@ export default function HelpPage() {
               </p>
             </Section>
 
+            <Section title="Copy Availability">
+              <p>
+                In multiple games with overlapping dates? Use <strong className="text-foreground">Copy
+                from</strong> in the bulk actions bar to copy your availability from another game.
+                This only fills in dates you haven&apos;t responded to yet &mdash; it won&apos;t overwrite
+                anything you&apos;ve already set.
+              </p>
+            </Section>
+
             <Section title="Viewing Confirmed Sessions">
               <p>
                 Once your GM confirms a session, it appears on the calendar with the confirmed
@@ -177,8 +210,23 @@ export default function HelpPage() {
         <Section title="Customization">
           <p>
             Visit <Link href="/settings" className="text-primary hover:underline">Settings</Link> to
-            update your display name and choose a color theme. Your theme preference applies
-            across all your games.
+            update your display name, choose a color theme, and configure regional preferences:
+          </p>
+          <ul className="list-disc list-inside space-y-1 ml-1">
+            <li><strong className="text-foreground">Timezone</strong> &mdash; set your timezone so session times display correctly for you</li>
+            <li><strong className="text-foreground">Week start</strong> &mdash; choose whether calendars start on Sunday or Monday</li>
+            <li><strong className="text-foreground">Time format</strong> &mdash; switch between 12-hour and 24-hour time display</li>
+            <li><strong className="text-foreground">Color theme</strong> &mdash; pick a theme that applies across all your games</li>
+          </ul>
+        </Section>
+
+        <Section title="Install on Your Device">
+          <p>
+            <strong className="text-foreground">Can We Play?</strong> can be installed as an app on your
+            phone or tablet. On iOS, tap the share button in Safari and choose <strong className="text-foreground">Add
+            to Home Screen</strong>. On Android, tap the browser menu and
+            choose <strong className="text-foreground">Install app</strong>. The app works just like a
+            native app with no browser chrome.
           </p>
         </Section>
       </div>

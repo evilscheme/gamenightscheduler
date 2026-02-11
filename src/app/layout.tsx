@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Providers } from '@/components/layout';
 import { Navbar } from '@/components/layout';
@@ -14,12 +14,15 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+export const viewport: Viewport = {
+  themeColor: '#0ea5e9',
+};
+
 export const metadata: Metadata = {
   title: 'Can We Play? - Game Night Scheduler',
   description: 'Coordinate game nights with your group',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   manifest: '/manifest.webmanifest',
-  themeColor: '#0ea5e9',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

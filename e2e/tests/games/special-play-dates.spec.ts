@@ -94,7 +94,7 @@ test.describe('Special Play Dates', () => {
     await addIcon.click();
 
     // After clicking, the day should now be marked as an extra date
-    await expect(dayButton).toHaveAttribute('data-special', 'true');
+    await expect(dayButton).toHaveAttribute('data-extra', 'true');
 
     // Now hover again to verify the remove icon appears
     await dayButton.hover();
@@ -131,9 +131,9 @@ test.describe('Special Play Dates', () => {
     await page.getByRole('button', { name: /availability/i }).click();
     await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
-    // Find the special play date - it should have data-special attribute
+    // Find the special play date - it should have data-extra attribute
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
-    await expect(dayButton).toHaveAttribute('data-special', 'true');
+    await expect(dayButton).toHaveAttribute('data-extra', 'true');
 
     // Hover and click the remove icon
     await dayButton.hover();

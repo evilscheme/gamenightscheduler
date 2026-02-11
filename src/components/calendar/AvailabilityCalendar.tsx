@@ -37,9 +37,9 @@ interface AvailabilityCalendarProps {
     availableUntil: string | null
   ) => void;
   confirmedSessions: GameSession[];
-  specialPlayDates?: string[];
+  extraPlayDates?: string[];
   isGmOrCoGm?: boolean;
-  onToggleSpecialDate?: (date: string) => void;
+  onToggleExtraDate?: (date: string) => void;
   weekStartDay?: 0 | 1;
   use24h?: boolean;
   otherGames?: { id: string; name: string }[];
@@ -54,9 +54,9 @@ export function AvailabilityCalendar({
   availability,
   onToggle,
   confirmedSessions,
-  specialPlayDates = [],
+  extraPlayDates = [],
   isGmOrCoGm = false,
-  onToggleSpecialDate,
+  onToggleExtraDate,
   weekStartDay = 0,
   use24h = false,
   otherGames,
@@ -73,7 +73,7 @@ export function AvailabilityCalendar({
   const [gmNoteText, setGmNoteText] = useState("");
   const [bulkDayFilter, setBulkDayFilter] = useState<string>("remaining");
   const [bulkStatus, setBulkStatus] = useState<AvailabilityStatus>("available");
-  // Action menu for GM long-press on special play dates
+  // Action menu for GM long-press on extra play dates
   const [actionMenuDate, setActionMenuDate] = useState<string | null>(null);
   // Copy from game state
   const [copySourceGameId, setCopySourceGameId] = useState<string>("");
@@ -109,10 +109,10 @@ export function AvailabilityCalendar({
   const handleDayClick = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const dayOfWeek = getDay(date);
-    const isSpecialPlayDate = specialPlayDates.includes(dateStr);
+    const isExtraPlayDate = extraPlayDates.includes(dateStr);
 
-    // Can't toggle non-play days (unless it's a special play date)
-    if (!playDays.includes(dayOfWeek) && !isSpecialPlayDate) return;
+    // Can't toggle non-play days (unless it's a extra play date)
+    if (!playDays.includes(dayOfWeek) && !isExtraPlayDate) return;
 
     // Can't toggle past dates
     if (isBefore(date, today)) return;
@@ -173,7 +173,7 @@ export function AvailabilityCalendar({
     setGmNoteText("");
   };
 
-  // Action menu handlers for GM on special play dates
+  // Action menu handlers for GM on extra play dates
   const handleOpenActionMenu = (dateStr: string) => {
     setActionMenuDate(dateStr);
   };
@@ -189,9 +189,9 @@ export function AvailabilityCalendar({
     }
   };
 
-  const handleActionMenuRemoveSpecial = () => {
-    if (actionMenuDate && onToggleSpecialDate) {
-      onToggleSpecialDate(actionMenuDate);
+  const handleActionMenuRemoveExtra = () => {
+    if (actionMenuDate && onToggleExtraDate) {
+      onToggleExtraDate(actionMenuDate);
       setActionMenuDate(null);
     }
   };
@@ -203,8 +203,8 @@ export function AvailabilityCalendar({
     }).filter((date) => {
       const dayOfWeek = getDay(date);
       const dateStr = format(date, "yyyy-MM-dd");
-      const isSpecialPlayDate = specialPlayDates.includes(dateStr);
-      if (!playDays.includes(dayOfWeek) && !isSpecialPlayDate) return false;
+      const isExtraPlayDate = extraPlayDates.includes(dateStr);
+      if (!playDays.includes(dayOfWeek) && !isExtraPlayDate) return false;
       if (isBefore(date, today)) return false;
 
       if (filter === "remaining") {
@@ -352,9 +352,9 @@ export function AvailabilityCalendar({
             onDayClick={handleDayClick}
             onEditComment={handleEditComment}
             weekdays={orderedWeekdays}
-            specialPlayDates={specialPlayDates}
+            extraPlayDates={extraPlayDates}
             isGmOrCoGm={isGmOrCoGm}
-            onToggleSpecialDate={onToggleSpecialDate}
+            onToggleExtraDate={onToggleExtraDate}
             onOpenActionMenu={handleOpenActionMenu}
             weekStartDay={weekStartDay}
             use24h={use24h}
@@ -444,7 +444,7 @@ export function AvailabilityCalendar({
         />
       )}
 
-      {/* Action menu for GM long-press on special play dates */}
+      {/* Action menu for GM long-press on extra play dates */}
       {actionMenuDate && (
         <div
           className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
@@ -478,7 +478,7 @@ export function AvailabilityCalendar({
                 variant="danger"
                 size="sm"
                 className="w-full justify-start"
-                onClick={handleActionMenuRemoveSpecial}
+                onClick={handleActionMenuRemoveExtra}
               >
                 {playDays.length > 0 ? "Remove extra date" : "Remove play date"}
               </Button>
@@ -501,9 +501,9 @@ interface MonthCalendarProps {
   onDayClick: (date: Date) => void;
   onEditComment: (dateStr: string) => void;
   weekdays: readonly string[] | string[];
-  specialPlayDates: string[];
+  extraPlayDates: string[];
   isGmOrCoGm: boolean;
-  onToggleSpecialDate?: (date: string) => void;
+  onToggleExtraDate?: (date: string) => void;
   onOpenActionMenu?: (dateStr: string) => void;
   weekStartDay: 0 | 1;
   use24h: boolean;
@@ -520,9 +520,9 @@ function MonthCalendar({
   onDayClick,
   onEditComment,
   weekdays,
-  specialPlayDates,
+  extraPlayDates,
   isGmOrCoGm,
-  onToggleSpecialDate,
+  onToggleExtraDate,
   onOpenActionMenu,
   weekStartDay,
   use24h,
@@ -542,20 +542,20 @@ function MonthCalendar({
   const handleTouchStart = (
     dateStr: string,
     isRegularPlayDay: boolean,
-    isSpecialPlayDate: boolean
+    isExtraPlayDate: boolean
   ) => {
     longPressTriggered.current = false;
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
-      if (isSpecialPlayDate && isGmOrCoGm && onOpenActionMenu) {
-        // For special play dates, GM gets action menu (edit note or remove)
+      if (isExtraPlayDate && isGmOrCoGm && onOpenActionMenu) {
+        // For extra play dates, GM gets action menu (edit note or remove)
         onOpenActionMenu(dateStr);
-      } else if (isRegularPlayDay || isSpecialPlayDate) {
-        // For regular play days (or special dates for non-GM), long-press opens comment editor
+      } else if (isRegularPlayDay || isExtraPlayDate) {
+        // For regular play days (or extra dates for non-GM), long-press opens comment editor
         onEditComment(dateStr);
-      } else if (isGmOrCoGm && onToggleSpecialDate) {
-        // For non-play days, GM can add as special date
-        onToggleSpecialDate(dateStr);
+      } else if (isGmOrCoGm && onToggleExtraDate) {
+        // For non-play days, GM can add as extra date
+        onToggleExtraDate(dateStr);
       }
     }, 500);
   };
@@ -613,17 +613,17 @@ function MonthCalendar({
           const dateStr = format(date, "yyyy-MM-dd");
           const dayOfWeek = getDay(date);
           const isRegularPlayDay = playDays.includes(dayOfWeek);
-          const isSpecialPlayDate = specialPlayDates.includes(dateStr);
-          const isPlayDay = isRegularPlayDay || isSpecialPlayDate;
+          const isExtraPlayDate = extraPlayDates.includes(dateStr);
+          const isPlayDay = isRegularPlayDay || isExtraPlayDate;
           const isPast = isBefore(date, today);
           const isConfirmed = confirmedDates.has(dateStr);
           const avail = availability[dateStr];
 
-          // Can GM add this as a special play date? Only non-play days that aren't past
-          const canAddAsSpecial =
-            isGmOrCoGm && !isRegularPlayDay && !isSpecialPlayDate && !isPast;
-          // Can GM remove this special play date?
-          const canRemoveSpecial = isGmOrCoGm && isSpecialPlayDate && !isPast;
+          // Can GM add this as a extra play date? Only non-play days that aren't past
+          const canAddAsExtra =
+            isGmOrCoGm && !isRegularPlayDay && !isExtraPlayDate && !isPast;
+          // Can GM remove this extra play date?
+          const canRemoveExtra = isGmOrCoGm && isExtraPlayDate && !isPast;
 
           let bgColor = "bg-cal-disabled-bg"; // Non-play day
           let textColor = "text-cal-disabled-text";
@@ -758,17 +758,17 @@ function MonthCalendar({
               onClick={() => handleDayClickWithLongPressCheck(date)}
               onTouchStart={() =>
                 !isPast &&
-                handleTouchStart(dateStr, isRegularPlayDay, isSpecialPlayDate)
+                handleTouchStart(dateStr, isRegularPlayDay, isExtraPlayDate)
               }
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
-              disabled={(!isPlayDay && !canAddAsSpecial) || isPast}
+              disabled={(!isPlayDay && !canAddAsExtra) || isPast}
               className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}
               data-status={dataStatus}
               data-availability={isConfirmed && !isPast ? (avail?.status ?? "unset") : undefined}
-              data-special={isSpecialPlayDate ? "true" : undefined}
+              data-extra={isExtraPlayDate ? "true" : undefined}
               title={cellTooltip}
             >
               {/* Scheduled game star decoration */}
@@ -792,11 +792,11 @@ function MonthCalendar({
               )}
               {format(date, "d")}
               {/* Extra date indicator - corner triangle (hidden for ad-hoc games) */}
-              {isSpecialPlayDate && !isPast && playDays.length > 0 && (
+              {isExtraPlayDate && !isPast && playDays.length > 0 && (
                 <span className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-t-primary border-l-[10px] border-l-transparent" />
               )}
-              {/* GM: Add special play date icon on non-play days */}
-              {canAddAsSpecial && onToggleSpecialDate && (
+              {/* GM: Add extra play date icon on non-play days */}
+              {canAddAsExtra && onToggleExtraDate && (
                 <span
                   className="absolute top-0.5 left-0.5 leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-primary"
                   onClick={(e) => {
@@ -806,15 +806,15 @@ function MonthCalendar({
                       longPressTriggered.current = false;
                       return;
                     }
-                    onToggleSpecialDate(dateStr);
+                    onToggleExtraDate(dateStr);
                   }}
                   title={playDays.length > 0 ? "Add extra date" : "Add play date"}
                 >
                   <Plus className="w-2.5 h-2.5" />
                 </span>
               )}
-              {/* GM: Remove special play date icon */}
-              {canRemoveSpecial && onToggleSpecialDate && (
+              {/* GM: Remove extra play date icon */}
+              {canRemoveExtra && onToggleExtraDate && (
                 <span
                   className="absolute top-0.5 left-0.5 leading-none cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-125 transition-all text-danger"
                   onClick={(e) => {
@@ -824,7 +824,7 @@ function MonthCalendar({
                       longPressTriggered.current = false;
                       return;
                     }
-                    onToggleSpecialDate(dateStr);
+                    onToggleExtraDate(dateStr);
                   }}
                   title={playDays.length > 0 ? "Remove extra date" : "Remove play date"}
                 >

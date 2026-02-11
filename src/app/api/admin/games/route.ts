@@ -140,7 +140,7 @@ export async function GET(): Promise<Response> {
         playerIds: currentPlayerIds,
         playDays: game.play_days ?? [],
         schedulingWindowMonths: game.scheduling_window_months ?? 2,
-        specialPlayDates: allSpecialDates,
+        extraPlayDates: allSpecialDates,
         availabilityRecords: currentPlayerRecords,
       });
       const percentageValues = Object.values(completionPercentages);

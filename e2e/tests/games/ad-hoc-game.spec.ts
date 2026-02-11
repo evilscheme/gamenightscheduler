@@ -237,7 +237,7 @@ test.describe('Ad-Hoc Games', () => {
       await addIcon.click();
 
       // Should now be a play date
-      await expect(dayButton).toHaveAttribute('data-special', 'true');
+      await expect(dayButton).toHaveAttribute('data-extra', 'true');
 
       // Click it to mark as available
       await dayButton.click();
@@ -320,7 +320,7 @@ test.describe('Ad-Hoc Games', () => {
 
       // The play date should be a special date that the player can click
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
-      await expect(dayButton).toHaveAttribute('data-special', 'true');
+      await expect(dayButton).toHaveAttribute('data-extra', 'true');
 
       // Click to mark as available
       await dayButton.click();

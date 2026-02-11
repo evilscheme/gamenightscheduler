@@ -296,7 +296,7 @@ test.describe('Play Date Notes', () => {
 
       // The special date should have the note in its tooltip
       const dayButton = page.locator(`button[data-date="${thursdayStr}"]`);
-      await expect(dayButton).toHaveAttribute('data-special', 'true');
+      await expect(dayButton).toHaveAttribute('data-extra', 'true');
       await expect(dayButton).toHaveAttribute('title', /GM note: Extra session this week/);
     });
   });

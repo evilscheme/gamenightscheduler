@@ -4,7 +4,7 @@ interface FilterAvailabilityForCopyParams {
   sourceAvailability: Record<string, AvailabilityEntry>;
   destinationAvailability: Record<string, AvailabilityEntry>;
   destinationPlayDays: number[];
-  destinationSpecialPlayDates: string[];
+  destinationExtraPlayDates: string[];
   today: Date;
   windowEndDate: Date;
   getDayOfWeek: (date: Date) => number;
@@ -23,7 +23,7 @@ export interface CopyEntry {
  *
  * Only includes dates that are:
  * (a) blank in destination (never overwrites existing entries)
- * (b) a play day or special play date in the destination game
+ * (b) a play day or extra play date in the destination game
  * (c) not in the past
  * (d) within the destination scheduling window
  *
@@ -33,7 +33,7 @@ export function filterAvailabilityForCopy({
   sourceAvailability,
   destinationAvailability,
   destinationPlayDays,
-  destinationSpecialPlayDates,
+  destinationExtraPlayDates,
   today,
   windowEndDate,
   getDayOfWeek,
@@ -55,11 +55,11 @@ export function filterAvailabilityForCopy({
     // Skip dates beyond the scheduling window
     if (isAfter(date, windowEndDate)) continue;
 
-    // Must be a play day or special play date in the destination
+    // Must be a play day or extra play date in the destination
     const dayOfWeek = getDayOfWeek(date);
     const isDestPlayDay = destinationPlayDays.includes(dayOfWeek);
-    const isDestSpecial = destinationSpecialPlayDates.includes(dateStr);
-    if (!isDestPlayDay && !isDestSpecial) continue;
+    const isDestExtra = destinationExtraPlayDates.includes(dateStr);
+    if (!isDestPlayDay && !isDestExtra) continue;
 
     result.push({ date: dateStr, entry });
   }

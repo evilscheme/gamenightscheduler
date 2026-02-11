@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
-import { createTestGame, addPlayerToGame, setAvailability, getPlayDates } from '../../helpers/seed';
+import { createTestGame, setAvailability, getPlayDates } from '../../helpers/seed';
 import { TEST_TIMEOUTS } from '../../constants';
 
 test.describe('Copy Availability From Another Game', () => {
@@ -161,7 +161,7 @@ test.describe('Copy Availability From Another Game', () => {
     });
 
     // Source game with no availability set
-    const gameA = await createTestGame({
+    await createTestGame({
       gm_id: user.id,
       name: 'Empty Source',
       play_days: [5],

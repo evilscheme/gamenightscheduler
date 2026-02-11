@@ -23,6 +23,17 @@ export function formatTimezoneDisplay(timezone: string | null): string {
   if (!timezone) return '';
 
   try {
+    // Handle Etc/GMT offset timezones (signs are inverted: Etc/GMT+5 = UTC-5)
+    if (timezone === 'Etc/GMT0') {
+      return 'UTC+0';
+    }
+    const etcGmtMatch = timezone.match(/^Etc\/GMT([+-]\d+)$/);
+    if (etcGmtMatch) {
+      const etcOffset = parseInt(etcGmtMatch[1], 10);
+      const utcOffset = -etcOffset;
+      return utcOffset >= 0 ? `UTC+${utcOffset}` : `UTC${utcOffset}`;
+    }
+
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,

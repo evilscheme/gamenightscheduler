@@ -82,6 +82,12 @@ describe("TIMEZONE_GROUPS", () => {
     );
     expect(total).toBeGreaterThanOrEqual(30);
   });
+
+  it("has a UTC Offsets group with 24 entries covering UTC-11 to UTC+12", () => {
+    const utcGroup = TIMEZONE_GROUPS.find((g) => g.label === "UTC Offsets");
+    expect(utcGroup).toBeDefined();
+    expect(utcGroup!.options).toHaveLength(24);
+  });
 });
 
 describe("TIMEZONE_OPTIONS", () => {

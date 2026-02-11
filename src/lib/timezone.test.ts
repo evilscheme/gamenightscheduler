@@ -52,6 +52,18 @@ describe("formatTimezoneDisplay", () => {
   it("falls back to the raw string for an invalid timezone", () => {
     expect(formatTimezoneDisplay("InvalidTz")).toBe("InvalidTz");
   });
+
+  it("formats Etc/GMT+5 as UTC-5 (sign inversion)", () => {
+    expect(formatTimezoneDisplay("Etc/GMT+5")).toBe("UTC-5");
+  });
+
+  it("formats Etc/GMT-9 as UTC+9 (sign inversion)", () => {
+    expect(formatTimezoneDisplay("Etc/GMT-9")).toBe("UTC+9");
+  });
+
+  it("formats Etc/GMT0 as UTC+0", () => {
+    expect(formatTimezoneDisplay("Etc/GMT0")).toBe("UTC+0");
+  });
 });
 
 describe("getTimezoneAbbreviation", () => {
@@ -85,6 +97,20 @@ describe("getTimezoneAbbreviation", () => {
 
   it("returns UTC for the UTC timezone", () => {
     expect(getTimezoneAbbreviation(new Date("2025-01-15"), "UTC")).toBe("UTC");
+  });
+});
+
+describe("isValidTimezone with Etc/GMT zones", () => {
+  it("accepts Etc/GMT+5 as valid", () => {
+    expect(isValidTimezone("Etc/GMT+5")).toBe(true);
+  });
+
+  it("accepts Etc/GMT-12 as valid", () => {
+    expect(isValidTimezone("Etc/GMT-12")).toBe(true);
+  });
+
+  it("accepts Etc/GMT0 as valid", () => {
+    expect(isValidTimezone("Etc/GMT0")).toBe(true);
   });
 });
 

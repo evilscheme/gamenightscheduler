@@ -405,6 +405,58 @@ describe("generateICS", () => {
     expect(result).toContain("TZOFFSETTO:+0300");
   });
 
+  it("generates fixed-offset VTIMEZONE for Etc/GMT+5 (UTC-5)", () => {
+    const result = generateICS([
+      {
+        date: "2025-01-20",
+        startTime: "18:00",
+        endTime: "22:00",
+        title: "UTC Offset Game Night",
+        timezone: "Etc/GMT+5",
+      },
+    ]);
+
+    expect(result).toContain("BEGIN:VTIMEZONE");
+    expect(result).toContain("TZID:Etc/GMT+5");
+    expect(result).toContain("TZOFFSETTO:-0500");
+    expect(result).not.toContain("BEGIN:DAYLIGHT");
+    expect(result).toContain("DTSTART;TZID=Etc/GMT+5:20250120T180000");
+  });
+
+  it("generates fixed-offset VTIMEZONE for Etc/GMT-9 (UTC+9)", () => {
+    const result = generateICS([
+      {
+        date: "2025-03-15",
+        startTime: "20:00",
+        endTime: "23:00",
+        title: "UTC+9 Game Night",
+        timezone: "Etc/GMT-9",
+      },
+    ]);
+
+    expect(result).toContain("BEGIN:VTIMEZONE");
+    expect(result).toContain("TZID:Etc/GMT-9");
+    expect(result).toContain("TZOFFSETTO:+0900");
+    expect(result).not.toContain("BEGIN:DAYLIGHT");
+  });
+
+  it("generates fixed-offset VTIMEZONE for Etc/GMT0 (UTC)", () => {
+    const result = generateICS([
+      {
+        date: "2025-06-01",
+        startTime: "12:00",
+        endTime: "16:00",
+        title: "UTC Game Night",
+        timezone: "Etc/GMT0",
+      },
+    ]);
+
+    expect(result).toContain("BEGIN:VTIMEZONE");
+    expect(result).toContain("TZID:Etc/GMT0");
+    expect(result).toContain("TZOFFSETTO:+0000");
+    expect(result).not.toContain("BEGIN:DAYLIGHT");
+  });
+
   it("does not include VTIMEZONE for unknown timezone (falls back to floating time)", () => {
     const result = generateICS([
       {

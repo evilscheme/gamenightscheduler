@@ -204,6 +204,19 @@ function generateVTimezone(tzid: string): string[] {
 
   const tz = timezones[tzid];
   if (!tz) {
+    // Handle Etc/GMT offset timezones (fixed offset, no DST)
+    if (tzid === 'Etc/GMT0') {
+      return buildFixedOffsetVTimezone(tzid, '+0000', 'UTC');
+    }
+    const etcGmtMatch = tzid.match(/^Etc\/GMT([+-]\d+)$/);
+    if (etcGmtMatch) {
+      const etcOffset = parseInt(etcGmtMatch[1], 10);
+      // Etc/GMT signs are inverted: Etc/GMT+5 = UTC-5
+      const utcOffset = -etcOffset;
+      const offsetStr = formatIcsOffset(utcOffset);
+      const abbr = utcOffset >= 0 ? `UTC+${utcOffset}` : `UTC${utcOffset}`;
+      return buildFixedOffsetVTimezone(tzid, offsetStr, abbr);
+    }
     // Unknown timezone - return empty (events will use floating time interpretation)
     return [];
   }
@@ -308,6 +321,29 @@ export function generateICS(events: CalendarEvent[]): string {
   lines.push('END:VCALENDAR');
 
   return lines.join('\r\n');
+}
+
+/** Format a UTC offset in hours to ICS offset string (e.g., 5 -> "+0500", -5 -> "-0500") */
+function formatIcsOffset(hours: number): string {
+  const sign = hours >= 0 ? '+' : '-';
+  const abs = Math.abs(hours);
+  return `${sign}${String(abs).padStart(2, '0')}00`;
+}
+
+/** Build a VTIMEZONE for a fixed-offset timezone (no DST) */
+function buildFixedOffsetVTimezone(tzid: string, offset: string, abbr: string): string[] {
+  return [
+    'BEGIN:VTIMEZONE',
+    `TZID:${tzid}`,
+    `X-LIC-LOCATION:${tzid}`,
+    'BEGIN:STANDARD',
+    `TZOFFSETFROM:${offset}`,
+    `TZOFFSETTO:${offset}`,
+    `TZNAME:${abbr}`,
+    'DTSTART:19700101T000000',
+    'END:STANDARD',
+    'END:VTIMEZONE',
+  ];
 }
 
 export function escapeICS(text: string): string {

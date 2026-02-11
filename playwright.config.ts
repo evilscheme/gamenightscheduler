@@ -4,7 +4,7 @@ import { defineConfig, devices } from '@playwright/test';
  * Playwright configuration for Can We Play? E2E tests
  *
  * Key design decisions:
- * - Single worker to avoid database race conditions (tests share Supabase local instance)
+ * - Parallel workers (tests use timestamped unique data + RLS for isolation)
  * - Chromium only for speed (can expand later)
  * - Global setup verifies Supabase is running and resets DB
  * - Web server starts Next.js dev server with local Supabase env vars
@@ -19,9 +19,9 @@ const SUPABASE_LOCAL_SERVICE_KEY = 'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz';
 export default defineConfig({
   testDir: './e2e/tests',
 
-  // Run tests serially to avoid DB race conditions
-  fullyParallel: false,
-  workers: 1,
+  // Tests use timestamped unique data + RLS for isolation, safe to parallelize
+  fullyParallel: true,
+  workers: process.env.CI ? 4 : undefined,
 
   // Fail CI if test.only() is left in source code
   forbidOnly: !!process.env.CI,

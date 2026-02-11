@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
-import { createTestGame, addPlayerToGame, getAdminClient } from '../../helpers/seed';
+import { createTestGame, addPlayerToGame, getAdminClient, setAvailability, getPlayDates } from '../../helpers/seed';
 import { TEST_TIMEOUTS } from '../../constants';
 
 test.describe('Game Detail Page', () => {
@@ -169,6 +169,63 @@ test.describe('Game Detail Page', () => {
     // Use the member list section specifically to avoid matching navbar
     await expect(page.getByRole('list').getByText(/members test gm/i)).toBeVisible();
     await expect(page.getByRole('list').getByText(/test player member/i)).toBeVisible();
+  });
+
+  test('refresh button reloads data without full page reload', async ({ page, request }) => {
+    // Create GM, player, and game
+    const gm = await createTestUser(request, {
+      email: `gm-refresh-${Date.now()}@e2e.local`,
+      name: 'Refresh Test GM',
+      is_gm: true,
+    });
+
+    const player = await createTestUser(request, {
+      email: `player-refresh-${Date.now()}@e2e.local`,
+      name: 'Refresh Test Player',
+      is_gm: false,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Refresh Test Campaign',
+      play_days: [5, 6],
+    });
+
+    await addPlayerToGame(game.id, player.id);
+
+    // Login as GM
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    // Wait for page to load
+    await expect(page.getByRole('heading', { name: /refresh test campaign/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Go to schedule tab and note initial state (no availability set yet)
+    await page.getByRole('button', { name: /schedule/i }).click();
+    await expect(page.getByText(/date suggestions/i)).toBeVisible();
+
+    // Add availability for the player directly in the DB (simulating another user marking dates)
+    const playDates = getPlayDates([5, 6], 4);
+    await setAvailability(player.id, game.id, [
+      { date: playDates[0], status: 'available' },
+    ]);
+
+    // Click the refresh button (the page should NOT do a full reload)
+    const refreshButton = page.getByRole('button', { name: /refresh data/i });
+    await expect(refreshButton).toBeVisible();
+    await refreshButton.click();
+
+    // After refresh, the schedule tab should reflect the new availability
+    await expect(page.getByText(/1 available/i).first()).toBeVisible({
+      timeout: TEST_TIMEOUTS.DEFAULT,
+    });
   });
 
   test('shows calendar subscription button', async ({ page, request }) => {

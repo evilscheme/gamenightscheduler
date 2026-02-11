@@ -74,7 +74,7 @@ jobs:
       - name: Save Docker images for cache
         if: steps.supabase-cache.outputs.cache-hit != 'true'
         run: |
-          docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>' | xargs docker save | zstd -o /tmp/supabase-docker-images.tar.zst
+          docker images --format '{{.Repository}}:{{.Tag}}' | grep -E 'supabase|kong' | grep -v '<none>' | xargs docker save | zstd -o /tmp/supabase-docker-images.tar.zst
 
       - name: Run E2E Tests
         run: npx playwright test

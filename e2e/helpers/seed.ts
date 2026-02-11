@@ -36,6 +36,7 @@ export interface TestGame {
   default_start_time: string | null;
   default_end_time: string | null;
   timezone: string | null;
+  ad_hoc_only: boolean;
 }
 
 export interface TestUser {
@@ -60,6 +61,7 @@ export async function createTestGame(options: {
   default_start_time?: string;
   default_end_time?: string;
   timezone?: string;
+  ad_hoc_only?: boolean;
 }): Promise<TestGame> {
   const admin = getAdminClient();
 
@@ -74,6 +76,7 @@ export async function createTestGame(options: {
     default_start_time: options.default_start_time || '18:00',
     default_end_time: options.default_end_time || '22:00',
     timezone: options.timezone || 'America/Los_Angeles',
+    ad_hoc_only: options.ad_hoc_only || false,
   };
 
   const { data, error } = await admin.from('games').insert(gameData).select().single();
@@ -140,6 +143,26 @@ export async function setSpecialPlayDates(
 
   if (error) {
     throw new Error(`Failed to set special play dates: ${error.message}`);
+  }
+}
+
+/**
+ * Create or update a game play date (with optional note).
+ */
+export async function createGamePlayDate(
+  gameId: string,
+  date: string,
+  note?: string | null
+): Promise<void> {
+  const admin = getAdminClient();
+  const { error } = await admin
+    .from('game_play_dates')
+    .upsert(
+      { game_id: gameId, date, note: note ?? null },
+      { onConflict: 'game_id,date' }
+    );
+  if (error) {
+    throw new Error(`Failed to create game play date: ${error.message}`);
   }
 }
 
@@ -238,6 +261,7 @@ export async function cleanDatabase(): Promise<void> {
 
   // Delete in dependency order (reverse of creation)
   const tables = [
+    'game_play_dates',
     'sessions',
     'availability',
     'game_memberships',
@@ -374,6 +398,7 @@ export function resetDatabaseSchema(): void {
 
   // SQL to drop all app tables and types (in dependency order)
   const dropSql = `
+    DROP TABLE IF EXISTS game_play_dates CASCADE;
     DROP TABLE IF EXISTS sessions CASCADE;
     DROP TABLE IF EXISTS availability CASCADE;
     DROP TABLE IF EXISTS game_memberships CASCADE;

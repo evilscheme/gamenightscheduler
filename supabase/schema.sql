@@ -39,6 +39,7 @@ CREATE TABLE games (
   default_end_time TIME DEFAULT '22:00',
   timezone TEXT DEFAULT 'America/Los_Angeles',
   min_players_needed INTEGER DEFAULT 0 CHECK (min_players_needed >= 0),
+  ad_hoc_only BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -87,6 +88,16 @@ CREATE TABLE sessions (
   UNIQUE(game_id, date)
 );
 
+-- Game Play Dates table (normalized special play dates with optional notes)
+CREATE TABLE game_play_dates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  note TEXT CHECK (note IS NULL OR char_length(note) <= 200),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(game_id, date)
+);
+
 -- ============================================
 -- 3. Indexes
 -- ============================================
@@ -102,6 +113,8 @@ CREATE INDEX idx_availability_date ON availability(date);
 CREATE INDEX idx_sessions_game_id ON sessions(game_id);
 CREATE INDEX idx_sessions_date ON sessions(date);
 CREATE INDEX idx_sessions_confirmed_by ON sessions(confirmed_by);
+CREATE INDEX idx_game_play_dates_game_id ON game_play_dates(game_id);
+CREATE INDEX idx_game_play_dates_date ON game_play_dates(date);
 
 -- ============================================
 -- 4. Functions
@@ -334,4 +347,16 @@ CREATE POLICY "GMs and co-GMs can insert sessions" ON sessions
 CREATE POLICY "GMs and co-GMs can update sessions" ON sessions
   FOR UPDATE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
 CREATE POLICY "GMs and co-GMs can delete sessions" ON sessions
+  FOR DELETE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
+
+-- Game play dates policies
+ALTER TABLE game_play_dates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Game participants can view play dates" ON game_play_dates
+  FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
+CREATE POLICY "GMs and co-GMs can insert play dates" ON game_play_dates
+  FOR INSERT WITH CHECK (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
+CREATE POLICY "GMs and co-GMs can update play dates" ON game_play_dates
+  FOR UPDATE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
+CREATE POLICY "GMs and co-GMs can delete play dates" ON game_play_dates
   FOR DELETE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));

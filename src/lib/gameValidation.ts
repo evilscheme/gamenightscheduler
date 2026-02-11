@@ -4,6 +4,7 @@ export interface GameFormData {
   name: string;
   description?: string;
   playDays: number[];
+  adHocOnly?: boolean;
 }
 
 export interface ValidationResult {
@@ -33,7 +34,7 @@ export function validateGameForm(data: GameFormData): ValidationResult {
   }
 
   // Validate play days
-  if (!data.playDays || data.playDays.length === 0) {
+  if (!data.adHocOnly && (!data.playDays || data.playDays.length === 0)) {
     errors.push("Please select at least one play day");
   }
 

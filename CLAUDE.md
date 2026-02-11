@@ -79,7 +79,7 @@ Key tables:
 
 RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_participant()` and `is_game_gm_or_co_gm()` to avoid recursion issues.
 
-**Migrations:** The `supabase/migrations/00000000000000_initial_schema.sql` is a symlink to `schema.sql`. When adding new columns or tables, modify `schema.sql` directly—do NOT create a separate migration file. The symlink ensures schema changes are applied automatically. Creating a separate migration causes "column already exists" errors in E2E tests.
+**Migrations:** The `supabase/migrations/00000000000000_initial_schema.sql` is a symlink to `schema.sql`. When adding new columns, tables, policies, or indexes, modify `schema.sql` directly — do NOT create a separate migration file. The symlink ensures schema changes are applied automatically. A separate migration file will fail CI because the initial schema already created the object (e.g., "column already exists", "policy already exists" SQLSTATE 42710). Only create a standalone migration file for production deployment (never committed to the repo alongside the schema.sql change).
 
 ### Key Patterns
 
@@ -189,3 +189,10 @@ Enforced via RLS policies in the database:
 
 - Use `psql` (not `pgsql`) as the Postgres client tool
 - don't ever directly migrate the database unless explicitly requested to. Favor creating migration files for a human to apply
+
+### Styling
+
+- **Never use hardcoded color classes** (e.g., `bg-blue-500`, `text-blue-700`, `dark:text-blue-300`). The app supports multiple color themes, so always use semantic theme classes instead.
+- For info callouts/highlights: `bg-primary/10 border border-primary/30 rounded-lg` with `text-primary`
+- For badges: `bg-primary/10 text-primary`
+- Available semantic color classes: `primary`, `secondary`, `muted`, `accent`, `card`, `destructive`, `foreground`, `border`, `ring` (each with `-foreground` variant where applicable)

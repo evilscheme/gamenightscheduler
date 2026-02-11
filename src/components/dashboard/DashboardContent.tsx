@@ -165,9 +165,11 @@ export function DashboardContent() {
                     </span>
                     <span className="flex items-center gap-1.5">
                       <Calendar className="w-4 h-4" />
-                      {game.play_days
-                        .map((d) => DAY_LABELS.short[d])
-                        .join(", ")}
+                      {game.ad_hoc_only
+                        ? "Ad-hoc"
+                        : game.play_days
+                            .map((d) => DAY_LABELS.short[d])
+                            .join(", ")}
                     </span>
                   </div>
                 </CardContent>

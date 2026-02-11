@@ -26,6 +26,15 @@ export interface Game {
   default_end_time: string | null; // HH:MM:SS format
   timezone: string | null; // IANA timezone identifier (e.g., 'America/Los_Angeles')
   min_players_needed: number; // 0 means no minimum
+  ad_hoc_only: boolean;
+  created_at: string;
+}
+
+export interface GamePlayDate {
+  id: string;
+  game_id: string;
+  date: string; // ISO date string (YYYY-MM-DD)
+  note: string | null;
   created_at: string;
 }
 

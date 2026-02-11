@@ -165,4 +165,33 @@ describe("validateGameForm", () => {
 
     expect(result.valid).toBe(true);
   });
+
+  it("passes with no play days when adHocOnly is true", () => {
+    const result = validateGameForm({
+      name: "Ad Hoc Game",
+      playDays: [],
+      adHocOnly: true,
+    });
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("still fails with no play days when adHocOnly is false", () => {
+    const result = validateGameForm({
+      name: "Regular Game",
+      playDays: [],
+      adHocOnly: false,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain("Please select at least one play day");
+  });
+
+  it("still fails with no play days when adHocOnly is undefined", () => {
+    const result = validateGameForm({
+      name: "Regular Game",
+      playDays: [],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain("Please select at least one play day");
+  });
 });

@@ -20,6 +20,7 @@ interface SchedulingSuggestionsProps {
   defaultEndTime?: string | null;
   timezone?: string | null;
   minPlayersNeeded?: number;
+  playDateNotes?: Map<string, string>;
   onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (date: string) => void;
   use24h?: boolean;
@@ -35,6 +36,7 @@ export function SchedulingSuggestions({
   defaultEndTime,
   timezone,
   minPlayersNeeded = 0,
+  playDateNotes,
   onConfirm,
   onCancel,
   use24h = false,
@@ -456,6 +458,11 @@ export function SchedulingSuggestions({
                               </span>
                             )}
                           </div>
+                          {playDateNotes?.has(suggestion.date) && (
+                            <p className="text-xs text-muted-foreground mt-0.5 italic">
+                              {playDateNotes.get(suggestion.date)}
+                            </p>
+                          )}
                           {/* Segmented progress bar */}
                           <div className="mt-2 flex items-center gap-2">
                             <div className="flex-1 sm:max-w-xs bg-muted rounded-full h-2.5 overflow-hidden flex">

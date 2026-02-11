@@ -33,6 +33,7 @@ export const USAGE_LIMITS = {
 export const TEXT_LIMITS = {
   GAME_NAME: 100,
   GAME_DESCRIPTION: 1000,
+  PLAY_DATE_NOTE: 200,
   USER_DISPLAY_NAME: 50,
 } as const;
 

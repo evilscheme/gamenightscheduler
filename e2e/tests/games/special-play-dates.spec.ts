@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
-import { createTestGame, addPlayerToGame, setAvailability } from '../../helpers/seed';
+import { createTestGame, addPlayerToGame, setAvailability, createGamePlayDate } from '../../helpers/seed';
 
 /**
  * Get a date that is not a play day (assuming play_days is [5] for Friday only).
@@ -111,13 +111,13 @@ test.describe('Special Play Dates', () => {
 
     const nonPlayDate = getNonPlayDayDate();
 
-    // Create game with a special play date already set
+    // Create game and add a special play date via the table
     const game = await createTestGame({
       gm_id: gm.id,
       name: 'Disable Special Test Game',
       play_days: [5], // Friday only
-      special_play_dates: [nonPlayDate],
     });
+    await createGamePlayDate(game.id, nonPlayDate);
 
     await loginTestUser(page, {
       email: gm.email,
@@ -157,8 +157,8 @@ test.describe('Special Play Dates', () => {
       gm_id: gm.id,
       name: 'Playable Special Test Game',
       play_days: [5], // Friday only
-      special_play_dates: [nonPlayDate],
     });
+    await createGamePlayDate(game.id, nonPlayDate);
 
     await loginTestUser(page, {
       email: gm.email,
@@ -203,8 +203,8 @@ test.describe('Special Play Dates', () => {
       gm_id: gm.id,
       name: 'Player Special Test Game',
       play_days: [5], // Friday only
-      special_play_dates: [nonPlayDate],
     });
+    await createGamePlayDate(game.id, nonPlayDate);
 
     await addPlayerToGame(game.id, player.id);
 
@@ -287,8 +287,8 @@ test.describe('Special Play Dates', () => {
       gm_id: gm.id,
       name: 'Suggestions Test Game',
       play_days: [5], // Friday only
-      special_play_dates: [nonPlayDate],
     });
+    await createGamePlayDate(game.id, nonPlayDate);
 
     // Set availability for the GM on the special date
     await setAvailability(gm.id, game.id, [

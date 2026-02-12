@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -54,6 +55,17 @@ function LoginContent() {
               Continue with Discord
             </button>
           </div>
+
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 text-center">
+              <Link
+                href="/dev-login"
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Dev Login &rarr;
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

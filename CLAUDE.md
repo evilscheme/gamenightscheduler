@@ -36,6 +36,20 @@ npm run test:e2e:headed   # Run in headed browser mode
 npm run test:e2e:debug    # Run in debug mode
 ```
 
+## Development Practices
+
+- Use `psql` (not `pgsql`) as the Postgres client tool
+- Don't ever directly migrate the database unless explicitly requested to. Favor creating migration files for a human to apply
+- Always consider how the UI will render on a mobile device. Make sure the design looks equally good on desktop and mobile
+- Keep international users in mind. Don't make the interface overly US-centric. Default to US-style behavior but support user preferences for alternatives (e.g., 12 vs 24 hour time)
+
+## Styling
+
+- **Never use hardcoded color classes** (e.g., `bg-blue-500`, `text-blue-700`, `dark:text-blue-300`). The app supports multiple color themes, so always use semantic theme classes instead.
+- For info callouts/highlights: `bg-primary/10 border border-primary/30 rounded-lg` with `text-primary`
+- For badges: `bg-primary/10 text-primary`
+- Available semantic color classes: `primary`, `secondary`, `muted`, `accent`, `card`, `destructive`, `foreground`, `border`, `ring` (each with `-foreground` variant where applicable)
+
 ## Testing Requirements
 
 **IMPORTANT: Every feature or behavior change MUST include tests.**
@@ -90,13 +104,10 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - Availability has three states: available, unavailable, maybe (with optional comment and optional time-of-day constraints on available/maybe)
 - GMs/co-GMs can add special play dates for one-off sessions outside regular play days
 
-### Assets
-
-- `public/logo.png` - App logo. Use this instead of emojis for hero sections, welcome screens, and other prominent branding locations. Import with Next.js `Image` component.
-
 ### Shared Utilities
 
 - `src/hooks/useAuthRedirect.ts` - Hook for protected pages (redirects to login, optionally requires GM)
+- `src/hooks/useUserPreferences.ts` - Single source of truth for user i18n preferences (time format, week start)
 - `src/lib/constants.ts` - Shared constants (day labels, timeouts, session defaults, usage limits, text limits)
 - `src/lib/availability.ts` - Player completion percentage calculations
 - `src/lib/availabilityStatus.ts` - Availability state cycling (available → unavailable → maybe)
@@ -105,30 +116,11 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - `src/lib/formatting.ts` - Time formatting utilities (24h to 12h conversion, compact `formatTimeShort`)
 - `src/lib/gameValidation.ts` - Game form validation
 - `src/lib/bulkAvailability.ts` - Bulk availability marking logic
+- `src/lib/copyAvailability.ts` - Copy/filter availability entries between games
+- `src/lib/timezone.ts` - Timezone detection, display formatting, and conversion
 - `src/lib/themes.ts` - Theme configuration and utilities
 - `src/contexts/ThemeContext.tsx` - Theme context (uses next-themes)
 - `src/components/ui/` - Reusable components: Button, Card, Input, Textarea, LoadingSpinner, EmptyState
-
-### Layout Components
-
-- `src/components/layout/Providers.tsx` - Wraps app with ThemeProvider and AuthProvider
-- `src/components/layout/Navbar.tsx` - Navigation bar with user menu and help dropdown
-- `src/components/dashboard/DashboardContent.tsx` - Main dashboard view for authenticated users
-- `src/components/dashboard/WelcomeEmptyState.tsx` - Empty state for new users with no games
-
-### API Routes
-
-- `src/app/api/games/invite/[code]/route.ts` - GET game by invite code (authenticated, checks membership)
-- `src/app/api/games/preview/[code]/route.ts` - GET game preview for OG crawlers (public, cached 5min)
-- `src/app/api/games/calendar/[code]/route.ts` - GET ICS calendar feed for confirmed sessions (public, cached 5min)
-- `src/app/api/admin/games/route.ts` - Admin game listing
-- `src/app/api/admin/stats/route.ts` - Admin statistics
-- `src/app/api/test-auth/route.ts` - Test user management for E2E tests (dev only, blocked in production)
-
-### OG Image Generation
-
-- `src/app/opengraph-image.tsx` - Default OG image for the app
-- `src/app/games/join/[code]/opengraph-image.tsx` - Dynamic OG image for game invite links
 
 ### Calendar Components
 
@@ -185,14 +177,10 @@ Enforced via RLS policies in the database:
 - `.env.local.supabase` - Local Supabase credentials (same keys, local values)
 - `.env.test.local` - Test database credentials for E2E tests
 
-### Development Practices
+### Other Key Files
 
-- Use `psql` (not `pgsql`) as the Postgres client tool
-- don't ever directly migrate the database unless explicitly requested to. Favor creating migration files for a human to apply
-
-### Styling
-
-- **Never use hardcoded color classes** (e.g., `bg-blue-500`, `text-blue-700`, `dark:text-blue-300`). The app supports multiple color themes, so always use semantic theme classes instead.
-- For info callouts/highlights: `bg-primary/10 border border-primary/30 rounded-lg` with `text-primary`
-- For badges: `bg-primary/10 text-primary`
-- Available semantic color classes: `primary`, `secondary`, `muted`, `accent`, `card`, `destructive`, `foreground`, `border`, `ring` (each with `-foreground` variant where applicable)
+- `public/logo.png` - App logo (use instead of emojis for branding; import with Next.js `Image`)
+- `src/components/layout/Providers.tsx` - Wraps app with ThemeProvider and AuthProvider
+- `src/components/layout/Navbar.tsx` - Navigation bar with user menu and help dropdown
+- `src/app/opengraph-image.tsx` - Default OG image
+- `src/app/games/join/[code]/opengraph-image.tsx` - Dynamic OG image for invite links

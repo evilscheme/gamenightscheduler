@@ -77,6 +77,9 @@ test.describe('Usage Limits - RLS Policy Enforcement', () => {
 
   test.describe('Player Limits', () => {
     test('game cannot have more than 50 players (RLS enforced)', async ({ request }) => {
+      // Creating 49 test users can be slow on CI
+      test.setTimeout(60000);
+
       // Create a GM and a game
       const gm = await createTestUser(request, {
         email: `gm-player-limit-${Date.now()}@e2e.local`,

@@ -41,6 +41,7 @@ npm run test:e2e:debug    # Run in debug mode
 - Use `psql` (not `pgsql`) as the Postgres client tool
 - Don't ever directly migrate the database unless explicitly requested to. Favor creating migration files for a human to apply
 - Always consider how the UI will render on a mobile device. Make sure the design looks equally good on desktop and mobile
+- **Validate UI changes locally.** After making UI/UX changes, view them in the browser using `npm run dev:local` with a dev-login user (see [Local Dev Authentication](#local-dev-authentication)). Check both desktop and mobile screen sizes to confirm the design looks good at both breakpoints.
 - Keep international users in mind. Don't make the interface overly US-centric. Default to US-style behavior but support user preferences for alternatives (e.g., 12 vs 24 hour time)
 
 ## Styling
@@ -79,6 +80,23 @@ Uses Supabase Auth with Google and Discord OAuth. OAuth providers are configured
 The `useAuth()` hook provides user, session, profile, loading state, OAuth sign-in methods, and sign-out.
 
 **Gotcha:** Supabase Redirect URLs must use `/**` wildcard suffix or query parameters (e.g., `?next=/games/join/ABC`) get stripped.
+
+### Local Dev Authentication
+
+A dev-login page (`src/app/dev-login/`) allows bypassing OAuth for local development. It only works when `NODE_ENV === 'development'` and the Supabase URL points to localhost — it returns a 404 in production.
+
+**Setup:**
+1. Start local Supabase: `npm run db:start`
+2. Start dev server: `npm run dev:local`
+3. Navigate to http://localhost:3000/dev-login (or click "Dev Login" on the login page)
+
+**Dev users** (defined in `src/app/dev-login/actions.ts`):
+- **Dev GM** (`dev-gm@dev.local`) — standard GM user
+- **Dev Player 1** (`dev-player1@dev.local`) — standard player
+- **Dev Player 2** (`dev-player2@dev.local`) — standard player
+- **Dev Admin** (`dev-admin@dev.local`) — admin user
+
+Users are auto-created in the local Supabase on first login and persist across sessions. You can switch between personas instantly from the dev-login page. The page supports a `callbackUrl` query parameter to redirect after login (e.g., `/dev-login?callbackUrl=/games/abc`).
 
 ### Database
 

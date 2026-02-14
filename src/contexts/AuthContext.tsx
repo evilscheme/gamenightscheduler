@@ -11,6 +11,7 @@ interface AuthContextType {
   profile: User | null;
   session: Session | null;
   isLoading: boolean;
+  backendError: boolean;
   signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signInWithDiscord: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -33,7 +34,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [backendError, setBackendError] = useState(false);
   const supabase = getSupabaseClient();
+
+  // Health check on mount - detect if Supabase auth service is reachable
+  // Catches outages for ALL users (including unauthenticated) where the
+  // auth endpoint returns 5xx/522 errors (exactly the Feb 2025 outage pattern)
+  useEffect(() => {
+    async function checkBackendHealth() {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/`,
+          { signal: AbortSignal.timeout(TIMEOUTS.PROFILE_FETCH) }
+        );
+        if (!response.ok) {
+          setBackendError(true);
+        }
+      } catch {
+        setBackendError(true);
+      }
+    }
+    checkBackendHealth();
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -52,9 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data && !error) {
         setProfile(data as User);
+        setBackendError(false);
       }
     } catch {
       // Timeout or error - continue without profile
+      setBackendError(true);
     }
     setIsLoading(false);
   }, [supabase]);
@@ -106,28 +130,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const redirectUrl = `${window.location.origin}/auth/callback${
       redirectTo ? `?next=${encodeURIComponent(redirectTo)}` : ''
     }`;
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
       },
     });
+    if (error) setBackendError(true);
   }
 
   async function signInWithDiscord(redirectTo?: string) {
     const redirectUrl = `${window.location.origin}/auth/callback${
       redirectTo ? `?next=${encodeURIComponent(redirectTo)}` : ''
     }`;
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'discord',
       options: {
         redirectTo: redirectUrl,
       },
     });
+    if (error) setBackendError(true);
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      setBackendError(true);
+    }
   }
 
   async function refreshProfile() {
@@ -143,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         session,
         isLoading,
+        backendError,
         signInWithGoogle,
         signInWithDiscord,
         signOut,

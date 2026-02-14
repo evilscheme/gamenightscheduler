@@ -10,7 +10,16 @@ const warningMessage = process.env.NEXT_PUBLIC_WARNING_MESSAGE || '';
 export function StatusBanner() {
   const { backendError, user, refreshProfile } = useAuth();
   const [dismissed, setDismissed] = useState(false);
+  const [prevBackendError, setPrevBackendError] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Re-show banner when backendError transitions to true (adjust state during render)
+  if (backendError !== prevBackendError) {
+    setPrevBackendError(backendError);
+    if (backendError) {
+      setDismissed(false);
+    }
+  }
 
   const hasWarningMessage = warningMessage.length > 0;
   const shouldShow = (hasWarningMessage || backendError) && !dismissed;
@@ -37,13 +46,6 @@ export function StatusBanner() {
       intervalRef.current = null;
     }
   }, [backendError, user, refreshProfile]);
-
-  // Re-show banner if a new error is detected after dismissal
-  useEffect(() => {
-    if (backendError) {
-      setDismissed(false);
-    }
-  }, [backendError]);
 
   if (!shouldShow) return null;
 

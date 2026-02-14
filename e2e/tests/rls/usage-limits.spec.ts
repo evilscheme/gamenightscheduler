@@ -77,8 +77,8 @@ test.describe('Usage Limits - RLS Policy Enforcement', () => {
 
   test.describe('Player Limits', () => {
     test('game cannot have more than 50 players (RLS enforced)', async ({ request }) => {
-      // Creating 49 test users can be slow on CI
-      test.setTimeout(60000);
+      // Creating 49 test users in batches can be slow on CI
+      test.setTimeout(120000);
 
       // Create a GM and a game
       const gm = await createTestUser(request, {
@@ -95,17 +95,23 @@ test.describe('Usage Limits - RLS Policy Enforcement', () => {
 
       // Create 49 additional players (GM is player #1)
       // RLS policy counts members + 1 for GM, so we can have 49 members
-      const playerCreationPromises = [];
-      for (let i = 0; i < 49; i++) {
-        playerCreationPromises.push(
-          createTestUser(request, {
-            email: `player-limit-${Date.now()}-${i}@e2e.local`,
-            name: `Player ${i}`,
-            is_gm: false,
-          })
-        );
+      // Batch in groups of 10 to avoid overwhelming the server on CI
+      const players = [];
+      const BATCH_SIZE = 10;
+      for (let batch = 0; batch < 49; batch += BATCH_SIZE) {
+        const batchEnd = Math.min(batch + BATCH_SIZE, 49);
+        const batchPromises = [];
+        for (let i = batch; i < batchEnd; i++) {
+          batchPromises.push(
+            createTestUser(request, {
+              email: `player-limit-${Date.now()}-${i}@e2e.local`,
+              name: `Player ${i}`,
+              is_gm: false,
+            })
+          );
+        }
+        players.push(...(await Promise.all(batchPromises)));
       }
-      const players = await Promise.all(playerCreationPromises);
 
       // Add all players to the game using admin client
       const membershipPromises = players.map((player) =>

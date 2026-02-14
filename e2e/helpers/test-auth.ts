@@ -42,6 +42,7 @@ export async function createTestUser(
   const response = await request.post('http://localhost:3001/api/test-auth', {
     data: { email, name, is_gm, is_admin },
     headers: TEST_AUTH_HEADERS,
+    timeout: 15000, // User creation involves multiple Supabase operations; 5s actionTimeout is too short on CI
   });
 
   if (!response.ok()) {
@@ -79,6 +80,7 @@ export async function loginTestUser(
   const response = await page.request.post('http://localhost:3001/api/test-auth', {
     data: { email, name, is_gm, is_admin },
     headers: TEST_AUTH_HEADERS,
+    timeout: 15000, // User creation involves multiple Supabase operations; 5s actionTimeout is too short on CI
   });
 
   if (!response.ok()) {

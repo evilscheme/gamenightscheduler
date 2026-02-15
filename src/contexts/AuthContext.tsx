@@ -44,8 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function checkBackendHealth() {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/`,
-          { signal: AbortSignal.timeout(TIMEOUTS.PROFILE_FETCH) }
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/health`,
+          {
+            headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+            signal: AbortSignal.timeout(TIMEOUTS.PROFILE_FETCH),
+          }
         );
         if (!response.ok) {
           setBackendError(true);

@@ -1,8 +1,8 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, onSupabaseStatus } from '@/lib/supabase/client';
 import { User } from '@/types';
 import { TIMEOUTS } from '@/lib/constants';
 
@@ -36,6 +36,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [backendError, setBackendError] = useState(false);
   const supabase = getSupabaseClient();
+  const errorDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced error reporter — delays showing the banner by 2s so that
+  // transient failures (e.g. Safari resuming a suspended tab) are ignored
+  // if a successful request arrives within the window. Recovery is immediate.
+  const reportBackendError = useCallback((isError: boolean) => {
+    if (isError) {
+      if (!errorDebounceRef.current) {
+        errorDebounceRef.current = setTimeout(() => {
+          errorDebounceRef.current = null;
+          setBackendError(true);
+        }, TIMEOUTS.BACKEND_ERROR_DEBOUNCE);
+      }
+    } else {
+      if (errorDebounceRef.current) {
+        clearTimeout(errorDebounceRef.current);
+        errorDebounceRef.current = null;
+      }
+      setBackendError(false);
+    }
+  }, []);
+
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (errorDebounceRef.current) {
+        clearTimeout(errorDebounceRef.current);
+      }
+    };
+  }, []);
 
   // Health check on mount - detect if Supabase auth service is reachable
   // Catches outages for ALL users (including unauthenticated) where the
@@ -51,14 +81,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         );
         if (!response.ok) {
-          setBackendError(true);
+          reportBackendError(true);
         }
       } catch {
-        setBackendError(true);
+        reportBackendError(true);
       }
     }
     checkBackendHealth();
-  }, []);
+  }, [reportBackendError]);
+
+  // Subscribe to Supabase fetch-level error/recovery signals
+  useEffect(() => {
+    return onSupabaseStatus(reportBackendError);
+  }, [reportBackendError]);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
@@ -77,18 +112,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data && !error) {
         setProfile(data as User);
-        setBackendError(false);
+        reportBackendError(false);
       }
     } catch {
       // Timeout or error - continue without profile
-      setBackendError(true);
+      reportBackendError(true);
     }
     setIsLoading(false);
-  }, [supabase]);
+  }, [supabase, reportBackendError]);
 
   useEffect(() => {
     let isMounted = true;
     let initialLoadComplete = false;
+    let currentUserId: string | null = null;
 
     // Listen for auth state changes - this is the ONLY source of truth
     // DO NOT call getUser() separately - it's slow (5+ seconds for token refresh)
@@ -112,7 +148,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         initialLoadComplete = true;
       }
 
+      const newUserId = session?.user?.id ?? null;
+      const userChanged = newUserId !== currentUserId;
+      currentUserId = newUserId;
+
       setSession(session);
+
+      // Only fetch profile when the user actually changes (sign-in, sign-out).
+      // Skip on token refreshes and tab resume events — profile data hasn't
+      // changed and this avoids unnecessary DB traffic (especially in Safari
+      // which fires auth events on every tab focus).
+      // Always process INITIAL_SESSION so isLoading gets set to false.
+      if (!userChanged && event !== 'INITIAL_SESSION') return;
+
       setUser(session?.user ?? null);
 
       if (session?.user) {
@@ -139,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirectTo: redirectUrl,
       },
     });
-    if (error) setBackendError(true);
+    if (error) reportBackendError(true);
   }
 
   async function signInWithDiscord(redirectTo?: string) {
@@ -152,14 +200,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirectTo: redirectUrl,
       },
     });
-    if (error) setBackendError(true);
+    if (error) reportBackendError(true);
   }
 
   async function signOut() {
     try {
       await supabase.auth.signOut();
     } catch {
-      setBackendError(true);
+      reportBackendError(true);
     }
   }
 

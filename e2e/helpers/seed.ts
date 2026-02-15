@@ -66,7 +66,7 @@ export async function createTestGame(options: {
   const gameData = {
     name: options.name || `Test Game ${Date.now()}`,
     gm_id: options.gm_id,
-    invite_code: options.invite_code || `test-${Date.now().toString(36)}`,
+    invite_code: options.invite_code || `test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     play_days: options.play_days || [5, 6], // Friday, Saturday
     scheduling_window_months: options.scheduling_window_months || 2,
     description: options.description || null,

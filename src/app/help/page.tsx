@@ -22,7 +22,7 @@ export default function HelpPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground">How to Use Can We Play?</h1>
         <p className="mt-2 text-muted-foreground">
-          A guide for GMs and players to get the most out of scheduling game nights.
+          Everything you need to know about scheduling game nights.
         </p>
       </div>
 
@@ -30,9 +30,9 @@ export default function HelpPage() {
         {/* Getting Started */}
         <Section title="Getting Started">
           <p>
-            <strong className="text-foreground">Can We Play?</strong> helps tabletop gaming groups find the best dates
-            to play. GMs create games and share invite links, players mark their availability on a calendar,
-            and the app suggests optimal dates based on everyone&apos;s schedules.
+            <strong className="text-foreground">Can We Play?</strong> is a scheduling tool for tabletop gaming groups.
+            GMs create games and share invite links, players mark when they&apos;re free on a calendar,
+            and the app figures out which dates work for the most people.
           </p>
           <p>
             Sign in with your Google or Discord account to get started. Once signed in, you can
@@ -52,8 +52,8 @@ export default function HelpPage() {
               <ul className="list-disc list-inside space-y-1 ml-1">
                 <li><strong className="text-foreground">Game name</strong> &mdash; the title your players will see</li>
                 <li><strong className="text-foreground">Play days</strong> &mdash; which days of the week you typically play (e.g., Saturdays)</li>
-                <li><strong className="text-foreground">Scheduling window</strong> &mdash; how many weeks ahead players should mark availability</li>
-                <li><strong className="text-foreground">Default session times</strong> &mdash; the usual start and end times for your sessions</li>
+                <li><strong className="text-foreground">Scheduling window</strong> &mdash; how many months ahead players should mark availability</li>
+                <li><strong className="text-foreground">Default session times</strong> &mdash; the default start and end times for your sessions</li>
                 <li><strong className="text-foreground">Minimum players</strong> &mdash; the fewest players needed to run a session</li>
               </ul>
             </Section>
@@ -68,17 +68,17 @@ export default function HelpPage() {
             <Section title="Managing Players & Co-GMs">
               <p>
                 On the game detail page you can see all players and their availability completion.
-                You can promote any player to <strong className="text-foreground">co-GM</strong>, which gives
-                them the ability to edit game settings and confirm sessions.
-                You can also remove players from the game if needed.
+                You can promote any player to <strong className="text-foreground">co-GM</strong> so they
+                can edit game settings and confirm sessions too.
+                You can also remove players from the game.
               </p>
             </Section>
 
             <Section title="Scheduling Sessions">
               <p>
-                The <strong className="text-foreground">scheduling suggestions</strong> section ranks upcoming dates
-                by how many players are available. Each date shows a breakdown of who is available,
-                who said maybe, and who can&apos;t make it.
+                The <strong className="text-foreground">scheduling suggestions</strong> section shows upcoming dates
+                ranked by how many players can make it. Each date breaks down who&apos;s available,
+                who said maybe, and who can&apos;t come.
               </p>
               <p>
                 You can switch between <strong className="text-foreground">Best Match</strong> (ranked by
@@ -88,8 +88,8 @@ export default function HelpPage() {
               <p>
                 When you&apos;re ready, click a date to confirm it as a session. The confirmation dialog
                 pre-fills times based on player constraints and your default session times.
-                Dates that don&apos;t meet the minimum player threshold are flagged so you can
-                make informed decisions.
+                Dates that don&apos;t meet the minimum player count are flagged so you know
+                before committing.
               </p>
             </Section>
 
@@ -97,17 +97,17 @@ export default function HelpPage() {
               <p>
                 Not every game has a regular weekly schedule. When creating or editing a game, toggle
                 on <strong className="text-foreground">ad-hoc scheduling</strong> to skip selecting play days entirely.
-                Instead, you&apos;ll add specific dates directly on the calendar using
-                the <strong className="text-foreground">+</strong> button. This is great for irregular schedules,
-                one-shots, or games that meet on different days each time.
+                Instead, you add specific dates on the calendar using
+                the <strong className="text-foreground">+</strong> button. Works well for one-shots,
+                irregular schedules, or groups that play on different days each time.
               </p>
             </Section>
 
             <Section title="Extra Play Dates">
               <p>
-                Need to schedule a one-off session on a day you don&apos;t normally play?
-                GMs and co-GMs can add <strong className="text-foreground">extra dates</strong> directly
-                on the calendar by clicking any non-play day. These appear alongside regular play
+                Want to schedule a one-off session on a day you don&apos;t normally play?
+                GMs and co-GMs can add <strong className="text-foreground">extra dates</strong> by clicking
+                any non-play day on the calendar. They show up alongside regular play
                 days so players can mark availability for them.
               </p>
             </Section>
@@ -122,10 +122,10 @@ export default function HelpPage() {
 
             <Section title="Calendar Export">
               <p>
-                Confirmed sessions can be exported to your calendar app. You can download
-                an <strong className="text-foreground">.ics file</strong> for individual sessions or subscribe to
-                a <strong className="text-foreground">webcal:// feed</strong> that automatically stays up to date
-                as new sessions are confirmed.
+                You can add confirmed sessions to your calendar app. Download
+                an <strong className="text-foreground">.ics file</strong> for a single session, or subscribe to
+                a <strong className="text-foreground">webcal:// feed</strong> that stays in sync as you confirm
+                new sessions.
               </p>
             </Section>
           </div>
@@ -164,42 +164,42 @@ export default function HelpPage() {
               </ul>
               <p>
                 Dates you haven&apos;t responded to yet show as <strong className="text-foreground">pending</strong>.
-                Try to fill in all dates so your GM can make the best scheduling decisions.
+                Fill in all your dates if you can &mdash; it makes scheduling a lot easier for your GM.
               </p>
             </Section>
 
             <Section title="Adding Notes & Time Constraints">
               <p>
-                Long-press or hover over any date to add details. You can leave
-                a <strong className="text-foreground">comment</strong> (e.g., &ldquo;leaving at 9 PM&rdquo;) and
-                set <strong className="text-foreground">time constraints</strong> if you&apos;re only available
-                during part of the session window (e.g., available after 7 PM or until 10 PM).
+                Long-press or hover on any date to add details. You can leave
+                a <strong className="text-foreground">comment</strong> (e.g., &ldquo;leaving at 9 PM&rdquo;) or
+                set <strong className="text-foreground">time constraints</strong> if you can only make part of
+                the session (e.g., available after 7 PM or until 10 PM).
               </p>
             </Section>
 
             <Section title="Bulk Actions">
               <p>
-                Don&apos;t want to click every date individually? Use the <strong className="text-foreground">bulk
-                actions</strong> to mark all remaining dates or all dates on a specific day of the week
-                as available, unavailable, or maybe in one go.
+                Don&apos;t want to click every date one by one? Use <strong className="text-foreground">bulk
+                actions</strong> to mark all remaining dates, or all dates on a specific day of the week,
+                as available, unavailable, or maybe at once.
               </p>
             </Section>
 
             <Section title="Copy Availability">
               <p>
-                In multiple games with overlapping dates? Use <strong className="text-foreground">Copy
-                from</strong> in the bulk actions bar to copy your availability from another game.
-                This only fills in dates you haven&apos;t responded to yet &mdash; it won&apos;t overwrite
+                Playing in multiple games with overlapping dates? Use <strong className="text-foreground">Copy
+                from</strong> in the bulk actions bar to pull your availability over from another game.
+                It only fills in dates you haven&apos;t responded to yet &mdash; it won&apos;t touch
                 anything you&apos;ve already set.
               </p>
             </Section>
 
             <Section title="Viewing Confirmed Sessions">
               <p>
-                Once your GM confirms a session, it appears on the calendar with the confirmed
-                time. You can export confirmed sessions to your personal calendar
-                via <strong className="text-foreground">.ics download</strong> or
-                a <strong className="text-foreground">webcal:// subscription</strong> that updates automatically.
+                Once your GM confirms a session, it shows up on the calendar with the confirmed
+                time. You can add it to your personal calendar
+                with an <strong className="text-foreground">.ics download</strong> or
+                a <strong className="text-foreground">webcal:// subscription</strong> that stays in sync automatically.
               </p>
             </Section>
           </div>
@@ -208,24 +208,24 @@ export default function HelpPage() {
         {/* General */}
         <Section title="Customization">
           <p>
-            Visit <Link href="/settings" className="text-primary hover:underline">Settings</Link> to
-            update your display name, choose a color theme, and configure regional preferences:
+            Head to <Link href="/settings" className="text-primary hover:underline">Settings</Link> to
+            change your display name, pick a color theme, and set your preferences:
           </p>
           <ul className="list-disc list-inside space-y-1 ml-1">
-            <li><strong className="text-foreground">Timezone</strong> &mdash; set your timezone so session times display correctly for you</li>
-            <li><strong className="text-foreground">Week start</strong> &mdash; choose whether calendars start on Sunday or Monday</li>
-            <li><strong className="text-foreground">Time format</strong> &mdash; switch between 12-hour and 24-hour time display</li>
-            <li><strong className="text-foreground">Color theme</strong> &mdash; pick a theme that applies across all your games</li>
+            <li><strong className="text-foreground">Timezone</strong> &mdash; so session times show up correctly for you</li>
+            <li><strong className="text-foreground">Week start</strong> &mdash; Sunday or Monday, your call</li>
+            <li><strong className="text-foreground">Time format</strong> &mdash; 12-hour or 24-hour</li>
+            <li><strong className="text-foreground">Color theme</strong> &mdash; applies across all your games</li>
           </ul>
         </Section>
 
         <Section title="Install on Your Device">
           <p>
-            <strong className="text-foreground">Can We Play?</strong> can be installed as an app on your
+            You can install <strong className="text-foreground">Can We Play?</strong> as an app on your
             phone or tablet. On iOS, tap the share button in Safari and choose <strong className="text-foreground">Add
             to Home Screen</strong>. On Android, tap the browser menu and
-            choose <strong className="text-foreground">Install app</strong>. The app works just like a
-            native app with no browser chrome.
+            choose <strong className="text-foreground">Install app</strong>. It runs fullscreen without
+            the browser toolbar.
           </p>
         </Section>
       </div>

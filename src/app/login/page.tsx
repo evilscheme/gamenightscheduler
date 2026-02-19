@@ -56,6 +56,12 @@ function LoginContent() {
             </button>
           </div>
 
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            By signing in, you agree to our{' '}
+            <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link> and{' '}
+            <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+          </p>
+
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-4 text-center">
               <Link

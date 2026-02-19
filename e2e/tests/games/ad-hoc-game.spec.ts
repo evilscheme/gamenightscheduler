@@ -364,12 +364,13 @@ test.describe('Ad-Hoc Games', () => {
       await page.goto(`/games/${game.id}`);
       await page.getByRole('button', { name: /schedule/i }).click();
 
-      // The ad-hoc date should appear in suggestions
+      // The ad-hoc date should appear in suggestions (format: "DayOfWeek, Month DayNum")
       const dateObj = new Date(futureDate + 'T00:00:00');
+      const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
       const dayNum = dateObj.getDate();
 
-      // Look for the date in suggestions (contains the day number)
-      await expect(page.getByText(new RegExp(`${dayNum}`))).toBeVisible({
+      // Match the formatted date like "March 1" with word boundary to avoid partial matches
+      await expect(page.getByText(new RegExp(`${monthName} ${dayNum}\\b`))).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 

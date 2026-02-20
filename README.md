@@ -2,6 +2,8 @@
 
 A web app to help groups coordinate game nights. Hosts create games, players mark their availability, and the app suggests optimal dates based on everyone's schedules.
 
+> **Try it:** [canweplay.games](https://canweplay.games/) — no setup required.
+
 ## Features
 
 - **Multiple Games**: Manage several games at once, each with its own players
@@ -116,6 +118,8 @@ src/
 │   ├── admin/             # Admin dashboard
 │   ├── help/              # How to Use guide
 │   ├── login/             # Login page
+│   ├── privacy/           # Privacy policy
+│   ├── terms/             # Terms of service
 │   └── settings/          # User settings
 ├── components/
 │   ├── calendar/          # Availability calendar with bulk actions
@@ -134,11 +138,13 @@ src/
 │   ├── availabilityStatus.ts # Status cycling logic
 │   ├── bulkAvailability.ts # Bulk availability marking logic
 │   ├── constants.ts       # Shared constants and limits
+│   ├── copyAvailability.ts # Copy/filter availability between games
 │   ├── formatting.ts      # Time formatting utilities
 │   ├── gameValidation.ts  # Form validation
 │   ├── ics.ts             # ICS calendar file generation
 │   ├── suggestions.ts     # Date suggestion ranking
 │   ├── themes.ts          # Theme configuration and utilities
+│   ├── timezone.ts        # Timezone detection and conversion
 │   └── supabase/          # Supabase clients (browser, server, admin)
 └── types/                 # TypeScript types
 

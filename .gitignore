@@ -31,6 +31,9 @@
 # claude local settings
 .claude/settings.local.json
 
+# demo artifacts
+/demo/
+
 # database backups
 /backups/
 

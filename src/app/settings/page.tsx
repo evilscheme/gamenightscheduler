@@ -7,6 +7,7 @@ import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/
 import { createClient } from '@/lib/supabase/client';
 import { TEXT_LIMITS, TIMEZONE_GROUPS } from '@/lib/constants';
 import { ThemePicker } from '@/components/settings/ThemePicker';
+import { DeleteAccountSection } from '@/components/settings/DeleteAccountSection';
 import { getBrowserTimezone, isValidTimezone } from '@/lib/timezone';
 
 export default function SettingsPage() {
@@ -240,6 +241,8 @@ export default function SettingsPage() {
           <ThemePicker />
         </CardContent>
       </Card>
+
+      <DeleteAccountSection />
     </div>
   );
 }

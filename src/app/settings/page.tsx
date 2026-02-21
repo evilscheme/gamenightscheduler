@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
+import Link from 'next/link';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { TEXT_LIMITS, TIMEZONE_GROUPS } from '@/lib/constants';
@@ -238,6 +239,23 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <ThemePicker />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6 border-destructive/40">
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">Delete Account</p>
+            <p className="text-sm text-muted-foreground">
+              Permanently delete your account and all data associated with it.
+            </p>
+          </div>
+          <Link href="/settings/delete-account" className="shrink-0">
+            <Button variant="danger">Delete Account</Button>
+          </Link>
         </CardContent>
       </Card>
     </div>

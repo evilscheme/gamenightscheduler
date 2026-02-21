@@ -67,10 +67,10 @@ export async function loginAsDevUser(persona: string): Promise<{ success: boolea
     userId = newUser.user!.id;
   }
 
-  // Update profile
+  // Upsert profile (handles case where public.users row was wiped by db:reset)
   await admin
     .from('users')
-    .update({ name: devUser.name, is_gm: devUser.is_gm, is_admin: devUser.is_admin })
+    .upsert({ id: userId, email: devUser.email, name: devUser.name, is_gm: devUser.is_gm, is_admin: devUser.is_admin })
     .eq('id', userId);
 
   // Sign in and set session cookies

@@ -103,9 +103,15 @@ export default function PrivacyPage() {
 
         <Section title="Data Retention & Deletion">
           <p>
-            Your data is retained as long as you have an account. If you want your data deleted,
-            contact us using the feedback link in the app and we will remove your account and
-            all associated data.
+            Your data is retained as long as you have an account. You can delete your account
+            at any time from{' '}
+            <a href="/settings" className="text-primary hover:underline">Settings</a>{' '}
+            &gt; Danger Zone &gt; Delete Account. This permanently removes your profile,
+            availability data, and game memberships.
+          </p>
+          <p>
+            For games you own, you will be asked to either delete the game or transfer ownership
+            to another player before your account is removed.
           </p>
         </Section>
 

@@ -18,6 +18,7 @@ A web app to help groups coordinate game nights. Hosts create games, players mar
 - **Special Play Dates**: Schedule one-off sessions outside regular play days
 - **Internationalization**: Timezone support, configurable week start day, and 12h/24h time format
 - **Installable**: Add to your home screen as a PWA on mobile devices
+- **Account Deletion**: Self-service account deletion with game transfer or deletion options
 - **Past Sessions**: View history of completed game nights
 
 ## Tech Stack
@@ -86,6 +87,7 @@ Open [http://localhost:3000](http://localhost:3000)
 5. View **suggested dates** ranked by player availability
 6. **Confirm sessions** and set specific times
 7. **Export to calendar** via .ics download or subscribe via webcal:// URL
+8. **Manage your account** in Settings — update preferences or delete your account
 
 ## Testing
 
@@ -120,7 +122,7 @@ src/
 │   ├── login/             # Login page
 │   ├── privacy/           # Privacy policy
 │   ├── terms/             # Terms of service
-│   └── settings/          # User settings
+│   └── settings/          # User settings and account deletion
 ├── components/
 │   ├── calendar/          # Availability calendar with bulk actions
 │   ├── dashboard/         # Dashboard content and empty states

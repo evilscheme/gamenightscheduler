@@ -161,6 +161,22 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
   - Separates upcoming vs past sessions
   - Export to calendar (.ics download or webcal://)
 
+### Account Deletion
+
+Self-service account deletion is accessed from Settings > Danger Zone. The flow is a multi-step wizard:
+
+1. **Preview** — `/api/account/delete-preview` fetches owned games (with members), and games the user is a player in
+2. **Decisions** — For games with other players, the user chooses to delete or transfer each game to another member
+3. **Confirmation** — Summary of actions with `DELETE` confirmation word
+4. **Execution** — `/api/account/delete` processes transfers, deletes `public.users` (cascading to games, memberships, availability, sessions), then deletes `auth.users`
+
+Key files:
+- `src/app/settings/delete-account/page.tsx` — Deletion wizard UI
+- `src/app/api/account/delete-preview/route.ts` — Preview API
+- `src/app/api/account/delete/route.ts` — Deletion API
+- `scripts/delete-user.ts` — Admin CLI tool (`npx tsx scripts/delete-user.ts <email-or-uuid>`)
+- `e2e/tests/settings/delete-account.spec.ts` — E2E tests
+
 ### E2E Testing
 
 Tests are in `e2e/tests/` organized by feature. The test harness uses:

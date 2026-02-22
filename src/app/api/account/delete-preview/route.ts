@@ -13,9 +13,15 @@ export interface OwnedGame {
   members: OwnedGameMember[];
 }
 
+export interface PlayerMembershipGame {
+  id: string;
+  name: string;
+}
+
 export interface DeletePreview {
   ownedGames: OwnedGame[];
   playerMembershipCount: number;
+  playerMembershipGames: PlayerMembershipGame[];
 }
 
 export async function GET(): Promise<Response> {
@@ -43,16 +49,24 @@ export async function GET(): Promise<Response> {
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
   }
 
-  // Count player memberships in games the user doesn't own
-  const { count: membershipCount, error: membershipError } = await admin
+  // Fetch player memberships with game names
+  const { data: membershipRows, error: membershipError } = await admin
     .from('game_memberships')
-    .select('id', { count: 'exact', head: true })
+    .select('game_id, games(id, name)')
     .eq('user_id', user.id);
 
   if (membershipError) {
-    console.error('delete-preview: failed to fetch membership count', membershipError);
+    console.error('delete-preview: failed to fetch membership data', membershipError);
     return NextResponse.json({ error: 'Failed to fetch membership data' }, { status: 500 });
   }
+
+  const playerMembershipGames: PlayerMembershipGame[] = (membershipRows ?? []).map((row) => {
+    const g = Array.isArray(row.games) ? row.games[0] : row.games;
+    return {
+      id: row.game_id,
+      name: (g as { id: string; name: string } | null)?.name ?? 'Unknown',
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   const preview: DeletePreview = {
     ownedGames: (ownedGames ?? []).map((game) => ({
@@ -63,7 +77,8 @@ export async function GET(): Promise<Response> {
         return { id: m.user_id, name: (u as { id: string; name: string } | null)?.name ?? 'Unknown' };
       }),
     })),
-    playerMembershipCount: membershipCount ?? 0,
+    playerMembershipCount: playerMembershipGames.length,
+    playerMembershipGames,
   };
 
   return NextResponse.json(preview);

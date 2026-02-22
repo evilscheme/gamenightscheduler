@@ -84,8 +84,11 @@ export default function TermsPage() {
         <Section title="Account Termination">
           <p>
             We reserve the right to suspend or terminate accounts that violate these terms.
-            If you want to delete your account, contact us using the feedback link in the app
-            and we will remove your account and all associated data.
+            You can delete your account at any time from{' '}
+            <a href="/settings" className="text-primary hover:underline">Settings</a>{' '}
+            &gt; Danger Zone &gt; Delete Account. Deletion is permanent and removes your profile,
+            availability data, and game memberships. For games you own, you will be asked to
+            either delete them or transfer ownership to another player.
           </p>
         </Section>
 

@@ -17,9 +17,15 @@ interface OwnedGame {
   members: OwnedGameMember[];
 }
 
+interface PlayerMembershipGame {
+  id: string;
+  name: string;
+}
+
 interface DeletePreview {
   ownedGames: OwnedGame[];
   playerMembershipCount: number;
+  playerMembershipGames: PlayerMembershipGame[];
 }
 
 type GameDecision =
@@ -256,32 +262,64 @@ export default function DeleteAccountPage() {
                 What will be deleted
               </h2>
             </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
+            <CardContent className="space-y-4">
+              <ul className="space-y-3 text-sm">
                 {gamesBeingDeleted > 0 && (
                   <li className="text-foreground">
-                    <span className="font-medium">{gamesBeingDeleted}</span>{' '}
-                    {gamesBeingDeleted === 1 ? 'game' : 'games'} you own will be permanently
-                    deleted, including all sessions, availability, and player data within{' '}
-                    {gamesBeingDeleted === 1 ? 'it' : 'them'}.
+                    <p className="font-medium">
+                      {gamesBeingDeleted} {gamesBeingDeleted === 1 ? 'game' : 'games'} will be
+                      permanently deleted, including all sessions, availability, and player data:
+                    </p>
+                    <ul className="mt-1.5 ml-4 space-y-0.5 text-muted-foreground">
+                      {[
+                        ...soloGames.map((g) => g.name),
+                        ...multiMemberGames
+                          .filter((g) => decisions[g.id]?.action === 'delete')
+                          .map((g) => g.name),
+                      ].map((name) => (
+                        <li key={name}>{name}</li>
+                      ))}
+                    </ul>
                   </li>
                 )}
                 {gamesBeingTransferred > 0 && (
                   <li className="text-foreground">
-                    <span className="font-medium">{gamesBeingTransferred}</span>{' '}
-                    {gamesBeingTransferred === 1 ? 'game' : 'games'} will be transferred to a
-                    new GM. Those games and their data will be preserved.
+                    <p className="font-medium">
+                      {gamesBeingTransferred} {gamesBeingTransferred === 1 ? 'game' : 'games'} will
+                      be transferred to a new GM:
+                    </p>
+                    <ul className="mt-1.5 ml-4 space-y-0.5 text-muted-foreground">
+                      {multiMemberGames
+                        .filter((g) => decisions[g.id]?.action === 'transfer')
+                        .map((g) => {
+                          const d = decisions[g.id];
+                          const newGm = d?.action === 'transfer'
+                            ? g.members.find((m) => m.id === d.newGmId)
+                            : null;
+                          return (
+                            <li key={g.id}>
+                              {g.name} → {newGm?.name ?? 'Unknown'}
+                            </li>
+                          );
+                        })}
+                    </ul>
                   </li>
                 )}
-                {(preview?.playerMembershipCount ?? 0) > 0 && (
+                {(preview?.playerMembershipGames?.length ?? 0) > 0 && (
                   <li className="text-foreground">
-                    You will be removed from{' '}
-                    <span className="font-medium">{preview!.playerMembershipCount}</span>{' '}
-                    {preview!.playerMembershipCount === 1 ? 'game' : 'games'} as a player. Your
-                    availability in those games will be deleted.
+                    <p className="font-medium">
+                      You will be removed from{' '}
+                      {preview!.playerMembershipGames.length}{' '}
+                      {preview!.playerMembershipGames.length === 1 ? 'game' : 'games'} as a player:
+                    </p>
+                    <ul className="mt-1.5 ml-4 space-y-0.5 text-muted-foreground">
+                      {preview!.playerMembershipGames.map((g) => (
+                        <li key={g.id}>{g.name}</li>
+                      ))}
+                    </ul>
                   </li>
                 )}
-                <li className="text-foreground">
+                <li className="text-foreground font-medium">
                   Your account and all personal data will be permanently deleted.
                 </li>
               </ul>
@@ -341,7 +379,7 @@ function GameDecisionCard({
   onSetTransferTarget: (newGmId: string) => void;
 }) {
   return (
-    <div className="border border-border rounded-lg p-4 space-y-3">
+    <div data-testid={`game-decision-${game.id}`} className="border border-border rounded-lg p-4 space-y-3">
       <div>
         <p className="font-medium text-foreground">{game.name}</p>
         <p className="text-sm text-muted-foreground">

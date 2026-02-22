@@ -7,95 +7,20 @@ import {
   createTestSession,
   getPlayDates,
   getPastPlayDates,
-  getAdminClient,
 } from '../../helpers/seed';
+import {
+  userExistsInDb,
+  authUserExistsInDb,
+  gameExistsInDb,
+  gameMembershipsForUser,
+  availabilityRowsForUser,
+  getGameGmId,
+  membershipExistsInGame,
+  sessionsInGame,
+  sessionConfirmedByForGame,
+  availabilityRowsInGame,
+} from '../../helpers/db-assertions';
 import { TEST_TIMEOUTS } from '../../constants';
-
-// ---------------------------------------------------------------------------
-// DB verification helpers — query the database directly to confirm deletion
-// ---------------------------------------------------------------------------
-
-async function userExistsInDb(userId: string): Promise<boolean> {
-  const admin = getAdminClient();
-  const { data } = await admin.from('users').select('id').eq('id', userId).maybeSingle();
-  return data !== null;
-}
-
-async function authUserExistsInDb(userId: string): Promise<boolean> {
-  const admin = getAdminClient();
-  const { data } = await admin.auth.admin.getUserById(userId);
-  return data.user !== null;
-}
-
-async function gameExistsInDb(gameId: string): Promise<boolean> {
-  const admin = getAdminClient();
-  const { data } = await admin.from('games').select('id').eq('id', gameId).maybeSingle();
-  return data !== null;
-}
-
-async function gameMembershipsForUser(userId: string): Promise<number> {
-  const admin = getAdminClient();
-  const { count } = await admin
-    .from('game_memberships')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId);
-  return count ?? 0;
-}
-
-async function availabilityRowsForUser(userId: string): Promise<number> {
-  const admin = getAdminClient();
-  const { count } = await admin
-    .from('availability')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId);
-  return count ?? 0;
-}
-
-async function getGameGmId(gameId: string): Promise<string | null> {
-  const admin = getAdminClient();
-  const { data } = await admin.from('games').select('gm_id').eq('id', gameId).maybeSingle();
-  return data?.gm_id ?? null;
-}
-
-async function membershipExistsInGame(gameId: string, userId: string): Promise<boolean> {
-  const admin = getAdminClient();
-  const { data } = await admin
-    .from('game_memberships')
-    .select('user_id')
-    .eq('game_id', gameId)
-    .eq('user_id', userId)
-    .maybeSingle();
-  return data !== null;
-}
-
-async function sessionsInGame(gameId: string): Promise<number> {
-  const admin = getAdminClient();
-  const { count } = await admin
-    .from('sessions')
-    .select('id', { count: 'exact', head: true })
-    .eq('game_id', gameId);
-  return count ?? 0;
-}
-
-async function sessionConfirmedByForGame(gameId: string): Promise<string | null> {
-  const admin = getAdminClient();
-  const { data } = await admin
-    .from('sessions')
-    .select('confirmed_by')
-    .eq('game_id', gameId)
-    .maybeSingle();
-  return data?.confirmed_by ?? null;
-}
-
-async function availabilityRowsInGame(gameId: string, userId: string): Promise<number> {
-  const admin = getAdminClient();
-  const { count } = await admin
-    .from('availability')
-    .select('id', { count: 'exact', head: true })
-    .eq('game_id', gameId)
-    .eq('user_id', userId);
-  return count ?? 0;
-}
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -301,7 +226,8 @@ test.describe('Delete Account — multi-member games, choose delete', () => {
     await expect(page.getByText(/type.*DELETE.*to confirm/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
-    await expect(page.getByText(/1.*game.*you own will be permanently deleted/i)).toBeVisible();
+    await expect(page.getByText(/1 game will be permanently deleted/i)).toBeVisible();
+    await expect(page.getByText('Multi Member Game')).toBeVisible();
 
     await confirmDeletion(page);
     await expect(page).toHaveURL(/\/login/, { timeout: TEST_TIMEOUTS.LONG });
@@ -403,7 +329,8 @@ test.describe('Delete Account — multi-member games, choose transfer', () => {
     await expect(page.getByText(/type.*DELETE.*to confirm/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
-    await expect(page.getByText(/1.*game.*will be transferred/i)).toBeVisible();
+    await expect(page.getByText(/1 game will be transferred/i)).toBeVisible();
+    await expect(page.getByText(/Transfer Game → Transfer Player/)).toBeVisible();
 
     await confirmDeletion(page);
     await expect(page).toHaveURL(/\/login/, { timeout: TEST_TIMEOUTS.LONG });
@@ -509,8 +436,10 @@ test.describe('Delete Account — player memberships in other games', () => {
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Summary shows 2 player memberships will be removed
-    await expect(page.getByText(/removed from.*2.*game/i)).toBeVisible();
+    // Summary shows the specific games user will be removed from
+    await expect(page.getByText(/removed from 2 games/i)).toBeVisible();
+    await expect(page.getByText("Other GM's Game 1")).toBeVisible();
+    await expect(page.getByText("Other GM's Game 2")).toBeVisible();
 
     await confirmDeletion(page);
     await expect(page).toHaveURL(/\/login/, { timeout: TEST_TIMEOUTS.LONG });
@@ -535,6 +464,142 @@ test.describe('Delete Account — player memberships in other games', () => {
     // DB: the other games themselves are unaffected
     expect(await gameExistsInDb(game1.id)).toBe(true);
     expect(await gameExistsInDb(game2.id)).toBe(true);
+  });
+});
+
+test.describe('Delete Account — mixed GM and member games', () => {
+  test('handles solo games, multi-member delete, multi-member transfer, and player memberships', async ({
+    page,
+    request,
+  }) => {
+    const ts = Date.now();
+    const gm = await loginTestUser(page, {
+      email: `mixed-gm-${ts}@e2e.local`,
+      name: 'Mixed GM',
+      is_gm: true,
+    });
+
+    const player1 = await createTestUser(request, {
+      email: `mixed-player1-${ts}@e2e.local`,
+      name: 'Mixed Player 1',
+      is_gm: false,
+    });
+
+    const player2 = await createTestUser(request, {
+      email: `mixed-player2-${ts}@e2e.local`,
+      name: 'Mixed Player 2',
+      is_gm: true,
+    });
+
+    // --- Solo game (no other members, auto-deleted) ---
+    const soloGame = await createTestGame({ gm_id: gm.id, name: 'Solo Campaign' });
+    const dates = getPlayDates([5, 6], 2);
+    await setAvailability(gm.id, soloGame.id, [{ date: dates[0], status: 'available' }]);
+
+    // --- Multi-member game to DELETE ---
+    const deleteGame = await createTestGame({
+      gm_id: gm.id,
+      name: 'Doomed Campaign',
+      play_days: [5, 6],
+    });
+    await addPlayerToGame(deleteGame.id, player1.id);
+    await setAvailability(player1.id, deleteGame.id, [{ date: dates[0], status: 'available' }]);
+
+    // --- Multi-member game to TRANSFER ---
+    const transferGame = await createTestGame({
+      gm_id: gm.id,
+      name: 'Inherited Campaign',
+      play_days: [5, 6],
+    });
+    await addPlayerToGame(transferGame.id, player2.id);
+    await setAvailability(player2.id, transferGame.id, [{ date: dates[0], status: 'maybe' }]);
+    const pastDates = getPastPlayDates([5, 6], 2);
+    await createTestSession({
+      game_id: transferGame.id,
+      date: pastDates[0],
+      confirmed_by: gm.id,
+    });
+
+    // --- Player membership in another user's game ---
+    const otherGame = await createTestGame({ gm_id: player1.id, name: "Player1's Game" });
+    await addPlayerToGame(otherGame.id, gm.id);
+    await setAvailability(gm.id, otherGame.id, [{ date: dates[0], status: 'available' }]);
+
+    // Navigate to delete account
+    await navigateToDeleteAccount(page);
+
+    // Should show decision step (multi-member games exist)
+    await expect(page.getByText('Games with other players')).toBeVisible({
+      timeout: TEST_TIMEOUTS.DEFAULT,
+    });
+
+    // Solo game should show in auto-delete section
+    await expect(page.getByText('Solo Campaign')).toBeVisible();
+
+    // Make decisions for multi-member games — scope radios via data-testid on each card
+    const doomedCard = page.getByTestId(`game-decision-${deleteGame.id}`);
+    await doomedCard.getByLabel(/delete this game and remove all player data/i).click();
+
+    const inheritedCard = page.getByTestId(`game-decision-${transferGame.id}`);
+    await inheritedCard.getByLabel(/transfer to another player/i).click();
+
+    // Continue to confirmation
+    await page.getByRole('button', { name: /continue/i }).click();
+
+    // Confirmation step — verify explicit game lists
+    await expect(page.getByText(/type.*DELETE.*to confirm/i)).toBeVisible({
+      timeout: TEST_TIMEOUTS.DEFAULT,
+    });
+
+    // 2 games deleted (solo + doomed)
+    await expect(page.getByText(/2 games will be permanently deleted/i)).toBeVisible();
+    await expect(page.getByText('Solo Campaign')).toBeVisible();
+    await expect(page.getByText('Doomed Campaign')).toBeVisible();
+
+    // 1 game transferred
+    await expect(page.getByText(/1 game will be transferred/i)).toBeVisible();
+    await expect(page.getByText(/Inherited Campaign → Mixed Player 2/)).toBeVisible();
+
+    // 1 player membership
+    await expect(page.getByText(/removed from 1 game/i)).toBeVisible();
+    await expect(page.getByText("Player1's Game")).toBeVisible();
+
+    // Confirm deletion
+    await confirmDeletion(page);
+    await expect(page).toHaveURL(/\/login/, { timeout: TEST_TIMEOUTS.LONG });
+
+    // --- DB assertions ---
+
+    // GM is fully gone
+    expect(await userExistsInDb(gm.id)).toBe(false);
+    expect(await authUserExistsInDb(gm.id)).toBe(false);
+
+    // Solo game: deleted
+    expect(await gameExistsInDb(soloGame.id)).toBe(false);
+
+    // Doomed game: deleted (all player data cascaded)
+    expect(await gameExistsInDb(deleteGame.id)).toBe(false);
+    expect(await availabilityRowsInGame(deleteGame.id, player1.id)).toBe(0);
+    expect(await membershipExistsInGame(deleteGame.id, player1.id)).toBe(false);
+
+    // Transferred game: preserved with new owner
+    expect(await gameExistsInDb(transferGame.id)).toBe(true);
+    expect(await getGameGmId(transferGame.id)).toBe(player2.id);
+    expect(await membershipExistsInGame(transferGame.id, player2.id)).toBe(false); // now GM, not member
+    expect(await availabilityRowsInGame(transferGame.id, player2.id)).toBeGreaterThan(0);
+    expect(await sessionsInGame(transferGame.id)).toBe(1);
+    expect(await sessionConfirmedByForGame(transferGame.id)).toBeNull(); // old GM deleted
+
+    // Player membership: removed from other game
+    expect(await membershipExistsInGame(otherGame.id, gm.id)).toBe(false);
+    expect(await availabilityRowsInGame(otherGame.id, gm.id)).toBe(0);
+
+    // Other game itself is unaffected
+    expect(await gameExistsInDb(otherGame.id)).toBe(true);
+
+    // No leftover data for the deleted user
+    expect(await gameMembershipsForUser(gm.id)).toBe(0);
+    expect(await availabilityRowsForUser(gm.id)).toBe(0);
   });
 });
 

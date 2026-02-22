@@ -248,6 +248,7 @@ export default function EditGamePage() {
                   <button
                     key={day.value}
                     type="button"
+                    aria-pressed={playDays.includes(day.value)}
                     onClick={() => toggleDay(day.value)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       playDays.includes(day.value)
@@ -266,10 +267,11 @@ export default function EditGamePage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor="scheduling-window" className="block text-sm font-medium text-foreground mb-1">
                 Scheduling Window
               </label>
               <select
+                id="scheduling-window"
                 value={windowMonths}
                 onChange={(e) => setWindowMonths(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
@@ -289,10 +291,11 @@ export default function EditGamePage() {
               </label>
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm text-muted-foreground mb-1">
+                  <label htmlFor="default-start-time" className="block text-sm text-muted-foreground mb-1">
                     Start Time
                   </label>
                   <input
+                    id="default-start-time"
                     type="time"
                     value={defaultStartTime}
                     onChange={(e) => setDefaultStartTime(e.target.value)}
@@ -300,10 +303,11 @@ export default function EditGamePage() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm text-muted-foreground mb-1">
+                  <label htmlFor="default-end-time" className="block text-sm text-muted-foreground mb-1">
                     End Time
                   </label>
                   <input
+                    id="default-end-time"
                     type="time"
                     value={defaultEndTime}
                     onChange={(e) => setDefaultEndTime(e.target.value)}
@@ -317,10 +321,11 @@ export default function EditGamePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor="timezone" className="block text-sm font-medium text-foreground mb-1">
                 Timezone
               </label>
               <select
+                id="timezone"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"

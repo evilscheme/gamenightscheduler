@@ -141,7 +141,9 @@ export default function JoinGamePage() {
               <p className="text-sm text-muted-foreground mb-2">Game Master: {game.gm.name}</p>
               {game.description && <p className="text-sm text-muted-foreground mb-2">{game.description}</p>}
               <p className="text-sm text-muted-foreground">
-                Plays on: {game.play_days.map((d) => DAY_LABELS.short[d]).join(', ')}
+                {game.play_days.length > 0
+                  ? `Plays on: ${game.play_days.map((d) => DAY_LABELS.short[d]).join(', ')}`
+                  : 'Ad-hoc scheduling'}
               </p>
             </div>
 

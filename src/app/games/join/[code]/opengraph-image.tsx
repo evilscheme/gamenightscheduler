@@ -86,6 +86,7 @@ export default async function Image({ params }: { params: Promise<{ code: string
   }
 
   const playDays = game.play_days.map((d) => DAY_LABELS.short[d]).join(', ');
+  const schedule = playDays || 'Ad-hoc scheduling';
 
   return new ImageResponse(
     (
@@ -184,25 +185,39 @@ export default async function Image({ params }: { params: Promise<{ code: string
             marginBottom: 48,
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              fontSize: 28,
-              color: '#94a3b8',
-            }}
-          >
-            Plays on:
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              fontSize: 28,
-              fontWeight: 600,
-              color: '#22c55e',
-            }}
-          >
-            {playDays}
-          </div>
+          {playDays ? (
+            <>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: 28,
+                  color: '#94a3b8',
+                }}
+              >
+                Plays on:
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: 28,
+                  fontWeight: 600,
+                  color: '#22c55e',
+                }}
+              >
+                {playDays}
+              </div>
+            </>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                fontSize: 28,
+                color: '#94a3b8',
+              }}
+            >
+              {schedule}
+            </div>
+          )}
         </div>
 
         {/* App branding */}

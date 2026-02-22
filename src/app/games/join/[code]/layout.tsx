@@ -32,19 +32,20 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     const typedGame = game as unknown as GameWithGMNameResult;
     const playDays = typedGame.play_days.map((d: number) => DAY_LABELS.short[d]).join(', ');
     const gmName = typedGame.gm?.name || 'Unknown';
+    const schedule = playDays ? `Plays on: ${playDays}` : 'Ad-hoc scheduling';
 
     return {
       title: `${game.name} - Game Invite - Can We Play?`,
-      description: game.description || `Join ${gmName}'s game on ${playDays}`,
+      description: game.description || `Join ${gmName}'s game — ${schedule.toLowerCase()}`,
       openGraph: {
         title: `${game.name} - Game Invite`,
-        description: `Game Master: ${gmName} | Plays on: ${playDays}`,
+        description: `Game Master: ${gmName} | ${schedule}`,
         type: 'website',
       },
       twitter: {
         card: 'summary_large_image',
         title: `${game.name} - Game Invite`,
-        description: `Game Master: ${gmName} | Plays on: ${playDays}`,
+        description: `Game Master: ${gmName} | ${schedule}`,
       },
     };
   } catch {

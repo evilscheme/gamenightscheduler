@@ -379,7 +379,7 @@ function GameDecisionCard({
   onSetTransferTarget: (newGmId: string) => void;
 }) {
   return (
-    <div className="border border-border rounded-lg p-4 space-y-3">
+    <div data-testid={`game-decision-${game.id}`} className="border border-border rounded-lg p-4 space-y-3">
       <div>
         <p className="font-medium text-foreground">{game.name}</p>
         <p className="text-sm text-muted-foreground">

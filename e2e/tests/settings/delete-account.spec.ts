@@ -536,13 +536,11 @@ test.describe('Delete Account — mixed GM and member games', () => {
     // Solo game should show in auto-delete section
     await expect(page.getByText('Solo Campaign')).toBeVisible();
 
-    // Make decisions for multi-member games
-    // First game: Delete — find the radio within the Doomed Campaign card
-    const doomedCard = page.locator('[class*="border"]', { hasText: 'Doomed Campaign' });
+    // Make decisions for multi-member games — scope radios via data-testid on each card
+    const doomedCard = page.getByTestId(`game-decision-${deleteGame.id}`);
     await doomedCard.getByLabel(/delete this game and remove all player data/i).click();
 
-    // Second game: Transfer — find the radio within the Inherited Campaign card
-    const inheritedCard = page.locator('[class*="border"]', { hasText: 'Inherited Campaign' });
+    const inheritedCard = page.getByTestId(`game-decision-${transferGame.id}`);
     await inheritedCard.getByLabel(/transfer to another player/i).click();
 
     // Continue to confirmation

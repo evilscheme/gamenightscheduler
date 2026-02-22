@@ -99,9 +99,9 @@ test.describe('Availability Calendar', () => {
     await expect(page.getByRole('button', { name: /availability/i })).toBeVisible();
     await page.getByRole('button', { name: /availability/i }).click();
 
-    // Should see legend items
-    await expect(page.getByText(/available/i).first()).toBeVisible();
-    await expect(page.getByText(/unavailable/i).first()).toBeVisible();
+    // Should see legend items (exact text to avoid matching unrelated elements)
+    await expect(page.getByText('Available', { exact: true })).toBeVisible();
+    await expect(page.getByText('Unavailable', { exact: true })).toBeVisible();
   });
 
   test('shows multiple months in calendar', async ({ page, request }) => {

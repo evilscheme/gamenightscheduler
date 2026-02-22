@@ -237,11 +237,11 @@ test.describe('Time Availability Constraints', () => {
     await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
 
     // Start time should be pre-filled with 19:00 (later of default 18:00 and constraint 19:00)
-    const startTimeInput = page.getByText('Start Time').locator('..').locator('input');
+    const startTimeInput = page.getByLabel('Start Time');
     await expect(startTimeInput).toHaveValue('19:00');
 
     // End time should stay at default 23:00 (no end constraint)
-    const endTimeInput = page.getByText('End Time').locator('..').locator('input');
+    const endTimeInput = page.getByLabel('End Time');
     await expect(endTimeInput).toHaveValue('23:00');
   });
 

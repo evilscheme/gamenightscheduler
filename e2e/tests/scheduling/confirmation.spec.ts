@@ -53,9 +53,9 @@ test.describe('Session Confirmation', () => {
     // Modal should appear with "Schedule Session" heading
     await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
 
-    // Should have start and end time inputs (use text to find the parent, then get the input)
-    await expect(page.getByText('Start Time').locator('..').locator('input')).toBeVisible();
-    await expect(page.getByText('End Time').locator('..').locator('input')).toBeVisible();
+    // Should have start and end time inputs
+    await expect(page.getByLabel('Start Time')).toBeVisible();
+    await expect(page.getByLabel('End Time')).toBeVisible();
 
     // Should have confirm and cancel buttons in modal
     await expect(page.getByRole('button', { name: /confirm session/i })).toBeVisible();
@@ -103,8 +103,8 @@ test.describe('Session Confirmation', () => {
     await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
 
     // Set custom times: 7 PM to 11 PM
-    const startTimeInput = page.getByText('Start Time').locator('..').locator('input');
-    const endTimeInput = page.getByText('End Time').locator('..').locator('input');
+    const startTimeInput = page.getByLabel('Start Time');
+    const endTimeInput = page.getByLabel('End Time');
 
     await startTimeInput.clear();
     await startTimeInput.fill('19:00');
@@ -175,7 +175,7 @@ test.describe('Session Confirmation', () => {
     });
 
     // Should show the dice icon for confirmed sessions
-    await expect(page.locator('svg.lucide-dice-6').first()).toBeVisible();
+    await expect(page.locator('[data-testid="suggestion-icon"]').first()).toBeVisible();
 
     // Should have export button
     await expect(page.getByRole('button', { name: /export/i }).first()).toBeVisible();
@@ -278,8 +278,8 @@ test.describe('Session Confirmation', () => {
     await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
 
     // Check that the time inputs are pre-filled with game's default times
-    const startTimeInput = page.getByText('Start Time').locator('..').locator('input');
-    const endTimeInput = page.getByText('End Time').locator('..').locator('input');
+    const startTimeInput = page.getByLabel('Start Time');
+    const endTimeInput = page.getByLabel('End Time');
 
     await expect(startTimeInput).toHaveValue('19:30');
     await expect(endTimeInput).toHaveValue('23:30');

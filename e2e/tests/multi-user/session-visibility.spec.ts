@@ -88,7 +88,7 @@ test.describe('Multi-User Session Visibility', () => {
       });
 
       // Player should see the dice icon for confirmed session
-      await expect(playerPage.locator('svg.lucide-dice-6').first()).toBeVisible();
+      await expect(playerPage.locator('[data-testid="suggestion-icon"]').first()).toBeVisible();
     } finally {
       await gmContext.close();
       await playerContext.close();

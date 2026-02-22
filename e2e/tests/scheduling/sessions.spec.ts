@@ -382,7 +382,7 @@ test.describe('Session Scheduling', () => {
 
     // There should be no Cancel button visible (past sessions don't have them)
     // The only Cancel buttons on the schedule tab would be in upcoming sessions
-    const cancelButtons = page.locator('[class*="Card"]').filter({ hasText: /past sessions/i }).getByRole('button', { name: /^cancel$/i });
+    const cancelButtons = page.locator('[data-testid="past-sessions"]').getByRole('button', { name: /^cancel$/i });
     await expect(cancelButtons).toHaveCount(0);
   });
 

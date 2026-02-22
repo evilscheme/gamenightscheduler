@@ -46,7 +46,7 @@ export function PlayersCard({
         </h2>
       </CardHeader>
       <CardContent>
-        <ul className="divide-y divide-border">
+        <ul className="divide-y divide-border" data-testid="players-list">
           {allPlayers.map((player) => {
             const memberData = members.find((m) => m.id === player.id);
             const playerIsCoGm = memberData?.is_co_gm ?? false;

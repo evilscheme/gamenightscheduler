@@ -44,7 +44,7 @@ test.describe('Co-GM Feature', () => {
       });
 
       // Find the player row and open the actions menu
-      const playerRow = page.locator('li').filter({ hasText: player.name });
+      const playerRow = page.locator('[data-testid="players-list"]').locator('li').filter({ hasText: player.name });
       await expect(playerRow.getByLabel('Player actions')).toBeVisible();
       await playerRow.getByLabel('Player actions').click();
 
@@ -53,7 +53,7 @@ test.describe('Co-GM Feature', () => {
       await page.getByRole('button', { name: /make co-gm/i }).click();
 
       // Verify the Co-GM badge appears
-      await expect(playerRow.locator('span').filter({ hasText: /^Co-GM$/ })).toBeVisible({
+      await expect(playerRow.getByText('Co-GM')).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
@@ -96,8 +96,8 @@ test.describe('Co-GM Feature', () => {
       });
 
       // Find the player row and verify Co-GM badge exists
-      const playerRow = page.locator('li').filter({ hasText: player.name });
-      await expect(playerRow.locator('span').filter({ hasText: /^Co-GM$/ })).toBeVisible();
+      const playerRow = page.locator('[data-testid="players-list"]').locator('li').filter({ hasText: player.name });
+      await expect(playerRow.getByText('Co-GM')).toBeVisible();
 
       // Open actions menu and click "Remove Co-GM"
       await playerRow.getByLabel('Player actions').click();
@@ -105,7 +105,7 @@ test.describe('Co-GM Feature', () => {
       await page.getByRole('button', { name: /remove co-gm/i }).click();
 
       // Verify the Co-GM badge is gone (the span with exact text "Co-GM")
-      await expect(playerRow.locator('span').filter({ hasText: /^Co-GM$/ })).not.toBeVisible({
+      await expect(playerRow.getByText('Co-GM')).not.toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
@@ -267,7 +267,7 @@ test.describe('Co-GM Feature', () => {
       });
 
       // Find the regular player row and open actions menu
-      const playerRow = page.locator('li').filter({ hasText: player.name });
+      const playerRow = page.locator('[data-testid="players-list"]').locator('li').filter({ hasText: player.name });
       await expect(playerRow.getByLabel('Player actions')).toBeVisible();
       await playerRow.getByLabel('Player actions').click();
 
@@ -295,7 +295,7 @@ test.describe('Co-GM Feature', () => {
       });
 
       // Player should be gone from the list
-      await expect(page.locator('li').filter({ hasText: player.name })).not.toBeVisible({
+      await expect(page.locator('[data-testid="players-list"]').locator('li').filter({ hasText: player.name })).not.toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
     });
@@ -344,8 +344,8 @@ test.describe('Co-GM Feature', () => {
       });
 
       // Find the other co-GM's row
-      const coGm2Row = page.locator('li').filter({ hasText: coGm2.name });
-      await expect(coGm2Row.locator('span').filter({ hasText: /^Co-GM$/ })).toBeVisible();
+      const coGm2Row = page.locator('[data-testid="players-list"]').locator('li').filter({ hasText: coGm2.name });
+      await expect(coGm2Row.getByText('Co-GM')).toBeVisible();
 
       // Co-GM should not see a menu for other co-GMs (since they can't do anything to them)
       await expect(coGm2Row.getByLabel('Player actions')).not.toBeVisible();
@@ -430,7 +430,7 @@ test.describe('Co-GM Feature', () => {
       });
 
       // Find the regular player's row and open their menu
-      const playerRow = page.locator('li').filter({ hasText: player.name });
+      const playerRow = page.locator('[data-testid="players-list"]').locator('li').filter({ hasText: player.name });
       await expect(playerRow.getByLabel('Player actions')).toBeVisible();
       await playerRow.getByLabel('Player actions').click();
 

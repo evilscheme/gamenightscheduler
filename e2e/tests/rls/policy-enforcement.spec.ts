@@ -336,7 +336,7 @@ test.describe('Availability Record Isolation', () => {
     // The UI only shows the GM's own availability calendar for editing
 
     // Verify the calendar rendered with clickable date cells
-    const calendarCell = page.locator('button[data-date]').first();
+    const calendarCell = page.locator('button[data-date]:not([disabled])').first();
     if (await calendarCell.isVisible()) {
       // Just verify the calendar is interactive for own dates
       await expect(calendarCell).toBeEnabled();

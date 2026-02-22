@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: 'Privacy Policy',
   description:
     'How Can We Play? handles your data — what we collect, how we use it, and your rights.',
+  alternates: { canonical: '/privacy' },
 };
 
 export default function PrivacyLayout({ children }: { children: React.ReactNode }) {

@@ -26,9 +26,6 @@ export const metadata: Metadata = {
     'Schedule your tabletop game nights with ease. Players mark availability, get smart date suggestions, and export confirmed sessions to your calendar.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   manifest: '/manifest.webmanifest',
-  alternates: {
-    canonical: '/',
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

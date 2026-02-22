@@ -254,6 +254,33 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- Protect is_admin from being changed by non-admin users
+CREATE OR REPLACE FUNCTION public.protect_user_admin_flag()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Prevent non-admins from changing is_admin
+  IF NEW.is_admin IS DISTINCT FROM OLD.is_admin THEN
+    -- Check if the current user is an admin (NULL auth.uid() = service role, which is allowed)
+    IF (SELECT auth.uid()) IS NOT NULL AND NOT OLD.is_admin THEN
+      NEW.is_admin := OLD.is_admin;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Prevent game_id from being changed on membership rows (blocks cross-game player moves)
+-- Not SECURITY DEFINER: no privileged function calls needed, and this should also block service role
+CREATE OR REPLACE FUNCTION public.prevent_membership_game_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.game_id IS DISTINCT FROM OLD.game_id THEN
+    RAISE EXCEPTION 'Cannot change game_id on membership rows';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = '';
+
 -- ============================================
 -- 5. Triggers
 -- ============================================
@@ -268,6 +295,18 @@ CREATE TRIGGER update_availability_updated_at
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Protect is_admin column from privilege escalation
+CREATE TRIGGER protect_admin_flag
+  BEFORE UPDATE ON users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.protect_user_admin_flag();
+
+-- Prevent game_id from being changed on membership rows (blocks cross-game player moves)
+CREATE TRIGGER prevent_membership_game_id_change
+  BEFORE UPDATE ON game_memberships
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_membership_game_change();
 
 -- ============================================
 -- 6. Row Level Security (RLS)
@@ -285,6 +324,12 @@ CREATE POLICY "Users viewable by self or co-participants" ON users
   FOR SELECT USING (id = (SELECT auth.uid()) OR public.shares_game_with(id));
 CREATE POLICY "Users can update own record" ON users
   FOR UPDATE USING ((select auth.uid()) = id);
+-- Explicit deny: inserts handled only by handle_new_user() trigger
+CREATE POLICY "Users cannot directly insert" ON users
+  FOR INSERT WITH CHECK (false);
+-- Explicit deny: deletes handled only by admin API with service role
+CREATE POLICY "Users cannot directly delete" ON users
+  FOR DELETE USING (false);
 
 -- Games policies
 CREATE POLICY "Users can view games they are part of" ON games
@@ -320,7 +365,11 @@ CREATE POLICY "Users, GMs, or co-GMs can delete memberships" ON game_memberships
     )
   );
 CREATE POLICY "GMs can update memberships" ON game_memberships
-  FOR UPDATE USING (
+  FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
+  )
+  WITH CHECK (
     EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
   );
 
@@ -328,9 +377,15 @@ CREATE POLICY "GMs can update memberships" ON game_memberships
 CREATE POLICY "Game participants can view availability" ON availability
   FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
 CREATE POLICY "Users can insert own availability" ON availability
-  FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+  FOR INSERT WITH CHECK (
+    (select auth.uid()) = user_id
+    AND public.is_game_participant(game_id, (select auth.uid()))
+  );
 CREATE POLICY "Users can update own availability" ON availability
-  FOR UPDATE USING ((select auth.uid()) = user_id);
+  FOR UPDATE USING (
+    (select auth.uid()) = user_id
+    AND public.is_game_participant(game_id, (select auth.uid()))
+  );
 CREATE POLICY "Users can delete own availability" ON availability
   FOR DELETE USING ((select auth.uid()) = user_id);
 

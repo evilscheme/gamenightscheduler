@@ -9,6 +9,13 @@ import type { Game, GameSession } from '@/types';
  *
  * URL format: /api/games/calendar/[inviteCode]
  * Webcal URL: webcal://hostname/api/games/calendar/[inviteCode]
+ *
+ * SECURITY NOTE: This endpoint is intentionally unauthenticated because calendar
+ * clients (Google Calendar, Apple Calendar, etc.) cannot perform OAuth. The invite
+ * code acts as a bearer token — anyone with the code can see game name, description,
+ * and confirmed session dates/times. This is an accepted trade-off for calendar
+ * subscription compatibility. If the invite code is leaked, session schedule data
+ * is exposed but no mutations are possible.
  */
 export async function GET(
   request: Request,

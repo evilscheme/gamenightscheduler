@@ -36,7 +36,7 @@ test.describe('Bulk Availability Actions', () => {
     });
 
     // Select Fridays from the day dropdown, status is already "available" by default
-    const dayDropdown = page.locator('select').first();
+    const dayDropdown = page.getByLabel('Day of week');
     await dayDropdown.selectOption('5'); // Friday = 5
 
     // Click Apply button
@@ -91,11 +91,11 @@ test.describe('Bulk Availability Actions', () => {
     });
 
     // Select Saturdays from the day dropdown
-    const dayDropdown = page.locator('select').first();
+    const dayDropdown = page.getByLabel('Day of week');
     await dayDropdown.selectOption('6'); // Saturday = 6
 
     // Select "unavailable" from the status dropdown
-    const statusDropdown = page.locator('select').nth(1);
+    const statusDropdown = page.getByLabel('Availability status');
     await statusDropdown.selectOption('unavailable');
 
     // Click Apply button
@@ -150,7 +150,7 @@ test.describe('Bulk Availability Actions', () => {
     });
 
     // Mark all Fridays as available
-    const dayDropdown = page.locator('select').first();
+    const dayDropdown = page.getByLabel('Day of week');
     await dayDropdown.selectOption('5'); // Friday = 5
     // Status is already "available" by default
     const applyButton = page.getByRole('button', { name: /apply/i });
@@ -219,7 +219,7 @@ test.describe('Bulk Availability Actions', () => {
     await expect(firstFriday).toHaveAttribute('data-status', 'unavailable', { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // Now use "remaining days" to mark all unset dates as available
-    const dayDropdown = page.locator('select').first();
+    const dayDropdown = page.getByLabel('Day of week');
     await dayDropdown.selectOption('remaining');
     // Status is already "available" by default
     const applyButton = page.getByRole('button', { name: /apply/i });
@@ -275,10 +275,10 @@ test.describe('Bulk Availability Actions', () => {
     });
 
     // Select Fridays and set status to "maybe"
-    const dayDropdown = page.locator('select').first();
+    const dayDropdown = page.getByLabel('Day of week');
     await dayDropdown.selectOption('5'); // Friday = 5
 
-    const statusDropdown = page.locator('select').nth(1);
+    const statusDropdown = page.getByLabel('Availability status');
     await statusDropdown.selectOption('maybe');
 
     const applyButton = page.getByRole('button', { name: /apply/i });

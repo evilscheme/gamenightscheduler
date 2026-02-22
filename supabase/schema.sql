@@ -254,17 +254,36 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
--- Protect is_admin from being changed by non-admin users
-CREATE OR REPLACE FUNCTION public.protect_user_admin_flag()
+-- Allowlist-based column protection for the users table.
+-- Saves the values of allowed columns, resets the entire row to OLD,
+-- then re-applies only the allowed columns. Any column not explicitly
+-- listed here is frozen by default — including columns added in the future.
+-- Service role (auth.uid() IS NULL) bypasses this for admin operations.
+CREATE OR REPLACE FUNCTION public.protect_user_columns()
 RETURNS TRIGGER AS $$
+DECLARE
+  -- Save allowlisted values before resetting
+  v_name           TEXT          := NEW.name;
+  v_avatar_url     TEXT          := NEW.avatar_url;
+  v_timezone       TEXT          := NEW.timezone;
+  v_week_start_day INTEGER       := NEW.week_start_day;
+  v_time_format    TEXT          := NEW.time_format;
 BEGIN
-  -- Prevent non-admins from changing is_admin
-  IF NEW.is_admin IS DISTINCT FROM OLD.is_admin THEN
-    -- Check if the current user is an admin (NULL auth.uid() = service role, which is allowed)
-    IF (SELECT auth.uid()) IS NOT NULL AND NOT OLD.is_admin THEN
-      NEW.is_admin := OLD.is_admin;
-    END IF;
+  -- Service role (NULL uid) can change anything
+  IF (SELECT auth.uid()) IS NULL THEN
+    RETURN NEW;
   END IF;
+
+  -- Reset ALL columns to old values
+  NEW := OLD;
+
+  -- Re-apply only the allowlisted columns
+  NEW.name           := v_name;
+  NEW.avatar_url     := v_avatar_url;
+  NEW.timezone       := v_timezone;
+  NEW.week_start_day := v_week_start_day;
+  NEW.time_format    := v_time_format;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
@@ -296,11 +315,11 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Protect is_admin column from privilege escalation
-CREATE TRIGGER protect_admin_flag
+-- Freeze non-allowlisted columns (defense-in-depth for privilege escalation & future-proofing)
+CREATE TRIGGER protect_user_columns
   BEFORE UPDATE ON users
   FOR EACH ROW
-  EXECUTE FUNCTION public.protect_user_admin_flag();
+  EXECUTE FUNCTION public.protect_user_columns();
 
 -- Prevent game_id from being changed on membership rows (blocks cross-game player moves)
 CREATE TRIGGER prevent_membership_game_id_change

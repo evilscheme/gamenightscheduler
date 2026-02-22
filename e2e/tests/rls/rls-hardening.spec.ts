@@ -85,7 +85,7 @@ async function supabaseRestCall(
  * #11 (Medium): game_memberships UPDATE WITH CHECK
  */
 
-test.describe('Privilege Escalation Prevention (#10)', () => {
+test.describe('User Column Protection (protect_user_columns trigger)', () => {
   test('user cannot set is_admin=true on themselves via REST API', async ({ page, request }) => {
     const ts = Date.now();
     const user = await createTestUser(request, {
@@ -125,7 +125,91 @@ test.describe('Privilege Escalation Prevention (#10)', () => {
     expect(dbUser?.is_admin).toBe(false);
   });
 
-  test('admin user can still update is_admin for others via service role', async ({ request }) => {
+  test('user cannot change is_gm on themselves via REST API', async ({ page, request }) => {
+    const ts = Date.now();
+    const user = await createTestUser(request, {
+      email: `gm-flag-test-${ts}@e2e.local`,
+      name: 'GM Flag Tester',
+      is_gm: true,
+    });
+
+    await loginTestUser(page, {
+      email: user.email,
+      name: user.name,
+      is_gm: true,
+    });
+
+    const result = await supabaseRestCall(page, {
+      path: `/rest/v1/users?id=eq.${user.id}`,
+      method: 'PATCH',
+      body: { is_gm: false },
+    });
+
+    expect(result.status).toBe(200);
+    const rows = result.data as { is_gm: boolean }[];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].is_gm).toBe(true);
+  });
+
+  test('user cannot change email on themselves via REST API', async ({ page, request }) => {
+    const ts = Date.now();
+    const originalEmail = `email-lock-${ts}@e2e.local`;
+    const user = await createTestUser(request, {
+      email: originalEmail,
+      name: 'Email Lock Tester',
+      is_gm: true,
+    });
+
+    await loginTestUser(page, {
+      email: user.email,
+      name: user.name,
+      is_gm: true,
+    });
+
+    const result = await supabaseRestCall(page, {
+      path: `/rest/v1/users?id=eq.${user.id}`,
+      method: 'PATCH',
+      body: { email: `hacked-${ts}@evil.local` },
+    });
+
+    expect(result.status).toBe(200);
+    const rows = result.data as { email: string }[];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].email).toBe(originalEmail);
+  });
+
+  test('user CAN update allowlisted columns (name, timezone, time_format)', async ({
+    page,
+    request,
+  }) => {
+    const ts = Date.now();
+    const user = await createTestUser(request, {
+      email: `allowlist-test-${ts}@e2e.local`,
+      name: 'Original Name',
+      is_gm: true,
+    });
+
+    await loginTestUser(page, {
+      email: user.email,
+      name: user.name,
+      is_gm: true,
+    });
+
+    const result = await supabaseRestCall(page, {
+      path: `/rest/v1/users?id=eq.${user.id}`,
+      method: 'PATCH',
+      body: { name: 'Updated Name', timezone: 'Europe/London', time_format: '24h' },
+    });
+
+    expect(result.status).toBe(200);
+    const rows = result.data as { name: string; timezone: string; time_format: string }[];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].name).toBe('Updated Name');
+    expect(rows[0].timezone).toBe('Europe/London');
+    expect(rows[0].time_format).toBe('24h');
+  });
+
+  test('service role can update frozen columns (admin operations)', async ({ request }) => {
     const ts = Date.now();
     const user = await createTestUser(request, {
       email: `admin-target-${ts}@e2e.local`,

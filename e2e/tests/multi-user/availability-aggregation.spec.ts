@@ -142,7 +142,7 @@ test.describe('Multi-User Availability Aggregation', () => {
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Get all suggestion items
-    const suggestions = page.locator('ul').filter({ hasText: /available/ }).locator('li');
+    const suggestions = page.locator('[data-testid="suggestions-list"]').locator('li');
 
     // First suggestion should show "3 available" (dateA)
     const firstSuggestion = suggestions.first();

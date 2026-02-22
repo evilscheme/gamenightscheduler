@@ -94,7 +94,7 @@ test.describe('Game Creation', () => {
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Change scheduling window to 3 months
-    await page.locator('label:has-text("Scheduling Window")').locator('..').locator('select').selectOption('3');
+    await page.getByLabel('Scheduling Window').selectOption('3');
 
     // Fill required fields
     await page.getByPlaceholder(/friday night board games/i).fill('Long Window Game');
@@ -124,8 +124,8 @@ test.describe('Game Creation', () => {
     await page.getByRole('button', { name: 'Saturday' }).click();
 
     // Set custom default times (7 PM - 11 PM)
-    const startTimeInput = page.locator('input[type="time"]').first();
-    const endTimeInput = page.locator('input[type="time"]').last();
+    const startTimeInput = page.getByLabel('Start Time');
+    const endTimeInput = page.getByLabel('End Time');
 
     await startTimeInput.fill('19:00');
     await endTimeInput.fill('23:00');
@@ -153,8 +153,8 @@ test.describe('Game Creation', () => {
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Check that time inputs have default values (6 PM - 10 PM / 18:00 - 22:00)
-    const startTimeInput = page.locator('input[type="time"]').first();
-    const endTimeInput = page.locator('input[type="time"]').last();
+    const startTimeInput = page.getByLabel('Start Time');
+    const endTimeInput = page.getByLabel('End Time');
 
     await expect(startTimeInput).toHaveValue('18:00');
     await expect(endTimeInput).toHaveValue('22:00');

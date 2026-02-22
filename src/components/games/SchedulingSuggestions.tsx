@@ -183,7 +183,7 @@ export function SchedulingSuggestions({
                   <li key={session.id} className="py-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <Dice6 className="w-6 h-6 shrink-0 text-primary" />
+                        <Dice6 className="w-6 h-6 shrink-0 text-primary" data-testid="suggestion-icon" />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-card-foreground">
                             {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
@@ -323,7 +323,7 @@ export function SchedulingSuggestions({
 
       {/* Past Sessions */}
       {pastSessions.length > 0 && (
-        <Card>
+        <Card data-testid="past-sessions">
           <CardHeader>
             <button
               onClick={() => setShowPastSessions(!showPastSessions)}
@@ -414,7 +414,7 @@ export function SchedulingSuggestions({
             />
           ) : (
             <>
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-border" data-testid="suggestions-list">
                 {displayedSuggestions.map((suggestion) => {
                   const isConfirmed = confirmedDates.has(suggestion.date);
                   const availablePercent = Math.round(
@@ -591,10 +591,11 @@ export function SchedulingSuggestions({
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-1">
+                <label htmlFor="confirm-start-time" className="block text-sm font-medium text-card-foreground mb-1">
                   Start Time
                 </label>
                 <input
+                  id="confirm-start-time"
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
@@ -603,10 +604,11 @@ export function SchedulingSuggestions({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-card-foreground mb-1">
+                <label htmlFor="confirm-end-time" className="block text-sm font-medium text-card-foreground mb-1">
                   End Time
                 </label>
                 <input
+                  id="confirm-end-time"
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}

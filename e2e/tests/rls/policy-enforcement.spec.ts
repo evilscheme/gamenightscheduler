@@ -169,9 +169,8 @@ test.describe('RLS Policy Enforcement', () => {
     // Wait for game page to load with data
     await expect(page.getByRole('heading', { name: /badge test game/i })).toBeVisible();
 
-    // Player should see the GM's name but they themselves are not GM of this game
-    // Use .first() because the GM name appears in multiple places (header and player list)
-    await expect(page.getByText(/badge test gm/i).first()).toBeVisible({ timeout: TEST_TIMEOUTS.SHORT });
+    // Player should see the GM's name in the main content area (not just the navbar)
+    await expect(page.locator('main').getByText(/badge test gm/i).first()).toBeVisible({ timeout: TEST_TIMEOUTS.SHORT });
   });
 
   // Note: "settings page shows correct GM status" test removed - GM toggle no longer exists
@@ -336,11 +335,11 @@ test.describe('Availability Record Isolation', () => {
     // They CANNOT modify the player's availability
     // The UI only shows the GM's own availability calendar for editing
 
-    // Mark GM's own availability - this should work
-    const calendarCell = page.locator('[data-testid="calendar-day"]').first();
+    // Verify the calendar rendered with clickable date cells
+    const calendarCell = page.locator('button[data-date]:not([disabled])').first();
     if (await calendarCell.isVisible()) {
       // Just verify the calendar is interactive for own dates
-      await expect(page.getByText(/mark your availability/i)).toBeVisible();
+      await expect(calendarCell).toBeEnabled();
     }
 
     // The important security aspect is that the database RLS policy

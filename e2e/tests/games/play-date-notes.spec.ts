@@ -144,7 +144,7 @@ test.describe('Play Date Notes', () => {
 
       // Hover to reveal the pencil icon, then click it
       await dayButton.hover();
-      const pencilIcon = dayButton.locator('span').filter({ has: page.locator('svg') }).last();
+      const pencilIcon = dayButton.locator('[data-testid="edit-note-icon"]');
       await pencilIcon.click();
 
       // Popover should appear with "GM Note" section
@@ -204,7 +204,7 @@ test.describe('Play Date Notes', () => {
       // Open the note popover via pencil icon
       const dayButton = page.locator(`button[data-date="${futurePlayDate}"]`);
       await dayButton.hover();
-      const pencilIcon = dayButton.locator('span').filter({ has: page.locator('svg') }).last();
+      const pencilIcon = dayButton.locator('[data-testid="edit-note-icon"]');
       await pencilIcon.click();
 
       // Should see the GM note displayed (read-only, not editable)
@@ -333,7 +333,7 @@ test.describe('Play Date Notes', () => {
       // GM hovers and clicks pencil icon without having set availability
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
       await dayButton.hover();
-      const pencilIcon = dayButton.locator('span').filter({ has: page.locator('svg') }).last();
+      const pencilIcon = dayButton.locator('[data-testid="edit-note-icon"]');
       await pencilIcon.click();
 
       // Should see GM Note section
@@ -399,7 +399,7 @@ test.describe('Play Date Notes', () => {
 
       // Click the bottom-left GM note icon
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
-      const noteIcon = dayButton.locator('span').filter({ has: page.locator('svg') }).first();
+      const noteIcon = dayButton.locator('[data-testid="note-icons"]');
       await noteIcon.click();
 
       // Should see the GM note text (read-only)
@@ -448,7 +448,7 @@ test.describe('Play Date Notes', () => {
 
       // Click the bottom-left GM note icon (visible because there's a note)
       const dayButton = page.locator(`button[data-date="${futurePlayDate}"]`);
-      const noteIcon = dayButton.locator('span').filter({ has: page.locator('svg') }).first();
+      const noteIcon = dayButton.locator('[data-testid="note-icons"]');
       await noteIcon.click();
 
       // Should see the GM note
@@ -509,7 +509,7 @@ test.describe('Play Date Notes', () => {
       await expect(dayButton).toHaveAttribute('title', /GM note: Afternoon only/);
 
       // Both icons should be in the bottom-left area
-      const bottomLeftIcons = dayButton.locator('span.flex > span');
+      const bottomLeftIcons = dayButton.locator('[data-testid="note-icons"] > span');
       await expect(bottomLeftIcons).toHaveCount(2);
     });
 
@@ -546,7 +546,7 @@ test.describe('Play Date Notes', () => {
 
       // Click the bottom-left GM note icon (not the pencil)
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
-      const bottomLeftIcon = dayButton.locator('span.flex > span').first();
+      const bottomLeftIcon = dayButton.locator('[data-testid="note-indicator"]');
       await bottomLeftIcon.click();
 
       // The popover should open with both sections

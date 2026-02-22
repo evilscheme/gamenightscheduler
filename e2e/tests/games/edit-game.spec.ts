@@ -146,17 +146,17 @@ test.describe('Game Edit Page', () => {
     const descInput = page.getByPlaceholder(/brief description/i);
     await expect(descInput).toHaveValue('Test description for prepop');
 
-    // Check play days are selected (Mon, Wed, Fri should have active styling)
-    await expect(page.getByRole('button', { name: 'Monday' })).toHaveClass(/bg-primary/);
-    await expect(page.getByRole('button', { name: 'Wednesday' })).toHaveClass(/bg-primary/);
-    await expect(page.getByRole('button', { name: 'Friday' })).toHaveClass(/bg-primary/);
+    // Check play days are selected (Mon, Wed, Fri should have aria-pressed)
+    await expect(page.getByRole('button', { name: 'Monday' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Wednesday' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Friday' })).toHaveAttribute('aria-pressed', 'true');
 
     // Check scheduling window
-    await expect(page.locator('label:has-text("Scheduling Window")').locator('..').locator('select')).toHaveValue('3');
+    await expect(page.getByLabel('Scheduling Window')).toHaveValue('3');
 
     // Check default times
-    const startTimeInput = page.locator('input[type="time"]').first();
-    const endTimeInput = page.locator('input[type="time"]').last();
+    const startTimeInput = page.getByLabel('Start Time');
+    const endTimeInput = page.getByLabel('End Time');
     await expect(startTimeInput).toHaveValue('19:00');
     await expect(endTimeInput).toHaveValue('23:00');
   });
@@ -198,8 +198,8 @@ test.describe('Game Edit Page', () => {
     await page.getByRole('button', { name: 'Saturday' }).click();
 
     // Update default times
-    const startTimeInput = page.locator('input[type="time"]').first();
-    const endTimeInput = page.locator('input[type="time"]').last();
+    const startTimeInput = page.getByLabel('Start Time');
+    const endTimeInput = page.getByLabel('End Time');
     await startTimeInput.fill('20:00');
     await endTimeInput.fill('00:00');
 

@@ -302,7 +302,9 @@ export function getPlayDates(
   const dates: string[] = [];
   const today = new Date();
 
-  for (let i = 0; i < weeks * 7; i++) {
+  // Start from tomorrow to avoid scheduling sessions on "today" which the app
+  // may reject as being in the past (depends on time of day)
+  for (let i = 1; i < weeks * 7 + 1; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
     const dayOfWeek = date.getDay();

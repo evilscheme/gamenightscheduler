@@ -270,6 +270,7 @@ export function AvailabilityCalendar({
                 value={bulkDayFilter}
                 onChange={(e) => setBulkDayFilter(e.target.value)}
                 className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
+                aria-label="Day of week"
               >
                 <option value="remaining">remaining days</option>
                 {playDays.map((day) => (
@@ -285,6 +286,7 @@ export function AvailabilityCalendar({
                   setBulkStatus(e.target.value as AvailabilityStatus)
                 }
                 className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
+                aria-label="Availability status"
               >
                 <option value="available">available</option>
                 <option value="unavailable">unavailable</option>
@@ -835,6 +837,7 @@ function MonthCalendar({
               {isPlayDay && !isPast && (hasTimeConstraint || playDateNotes?.has(dateStr)) && (
                 <span
                   className="absolute bottom-0 left-0.5 leading-none cursor-pointer flex items-center gap-px hover:scale-125 transition-all"
+                  data-testid="note-icons"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (longPressTriggered.current) {
@@ -846,6 +849,7 @@ function MonthCalendar({
                 >
                   {hasTimeConstraint && (
                     <span
+                      data-testid="time-indicator"
                       title={(() => {
                         const after = formatTimeShort(avail?.available_after ?? null, use24h);
                         const until = formatTimeShort(avail?.available_until ?? null, use24h);
@@ -858,7 +862,7 @@ function MonthCalendar({
                     </span>
                   )}
                   {playDateNotes?.has(dateStr) && (
-                    <span title={`GM note: ${playDateNotes.get(dateStr)}`}>
+                    <span data-testid="note-indicator" title={`GM note: ${playDateNotes.get(dateStr)}`}>
                       <FileText className="w-2.5 h-2.5" />
                     </span>
                   )}
@@ -872,6 +876,7 @@ function MonthCalendar({
                       ? "opacity-100"
                       : "opacity-0 group-hover:opacity-100"
                   }`}
+                  data-testid="edit-note-icon"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (longPressTriggered.current) {
@@ -1019,10 +1024,11 @@ function NoteEditorPopover({
               {showTimeFields && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">
+                    <label htmlFor="available-after" className="block text-xs text-muted-foreground mb-1">
                       Available after
                     </label>
                     <select
+                      id="available-after"
                       value={availableAfterText}
                       onChange={(e) => onAvailableAfterChange(e.target.value)}
                       className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -1036,10 +1042,11 @@ function NoteEditorPopover({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">
+                    <label htmlFor="available-until" className="block text-xs text-muted-foreground mb-1">
                       Available until
                     </label>
                     <select
+                      id="available-until"
                       value={availableUntilText}
                       onChange={(e) => onAvailableUntilChange(e.target.value)}
                       className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -1055,10 +1062,11 @@ function NoteEditorPopover({
                 </div>
               )}
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">
+                <label htmlFor="availability-note" className="block text-xs text-muted-foreground mb-1">
                   Note
                 </label>
                 <input
+                  id="availability-note"
                   type="text"
                   value={commentText}
                   onChange={(e) => onCommentChange(e.target.value)}

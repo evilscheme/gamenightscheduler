@@ -949,7 +949,7 @@ export default function GameDetailPage() {
 
       {/* Leave Game Confirmation Modal */}
       {showLeaveConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-label="Leave game confirmation">
           <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold text-card-foreground mb-2">
               Leave Game?
@@ -982,7 +982,7 @@ export default function GameDetailPage() {
 
       {/* Remove Player Confirmation Modal */}
       {playerToRemove && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-label="Remove player confirmation">
           <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold text-card-foreground mb-2">
               Remove Player?
@@ -1014,7 +1014,7 @@ export default function GameDetailPage() {
 
       {/* Regenerate Invite Confirmation Modal */}
       {showRegenerateConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-label="Regenerate invite confirmation">
           <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold text-card-foreground mb-2">
               Regenerate Invite Code?
@@ -1049,7 +1049,7 @@ export default function GameDetailPage() {
 
       {/* Delete Game Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-label="Delete game confirmation">
           <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold text-card-foreground mb-2">
               Delete Game?

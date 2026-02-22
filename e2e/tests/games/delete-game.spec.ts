@@ -117,11 +117,8 @@ test.describe('Delete Game', () => {
     });
     await expect(page.getByRole('strong').getByText('Game To Delete')).toBeVisible();
 
-    // Confirm deletion - there are two "Delete Game" buttons:
-    // 1. The trigger button (already clicked above)
-    // 2. The confirmation button inside the modal
-    // Use .last() to get the modal's delete button since the trigger is first in DOM
-    await page.getByRole('button', { name: /^delete game$/i }).last().click();
+    // Confirm deletion - scope to the modal dialog to avoid the trigger button
+    await page.getByRole('dialog', { name: /delete game/i }).getByRole('button', { name: /^delete game$/i }).click();
 
     // Should be redirected to dashboard
     await expect(page).toHaveURL(/\/dashboard/, {

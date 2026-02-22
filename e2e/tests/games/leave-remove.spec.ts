@@ -64,7 +64,7 @@ test.describe('Leave and Remove Players', () => {
       await page.goto(`/games/${game.id}`);
 
       // Wait for page to load
-      await expect(page.getByText('No Leave Game')).toBeVisible({
+      await expect(page.getByRole('heading', { name: 'No Leave Game' })).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
@@ -175,7 +175,7 @@ test.describe('Leave and Remove Players', () => {
       await expect(page.getByText(/are you sure you want to leave/i)).not.toBeVisible();
 
       // Still on game page
-      await expect(page.getByText('Cancel Leave Game')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Cancel Leave Game' })).toBeVisible();
     });
   });
 

@@ -60,7 +60,7 @@ test.describe('Delete Game', () => {
     await page.goto(`/games/${game.id}`);
 
     // Wait for page to load
-    await expect(page.getByText('No Delete Game')).toBeVisible({
+    await expect(page.getByRole('heading', { name: 'No Delete Game' })).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 
@@ -170,7 +170,7 @@ test.describe('Delete Game', () => {
     await expect(page.getByText(/are you sure you want to permanently delete/i)).not.toBeVisible();
 
     // Still on game page
-    await expect(page.getByText('Cancel Delete Game')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Cancel Delete Game' })).toBeVisible();
   });
 
   // Note: "deleted game no longer appears on dashboard" test removed as redundant.

@@ -18,10 +18,17 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Can We Play? - Game Night Scheduler',
-  description: 'Coordinate game nights with your group',
+  title: {
+    template: '%s | Can We Play?',
+    default: 'Can We Play? - Game Night Scheduler',
+  },
+  description:
+    'Schedule your tabletop game nights with ease. Players mark availability, get smart date suggestions, and export confirmed sessions to your calendar.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   manifest: '/manifest.webmanifest',
+  alternates: {
+    canonical: '/',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -29,7 +36,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Can We Play?',
-    description: 'Coordinate game nights with your group',
+    description:
+      'Schedule your tabletop game nights with ease. Players mark availability, get smart date suggestions, and export confirmed sessions to your calendar.',
     siteName: 'Can We Play?',
     locale: 'en_US',
     type: 'website',
@@ -37,7 +45,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Can We Play?',
-    description: 'Coordinate game nights with your group',
+    description:
+      'Schedule your tabletop game nights with ease. Players mark availability, get smart date suggestions, and export confirmed sessions to your calendar.',
   },
 };
 

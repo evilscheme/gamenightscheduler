@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
 
     if (error || !game) {
       return {
-        title: 'Game Invite - Can We Play?',
+        title: 'Game Invite',
         description: 'Join a game night on Can We Play?',
       };
     }
@@ -50,7 +50,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     };
   } catch {
     return {
-      title: 'Game Invite - Can We Play?',
+      title: 'Game Invite',
       description: 'Join a game night on Can We Play?',
     };
   }

@@ -905,7 +905,7 @@ export default function GameDetailPage() {
                 <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
                   <p className="text-sm text-primary">
                     Add potential play dates by clicking the + on any date in the
-                    calendar below.
+                    calendar below (or long-press on mobile).
                   </p>
                 </div>
               )}

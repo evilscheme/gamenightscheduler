@@ -10,29 +10,25 @@ test.describe('Landing Page', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Tagline should be visible
-    await expect(page.getByText(/never miss a game night again/i)).toBeVisible();
-
-    // Description text should be visible
-    await expect(page.getByText(/coordinate your game nights/i)).toBeVisible();
+    // Subtitle should be visible
+    await expect(page.getByText(/track availability/i)).toBeVisible();
 
     // CTA buttons should be visible
-    await expect(page.getByRole('link', { name: /get started/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /learn more/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /get started/i }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /see how it works/i })).toBeVisible();
 
-    // Features section should be visible
-    await expect(page.getByRole('heading', { name: /everything you need/i })).toBeVisible();
+    // "How it works" section should be visible
+    await expect(page.getByRole('heading', { name: /how it works/i })).toBeVisible();
 
-    // Feature cards should be present (use headings to be specific)
-    await expect(page.getByRole('heading', { name: 'Track Availability' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Smart Suggestions' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Calendar Export' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Multiple Games' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Easy Invites' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Flexible Play Days' })).toBeVisible();
+    // Steps should be present
+    await expect(page.getByRole('heading', { name: 'Invite your party' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mark availability' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Book game nights' })).toBeVisible();
 
-    // Bottom CTA should be visible
-    await expect(page.getByRole('heading', { name: /ready to get started/i })).toBeVisible();
+    // Features should be present
+    await expect(page.getByRole('heading', { name: 'Multi-Game' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Calendar Sync' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Co-GM Support' })).toBeVisible();
   });
 
   test('CTA button navigates to login', async ({ page }) => {
@@ -43,8 +39,8 @@ test.describe('Landing Page', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Click "Get Started" button
-    await page.getByRole('link', { name: /get started/i }).click();
+    // Click first "Get Started" button (hero CTA)
+    await page.getByRole('link', { name: /get started/i }).first().click();
 
     // Should navigate to login page
     await expect(page).toHaveURL('/login');

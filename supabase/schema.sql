@@ -16,7 +16,10 @@ CREATE TABLE users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL CHECK (char_length(name) <= 50),
-  avatar_url TEXT,
+  avatar_url TEXT CHECK (
+    avatar_url IS NULL
+    OR avatar_url ~ '^https://(lh3\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/'
+  ),
   is_gm BOOLEAN DEFAULT TRUE,
   is_admin BOOLEAN DEFAULT FALSE,
   timezone TEXT DEFAULT NULL,

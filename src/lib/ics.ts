@@ -351,5 +351,7 @@ export function escapeICS(text: string): string {
     .replace(/\\/g, '\\\\')
     .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
+    .replace(/\r\n/g, '\\n')
+    .replace(/\r/g, '\\n')
     .replace(/\n/g, '\\n');
 }

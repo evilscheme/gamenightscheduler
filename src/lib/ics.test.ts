@@ -29,6 +29,18 @@ describe("escapeICS", () => {
   it("returns regular text unchanged", () => {
     expect(escapeICS("Hello World")).toBe("Hello World");
   });
+
+  it("escapes carriage returns", () => {
+    expect(escapeICS("line1\rline2")).toBe("line1\\nline2");
+  });
+
+  it("escapes CRLF sequences", () => {
+    expect(escapeICS("line1\r\nline2")).toBe("line1\\nline2");
+  });
+
+  it("escapes mixed line endings", () => {
+    expect(escapeICS("a\r\nb\nc\rd")).toBe("a\\nb\\nc\\nd");
+  });
 });
 
 describe("generateICS", () => {

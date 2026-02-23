@@ -11,7 +11,8 @@ function LoginContent() {
   const { session, isLoading, signInWithGoogle, signInWithDiscord } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const raw = searchParams.get('callbackUrl') || '/dashboard';
+  const callbackUrl = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/dashboard';
 
   useEffect(() => {
     // Redirect if user is already authenticated (check session, not profile)

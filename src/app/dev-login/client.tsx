@@ -17,7 +17,7 @@ export function DevLoginClient() {
   const { session, profile, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const rawCallback = searchParams.get('callbackUrl') || '/dashboard';
-  const callbackUrl = rawCallback.startsWith('/') ? rawCallback : '/dashboard';
+  const callbackUrl = rawCallback.startsWith('/') && !rawCallback.startsWith('//') ? rawCallback : '/dashboard';
 
   const [isPending, startTransition] = useTransition();
   const [activePersona, setActivePersona] = useState<string | null>(null);

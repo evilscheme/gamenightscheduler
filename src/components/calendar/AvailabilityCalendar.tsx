@@ -1071,6 +1071,7 @@ function NoteEditorPopover({
                   value={commentText}
                   onChange={(e) => onCommentChange(e.target.value)}
                   placeholder="e.g., Depends on work schedule"
+                  maxLength={500}
                   className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   autoFocus
                   onKeyDown={(e) => {

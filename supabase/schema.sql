@@ -65,7 +65,7 @@ CREATE TABLE availability (
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   status availability_status NOT NULL DEFAULT 'available',
-  comment TEXT,
+  comment TEXT CHECK (comment IS NULL OR char_length(comment) <= 500),
   available_after TIME,
   available_until TIME,
   created_at TIMESTAMPTZ DEFAULT NOW(),

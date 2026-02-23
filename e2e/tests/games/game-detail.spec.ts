@@ -412,6 +412,6 @@ test.describe('Regenerate Invite Code', () => {
     await expect(page.getByText(/regenerate invite code\?/i)).not.toBeVisible();
 
     // Still on game page
-    await expect(page.getByText('Regen Cancel Game')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Regen Cancel Game' })).toBeVisible();
   });
 });

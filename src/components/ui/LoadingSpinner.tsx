@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   /** When true, shows the crit face (20) facing forward without animation */
   staticCritFace?: boolean;
+  /** When set (1-20), rolls the die and stops on this number. Numbers appear on all faces. */
+  rollResult?: number;
+  /** Called when the roll animation finishes (only used with rollResult) */
+  onRollComplete?: () => void;
 }
 
 // Larger sizes for 3D readability
@@ -14,6 +18,7 @@ const sizes = {
   sm: 24,
   md: 48,
   lg: 96,
+  xl: 192,
 };
 
 // Icosahedron geometry using golden ratio
@@ -68,39 +73,34 @@ const FACES: [number, number, number][] = [
 // The "crit" face - face index 0 will have "20" on it
 const CRIT_FACE_INDEX = 0;
 
-// Rotation matrix multiplication
-function rotateX(point: [number, number, number], angle: number): [number, number, number] {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [point[0], point[1] * cos - point[2] * sin, point[1] * sin + point[2] * cos];
-}
+// Number assignment for each face (index = face index, value = number on that face)
+// Opposite faces sum to 21, following standard d20 convention
+const FACE_NUMBERS = [
+  20, 14, 8, 16, 2, 12, 10, 6, 18, 4, 9, 11, 15, 3, 17, 13, 7, 1, 19, 5,
+];
 
-function rotateY(point: [number, number, number], angle: number): [number, number, number] {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [point[0] * cos + point[2] * sin, point[1], -point[0] * sin + point[2] * cos];
-}
+// Pre-compute face normals via cross product (outward-pointing for CCW winding)
+const FACE_NORMALS: [number, number, number][] = FACES.map(([i, j, k]) => {
+  const v0 = VERTICES[i], v1 = VERTICES[j], v2 = VERTICES[k];
+  const e1x = v1[0] - v0[0], e1y = v1[1] - v0[1], e1z = v1[2] - v0[2];
+  const e2x = v2[0] - v0[0], e2y = v2[1] - v0[1], e2z = v2[2] - v0[2];
+  const nx = e1y * e2z - e1z * e2y;
+  const ny = e1z * e2x - e1x * e2z;
+  const nz = e1x * e2y - e1y * e2x;
+  const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+  return [nx / len, ny / len, nz / len] as [number, number, number];
+});
 
-function rotateZ(point: [number, number, number], angle: number): [number, number, number] {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [point[0] * cos - point[1] * sin, point[0] * sin + point[1] * cos, point[2]];
-}
-
-// Calculate face normal for lighting
-function calculateNormal(
-  v0: [number, number, number],
-  v1: [number, number, number],
-  v2: [number, number, number]
-): [number, number, number] {
-  const ax = v1[0] - v0[0];
-  const ay = v1[1] - v0[1];
-  const az = v1[2] - v0[2];
-  const bx = v2[0] - v0[0];
-  const by = v2[1] - v0[1];
-  const bz = v2[2] - v0[2];
-  return [ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx];
-}
+// Pre-compute the Euler angles (rotateX, rotateY) that orient each face toward +Z
+// Given rotation order Rz(az)*Ry(ay)*Rx(ax), we solve for angles that map
+// the face normal to (0, 0, 1):
+//   ax = atan2(ny, nz) → zeroes out the y-component after Rx
+//   ay = atan2(-nx, sqrt(ny²+nz²)) → zeroes out the x-component after Ry
+const FACE_ORIENTATIONS: [number, number, number][] = FACE_NORMALS.map(([nx, ny, nz]) => {
+  const ax = Math.atan2(ny, nz);
+  const ay = Math.atan2(-nx, Math.sqrt(ny * ny + nz * nz));
+  return [ax, ay, 0] as [number, number, number];
+});
 
 // Project 3D to 2D with perspective
 // perspective = 4: Camera distance from origin. Higher values = less distortion, flatter look.
@@ -165,25 +165,184 @@ function parseColor(color: string): { h: number; s: number; l: number } | null {
   return null;
 }
 
+// Draw a number on a triangular face using perspective-correct affine transform
+function drawFaceNumber(
+  ctx: CanvasRenderingContext2D,
+  faceIndex: number,
+  face: [number, number, number],
+  transformed: [number, number, number][],
+  scale: number,
+  center: number,
+  showAllNumbers: boolean,
+  dpr: number,
+  verticalCenterCache: Map<string, number>,
+) {
+  const [i, j, k] = face;
+  const v0 = transformed[i];
+  const v1 = transformed[j];
+  const v2 = transformed[k];
+
+  // Calculate face centroid in 3D
+  const centroid3D: [number, number, number] = [
+    (v0[0] + v1[0] + v2[0]) / 3,
+    (v0[1] + v1[1] + v2[1]) / 3,
+    (v0[2] + v1[2] + v2[2]) / 3,
+  ];
+
+  // Use v0 as fixed "up" reference for consistent text orientation
+  // This keeps the text stable as the die rotates (no flipping)
+  const upDir: [number, number, number] = [
+    v0[0] - centroid3D[0],
+    v0[1] - centroid3D[1],
+    v0[2] - centroid3D[2],
+  ];
+  const upLen = Math.sqrt(upDir[0] ** 2 + upDir[1] ** 2 + upDir[2] ** 2);
+  const localY: [number, number, number] = [
+    upDir[0] / upLen,
+    upDir[1] / upLen,
+    upDir[2] / upLen,
+  ];
+
+  // Calculate face normal (edge1 x edge2)
+  const edge1: [number, number, number] = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
+  const edge2: [number, number, number] = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
+  const faceNormal: [number, number, number] = [
+    edge1[1] * edge2[2] - edge1[2] * edge2[1],
+    edge1[2] * edge2[0] - edge1[0] * edge2[2],
+    edge1[0] * edge2[1] - edge1[1] * edge2[0],
+  ];
+  const normalLen = Math.sqrt(
+    faceNormal[0] ** 2 + faceNormal[1] ** 2 + faceNormal[2] ** 2
+  );
+  const normalizedNormal: [number, number, number] = [
+    faceNormal[0] / normalLen,
+    faceNormal[1] / normalLen,
+    faceNormal[2] / normalLen,
+  ];
+
+  // localX = normal x localY (right direction when facing the face)
+  // Combined with negated Y transform, this gives correct non-mirrored text
+  const localX: [number, number, number] = [
+    normalizedNormal[1] * localY[2] - normalizedNormal[2] * localY[1],
+    normalizedNormal[2] * localY[0] - normalizedNormal[0] * localY[2],
+    normalizedNormal[0] * localY[1] - normalizedNormal[1] * localY[0],
+  ];
+
+  // Project centroid and offset points to get 2D transform
+  const textScale = 0.4; // Scale factor for text size relative to face
+  const centroidProj = project(centroid3D, scale, center, center);
+
+  // Project points offset along local X and Y axes
+  const xOffset3D: [number, number, number] = [
+    centroid3D[0] + localX[0] * textScale,
+    centroid3D[1] + localX[1] * textScale,
+    centroid3D[2] + localX[2] * textScale,
+  ];
+  const yOffset3D: [number, number, number] = [
+    centroid3D[0] + localY[0] * textScale,
+    centroid3D[1] + localY[1] * textScale,
+    centroid3D[2] + localY[2] * textScale,
+  ];
+
+  const xOffsetProj = project(xOffset3D, scale, center, center);
+  const yOffsetProj = project(yOffset3D, scale, center, center);
+
+  // Calculate the 2D transform vectors
+  // Note: Y axis is negated because canvas text has top in -Y direction,
+  // but we want the top of the number to point toward the apex
+  const ax = xOffsetProj[0] - centroidProj[0];
+  const ay = xOffsetProj[1] - centroidProj[1];
+  const bx = centroidProj[0] - yOffsetProj[0]; // negated
+  const by = centroidProj[1] - yOffsetProj[1]; // negated
+
+  // Apply affine transform with DPR scaling (setTransform replaces the context's
+  // DPR scale, so we must factor it into the transform matrix directly)
+  ctx.save();
+  ctx.setTransform(ax * dpr, ay * dpr, bx * dpr, by * dpr, centroidProj[0] * dpr, centroidProj[1] * dpr);
+
+  const number = showAllNumbers ? FACE_NUMBERS[faceIndex] : 20;
+  const text = String(number);
+  const isCrit = number === 20;
+
+  // Draw text with offset toward base of triangle for better visual centering
+  const fontSize = 1.1; // In transform units
+  const textY = 0.45; // Y offset moves toward base (away from apex)
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  // Use pre-cached vertical center offset instead of calling measureText per-face per-frame
+  const verticalCenter = verticalCenterCache.get(text) ?? 0;
+
+  if (isCrit) {
+    // Gold text with dark outline for the 20 face
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.lineWidth = 0.1;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(text, 0, textY + verticalCenter);
+    ctx.fillStyle = 'hsl(45, 100%, 50%)';
+    ctx.fillText(text, 0, textY + verticalCenter);
+  } else {
+    // White text with dark outline for all other faces
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.lineWidth = 0.08;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(text, 0, textY + verticalCenter);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillText(text, 0, textY + verticalCenter);
+  }
+
+  ctx.restore();
+}
+
+// Quartic ease-out for smooth deceleration
+function easeOutQuart(t: number): number {
+  return 1 - Math.pow(1 - t, 4);
+}
+
 export function LoadingSpinner({
   size = 'md',
   className = '',
   staticCritFace = false,
+  rollResult,
+  onRollComplete,
 }: LoadingSpinnerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
+  const rollCompleteCalledRef = useRef(false);
   const dimension = sizes[size];
 
-  // Cache theme colors outside render loop to avoid expensive getComputedStyle calls every frame
-  const [colors, setColors] = useState({ primary: '#7c3aed', foreground: '#3b0764' });
+  // For roll mode: random start angles, computed once per rollResult change
+  const rollStartRef = useRef<[number, number, number] | null>(null);
 
-  // Listen for theme changes via MutationObserver on document root
+  // Store parsed theme colors in a ref to avoid animation restarts on theme change.
+  // The MutationObserver updates this ref directly; the render loop reads it each frame.
+  const colorsRef = useRef<{
+    primaryHSL: ReturnType<typeof parseColor>;
+    foregroundHSL: ReturnType<typeof parseColor>;
+  }>({
+    primaryHSL: parseColor('#7c3aed'),
+    foregroundHSL: parseColor('#3b0764'),
+  });
+
+  // Store onRollComplete in a ref so the render effect doesn't restart
+  // when the parent passes an unstable callback reference.
+  const onRollCompleteRef = useRef(onRollComplete);
+  useEffect(() => {
+    onRollCompleteRef.current = onRollComplete;
+  });
+
+  // Listen for theme changes via MutationObserver on document root.
+  // Parses HSL once per theme change instead of every animation frame.
   useEffect(() => {
     const updateColors = () => {
       const style = getComputedStyle(document.documentElement);
       const primary = style.getPropertyValue('--primary').trim() || '#7c3aed';
       const foreground = style.getPropertyValue('--foreground').trim() || '#3b0764';
-      setColors({ primary, foreground });
+      colorsRef.current = {
+        primaryHSL: parseColor(primary),
+        foregroundHSL: parseColor(foreground),
+      };
     };
     updateColors();
 
@@ -192,6 +351,18 @@ export function LoadingSpinner({
     return () => observer.disconnect();
   }, []);
 
+  // Generate new random start angles when rollResult changes
+  useEffect(() => {
+    if (rollResult != null) {
+      rollStartRef.current = [
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2,
+      ];
+      rollCompleteCalledRef.current = false;
+    }
+  }, [rollResult]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -199,9 +370,29 @@ export function LoadingSpinner({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let startTime: number | null = null;
+    // Scale canvas buffer for crisp rendering on HiDPI/Retina displays.
+    // CSS size stays at `dimension`; physical buffer is `dimension * dpr`.
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = dimension * dpr;
+    canvas.height = dimension * dpr;
+    ctx.scale(dpr, dpr);
 
-    // Rotation speeds (radians per second).
+    let startTime: number | null = null;
+    const isRollMode = rollResult != null && rollResult >= 1 && rollResult <= 20;
+    const showAllNumbers = isRollMode;
+
+    // Roll animation config
+    const ROLL_DURATION = 2.0; // seconds
+    const EXTRA_SPINS = 3; // full rotations added for visual effect
+
+    // Find target face index for rollResult
+    let targetFaceIndex = 0;
+    if (isRollMode) {
+      targetFaceIndex = FACE_NUMBERS.indexOf(rollResult);
+      if (targetFaceIndex === -1) targetFaceIndex = 0;
+    }
+
+    // Rotation speeds (radians per second) for spinning mode
     // These values have irrational ratios to each other (~0.636, ~2.75, ~0.364), ensuring
     // the die never returns to exactly the same orientation - creating perpetual, organic motion.
     const speedX = 0.7;
@@ -212,60 +403,122 @@ export function LoadingSpinner({
     // These rotate the die so the "20" face normal aligns with +Z axis
     const staticAngleX = -0.46;
     const staticAngleY = -0.32;
-    const staticAngleZ = 0;
+
+    const scale = dimension * 0.35;
+    const center = dimension / 2;
+    const perspective = 4;
+
+    // Pre-allocate buffers to avoid per-frame GC pressure.
+    // These arrays are mutated in-place during each render frame instead of
+    // creating new arrays via .map() on every requestAnimationFrame callback.
+    const transformed: [number, number, number][] = VERTICES.map(
+      () => [0, 0, 0] as [number, number, number]
+    );
+    const projected: [number, number, number][] = VERTICES.map(
+      () => [0, 0, 0] as [number, number, number]
+    );
+    const facesWithDepth = FACES.map((face, faceIndex) => ({
+      face,
+      faceIndex,
+      centerZ: 0,
+      lightIntensity: 0,
+      normalizedNormalZ: 0,
+    }));
+
+    // Pre-cache text vertical-center offsets for all d20 numbers.
+    // Canvas measureText is transform-independent for a given font size,
+    // so we measure once at effect setup rather than per-face per-frame.
+    const verticalCenterCache = new Map<string, number>();
+    ctx.save();
+    ctx.font = 'bold 1.1px sans-serif';
+    for (let n = 1; n <= 20; n++) {
+      const text = String(n);
+      const metrics = ctx.measureText(text);
+      const ascent = metrics.actualBoundingBoxAscent;
+      const descent = metrics.actualBoundingBoxDescent;
+      verticalCenterCache.set(text, ascent - (ascent + descent));
+    }
+    ctx.restore();
 
     const render = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const elapsed = (timestamp - startTime) / 1000;
 
-      // Use static angles or animated rotation
-      const angleX = staticCritFace ? staticAngleX : elapsed * speedX;
-      const angleY = staticCritFace ? staticAngleY : elapsed * speedY;
-      const angleZ = staticCritFace ? staticAngleZ : elapsed * speedZ;
+      let angleX: number, angleY: number, angleZ: number;
+
+      if (isRollMode) {
+        const startAngles = rollStartRef.current || [0, 0, 0];
+        const targetAngles = FACE_ORIENTATIONS[targetFaceIndex];
+
+        const t = Math.min(elapsed / ROLL_DURATION, 1);
+        const eased = easeOutQuart(t);
+
+        // Interpolate from random start to target, adding extra full spins
+        angleX = startAngles[0] + (targetAngles[0] + EXTRA_SPINS * Math.PI * 2 - startAngles[0]) * eased;
+        angleY = startAngles[1] + (targetAngles[1] + EXTRA_SPINS * Math.PI * 2 - startAngles[1]) * eased;
+        angleZ = startAngles[2] + (targetAngles[2] - startAngles[2]) * eased;
+      } else if (staticCritFace) {
+        angleX = staticAngleX;
+        angleY = staticAngleY;
+        angleZ = 0;
+      } else {
+        angleX = elapsed * speedX;
+        angleY = elapsed * speedY;
+        angleZ = elapsed * speedZ;
+      }
 
       ctx.clearRect(0, 0, dimension, dimension);
 
-      // Transform vertices
-      const transformed = VERTICES.map((v) => {
-        let point = rotateX(v, angleX);
-        point = rotateY(point, angleY);
-        point = rotateZ(point, angleZ);
-        return point;
-      });
+      // Transform vertices in-place via inlined rotateX → rotateY → rotateZ chain.
+      // Trig is computed once outside the loop to avoid redundant Math.cos/sin per vertex.
+      const cosX = Math.cos(angleX), sinX = Math.sin(angleX);
+      const cosY = Math.cos(angleY), sinY = Math.sin(angleY);
+      const cosZ = Math.cos(angleZ), sinZ = Math.sin(angleZ);
 
-      // Project to 2D
-      // scale = 0.35 * dimension: Sizes the icosahedron to ~70% of canvas width,
-      // leaving padding so edges don't clip during rotation.
-      const scale = dimension * 0.35;
-      const center = dimension / 2;
-      const projected = transformed.map((v) => project(v, scale, center, center));
+      for (let i = 0; i < VERTICES.length; i++) {
+        const [vx, vy, vz] = VERTICES[i];
+        // rotateX: [x, y*cos-z*sin, y*sin+z*cos]
+        const ry = vy * cosX - vz * sinX;
+        const rz = vy * sinX + vz * cosX;
+        // rotateY: [x*cos+z*sin, y, -x*sin+z*cos]
+        const mx = vx * cosY + rz * sinY;
+        const mz = -vx * sinY + rz * cosY;
+        // rotateZ: [x*cos-y*sin, x*sin+y*cos, z]
+        transformed[i][0] = mx * cosZ - ry * sinZ;
+        transformed[i][1] = mx * sinZ + ry * cosZ;
+        transformed[i][2] = mz;
+      }
 
-      // Use cached theme colors (updated via MutationObserver, not every frame)
-      const { primary, foreground } = colors;
-      const primaryHSL = parseColor(primary);
-      const foregroundHSL = parseColor(foreground);
+      // Project to 2D in-place
+      for (let i = 0; i < VERTICES.length; i++) {
+        const tz = transformed[i][2] + perspective;
+        const factor = perspective / tz;
+        projected[i][0] = transformed[i][0] * factor * scale + center;
+        projected[i][1] = transformed[i][1] * factor * scale + center;
+        projected[i][2] = transformed[i][2];
+      }
 
-      // Prepare faces with depth and lighting info
-      const facesWithDepth = FACES.map((face, faceIndex) => {
-        const [i, j, k] = face;
-        const v0 = transformed[i];
-        const v1 = transformed[j];
-        const v2 = transformed[k];
+      // Read theme colors from ref (updated by MutationObserver, not per-frame)
+      const { primaryHSL, foregroundHSL } = colorsRef.current;
 
-        const centerZ = (v0[2] + v1[2] + v2[2]) / 3;
-        const normal = calculateNormal(v0, v1, v2);
-        const normalLength = Math.sqrt(normal[0] ** 2 + normal[1] ** 2 + normal[2] ** 2);
-        const lightIntensity = normalLength > 0 ? (normal[2] / normalLength + 1) / 2 : 0.5;
-        const normalizedNormalZ = normalLength > 0 ? normal[2] / normalLength : 0;
+      // Update face depth and lighting data in-place (inlined cross product).
+      // Must read vertex indices from the stored .face, not FACES[fi], because
+      // the sort from the previous frame reorders facesWithDepth.
+      for (let fi = 0; fi < facesWithDepth.length; fi++) {
+        const [i, j, k] = facesWithDepth[fi].face;
+        const v0 = transformed[i], v1 = transformed[j], v2 = transformed[k];
+        facesWithDepth[fi].centerZ = (v0[2] + v1[2] + v2[2]) / 3;
 
-        return {
-          face,
-          faceIndex,
-          centerZ,
-          lightIntensity,
-          normalizedNormalZ,
-        };
-      });
+        const e1x = v1[0] - v0[0], e1y = v1[1] - v0[1], e1z = v1[2] - v0[2];
+        const e2x = v2[0] - v0[0], e2y = v2[1] - v0[1], e2z = v2[2] - v0[2];
+        const nx = e1y * e2z - e1z * e2y;
+        const ny = e1z * e2x - e1x * e2z;
+        const nz = e1x * e2y - e1y * e2x;
+        const normalLength = Math.sqrt(nx * nx + ny * ny + nz * nz);
+
+        facesWithDepth[fi].lightIntensity = normalLength > 0 ? (nz / normalLength + 1) / 2 : 0.5;
+        facesWithDepth[fi].normalizedNormalZ = normalLength > 0 ? nz / normalLength : 0;
+      }
 
       // Sort faces back to front
       facesWithDepth.sort((a, b) => a.centerZ - b.centerZ);
@@ -317,121 +570,29 @@ export function LoadingSpinner({
           ctx.lineJoin = 'round';
           ctx.stroke();
 
-          // Draw "20" on the crit face when it's facing the viewer
-          if (isCritFace && faceIsVisible) {
-            // Get the 3D transformed vertices for this face
-            const v0 = transformed[i];
-            const v1 = transformed[j];
-            const v2 = transformed[k];
-
-            // Calculate face centroid in 3D
-            const centroid3D: [number, number, number] = [
-              (v0[0] + v1[0] + v2[0]) / 3,
-              (v0[1] + v1[1] + v2[1]) / 3,
-              (v0[2] + v1[2] + v2[2]) / 3,
-            ];
-
-            // Use v0 as fixed "up" reference for consistent text orientation
-            // This keeps the text stable as the die rotates (no flipping)
-            const upDir: [number, number, number] = [
-              v0[0] - centroid3D[0],
-              v0[1] - centroid3D[1],
-              v0[2] - centroid3D[2],
-            ];
-            const upLen = Math.sqrt(upDir[0] ** 2 + upDir[1] ** 2 + upDir[2] ** 2);
-            const localY: [number, number, number] = [
-              upDir[0] / upLen,
-              upDir[1] / upLen,
-              upDir[2] / upLen,
-            ];
-
-            // Calculate face normal (edge1 x edge2)
-            const edge1: [number, number, number] = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
-            const edge2: [number, number, number] = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
-            const faceNormal: [number, number, number] = [
-              edge1[1] * edge2[2] - edge1[2] * edge2[1],
-              edge1[2] * edge2[0] - edge1[0] * edge2[2],
-              edge1[0] * edge2[1] - edge1[1] * edge2[0],
-            ];
-            const normalLen = Math.sqrt(
-              faceNormal[0] ** 2 + faceNormal[1] ** 2 + faceNormal[2] ** 2
-            );
-            const normalizedNormal: [number, number, number] = [
-              faceNormal[0] / normalLen,
-              faceNormal[1] / normalLen,
-              faceNormal[2] / normalLen,
-            ];
-
-            // localX = normal × localY (right direction when facing the face)
-            // Combined with negated Y transform, this gives correct non-mirrored text
-            const localX: [number, number, number] = [
-              normalizedNormal[1] * localY[2] - normalizedNormal[2] * localY[1],
-              normalizedNormal[2] * localY[0] - normalizedNormal[0] * localY[2],
-              normalizedNormal[0] * localY[1] - normalizedNormal[1] * localY[0],
-            ];
-
-            // Project centroid and offset points to get 2D transform
-            const textScale = 0.4; // Scale factor for text size relative to face
-            const centroidProj = project(centroid3D, scale, center, center);
-
-            // Project points offset along local X and Y axes
-            const xOffset3D: [number, number, number] = [
-              centroid3D[0] + localX[0] * textScale,
-              centroid3D[1] + localX[1] * textScale,
-              centroid3D[2] + localX[2] * textScale,
-            ];
-            const yOffset3D: [number, number, number] = [
-              centroid3D[0] + localY[0] * textScale,
-              centroid3D[1] + localY[1] * textScale,
-              centroid3D[2] + localY[2] * textScale,
-            ];
-
-            const xOffsetProj = project(xOffset3D, scale, center, center);
-            const yOffsetProj = project(yOffset3D, scale, center, center);
-
-            // Calculate the 2D transform vectors
-            // Note: Y axis is negated because canvas text has top in -Y direction,
-            // but we want the top of "20" to point toward the apex
-            const ax = xOffsetProj[0] - centroidProj[0];
-            const ay = xOffsetProj[1] - centroidProj[1];
-            const bx = centroidProj[0] - yOffsetProj[0]; // negated
-            const by = centroidProj[1] - yOffsetProj[1]; // negated
-
-            // Apply affine transform: maps unit vectors to face-aligned vectors
-            ctx.save();
-            ctx.setTransform(ax, ay, bx, by, centroidProj[0], centroidProj[1]);
-
-            // Draw text with offset toward base of triangle for better visual centering
-            const fontSize = 1.1; // In transform units
-            const textY = 0.45; // Y offset moves toward base (away from apex)
-            ctx.font = `bold ${fontSize}px sans-serif`;
-            ctx.textAlign = 'center';
-            // Use 'alphabetic' baseline (more consistent across browsers) and manually center
-            ctx.textBaseline = 'alphabetic';
-
-            // Calculate true vertical center using actual font metrics
-            const metrics = ctx.measureText('20');
-            const ascent = metrics.actualBoundingBoxAscent;
-            const descent = metrics.actualBoundingBoxDescent;
-            const textHeight = ascent + descent;
-            // Offset to center: move down by ascent, then back up by half height
-            const verticalCenter = ascent - textHeight;
-
-            // Gold text with dark outline for contrast on all backgrounds
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.lineWidth = 0.1;
-            ctx.lineJoin = 'round';
-            ctx.strokeText('20', 0, textY + verticalCenter);
-            ctx.fillStyle = 'hsl(45, 100%, 50%)';
-            ctx.fillText('20', 0, textY + verticalCenter);
-
-            ctx.restore();
+          // Draw numbers on visible faces
+          if (faceIsVisible) {
+            if (showAllNumbers) {
+              drawFaceNumber(ctx, faceIndex, face, transformed, scale, center, true, dpr, verticalCenterCache);
+            } else if (isCritFace) {
+              drawFaceNumber(ctx, faceIndex, face, transformed, scale, center, false, dpr, verticalCenterCache);
+            }
           }
         }
       );
 
-      // Only continue animation loop if not static
-      if (!staticCritFace) {
+      // Continue animation or signal completion
+      if (isRollMode) {
+        if (elapsed < ROLL_DURATION) {
+          animationRef.current = requestAnimationFrame(render);
+        } else {
+          // Animation complete — fire callback via ref
+          if (!rollCompleteCalledRef.current && onRollCompleteRef.current) {
+            rollCompleteCalledRef.current = true;
+            onRollCompleteRef.current();
+          }
+        }
+      } else if (!staticCritFace) {
         animationRef.current = requestAnimationFrame(render);
       }
     };
@@ -441,7 +602,7 @@ export function LoadingSpinner({
     return () => {
       cancelAnimationFrame(animationRef.current);
     };
-  }, [dimension, colors, staticCritFace]);
+  }, [dimension, staticCritFace, rollResult]);
 
   return (
     <canvas
@@ -449,7 +610,7 @@ export function LoadingSpinner({
       width={dimension}
       height={dimension}
       className={className}
-      aria-label="Loading"
+      aria-label={rollResult != null ? `D20 showing ${rollResult}` : 'Loading'}
       style={{ width: dimension, height: dimension }}
     />
   );

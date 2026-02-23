@@ -210,7 +210,7 @@ test.describe('Multi-User Session Visibility', () => {
 
       // Player can see the game
       await playerPage.goto(`/games/${game.id}`);
-      await expect(playerPage.getByText(game.name)).toBeVisible({
+      await expect(playerPage.getByRole('heading', { name: game.name })).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 

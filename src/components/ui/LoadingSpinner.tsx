@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -102,40 +102,6 @@ const FACE_ORIENTATIONS: [number, number, number][] = FACE_NORMALS.map(([nx, ny,
   return [ax, ay, 0] as [number, number, number];
 });
 
-// Rotation matrix multiplication
-function rotateX(point: [number, number, number], angle: number): [number, number, number] {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [point[0], point[1] * cos - point[2] * sin, point[1] * sin + point[2] * cos];
-}
-
-function rotateY(point: [number, number, number], angle: number): [number, number, number] {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [point[0] * cos + point[2] * sin, point[1], -point[0] * sin + point[2] * cos];
-}
-
-function rotateZ(point: [number, number, number], angle: number): [number, number, number] {
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return [point[0] * cos - point[1] * sin, point[0] * sin + point[1] * cos, point[2]];
-}
-
-// Calculate face normal for lighting
-function calculateNormal(
-  v0: [number, number, number],
-  v1: [number, number, number],
-  v2: [number, number, number]
-): [number, number, number] {
-  const ax = v1[0] - v0[0];
-  const ay = v1[1] - v0[1];
-  const az = v1[2] - v0[2];
-  const bx = v2[0] - v0[0];
-  const by = v2[1] - v0[1];
-  const bz = v2[2] - v0[2];
-  return [ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx];
-}
-
 // Project 3D to 2D with perspective
 // perspective = 4: Camera distance from origin. Higher values = less distortion, flatter look.
 //                  4 gives a subtle 3D effect without extreme foreshortening.
@@ -207,7 +173,9 @@ function drawFaceNumber(
   transformed: [number, number, number][],
   scale: number,
   center: number,
-  showAllNumbers: boolean
+  showAllNumbers: boolean,
+  dpr: number,
+  verticalCenterCache: Map<string, number>,
 ) {
   const [i, j, k] = face;
   const v0 = transformed[i];
@@ -287,9 +255,10 @@ function drawFaceNumber(
   const bx = centroidProj[0] - yOffsetProj[0]; // negated
   const by = centroidProj[1] - yOffsetProj[1]; // negated
 
-  // Apply affine transform: maps unit vectors to face-aligned vectors
+  // Apply affine transform with DPR scaling (setTransform replaces the context's
+  // DPR scale, so we must factor it into the transform matrix directly)
   ctx.save();
-  ctx.setTransform(ax, ay, bx, by, centroidProj[0], centroidProj[1]);
+  ctx.setTransform(ax * dpr, ay * dpr, bx * dpr, by * dpr, centroidProj[0] * dpr, centroidProj[1] * dpr);
 
   const number = showAllNumbers ? FACE_NUMBERS[faceIndex] : 20;
   const text = String(number);
@@ -300,16 +269,10 @@ function drawFaceNumber(
   const textY = 0.45; // Y offset moves toward base (away from apex)
   ctx.font = `bold ${fontSize}px sans-serif`;
   ctx.textAlign = 'center';
-  // Use 'alphabetic' baseline (more consistent across browsers) and manually center
   ctx.textBaseline = 'alphabetic';
 
-  // Calculate true vertical center using actual font metrics
-  const metrics = ctx.measureText(text);
-  const ascent = metrics.actualBoundingBoxAscent;
-  const descent = metrics.actualBoundingBoxDescent;
-  const textHeight = ascent + descent;
-  // Offset to center: move down by ascent, then back up by half height
-  const verticalCenter = ascent - textHeight;
+  // Use pre-cached vertical center offset instead of calling measureText per-face per-frame
+  const verticalCenter = verticalCenterCache.get(text) ?? 0;
 
   if (isCrit) {
     // Gold text with dark outline for the 20 face
@@ -352,16 +315,34 @@ export function LoadingSpinner({
   // For roll mode: random start angles, computed once per rollResult change
   const rollStartRef = useRef<[number, number, number] | null>(null);
 
-  // Cache theme colors outside render loop to avoid expensive getComputedStyle calls every frame
-  const [colors, setColors] = useState({ primary: '#7c3aed', foreground: '#3b0764' });
+  // Store parsed theme colors in a ref to avoid animation restarts on theme change.
+  // The MutationObserver updates this ref directly; the render loop reads it each frame.
+  const colorsRef = useRef<{
+    primaryHSL: ReturnType<typeof parseColor>;
+    foregroundHSL: ReturnType<typeof parseColor>;
+  }>({
+    primaryHSL: parseColor('#7c3aed'),
+    foregroundHSL: parseColor('#3b0764'),
+  });
 
-  // Listen for theme changes via MutationObserver on document root
+  // Store onRollComplete in a ref so the render effect doesn't restart
+  // when the parent passes an unstable callback reference.
+  const onRollCompleteRef = useRef(onRollComplete);
+  useEffect(() => {
+    onRollCompleteRef.current = onRollComplete;
+  });
+
+  // Listen for theme changes via MutationObserver on document root.
+  // Parses HSL once per theme change instead of every animation frame.
   useEffect(() => {
     const updateColors = () => {
       const style = getComputedStyle(document.documentElement);
       const primary = style.getPropertyValue('--primary').trim() || '#7c3aed';
       const foreground = style.getPropertyValue('--foreground').trim() || '#3b0764';
-      setColors({ primary, foreground });
+      colorsRef.current = {
+        primaryHSL: parseColor(primary),
+        foregroundHSL: parseColor(foreground),
+      };
     };
     updateColors();
 
@@ -382,19 +363,19 @@ export function LoadingSpinner({
     }
   }, [rollResult]);
 
-  const handleRollComplete = useCallback(() => {
-    if (!rollCompleteCalledRef.current && onRollComplete) {
-      rollCompleteCalledRef.current = true;
-      onRollComplete();
-    }
-  }, [onRollComplete]);
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Scale canvas buffer for crisp rendering on HiDPI/Retina displays.
+    // CSS size stays at `dimension`; physical buffer is `dimension * dpr`.
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = dimension * dpr;
+    canvas.height = dimension * dpr;
+    ctx.scale(dpr, dpr);
 
     let startTime: number | null = null;
     const isRollMode = rollResult != null && rollResult >= 1 && rollResult <= 20;
@@ -422,7 +403,42 @@ export function LoadingSpinner({
     // These rotate the die so the "20" face normal aligns with +Z axis
     const staticAngleX = -0.46;
     const staticAngleY = -0.32;
-    const staticAngleZ = 0;
+
+    const scale = dimension * 0.35;
+    const center = dimension / 2;
+    const perspective = 4;
+
+    // Pre-allocate buffers to avoid per-frame GC pressure.
+    // These arrays are mutated in-place during each render frame instead of
+    // creating new arrays via .map() on every requestAnimationFrame callback.
+    const transformed: [number, number, number][] = VERTICES.map(
+      () => [0, 0, 0] as [number, number, number]
+    );
+    const projected: [number, number, number][] = VERTICES.map(
+      () => [0, 0, 0] as [number, number, number]
+    );
+    const facesWithDepth = FACES.map((face, faceIndex) => ({
+      face,
+      faceIndex,
+      centerZ: 0,
+      lightIntensity: 0,
+      normalizedNormalZ: 0,
+    }));
+
+    // Pre-cache text vertical-center offsets for all d20 numbers.
+    // Canvas measureText is transform-independent for a given font size,
+    // so we measure once at effect setup rather than per-face per-frame.
+    const verticalCenterCache = new Map<string, number>();
+    ctx.save();
+    ctx.font = 'bold 1.1px sans-serif';
+    for (let n = 1; n <= 20; n++) {
+      const text = String(n);
+      const metrics = ctx.measureText(text);
+      const ascent = metrics.actualBoundingBoxAscent;
+      const descent = metrics.actualBoundingBoxDescent;
+      verticalCenterCache.set(text, ascent - (ascent + descent));
+    }
+    ctx.restore();
 
     const render = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
@@ -444,7 +460,7 @@ export function LoadingSpinner({
       } else if (staticCritFace) {
         angleX = staticAngleX;
         angleY = staticAngleY;
-        angleZ = staticAngleZ;
+        angleZ = 0;
       } else {
         angleX = elapsed * speedX;
         angleY = elapsed * speedY;
@@ -453,47 +469,56 @@ export function LoadingSpinner({
 
       ctx.clearRect(0, 0, dimension, dimension);
 
-      // Transform vertices
-      const transformed = VERTICES.map((v) => {
-        let point = rotateX(v, angleX);
-        point = rotateY(point, angleY);
-        point = rotateZ(point, angleZ);
-        return point;
-      });
+      // Transform vertices in-place via inlined rotateX → rotateY → rotateZ chain.
+      // Trig is computed once outside the loop to avoid redundant Math.cos/sin per vertex.
+      const cosX = Math.cos(angleX), sinX = Math.sin(angleX);
+      const cosY = Math.cos(angleY), sinY = Math.sin(angleY);
+      const cosZ = Math.cos(angleZ), sinZ = Math.sin(angleZ);
 
-      // Project to 2D
-      // scale = 0.35 * dimension: Sizes the icosahedron to ~70% of canvas width,
-      // leaving padding so edges don't clip during rotation.
-      const scale = dimension * 0.35;
-      const center = dimension / 2;
-      const projected = transformed.map((v) => project(v, scale, center, center));
+      for (let i = 0; i < VERTICES.length; i++) {
+        const [vx, vy, vz] = VERTICES[i];
+        // rotateX: [x, y*cos-z*sin, y*sin+z*cos]
+        const ry = vy * cosX - vz * sinX;
+        const rz = vy * sinX + vz * cosX;
+        // rotateY: [x*cos+z*sin, y, -x*sin+z*cos]
+        const mx = vx * cosY + rz * sinY;
+        const mz = -vx * sinY + rz * cosY;
+        // rotateZ: [x*cos-y*sin, x*sin+y*cos, z]
+        transformed[i][0] = mx * cosZ - ry * sinZ;
+        transformed[i][1] = mx * sinZ + ry * cosZ;
+        transformed[i][2] = mz;
+      }
 
-      // Use cached theme colors (updated via MutationObserver, not every frame)
-      const { primary, foreground } = colors;
-      const primaryHSL = parseColor(primary);
-      const foregroundHSL = parseColor(foreground);
+      // Project to 2D in-place
+      for (let i = 0; i < VERTICES.length; i++) {
+        const tz = transformed[i][2] + perspective;
+        const factor = perspective / tz;
+        projected[i][0] = transformed[i][0] * factor * scale + center;
+        projected[i][1] = transformed[i][1] * factor * scale + center;
+        projected[i][2] = transformed[i][2];
+      }
 
-      // Prepare faces with depth and lighting info
-      const facesWithDepth = FACES.map((face, faceIndex) => {
-        const [i, j, k] = face;
-        const v0 = transformed[i];
-        const v1 = transformed[j];
-        const v2 = transformed[k];
+      // Read theme colors from ref (updated by MutationObserver, not per-frame)
+      const { primaryHSL, foregroundHSL } = colorsRef.current;
 
-        const centerZ = (v0[2] + v1[2] + v2[2]) / 3;
-        const normal = calculateNormal(v0, v1, v2);
-        const normalLength = Math.sqrt(normal[0] ** 2 + normal[1] ** 2 + normal[2] ** 2);
-        const lightIntensity = normalLength > 0 ? (normal[2] / normalLength + 1) / 2 : 0.5;
-        const normalizedNormalZ = normalLength > 0 ? normal[2] / normalLength : 0;
+      // Update face depth and lighting data in-place (inlined cross product).
+      // Must read vertex indices from the stored .face, not FACES[fi], because
+      // the sort from the previous frame reorders facesWithDepth.
+      for (let fi = 0; fi < facesWithDepth.length; fi++) {
+        const [i, j, k] = facesWithDepth[fi].face;
+        const v0 = transformed[i], v1 = transformed[j], v2 = transformed[k];
+        facesWithDepth[fi].centerZ = (v0[2] + v1[2] + v2[2]) / 3;
 
-        return {
-          face,
-          faceIndex,
-          centerZ,
-          lightIntensity,
-          normalizedNormalZ,
-        };
-      });
+        const e1x = v1[0] - v0[0], e1y = v1[1] - v0[1], e1z = v1[2] - v0[2];
+        const e2x = v2[0] - v0[0], e2y = v2[1] - v0[1], e2z = v2[2] - v0[2];
+        const nx = e1y * e2z - e1z * e2y;
+        const ny = e1z * e2x - e1x * e2z;
+        const nz = e1x * e2y - e1y * e2x;
+        const normalLength = Math.sqrt(nx * nx + ny * ny + nz * nz);
+
+        facesWithDepth[fi].lightIntensity = normalLength > 0 ? (nz / normalLength + 1) / 2 : 0.5;
+        facesWithDepth[fi].normalizedNormalZ = normalLength > 0 ? nz / normalLength : 0;
+      }
 
       // Sort faces back to front
       facesWithDepth.sort((a, b) => a.centerZ - b.centerZ);
@@ -548,11 +573,9 @@ export function LoadingSpinner({
           // Draw numbers on visible faces
           if (faceIsVisible) {
             if (showAllNumbers) {
-              // Roll mode: numbers on all faces
-              drawFaceNumber(ctx, faceIndex, face, transformed, scale, center, true);
+              drawFaceNumber(ctx, faceIndex, face, transformed, scale, center, true, dpr, verticalCenterCache);
             } else if (isCritFace) {
-              // Default/static mode: only "20" on the crit face
-              drawFaceNumber(ctx, faceIndex, face, transformed, scale, center, false);
+              drawFaceNumber(ctx, faceIndex, face, transformed, scale, center, false, dpr, verticalCenterCache);
             }
           }
         }
@@ -563,8 +586,11 @@ export function LoadingSpinner({
         if (elapsed < ROLL_DURATION) {
           animationRef.current = requestAnimationFrame(render);
         } else {
-          // Animation complete — fire callback
-          handleRollComplete();
+          // Animation complete — fire callback via ref
+          if (!rollCompleteCalledRef.current && onRollCompleteRef.current) {
+            rollCompleteCalledRef.current = true;
+            onRollCompleteRef.current();
+          }
         }
       } else if (!staticCritFace) {
         animationRef.current = requestAnimationFrame(render);
@@ -576,7 +602,7 @@ export function LoadingSpinner({
     return () => {
       cancelAnimationFrame(animationRef.current);
     };
-  }, [dimension, colors, staticCritFace, rollResult, handleRollComplete]);
+  }, [dimension, staticCritFace, rollResult]);
 
   return (
     <canvas

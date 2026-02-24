@@ -20,19 +20,16 @@ interface UseAuthRedirectOptions {
  */
 export function useAuthRedirect(options: UseAuthRedirectOptions = {}) {
   const { requireGM = false, requireAdmin = false, redirectTo = '/login' } = options;
-  const { session, profile, isLoading } = useAuth();
+  const { authStatus, profile } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Only redirect if auth is done loading AND there's no session
-    if (!isLoading && !session) {
+    if (authStatus === 'unauthenticated') {
       router.push(redirectTo);
-    } else if (requireGM && !isLoading && profile && !profile.is_gm) {
-      // If profile loaded but not a GM, redirect to dashboard
+    } else if (requireGM && authStatus === 'authenticated' && profile && !profile.is_gm) {
       router.push('/dashboard');
-    } else if (requireAdmin && !isLoading && profile && !profile.is_admin) {
-      // If profile loaded but not an admin, redirect to dashboard
+    } else if (requireAdmin && authStatus === 'authenticated' && profile && !profile.is_admin) {
       router.push('/dashboard');
     }
-  }, [isLoading, session, profile, router, redirectTo, requireGM, requireAdmin]);
+  }, [authStatus, profile, router, redirectTo, requireGM, requireAdmin]);
 }

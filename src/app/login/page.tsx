@@ -9,19 +9,19 @@ import { LoadingSpinner } from '@/components/ui';
 import { safeCallbackUrl } from '@/lib/url';
 
 function LoginContent() {
-  const { session, isLoading, signInWithGoogle, signInWithDiscord } = useAuth();
+  const { authStatus, signInWithGoogle, signInWithDiscord } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'));
 
   useEffect(() => {
-    // Redirect if user is already authenticated (check session, not profile)
-    if (session) {
+    // Redirect if user is already authenticated
+    if (authStatus === 'authenticated') {
       router.push(callbackUrl);
     }
-  }, [session, router, callbackUrl]);
+  }, [authStatus, router, callbackUrl]);
 
-  if (isLoading) {
+  if (authStatus === 'loading' || authStatus === 'authenticated') {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

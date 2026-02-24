@@ -6,13 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
 import { LoadingSpinner } from '@/components/ui';
+import { safeCallbackUrl } from '@/lib/url';
 
 function LoginContent() {
   const { session, isLoading, signInWithGoogle, signInWithDiscord } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const raw = searchParams.get('callbackUrl') || '/dashboard';
-  const callbackUrl = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/dashboard';
+  const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'));
 
   useEffect(() => {
     // Redirect if user is already authenticated (check session, not profile)

@@ -347,7 +347,7 @@ CREATE TRIGGER prevent_membership_game_id_change
 
 -- Prevent gm_id changes on games (blocks co-GM game theft and GM force-transfers)
 CREATE TRIGGER protect_game_gm_id
-  BEFORE UPDATE ON games
+  BEFORE UPDATE OF gm_id ON games
   FOR EACH ROW
   EXECUTE FUNCTION public.protect_game_gm_id();
 

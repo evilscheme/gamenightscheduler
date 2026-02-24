@@ -14,14 +14,14 @@ const MAX_REQUESTS: Record<string, number> = {
 
 const hitCounts = new Map<string, { count: number; resetAt: number }>();
 
-function getRateLimit(pathname: string): number {
+export function getRateLimit(pathname: string): number {
   for (const [prefix, limit] of Object.entries(MAX_REQUESTS)) {
     if (pathname.startsWith(prefix)) return limit;
   }
   return 120; // default
 }
 
-function isRateLimited(key: string, limit: number): boolean {
+export function isRateLimited(key: string, limit: number): boolean {
   const now = Date.now();
   const entry = hitCounts.get(key);
 
@@ -36,7 +36,7 @@ function isRateLimited(key: string, limit: number): boolean {
 
 // Periodically clean stale entries (every 1000 requests)
 let cleanupCounter = 0;
-function maybeCleanup() {
+export function maybeCleanup() {
   if (++cleanupCounter % 1000 !== 0) return;
   const now = Date.now();
   for (const [key, entry] of hitCounts) {
@@ -44,7 +44,12 @@ function maybeCleanup() {
   }
 }
 
-export function middleware(request: NextRequest) {
+export function _resetForTesting() {
+  hitCounts.clear();
+  cleanupCounter = 0;
+}
+
+export function proxy(request: NextRequest) {
   // Skip rate limiting in test/development (E2E tests hammer APIs rapidly)
   if (process.env.NODE_ENV !== 'production') {
     return NextResponse.next();

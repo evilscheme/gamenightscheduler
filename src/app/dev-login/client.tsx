@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { loginAsDevUser, signOutDevUser } from './actions';
 import { LoadingSpinner } from '@/components/ui';
+import { safeCallbackUrl } from '@/lib/url';
 
 const PERSONAS = [
   { key: 'gm', label: 'Dev GM', description: 'Host games', badge: 'GM' },
@@ -16,8 +17,7 @@ const PERSONAS = [
 export function DevLoginClient() {
   const { session, profile, isLoading } = useAuth();
   const searchParams = useSearchParams();
-  const rawCallback = searchParams.get('callbackUrl') || '/dashboard';
-  const callbackUrl = rawCallback.startsWith('/') && !rawCallback.startsWith('//') ? rawCallback : '/dashboard';
+  const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'));
 
   const [isPending, startTransition] = useTransition();
   const [activePersona, setActivePersona] = useState<string | null>(null);

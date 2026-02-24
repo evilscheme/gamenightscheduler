@@ -37,7 +37,7 @@ type Step = 'loading' | 'decisions' | 'confirm' | 'deleting' | 'error';
 const CONFIRM_WORD = 'DELETE';
 
 export default function DeleteAccountPage() {
-  const { isLoading, session, signOut } = useAuth();
+  const { authStatus, signOut } = useAuth();
   useAuthRedirect();
 
   const [step, setStep] = useState<Step>('loading');
@@ -51,7 +51,7 @@ export default function DeleteAccountPage() {
     // this runs again after "Try again" resets step to 'loading', while the
     // guard prevents re-fetching once the user has advanced past 'loading'.
     if (step !== 'loading') return;
-    if (isLoading || !session) return;
+    if (authStatus !== 'authenticated') return;
 
     let cancelled = false;
 
@@ -80,7 +80,7 @@ export default function DeleteAccountPage() {
 
     loadPreview();
     return () => { cancelled = true; };
-  }, [isLoading, session, step]);
+  }, [authStatus, step]);
 
   function setDecision(gameId: string, decision: GameDecision) {
     setDecisions((prev) => ({ ...prev, [gameId]: decision }));
@@ -142,7 +142,7 @@ export default function DeleteAccountPage() {
     }
   }
 
-  if (isLoading || step === 'loading') {
+  if (authStatus === 'loading' || step === 'loading') {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

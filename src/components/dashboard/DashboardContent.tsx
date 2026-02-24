@@ -21,7 +21,7 @@ interface GameWithGMAndCount extends GameWithGM {
 }
 
 export function DashboardContent() {
-  const { profile, isLoading, session } = useAuth();
+  const { profile, authStatus } = useAuth();
   const [games, setGames] = useState<GameWithGMAndCount[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -89,15 +89,14 @@ export function DashboardContent() {
 
     if (profile?.id) {
       fetchGames();
-    } else if (!isLoading) {
+    } else if (authStatus !== 'loading') {
       // Auth finished but no profile - stop loading
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
-  }, [profile?.id, isLoading]);
+  }, [profile?.id, authStatus]);
 
-  // Show spinner while auth is loading, data is loading, or profile hasn't loaded yet
-  if (isLoading || loading || (session && !profile)) {
+  if (authStatus === 'loading' || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

@@ -11,7 +11,7 @@ import { ThemePicker } from '@/components/settings/ThemePicker';
 import { getBrowserTimezone, isValidTimezone } from '@/lib/timezone';
 
 export default function SettingsPage() {
-  const { profile, isLoading, refreshProfile, session } = useAuth();
+  const { profile, authStatus, refreshProfile } = useAuth();
   const [name, setName] = useState('');
   const [userTimezone, setUserTimezone] = useState('');
   const [weekStartDay, setWeekStartDay] = useState(0);
@@ -83,8 +83,7 @@ export default function SettingsPage() {
     setSaving(false);
   };
 
-  // Show spinner while auth is loading OR while we have a session but profile hasn't loaded yet
-  if (isLoading || (session && !profile)) {
+  if (authStatus === 'loading') {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

@@ -12,7 +12,7 @@ import { validateGameForm } from '@/lib/gameValidation';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function EditGamePage() {
-  const { profile, isLoading, session } = useAuth();
+  const { profile, authStatus } = useAuth();
   const { weekStartDay } = useUserPreferences();
   const router = useRouter();
   const params = useParams();
@@ -156,7 +156,7 @@ export default function EditGamePage() {
     router.push(`/games/${gameId}`);
   };
 
-  if (isLoading || loading || (session && !profile)) {
+  if (authStatus === 'loading' || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

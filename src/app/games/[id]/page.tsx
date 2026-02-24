@@ -45,7 +45,7 @@ import { useUserPreferences } from "@/hooks/useUserPreferences";
 type Tab = "overview" | "availability" | "schedule";
 
 export default function GameDetailPage() {
-  const { profile, isLoading, session } = useAuth();
+  const { profile, authStatus } = useAuth();
   const { weekStartDay, use24h, timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
   const params = useParams();
@@ -739,8 +739,7 @@ export default function GameDetailPage() {
     }
   };
 
-  // Show spinner while auth is loading, data is loading, or profile hasn't loaded yet
-  if (isLoading || loading || (session && !profile)) {
+  if (authStatus === 'loading' || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

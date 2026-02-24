@@ -15,7 +15,7 @@ const PERSONAS = [
 ] as const;
 
 export function DevLoginClient() {
-  const { session, profile, isLoading } = useAuth();
+  const { session, profile, authStatus } = useAuth();
   const searchParams = useSearchParams();
   const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'));
 
@@ -67,7 +67,7 @@ export function DevLoginClient() {
             </div>
           )}
 
-          {isLoading ? (
+          {authStatus === 'loading' ? (
             <div className="flex justify-center py-8">
               <LoadingSpinner size="lg" />
             </div>

@@ -43,6 +43,8 @@ npm run test:e2e:debug    # Run in debug mode
 - Always consider how the UI will render on a mobile device. Make sure the design looks equally good on desktop and mobile
 - **Validate UI changes locally.** After making UI/UX changes, view them in the browser using `npm run dev:local` with a dev-login user (see [Local Dev Authentication](#local-dev-authentication)). Check both desktop and mobile screen sizes to confirm the design looks good at both breakpoints.
 - Keep international users in mind. Don't make the interface overly US-centric. Default to US-style behavior but support user preferences for alternatives (e.g., 12 vs 24 hour time)
+- Always use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
+
 
 ## Styling
 

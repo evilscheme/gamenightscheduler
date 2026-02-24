@@ -37,6 +37,7 @@ export const TEXT_LIMITS = {
   GAME_DESCRIPTION: 1000,
   PLAY_DATE_NOTE: 200,
   USER_DISPLAY_NAME: 50,
+  AVAILABILITY_COMMENT: 500,
 } as const;
 
 // Default timezone for new games (used when browser detection fails)

@@ -16,7 +16,10 @@ CREATE TABLE users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL CHECK (char_length(name) <= 50),
-  avatar_url TEXT,
+  avatar_url TEXT CHECK (
+    avatar_url IS NULL
+    OR avatar_url ~ '^https://(lh3\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/'
+  ),
   is_gm BOOLEAN DEFAULT TRUE,
   is_admin BOOLEAN DEFAULT FALSE,
   timezone TEXT DEFAULT NULL,
@@ -62,7 +65,7 @@ CREATE TABLE availability (
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   status availability_status NOT NULL DEFAULT 'available',
-  comment TEXT,
+  comment TEXT CHECK (comment IS NULL OR char_length(comment) <= 500),
   available_after TIME,
   available_until TIME,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -300,6 +303,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SET search_path = '';
 
+-- Prevent gm_id from being changed by authenticated users (blocks game theft by co-GMs
+-- and force-transfers by GMs). Service role (auth.uid() IS NULL) can still transfer
+-- ownership for admin operations like account deletion.
+CREATE OR REPLACE FUNCTION public.protect_game_gm_id()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.gm_id IS DISTINCT FROM OLD.gm_id THEN
+    IF (SELECT auth.uid()) IS NOT NULL THEN
+      NEW.gm_id := OLD.gm_id;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
 -- ============================================
 -- 5. Triggers
 -- ============================================
@@ -326,6 +344,12 @@ CREATE TRIGGER prevent_membership_game_id_change
   BEFORE UPDATE ON game_memberships
   FOR EACH ROW
   EXECUTE FUNCTION public.prevent_membership_game_change();
+
+-- Prevent gm_id changes on games (blocks co-GM game theft and GM force-transfers)
+CREATE TRIGGER protect_game_gm_id
+  BEFORE UPDATE OF gm_id ON games
+  FOR EACH ROW
+  EXECUTE FUNCTION public.protect_game_gm_id();
 
 -- ============================================
 -- 6. Row Level Security (RLS)

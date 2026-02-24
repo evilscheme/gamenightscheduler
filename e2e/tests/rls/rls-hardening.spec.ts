@@ -4,6 +4,7 @@ import {
   createTestGame,
   addPlayerToGame,
   setAvailability,
+  setCoGmStatus,
   getPlayDates,
   getAdminClient,
 } from '../../helpers/seed';
@@ -473,6 +474,162 @@ test.describe('Availability Membership Checks (#2, #3)', () => {
       .single();
 
     expect(dbRow?.status).toBe('available');
+  });
+});
+
+test.describe('Game gm_id Protection (protect_game_gm_id trigger)', () => {
+  test('co-GM cannot steal game ownership by updating gm_id', async ({ page, request }) => {
+    const ts = Date.now();
+
+    // Create a GM with a game
+    const gm = await createTestUser(request, {
+      email: `gm-theft-${ts}@e2e.local`,
+      name: 'Theft Target GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Theft Target Game',
+      play_days: [5, 6],
+    });
+
+    // Create a co-GM
+    const coGm = await createTestUser(request, {
+      email: `cogm-thief-${ts}@e2e.local`,
+      name: 'Co-GM Thief',
+      is_gm: true,
+    });
+    await addPlayerToGame(game.id, coGm.id);
+    await setCoGmStatus(game.id, coGm.id, true);
+
+    // Login as the co-GM
+    await loginTestUser(page, {
+      email: coGm.email,
+      name: coGm.name,
+      is_gm: true,
+    });
+
+    // Attempt to steal ownership by setting gm_id to co-GM's own id
+    const result = await supabaseRestCall(page, {
+      path: `/rest/v1/games?id=eq.${game.id}`,
+      method: 'PATCH',
+      body: { gm_id: coGm.id },
+    });
+
+    // The PATCH should succeed (200) but gm_id should be unchanged
+    expect(result.status).toBe(200);
+    expect(Array.isArray(result.data)).toBe(true);
+    const rows = result.data as { gm_id: string }[];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].gm_id).toBe(gm.id);
+
+    // Double-check via admin client
+    const admin = getAdminClient();
+    const { data: dbGame } = await admin
+      .from('games')
+      .select('gm_id')
+      .eq('id', game.id)
+      .single();
+
+    expect(dbGame?.gm_id).toBe(gm.id);
+  });
+
+  test('GM cannot force-transfer game to arbitrary user', async ({ page, request }) => {
+    const ts = Date.now();
+
+    // Create a GM with a game
+    const gm = await createTestUser(request, {
+      email: `gm-transfer-${ts}@e2e.local`,
+      name: 'Transfer GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Transfer Target Game',
+      play_days: [5, 6],
+    });
+
+    // Create an arbitrary user (not even a member)
+    const victim = await createTestUser(request, {
+      email: `victim-transfer-${ts}@e2e.local`,
+      name: 'Transfer Victim',
+      is_gm: true,
+    });
+
+    // Login as the GM
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    // Attempt to force-transfer game to arbitrary user
+    const result = await supabaseRestCall(page, {
+      path: `/rest/v1/games?id=eq.${game.id}`,
+      method: 'PATCH',
+      body: { gm_id: victim.id },
+    });
+
+    // The PATCH should succeed (200) but gm_id should be unchanged
+    expect(result.status).toBe(200);
+    expect(Array.isArray(result.data)).toBe(true);
+    const rows = result.data as { gm_id: string }[];
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].gm_id).toBe(gm.id);
+
+    // Double-check via admin client
+    const admin = getAdminClient();
+    const { data: dbGame } = await admin
+      .from('games')
+      .select('gm_id')
+      .eq('id', game.id)
+      .single();
+
+    expect(dbGame?.gm_id).toBe(gm.id);
+  });
+
+  test('service role CAN transfer game ownership (admin operations)', async ({ request }) => {
+    const ts = Date.now();
+
+    // Create a GM with a game
+    const gm = await createTestUser(request, {
+      email: `gm-admin-transfer-${ts}@e2e.local`,
+      name: 'Admin Transfer GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Admin Transfer Game',
+      play_days: [5, 6],
+    });
+
+    // Create a new owner
+    const newOwner = await createTestUser(request, {
+      email: `new-owner-${ts}@e2e.local`,
+      name: 'New Owner',
+      is_gm: true,
+    });
+
+    // Service role (admin client) should be able to transfer ownership
+    const admin = getAdminClient();
+    const { error } = await admin
+      .from('games')
+      .update({ gm_id: newOwner.id })
+      .eq('id', game.id);
+
+    expect(error).toBeNull();
+
+    // Verify the transfer succeeded
+    const { data: dbGame } = await admin
+      .from('games')
+      .select('gm_id')
+      .eq('id', game.id)
+      .single();
+
+    expect(dbGame?.gm_id).toBe(newOwner.id);
   });
 });
 

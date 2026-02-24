@@ -147,6 +147,7 @@ src/
 │   ├── suggestions.ts     # Date suggestion ranking
 │   ├── themes.ts          # Theme configuration and utilities
 │   ├── timezone.ts        # Timezone detection and conversion
+│   ├── url.ts             # URL validation (open-redirect prevention)
 │   └── supabase/          # Supabase clients (browser, server, admin)
 └── types/                 # TypeScript types
 

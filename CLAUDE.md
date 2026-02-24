@@ -139,6 +139,7 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - `src/lib/copyAvailability.ts` - Copy/filter availability entries between games
 - `src/lib/timezone.ts` - Timezone detection, display formatting, and conversion
 - `src/lib/themes.ts` - Theme configuration and utilities
+- `src/lib/url.ts` - URL validation (`safeCallbackUrl`) for open-redirect prevention
 - `src/contexts/ThemeContext.tsx` - Theme context (uses next-themes)
 - `src/components/ui/` - Reusable components: Button, Card, Input, Textarea, LoadingSpinner, EmptyState
 
@@ -218,5 +219,5 @@ Enforced via RLS policies in the database:
 - `public/logo.png` - App logo (use instead of emojis for branding; import with Next.js `Image`)
 - `src/components/layout/Providers.tsx` - Wraps app with ThemeProvider and AuthProvider
 - `src/components/layout/Navbar.tsx` - Navigation bar with user menu and help dropdown
-- `src/app/opengraph-image.tsx` - Default OG image
+- `src/app/opengraph-image.png` - Default OG image (static PNG)
 - `src/app/games/join/[code]/opengraph-image.tsx` - Dynamic OG image for invite links

@@ -11,7 +11,6 @@ export const DAY_OPTIONS = DAY_LABELS.full.map((label, value) => ({ value, label
 
 // Timeout values (in milliseconds)
 export const TIMEOUTS = {
-  AUTH_STATE_FALLBACK: 1000,
   PROFILE_FETCH: 5000,
   NOTIFICATION: 2000,
   BACKEND_ERROR_DEBOUNCE: 2000,

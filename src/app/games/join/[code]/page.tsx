@@ -21,7 +21,7 @@ interface GamePreview {
 }
 
 export default function JoinGamePage() {
-  const { profile, isLoading, session } = useAuth();
+  const { profile, authStatus } = useAuth();
   const router = useRouter();
   const params = useParams();
   const code = params.code as string;
@@ -35,11 +35,10 @@ export default function JoinGamePage() {
   const [playerCount, setPlayerCount] = useState<number>(0);
 
   useEffect(() => {
-    // Only redirect if auth is done loading AND there's no session
-    if (!isLoading && !session) {
+    if (authStatus === 'unauthenticated') {
       router.push(`/login?callbackUrl=/games/join/${code}`);
     }
-  }, [isLoading, session, router, code]);
+  }, [authStatus, router, code]);
 
   useEffect(() => {
     async function fetchGame() {
@@ -98,8 +97,7 @@ export default function JoinGamePage() {
     router.push(`/games/${game.id}`);
   };
 
-  // Show spinner while auth is loading OR while we have a session but profile hasn't loaded yet
-  if (isLoading || loading || (session && !profile)) {
+  if (authStatus === 'loading' || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

@@ -8,6 +8,7 @@ const mockAuth = {
   profile: null,
   session: null,
   isLoading: false,
+  authStatus: 'unauthenticated' as const,
   backendError: false,
   signInWithGoogle: vi.fn(),
   signInWithDiscord: vi.fn(),

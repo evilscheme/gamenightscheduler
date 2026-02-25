@@ -1,10 +1,11 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { createClient, onSupabaseStatus } from '@/lib/supabase/client';
 import { User } from '@/types';
 import { TIMEOUTS } from '@/lib/constants';
+import { deriveAuthStatus, type AuthStatus } from './authStatus';
 
 interface AuthContextType {
   user: SupabaseUser | null;
@@ -12,6 +13,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   backendError: boolean;
+  authStatus: AuthStatus;
   signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signInWithDiscord: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -29,6 +31,25 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
+// Check for stored Supabase auth tokens (cookies or localStorage).
+// Used to detect returning users and prevent flash of unauthenticated UI
+// when INITIAL_SESSION fires with null during a token refresh race.
+function hasStoredAuthTokens(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!);
+    const ref = url.hostname.split('.')[0];
+    const storageKey = `sb-${ref}-auth-token`;
+    // @supabase/ssr stores tokens in cookies
+    if (document.cookie.includes(storageKey)) return true;
+    // @supabase/supabase-js fallback: localStorage
+    if (localStorage.getItem(storageKey)) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
@@ -36,7 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [backendError, setBackendError] = useState(false);
   const supabase = getSupabaseClient();
+
+  const authStatus = useMemo(
+    () => deriveAuthStatus(isLoading, session, profile, backendError),
+    [isLoading, session, profile, backendError],
+  );
+
   const errorDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionGraceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced error reporter — delays showing the banner by 2s so that
   // transient failures (e.g. Safari resuming a suspended tab) are ignored
@@ -58,11 +86,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Clean up debounce timer on unmount
+  // Clean up timers on unmount
   useEffect(() => {
     return () => {
       if (errorDebounceRef.current) {
         clearTimeout(errorDebounceRef.current);
+      }
+      if (sessionGraceRef.current) {
+        clearTimeout(sessionGraceRef.current);
       }
     };
   }, []);
@@ -164,16 +195,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
+        // Valid session — clear any grace period and fetch profile
+        if (sessionGraceRef.current) {
+          clearTimeout(sessionGraceRef.current);
+          sessionGraceRef.current = null;
+        }
         await fetchProfile(session.user.id);
       } else {
         setProfile(null);
-        setIsLoading(false);
+        // If INITIAL_SESSION reports no session but stored auth tokens still
+        // exist, we're likely in a race condition where the token refresh
+        // hasn't completed yet. Keep isLoading true — the real session will
+        // arrive via a subsequent auth event. When Supabase's refresh truly
+        // fails, it clears the stored tokens, so hasStoredAuthTokens() will
+        // return false and we show the splash page immediately.
+        // A safety timeout prevents infinite loading if something goes wrong.
+        if (event === 'INITIAL_SESSION' && hasStoredAuthTokens()) {
+          sessionGraceRef.current = setTimeout(() => {
+            if (isMounted) {
+              sessionGraceRef.current = null;
+              setIsLoading(false);
+            }
+          }, TIMEOUTS.PROFILE_FETCH);
+        } else {
+          setIsLoading(false);
+        }
       }
     });
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      if (sessionGraceRef.current) {
+        clearTimeout(sessionGraceRef.current);
+      }
     };
   }, [supabase, fetchProfile]);
 
@@ -225,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         isLoading,
         backendError,
+        authStatus,
         signInWithGoogle,
         signInWithDiscord,
         signOut,

@@ -156,7 +156,7 @@ function MobileMenu({ profile, signOut, hasGames }: { profile: { is_gm?: boolean
 }
 
 export function Navbar() {
-  const { profile, isLoading, signOut } = useAuth();
+  const { profile, authStatus, signOut } = useAuth();
   const [hasGames, setHasGames] = useState(false);
 
   useEffect(() => {
@@ -222,7 +222,7 @@ export function Navbar() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <HelpDropdown />
-            {isLoading ? (
+            {authStatus === 'loading' ? (
               <div className="h-8 w-8 animate-pulse bg-muted rounded-full shrink-0" />
             ) : profile ? (
               <>

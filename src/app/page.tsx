@@ -6,7 +6,7 @@ import { DashboardContent } from '@/components/dashboard/DashboardContent';
 import { SplashPage } from '@/components/splash/SplashPage';
 
 export default function Home() {
-  const { profile, isLoading } = useAuth();
+  const { profile, authStatus } = useAuth();
 
   // Show dashboard for authenticated users
   if (profile) {
@@ -14,7 +14,7 @@ export default function Home() {
   }
 
   // Show loading state while checking auth
-  if (isLoading) {
+  if (authStatus === 'loading') {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

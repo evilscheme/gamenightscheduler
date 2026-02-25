@@ -13,7 +13,7 @@ import { validateGameForm } from '@/lib/gameValidation';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 export default function NewGamePage() {
-  const { profile, isLoading, session } = useAuth();
+  const { profile, authStatus } = useAuth();
   const { weekStartDay, timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
   const supabase = createClient();
@@ -131,8 +131,7 @@ export default function NewGamePage() {
     router.push(`/games/${createdGame?.id || '/dashboard'}`);
   };
 
-  // Show spinner while auth is loading OR while we have a session but profile hasn't loaded yet
-  if (isLoading || (session && !profile)) {
+  if (authStatus === 'loading') {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

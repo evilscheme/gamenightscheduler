@@ -41,7 +41,7 @@ interface GameWithEngagement {
 }
 
 export default function AdminPage() {
-  const { session, profile, isLoading: authLoading } = useAuth();
+  const { authStatus, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [games, setGames] = useState<GameWithEngagement[]>([]);
@@ -82,8 +82,7 @@ export default function AdminPage() {
     fetchData();
   }, [profile?.is_admin]);
 
-  // Show spinner while auth is loading or while we have a session but profile hasn't loaded yet
-  if (authLoading || (session && !profile)) {
+  if (authStatus === 'loading') {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />

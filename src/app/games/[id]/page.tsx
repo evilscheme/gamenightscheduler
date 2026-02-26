@@ -106,9 +106,13 @@ export default function GameDetailPage() {
     [playDateEntries]
   );
 
-  const { start: windowStart, end: windowEnd } = game
-    ? getSchedulingWindow(game)
-    : { start: startOfDay(new Date()), end: endOfMonth(addMonths(new Date(), 2)) };
+  const { start: windowStart, end: windowEnd } = useMemo(
+    () =>
+      game
+        ? getSchedulingWindow(game)
+        : { start: startOfDay(new Date()), end: endOfMonth(addMonths(new Date(), 2)) },
+    [game?.scheduling_window_months, game?.campaign_start_date, game?.campaign_end_date]
+  );
 
   // Calculate availability completion percentage per player
   const playerCompletionPercentages = useMemo(() => {

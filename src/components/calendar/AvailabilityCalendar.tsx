@@ -27,7 +27,8 @@ export type { AvailabilityEntry };
 
 interface AvailabilityCalendarProps {
   playDays: number[];
-  windowMonths: number;
+  windowStart: Date;
+  windowEnd: Date;
   availability: Record<string, AvailabilityEntry>;
   onToggle: (
     date: string,
@@ -50,7 +51,8 @@ interface AvailabilityCalendarProps {
 
 export function AvailabilityCalendar({
   playDays,
-  windowMonths,
+  windowStart,
+  windowEnd,
   availability,
   onToggle,
   confirmedSessions,
@@ -65,7 +67,7 @@ export function AvailabilityCalendar({
   onUpdatePlayDateNote,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
-  const maxDate = endOfMonth(addMonths(today, windowMonths));
+  const maxDate = windowEnd;
   const [commentingDate, setCommentingDate] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [availableAfterText, setAvailableAfterText] = useState("");
@@ -83,7 +85,7 @@ export function AvailabilityCalendar({
   // Generate array of months to display
   const months = useMemo(() => {
     const result = [];
-    let current = startOfMonth(today);
+    let current = startOfMonth(windowStart);
     while (
       isBefore(current, maxDate) ||
       current.getTime() === startOfMonth(maxDate).getTime()
@@ -92,7 +94,7 @@ export function AvailabilityCalendar({
       current = addMonths(current, 1);
     }
     return result;
-  }, [today, maxDate]);
+  }, [windowStart, maxDate]);
 
   // Reorder weekday headers based on week start preference
   const orderedWeekdays = useMemo(() => {

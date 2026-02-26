@@ -41,6 +41,7 @@ import { calculatePlayerCompletionPercentages } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
 import { filterAvailabilityForCopy } from "@/lib/copyAvailability";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { getSchedulingWindow } from "@/lib/scheduling";
 
 type Tab = "overview" | "availability" | "schedule";
 
@@ -105,6 +106,10 @@ export default function GameDetailPage() {
     [playDateEntries]
   );
 
+  const { start: windowStart, end: windowEnd } = game
+    ? getSchedulingWindow(game)
+    : { start: startOfDay(new Date()), end: endOfMonth(addMonths(new Date(), 2)) };
+
   // Calculate availability completion percentage per player
   const playerCompletionPercentages = useMemo(() => {
     if (!game) return {};
@@ -116,8 +121,10 @@ export default function GameDetailPage() {
       schedulingWindowMonths: game.scheduling_window_months,
       extraPlayDates: extraDateStrings,
       availabilityRecords: allAvailability,
+      windowStart,
+      windowEnd,
     });
-  }, [game, allAvailability, extraDateStrings]);
+  }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
 
   useAuthRedirect();
 
@@ -240,19 +247,20 @@ export default function GameDetailPage() {
 
     const allPlayers = [game.gm, ...game.members];
     const today = startOfDay(new Date());
-    const endDate = endOfMonth(addMonths(today, game.scheduling_window_months));
 
     // Get play dates within the scheduling window
-    const playDates = eachDayOfInterval({ start: today, end: endDate })
-      .filter((date) => {
-        const dateStr = format(date, "yyyy-MM-dd");
-        return game.play_days.includes(getDay(date)) || extraDateStrings.includes(dateStr);
-      })
-      .filter(
-        (date) =>
-          isAfter(date, today) ||
-          format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
-      );
+    const playDates = isBefore(windowEnd, windowStart)
+      ? []
+      : eachDayOfInterval({ start: windowStart, end: windowEnd })
+          .filter((date) => {
+            const dateStr = format(date, "yyyy-MM-dd");
+            return game.play_days.includes(getDay(date)) || extraDateStrings.includes(dateStr);
+          })
+          .filter(
+            (date) =>
+              isAfter(date, today) ||
+              format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
+          );
 
     // Use the shared utility function to calculate suggestions
     const suggestionList = calculateDateSuggestions({
@@ -265,7 +273,7 @@ export default function GameDetailPage() {
     });
 
     setSuggestions(suggestionList);
-  }, [game, allAvailability, extraDateStrings]);
+  }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
 
   const handleAvailabilityChange = async (
     date: string,
@@ -367,9 +375,6 @@ export default function GameDetailPage() {
     });
 
     const today = startOfDay(new Date());
-    const windowEnd = endOfMonth(
-      addMonths(today, game.scheduling_window_months)
-    );
 
     // Filter dates eligible for copy
     const toCopy = filterAvailabilityForCopy({
@@ -911,7 +916,8 @@ export default function GameDetailPage() {
           </div>
           <AvailabilityCalendar
             playDays={game.play_days}
-            windowMonths={game.scheduling_window_months}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
             availability={availability}
             onToggle={handleAvailabilityChange}
             confirmedSessions={confirmedSessions}

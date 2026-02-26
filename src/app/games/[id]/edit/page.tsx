@@ -345,7 +345,7 @@ export default function EditGamePage() {
                   id="campaign-start"
                   value={campaignStartDate}
                   onChange={(e) => setCampaignStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                  className="w-full max-w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 />
               )}
 
@@ -384,7 +384,7 @@ export default function EditGamePage() {
                   value={campaignEndDate}
                   min={campaignStartDate || undefined}
                   onChange={(e) => setCampaignEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                  className="w-full max-w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                 />
               )}
             </div>
@@ -394,7 +394,7 @@ export default function EditGamePage() {
                 Default Session Time
               </label>
               <div className="flex gap-4">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <label htmlFor="default-start-time" className="block text-sm text-muted-foreground mb-1">
                     Start Time
                   </label>
@@ -406,7 +406,7 @@ export default function EditGamePage() {
                     className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
                   />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <label htmlFor="default-end-time" className="block text-sm text-muted-foreground mb-1">
                     End Time
                   </label>

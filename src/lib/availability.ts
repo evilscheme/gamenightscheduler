@@ -5,6 +5,7 @@ import {
   getDay,
   format,
   isAfter,
+  isBefore,
   startOfDay,
 } from "date-fns";
 
@@ -43,6 +44,8 @@ export function calculatePlayerCompletionPercentages({
   const today = startOfDay(referenceDate);
   const start = windowStart ?? today;
   const end = windowEnd ?? endOfMonth(addMonths(today, schedulingWindowMonths));
+
+  if (isBefore(end, start)) return {};
 
   // Get all future play dates within the window
   const playDates = eachDayOfInterval({ start, end })
@@ -93,6 +96,8 @@ export function getPlayDatesInWindow({
   const today = startOfDay(referenceDate);
   const start = windowStart ?? today;
   const end = windowEnd ?? endOfMonth(addMonths(today, schedulingWindowMonths));
+
+  if (isBefore(end, start)) return [];
 
   return eachDayOfInterval({ start, end })
     .filter((date) => {

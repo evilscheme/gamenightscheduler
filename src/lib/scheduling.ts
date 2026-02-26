@@ -6,9 +6,10 @@ import {
   min,
   parseISO,
 } from "date-fns";
+import { SchedulingWindowMonths } from "./constants";
 
 interface SchedulingWindowGame {
-  scheduling_window_months: number;
+  scheduling_window_months: SchedulingWindowMonths;
   campaign_start_date: string | null;
   campaign_end_date: string | null;
 }

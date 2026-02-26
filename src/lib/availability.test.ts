@@ -239,6 +239,22 @@ describe("calculatePlayerCompletionPercentages", () => {
 
     expect(Number.isInteger(result["player-1"])).toBe(true);
   });
+
+  it("returns empty object when window start is after window end", () => {
+    const referenceDate = new Date("2025-01-15T00:00:00");
+    const result = calculatePlayerCompletionPercentages({
+      playerIds: ["player-1"],
+      playDays: [5],
+      schedulingWindowMonths: 2,
+      extraPlayDates: [],
+      availabilityRecords: [],
+      referenceDate,
+      windowStart: new Date("2025-04-01T00:00:00"),
+      windowEnd: new Date("2025-02-28T00:00:00"),
+    });
+
+    expect(result).toEqual({});
+  });
 });
 
 describe("getPlayDatesInWindow", () => {
@@ -358,5 +374,19 @@ describe("getPlayDatesInWindow", () => {
     result.forEach((dateStr) => {
       expect(dateStr).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
+  });
+
+  it("returns empty array when window start is after window end", () => {
+    const referenceDate = new Date("2025-01-15T00:00:00");
+    const result = getPlayDatesInWindow({
+      playDays: [5],
+      schedulingWindowMonths: 2,
+      extraPlayDates: [],
+      referenceDate,
+      windowStart: new Date("2025-04-01T00:00:00"),
+      windowEnd: new Date("2025-02-28T00:00:00"),
+    });
+
+    expect(result).toEqual([]);
   });
 });

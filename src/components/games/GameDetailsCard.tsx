@@ -9,7 +9,7 @@ import { formatTimezoneDisplay } from "@/lib/timezone";
 import { format, parseISO, startOfDay, isBefore } from "date-fns";
 
 function formatDisplayDate(dateStr: string): string {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, {
+  return parseISO(dateStr).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",

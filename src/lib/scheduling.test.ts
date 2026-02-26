@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getSchedulingWindow } from "./scheduling";
 import { parseISO } from "date-fns";
+import type { SchedulingWindowMonths } from "./constants";
 
 // Helper to create a local-midnight date from a YYYY-MM-DD string.
 // Uses parseISO (which treats date-only strings as local time) instead of
@@ -11,12 +12,12 @@ function localDate(dateStr: string): Date {
 
 // Helper to make a minimal game object for testing
 function makeGame(overrides: {
-  scheduling_window_months?: number;
+  scheduling_window_months?: SchedulingWindowMonths;
   campaign_start_date?: string | null;
   campaign_end_date?: string | null;
 }) {
   return {
-    scheduling_window_months: 2,
+    scheduling_window_months: 2 as SchedulingWindowMonths,
     campaign_start_date: null as string | null,
     campaign_end_date: null as string | null,
     ...overrides,

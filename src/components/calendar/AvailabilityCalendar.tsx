@@ -200,7 +200,7 @@ export function AvailabilityCalendar({
 
   const bulkSetDays = (filter: string, status: AvailabilityStatus) => {
     const datesInWindow = eachDayOfInterval({
-      start: today,
+      start: windowStart,
       end: maxDate,
     }).filter((date) => {
       const dayOfWeek = getDay(date);

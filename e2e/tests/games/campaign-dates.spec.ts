@@ -1,8 +1,34 @@
 import { test, expect } from '@playwright/test';
 import { loginTestUser } from '../../helpers/test-auth';
 
+/**
+ * Returns a future date offset by the given number of months from today.
+ * Returns { iso: "YYYY-MM-DD", pattern: RegExp } where the pattern matches
+ * locale-dependent formatted output (e.g., "Mar 15, 2026" or "15 Mar 2026").
+ */
+function futureDate(monthsAhead: number, day: number = 15) {
+  const date = new Date();
+  date.setMonth(date.getMonth() + monthsAhead);
+  date.setDate(day);
+
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const d = date.getDate();
+
+  const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+  const shortMonth = date.toLocaleDateString('en-US', { month: 'short' });
+  // Match "Mar 15, 2026" or "15 Mar 2026" or similar locale variants
+  const pattern = new RegExp(`(${shortMonth}\\s+${d}|${d}\\s+${shortMonth}).+${year}`);
+
+  return { iso, pattern };
+}
+
 test.describe('Campaign Dates', () => {
   test('GM can create a game with campaign dates', async ({ page }) => {
+    const startDate = futureDate(2, 15);
+    const endDate = futureDate(7, 28);
+
     await loginTestUser(page, {
       email: `gm-campaign-${Date.now()}@e2e.local`,
       name: 'Campaign GM',
@@ -18,22 +44,23 @@ test.describe('Campaign Dates', () => {
     await page.getByPlaceholder(/friday night board games/i).fill('Campaign Test');
     await page.getByRole('button', { name: 'Friday' }).click();
 
-    // Set campaign dates
-    await page.fill('#campaign-start', '2026-03-15');
-    await page.fill('#campaign-end', '2026-08-31');
+    // Set campaign dates (always in the future)
+    await page.fill('#campaign-start', startDate.iso);
+    await page.fill('#campaign-end', endDate.iso);
 
     // Submit
     await page.getByRole('button', { name: /create game/i }).click();
     await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/);
 
     // Verify dates show in game details
-    // formatDisplayDate uses toLocaleDateString which is locale-dependent;
-    // use regex to tolerate variations like "Mar 15, 2026" vs "15 Mar 2026"
-    await expect(page.getByText(/Mar\s+15.+2026/)).toBeVisible();
-    await expect(page.getByText(/Aug\s+31.+2026/)).toBeVisible();
+    await expect(page.getByText(startDate.pattern)).toBeVisible();
+    await expect(page.getByText(endDate.pattern)).toBeVisible();
   });
 
   test('GM can edit campaign dates', async ({ page }) => {
+    const startDate = futureDate(3, 1);
+    const endDate = futureDate(8, 20);
+
     await loginTestUser(page, {
       email: `gm-edit-campaign-${Date.now()}@e2e.local`,
       name: 'Edit Campaign GM',
@@ -56,9 +83,9 @@ test.describe('Campaign Dates', () => {
       page.getByRole('heading', { name: /edit game/i })
     ).toBeVisible();
 
-    // Set campaign dates
-    await page.fill('#campaign-start', '2026-04-01');
-    await page.fill('#campaign-end', '2026-09-30');
+    // Set campaign dates (always in the future)
+    await page.fill('#campaign-start', startDate.iso);
+    await page.fill('#campaign-end', endDate.iso);
 
     // Save
     await page.getByRole('button', { name: /save changes/i }).click();
@@ -67,8 +94,8 @@ test.describe('Campaign Dates', () => {
     await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/);
 
     // Verify dates show after save
-    await expect(page.getByText(/Apr\s+1.+2026/)).toBeVisible();
-    await expect(page.getByText(/Sep\s+30.+2026/)).toBeVisible();
+    await expect(page.getByText(startDate.pattern)).toBeVisible();
+    await expect(page.getByText(endDate.pattern)).toBeVisible();
   });
 
   test('expanded scheduling window options are available', async ({ page }) => {

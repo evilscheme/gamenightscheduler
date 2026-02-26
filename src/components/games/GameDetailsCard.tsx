@@ -8,6 +8,14 @@ import { formatTime } from "@/lib/formatting";
 import { formatTimezoneDisplay } from "@/lib/timezone";
 import { format, parseISO, startOfDay, isBefore } from "date-fns";
 
+function formatDisplayDate(dateStr: string): string {
+  return parseISO(dateStr).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 interface GameDetailsCardProps {
   playDays: number[];
   schedulingWindowMonths: number;
@@ -19,6 +27,8 @@ interface GameDetailsCardProps {
   inviteCode: string;
   use24h?: boolean;
   adHocOnly?: boolean;
+  campaignStartDate: string | null;
+  campaignEndDate: string | null;
 }
 
 export function GameDetailsCard({
@@ -32,6 +42,8 @@ export function GameDetailsCard({
   inviteCode,
   use24h = false,
   adHocOnly = false,
+  campaignStartDate,
+  campaignEndDate,
 }: GameDetailsCardProps) {
   const [calendarCopied, setCalendarCopied] = useState(false);
 
@@ -64,8 +76,17 @@ export function GameDetailsCard({
         <div>
           <p className="text-sm text-muted-foreground">Scheduling Window</p>
           <p className="text-card-foreground">
-            {schedulingWindowMonths} month(s) ahead
+            {schedulingWindowMonths} {schedulingWindowMonths === 1 ? "month" : "months"} ahead
           </p>
+          {(campaignStartDate || campaignEndDate) && (
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {campaignStartDate && campaignEndDate
+                ? `${formatDisplayDate(campaignStartDate)} – ${formatDisplayDate(campaignEndDate)}`
+                : campaignStartDate
+                  ? `Starting ${formatDisplayDate(campaignStartDate)}`
+                  : `Until ${formatDisplayDate(campaignEndDate!)}`}
+            </p>
+          )}
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Default Session Time</p>

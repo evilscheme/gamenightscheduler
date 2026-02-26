@@ -7,7 +7,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
-import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE, USAGE_LIMITS } from '@/lib/constants';
+import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE, USAGE_LIMITS, SCHEDULING_WINDOW_OPTIONS } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 
@@ -30,6 +30,10 @@ export default function EditGamePage() {
   const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
   const [minPlayersNeeded, setMinPlayersNeeded] = useState(0);
   const [adHocOnly, setAdHocOnly] = useState(false);
+  const [useCustomStart, setUseCustomStart] = useState(false);
+  const [useCustomEnd, setUseCustomEnd] = useState(false);
+  const [campaignStartDate, setCampaignStartDate] = useState<string>("");
+  const [campaignEndDate, setCampaignEndDate] = useState<string>("");
   const [conversionMessage, setConversionMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -79,6 +83,10 @@ export default function EditGamePage() {
       setTimezone(data.timezone || DEFAULT_TIMEZONE);
       setMinPlayersNeeded(data.min_players_needed || 0);
       setAdHocOnly(data.ad_hoc_only || false);
+      setCampaignStartDate(data.campaign_start_date || "");
+      setCampaignEndDate(data.campaign_end_date || "");
+      setUseCustomStart(!!data.campaign_start_date);
+      setUseCustomEnd(!!data.campaign_end_date);
       setLoading(false);
     }
 
@@ -101,7 +109,15 @@ export default function EditGamePage() {
     e.preventDefault();
     if (!profile?.id || !game) return;
 
-    const validation = validateGameForm({ name, playDays, adHocOnly });
+    const validation = validateGameForm({
+      name,
+      playDays,
+      adHocOnly,
+      campaignStartDate: campaignStartDate || null,
+      campaignEndDate: campaignEndDate || null,
+      useCustomStart,
+      useCustomEnd,
+    });
     if (!validation.valid) {
       setError(validation.errors[0]);
       return;
@@ -139,6 +155,8 @@ export default function EditGamePage() {
         description: description.trim() || null,
         play_days: adHocOnly ? [] : playDays.sort((a, b) => a - b),
         scheduling_window_months: windowMonths,
+        campaign_start_date: campaignStartDate || null,
+        campaign_end_date: campaignEndDate || null,
         default_start_time: defaultStartTime,
         default_end_time: defaultEndTime,
         timezone: timezone || null,
@@ -192,25 +210,18 @@ export default function EditGamePage() {
               rows={3}
             />
 
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-foreground">
-                  Ad-hoc scheduling only
-                </label>
-                <p className="text-sm text-muted-foreground">
-                  No fixed play days &mdash; schedule sessions on any date
-                </p>
-              </div>
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 role="switch"
+                aria-label="Ad-hoc scheduling only"
                 aria-checked={adHocOnly}
                 onClick={() => {
                   const next = !adHocOnly;
                   setAdHocOnly(next);
                   if (next) setPlayDays([]);
                 }}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
                   adHocOnly ? 'bg-primary' : 'bg-secondary'
                 }`}
               >
@@ -220,6 +231,14 @@ export default function EditGamePage() {
                   }`}
                 />
               </button>
+              <div>
+                <label className="text-sm font-medium text-foreground">
+                  Ad-hoc scheduling only
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  No fixed play days &mdash; schedule sessions on any date
+                </p>
+              </div>
             </div>
 
             {adHocOnly && (
@@ -276,13 +295,98 @@ export default function EditGamePage() {
                 onChange={(e) => setWindowMonths(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               >
-                <option value={1}>1 month ahead</option>
-                <option value={2}>2 months ahead</option>
-                <option value={3}>3 months ahead</option>
+                {SCHEDULING_WINDOW_OPTIONS.map((months) => (
+                  <option key={months} value={months}>
+                    {months} {months === 1 ? "month" : "months"} ahead
+                  </option>
+                ))}
               </select>
               <p className="text-sm text-muted-foreground mt-1">
                 How far in advance players can mark their availability
               </p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-foreground">
+                Campaign Dates
+              </label>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-label="Custom start date"
+                  aria-checked={useCustomStart}
+                  onClick={() => {
+                    const next = !useCustomStart;
+                    setUseCustomStart(next);
+                    if (!next) setCampaignStartDate("");
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                    useCustomStart ? 'bg-primary' : 'bg-secondary'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useCustomStart ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+                <div>
+                  <label className="text-sm text-foreground">Custom start date</label>
+                  <p className="text-xs text-muted-foreground">
+                    {useCustomStart ? "Calendar starts on this date" : "Starts immediately"}
+                  </p>
+                </div>
+              </div>
+              {useCustomStart && (
+                <input
+                  type="date"
+                  id="campaign-start"
+                  value={campaignStartDate}
+                  onChange={(e) => setCampaignStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                />
+              )}
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-label="Custom end date"
+                  aria-checked={useCustomEnd}
+                  onClick={() => {
+                    const next = !useCustomEnd;
+                    setUseCustomEnd(next);
+                    if (!next) setCampaignEndDate("");
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                    useCustomEnd ? 'bg-primary' : 'bg-secondary'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useCustomEnd ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+                <div>
+                  <label className="text-sm text-foreground">Custom end date</label>
+                  <p className="text-xs text-muted-foreground">
+                    {useCustomEnd ? "Calendar ends on this date" : "Runs indefinitely"}
+                  </p>
+                </div>
+              </div>
+              {useCustomEnd && (
+                <input
+                  type="date"
+                  id="campaign-end"
+                  value={campaignEndDate}
+                  min={campaignStartDate || undefined}
+                  onChange={(e) => setCampaignEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                />
+              )}
             </div>
 
             <div>

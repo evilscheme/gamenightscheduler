@@ -226,7 +226,7 @@ export default function EditGamePage() {
                 }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
                     adHocOnly ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
@@ -327,7 +327,7 @@ export default function EditGamePage() {
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
                       useCustomStart ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
@@ -365,7 +365,7 @@ export default function EditGamePage() {
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
                       useCustomEnd ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />

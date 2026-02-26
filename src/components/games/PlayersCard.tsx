@@ -63,10 +63,10 @@ export function PlayersCard({
                   <img
                     src={player.avatar_url}
                     alt={player.name}
-                    className="w-8 h-8 rounded-full"
+                    className="size-8 rounded-full"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
+                  <div className="size-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
                     {player.name[0]?.toUpperCase()}
                   </div>
                 )}
@@ -88,12 +88,12 @@ export function PlayersCard({
                   )}
                 </div>
                 {isOriginalGm && (
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-sm">
                     GM
                   </span>
                 )}
                 {playerIsCoGm && (
-                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded">
+                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-sm">
                     Co-GM
                   </span>
                 )}
@@ -109,7 +109,7 @@ export function PlayersCard({
                       aria-label="Player actions"
                     >
                       <svg
-                        className="w-5 h-5"
+                        className="size-5"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >

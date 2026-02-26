@@ -61,7 +61,7 @@ export function NotFoundContent() {
           />
         </div>
 
-        <div className="min-h-[4rem] mb-8" suppressHydrationWarning>
+        <div className="min-h-16 mb-8" suppressHydrationWarning>
           {showMessage && (
             <p className="text-muted-foreground animate-in fade-in duration-500">
               <span className="font-semibold text-foreground">

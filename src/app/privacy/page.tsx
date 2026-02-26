@@ -8,7 +8,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <CardHeader>
         <h2 className="text-lg font-semibold text-card-foreground">{title}</h2>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+      <CardContent className="space-y-3 text-sm/relaxed text-muted-foreground">
         {children}
       </CardContent>
     </Card>

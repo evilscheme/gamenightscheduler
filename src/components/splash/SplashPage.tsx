@@ -86,7 +86,7 @@ export function SplashPage() {
 
 function HeroSection() {
   return (
-    <div className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background">
+    <div className="relative overflow-hidden bg-linear-to-b from-primary/5 to-background">
       <FloatingDice />
       <div className="max-w-4xl mx-auto px-4 py-20 sm:py-28 text-center relative z-10">
         <Image
@@ -168,19 +168,19 @@ function HowItWorksSection() {
         <div className="grid sm:grid-cols-3 gap-8 sm:gap-12">
           <Step
             num={1}
-            icon={<Users className="w-6 h-6" />}
+            icon={<Users className="size-6" />}
             title="Invite your party"
             desc="Create a game and share an invite link. Players join with one click."
           />
           <Step
             num={2}
-            icon={<CalendarCheck className="w-6 h-6" />}
+            icon={<CalendarCheck className="size-6" />}
             title="Mark availability"
             desc="Each player marks when they can play — available, maybe, or unavailable."
           />
           <Step
             num={3}
-            icon={<CalendarSearch className="w-6 h-6" />}
+            icon={<CalendarSearch className="size-6" />}
             title="Book game nights"
             desc="See which dates work best for the whole group and confirm sessions."
           />
@@ -203,7 +203,7 @@ function Step({
 }) {
   return (
     <div className="text-center">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4">
+      <div className="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary mb-4">
         {icon}
       </div>
       <div className="text-xs font-bold text-primary uppercase tracking-wide mb-1">
@@ -223,17 +223,17 @@ function FeaturesSection() {
       <div className="max-w-3xl mx-auto px-4">
         <div className="grid sm:grid-cols-3 gap-6 mb-12">
           <Feature
-            icon={<Layers className="w-5 h-5" />}
+            icon={<Layers className="size-5" />}
             title="Multi-Game"
             desc="Manage several games at once, each with its own players and schedule."
           />
           <Feature
-            icon={<Calendar className="w-5 h-5" />}
+            icon={<Calendar className="size-5" />}
             title="Calendar Sync"
             desc="Auto-export confirmed sessions to Google Calendar, Apple, or any app."
           />
           <Feature
-            icon={<Shield className="w-5 h-5" />}
+            icon={<Shield className="size-5" />}
             title="Co-GM Support"
             desc="Share game management with trusted players who can help run the show."
           />
@@ -259,7 +259,7 @@ function Feature({
 }) {
   return (
     <div className="flex gap-4 p-4 rounded-lg">
-      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+      <div className="shrink-0 size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
         {icon}
       </div>
       <div>

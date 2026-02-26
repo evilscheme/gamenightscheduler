@@ -158,7 +158,7 @@ export function SchedulingSuggestions({
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-card-foreground">Upcoming Sessions</h2>
             <Button size="sm" variant="secondary" onClick={handleExportAll} className="w-full sm:w-auto">
-              <Calendar className="w-4 h-4 mr-1.5" />
+              <Calendar className="size-4 mr-1.5" />
               Export All to Calendar
             </Button>
           </CardHeader>
@@ -183,7 +183,7 @@ export function SchedulingSuggestions({
                   <li key={session.id} className="py-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <Dice6 className="w-6 h-6 shrink-0 text-primary" data-testid="suggestion-icon" />
+                        <Dice6 className="size-6 shrink-0 text-primary" data-testid="suggestion-icon" />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-card-foreground">
                             {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
@@ -299,7 +299,7 @@ export function SchedulingSuggestions({
                           variant="ghost"
                           onClick={() => handleExportSingle(session)}
                         >
-                          <Calendar className="w-4 h-4 mr-1.5" />
+                          <Calendar className="size-4 mr-1.5" />
                           Add to Calendar
                         </Button>
                         {isGm && (
@@ -333,7 +333,7 @@ export function SchedulingSuggestions({
                 Past Sessions ({pastSessions.length})
               </h2>
               <span className="text-muted-foreground">
-                {showPastSessions ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                {showPastSessions ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
               </span>
             </button>
           </CardHeader>
@@ -346,7 +346,7 @@ export function SchedulingSuggestions({
                   return (
                     <li key={session.id} className="py-3 opacity-70">
                       <div className="flex items-start gap-3">
-                        <Dice6 className="w-5 h-5 shrink-0 text-muted-foreground" />
+                        <Dice6 className="size-5 shrink-0 text-muted-foreground" />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-muted-foreground">
                             {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
@@ -433,7 +433,7 @@ export function SchedulingSuggestions({
                   return (
                     <li
                       key={suggestion.date}
-                      className={`py-4 -mx-4 px-4 rounded-lg ${
+                      className={`p-4 -mx-4 rounded-lg ${
                         isConfirmed
                           ? 'bg-cal-scheduled-bg/10'
                           : !suggestion.meetsThreshold
@@ -448,12 +448,12 @@ export function SchedulingSuggestions({
                               {format(parseISO(suggestion.date), 'EEEE, MMMM d')}
                             </p>
                             {isConfirmed && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-cal-scheduled-bg text-cal-scheduled-text rounded">
+                              <span className="px-2 py-0.5 text-xs font-medium bg-cal-scheduled-bg text-cal-scheduled-text rounded-sm">
                                 Confirmed
                               </span>
                             )}
                             {!isConfirmed && minPlayersNeeded > 0 && !suggestion.meetsThreshold && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-danger/10 text-danger rounded">
+                              <span className="px-2 py-0.5 text-xs font-medium bg-danger/10 text-danger rounded-sm">
                                 Below threshold
                               </span>
                             )}

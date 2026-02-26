@@ -280,7 +280,7 @@ export function AvailabilityCalendar({
     <div className="space-y-4">
       {/* Bulk actions */}
       <div className="bg-secondary rounded-lg p-3">
-        <div className="space-y-2 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-x-2 lg:gap-y-2 text-sm">
+        <div className="space-y-2 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-2 text-sm">
           {/* Mark all section — stacked on mobile, inline on desktop */}
           <div className="lg:contents">
             <p className="text-xs text-muted-foreground mb-1 lg:hidden">Mark all</p>
@@ -329,7 +329,7 @@ export function AvailabilityCalendar({
                   <select
                     value={copySourceGameId}
                     onChange={(e) => setCopySourceGameId(e.target.value)}
-                    className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-[200px]"
+                    className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-50"
                     data-testid="copy-game-select"
                   >
                     <option value="">Select a game</option>
@@ -391,41 +391,41 @@ export function AvailabilityCalendar({
       {/* Compact Legend */}
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-available-bg" />
+          <div className="size-3.5 rounded-sm bg-cal-available-bg" />
           <span>Available</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-maybe-bg" />
+          <div className="size-3.5 rounded-sm bg-cal-maybe-bg" />
           <span>Maybe</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-unavailable-bg" />
+          <div className="size-3.5 rounded-sm bg-cal-unavailable-bg" />
           <span>Unavailable</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-unset-bg border-2 border-dashed border-cal-unset-border" />
+          <div className="size-3.5 rounded-sm bg-cal-unset-bg border-2 border-dashed border-cal-unset-border" />
           <span>Not set</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-disabled-bg" />
+          <div className="size-3.5 rounded-sm bg-cal-disabled-bg" />
           <span>Non-play day</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-unset-bg shadow-[0_0_0_2px_var(--primary)]" />
+          <div className="size-3.5 rounded-sm bg-cal-unset-bg shadow-[0_0_0_2px_var(--primary)]" />
           <span>Today</span>
         </div>
         {playDays.length > 0 && (
           <div className="flex items-center gap-1.5">
-            <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-unset-bg border border-cal-unset-border">
-              <span className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-t-primary border-l-[6px] border-l-transparent" />
+            <div className="relative size-3.5 rounded-sm bg-cal-unset-bg border border-cal-unset-border">
+              <span className="absolute top-0 right-0 size-0 border-t-[6px] border-t-primary border-l-[6px] border-l-transparent" />
             </div>
             <span>Extra date</span>
           </div>
         )}
         <div className="flex items-center gap-1.5">
-          <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-available-bg flex items-center justify-center">
+          <div className="relative size-3.5 rounded-sm bg-cal-available-bg flex items-center justify-center">
             <svg
-              className="w-2.5 h-2.5"
+              className="size-2.5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="white"
@@ -443,7 +443,7 @@ export function AvailabilityCalendar({
         </div>
         {hasCampaignDates && (
           <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded-sm cal-out-of-range" />
+            <div className="size-3.5 rounded-sm cal-out-of-range" />
             <span>Outside campaign</span>
           </div>
         )}
@@ -652,7 +652,7 @@ function MonthCalendar({
         {Array.from({ length: startDayOfWeek }).map((_, i) => (
           <div
             key={`empty-${i}`}
-            className="w-full aspect-square min-h-[36px]"
+            className="w-full aspect-square min-h-9"
           />
         ))}
 
@@ -821,7 +821,7 @@ function MonthCalendar({
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
               disabled={(!isPlayDay && !canAddAsExtra) || isPast || isOutOfRange}
-              className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
+              className={`group relative w-full aspect-square min-h-9 rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}
               data-status={dataStatus}
@@ -833,7 +833,7 @@ function MonthCalendar({
               {isConfirmed && (
                 <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <svg
-                    className="w-[85%] h-[85%]"
+                    className="size-[85%]"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="white"
@@ -851,7 +851,7 @@ function MonthCalendar({
               {format(date, "d")}
               {/* Extra date indicator - corner triangle (hidden for ad-hoc games) */}
               {isExtraPlayDate && !isPast && playDays.length > 0 && (
-                <span className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-t-primary border-l-[10px] border-l-transparent" />
+                <span className="absolute top-0 right-0 size-0 border-t-10 border-t-primary border-l-10 border-l-transparent" />
               )}
               {/* GM: Add extra play date icon on non-play days */}
               {canAddAsExtra && onToggleExtraDate && (
@@ -868,7 +868,7 @@ function MonthCalendar({
                   }}
                   title={playDays.length > 0 ? "Add extra date" : "Add play date"}
                 >
-                  <Plus className="w-2.5 h-2.5" />
+                  <Plus className="size-2.5" />
                 </span>
               )}
               {/* GM: Remove extra play date icon */}
@@ -886,7 +886,7 @@ function MonthCalendar({
                   }}
                   title={playDays.length > 0 ? "Remove extra date" : "Remove play date"}
                 >
-                  <X className="w-2.5 h-2.5" />
+                  <X className="size-2.5" />
                 </span>
               )}
               {/* Bottom-left status icons (clickable — open editor popover) */}
@@ -914,12 +914,12 @@ function MonthCalendar({
                         return `Until ${until}`;
                       })()}
                     >
-                      <Clock className="w-2.5 h-2.5" />
+                      <Clock className="size-2.5" />
                     </span>
                   )}
                   {playDateNotes?.has(dateStr) && (
                     <span data-testid="note-indicator" title={`GM note: ${playDateNotes.get(dateStr)}`}>
-                      <FileText className="w-2.5 h-2.5" />
+                      <FileText className="size-2.5" />
                     </span>
                   )}
                 </span>
@@ -943,7 +943,7 @@ function MonthCalendar({
                   }}
                   title={hasComment ? `Edit note: ${avail!.comment}` : "Add note"}
                 >
-                  {hasComment ? <MessageSquare className="w-2.5 h-2.5" /> : <Pencil className="w-2.5 h-2.5" />}
+                  {hasComment ? <MessageSquare className="size-2.5" /> : <Pencil className="size-2.5" />}
                 </span>
               )}
             </button>

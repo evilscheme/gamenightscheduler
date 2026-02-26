@@ -139,12 +139,12 @@ export function DashboardContent() {
                       </p>
                     </div>
                     {game.gm_id === profile?.id && (
-                      <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded">
+                      <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-sm">
                         GM
                       </span>
                     )}
                     {game.is_co_gm && (
-                      <span className="px-2 py-1 text-xs font-medium bg-secondary text-secondary-foreground rounded">
+                      <span className="px-2 py-1 text-xs font-medium bg-secondary text-secondary-foreground rounded-sm">
                         Co-GM
                       </span>
                     )}
@@ -158,12 +158,12 @@ export function DashboardContent() {
 
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1.5">
-                      <Users className="w-4 h-4" />
+                      <Users className="size-4" />
                       {game.member_count} player
                       {game.member_count !== 1 ? "s" : ""}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4" />
+                      <Calendar className="size-4" />
                       {game.ad_hoc_only
                         ? "Ad-hoc"
                         : game.play_days

@@ -76,7 +76,7 @@ export function ThemePicker() {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <SunIcon className="w-4 h-4" />
+            <SunIcon className="size-4" />
             Light
           </button>
           <button
@@ -87,7 +87,7 @@ export function ThemePicker() {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <MoonIcon className="w-4 h-4" />
+            <MoonIcon className="size-4" />
             Dark
           </button>
           <button
@@ -98,7 +98,7 @@ export function ThemePicker() {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <SystemIcon className="w-4 h-4" />
+            <SystemIcon className="size-4" />
             System
           </button>
         </div>
@@ -120,23 +120,23 @@ export function ThemePicker() {
             >
               {/* Selection indicator */}
               {colorTheme === theme.id && (
-                <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                  <CheckIcon className="w-3 h-3 text-primary-foreground" />
+                <div className="absolute top-2 right-2 size-5 bg-primary rounded-full flex items-center justify-center">
+                  <CheckIcon className="size-3 text-primary-foreground" />
                 </div>
               )}
 
               {/* Color swatches */}
               <div className="flex gap-1 mb-2">
                 <div
-                  className="w-6 h-6 rounded-full border border-black/10"
+                  className="size-6 rounded-full border border-black/10"
                   style={{ backgroundColor: theme.previewColors.primary }}
                 />
                 <div
-                  className="w-6 h-6 rounded-full border border-black/10"
+                  className="size-6 rounded-full border border-black/10"
                   style={{ backgroundColor: theme.previewColors.secondary }}
                 />
                 <div
-                  className="w-6 h-6 rounded-full border border-black/10"
+                  className="size-6 rounded-full border border-black/10"
                   style={{ backgroundColor: theme.previewColors.accent }}
                 />
               </div>

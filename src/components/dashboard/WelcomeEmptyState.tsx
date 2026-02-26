@@ -59,7 +59,7 @@ export function WelcomeEmptyState() {
         <Card className="text-left">
           <CardContent className="py-6">
             <div className="text-center mb-4">
-              <Sparkles className="w-10 h-10 mx-auto mb-2 text-primary" />
+              <Sparkles className="size-10 mx-auto mb-2 text-primary" />
               <h3 className="text-lg font-semibold text-card-foreground">
                 Create a Game
               </h3>
@@ -77,7 +77,7 @@ export function WelcomeEmptyState() {
         <Card className="text-left">
           <CardContent className="py-6">
             <div className="text-center mb-4">
-              <UserPlus className="w-10 h-10 mx-auto mb-2 text-primary" />
+              <UserPlus className="size-10 mx-auto mb-2 text-primary" />
               <h3 className="text-lg font-semibold text-card-foreground">
                 Join a Game
               </h3>

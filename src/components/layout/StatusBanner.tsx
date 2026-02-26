@@ -55,14 +55,14 @@ export function StatusBanner() {
       className="bg-warning/10 border-b border-warning/30 px-4 py-2.5"
     >
       <div className="mx-auto flex max-w-5xl items-center gap-3">
-        <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
+        <AlertTriangle className="size-4 shrink-0 text-warning" />
         <p className="flex-1 text-sm text-warning">{message}</p>
         <button
           onClick={() => setDismissed(true)}
-          className="shrink-0 rounded p-1 text-warning opacity-60 hover:opacity-100 transition-opacity"
+          className="shrink-0 rounded-sm p-1 text-warning opacity-60 hover:opacity-100 transition-opacity"
           aria-label="Dismiss warning"
         >
-          <X className="h-4 w-4" />
+          <X className="size-4" />
         </button>
       </div>
     </div>

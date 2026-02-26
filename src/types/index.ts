@@ -1,5 +1,7 @@
 // Database types
 
+import type { SchedulingWindowMonths } from "@/lib/constants";
+
 export interface User {
   id: string;
   email: string;
@@ -20,12 +22,14 @@ export interface Game {
   gm_id: string;
   play_days: number[]; // 0=Sun, 1=Mon, ..., 6=Sat
   invite_code: string;
-  scheduling_window_months: number;
+  scheduling_window_months: SchedulingWindowMonths;
   default_start_time: string | null; // HH:MM:SS format
   default_end_time: string | null; // HH:MM:SS format
   timezone: string | null; // IANA timezone identifier (e.g., 'America/Los_Angeles')
   min_players_needed: number; // 0 means no minimum
   ad_hoc_only: boolean;
+  campaign_start_date: string | null;
+  campaign_end_date: string | null;
   created_at: string;
 }
 

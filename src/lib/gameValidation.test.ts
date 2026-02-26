@@ -194,4 +194,115 @@ describe("validateGameForm", () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toContain("Please select at least one play day");
   });
+
+  describe("campaign date validation", () => {
+    const validBase = { name: "Game Night", playDays: [5] as number[] };
+
+    it("passes with no campaign dates", () => {
+      const result = validateGameForm(validBase);
+      expect(result.valid).toBe(true);
+    });
+
+    it("passes with only start date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignStartDate: "2025-06-01",
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("passes with only end date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignEndDate: "2025-06-01",
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("passes when end date is after start date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignStartDate: "2025-03-01",
+        campaignEndDate: "2025-06-01",
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("passes when end date equals start date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignStartDate: "2025-06-01",
+        campaignEndDate: "2025-06-01",
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("fails when end date is before start date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignStartDate: "2025-06-01",
+        campaignEndDate: "2025-03-01",
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "Campaign end date must be on or after start date"
+      );
+    });
+
+    it("fails when start toggle is on but no date is provided", () => {
+      const result = validateGameForm({
+        ...validBase,
+        useCustomStart: true,
+        campaignStartDate: null,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "Please select a campaign start date or disable the toggle"
+      );
+    });
+
+    it("fails when end toggle is on but no date is provided", () => {
+      const result = validateGameForm({
+        ...validBase,
+        useCustomEnd: true,
+        campaignEndDate: null,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "Please select a campaign end date or disable the toggle"
+      );
+    });
+
+    it("passes when start toggle is on and date is provided", () => {
+      const result = validateGameForm({
+        ...validBase,
+        useCustomStart: true,
+        campaignStartDate: "2025-06-01",
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("passes when toggles are off and no dates are provided", () => {
+      const result = validateGameForm({
+        ...validBase,
+        useCustomStart: false,
+        useCustomEnd: false,
+        campaignStartDate: null,
+        campaignEndDate: null,
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("reports both toggle errors at once", () => {
+      const result = validateGameForm({
+        ...validBase,
+        useCustomStart: true,
+        useCustomEnd: true,
+        campaignStartDate: null,
+        campaignEndDate: null,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors).toHaveLength(2);
+    });
+  });
 });

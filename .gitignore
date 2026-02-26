@@ -30,6 +30,7 @@
 
 # claude local settings
 .claude/settings.local.json
+.claude
 
 # demo artifacts
 /demo/

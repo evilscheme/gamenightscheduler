@@ -205,7 +205,7 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
                   </td>
                   <td className="py-3 px-2 text-center">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                      className={`inline-block px-2 py-0.5 rounded-sm text-xs font-medium ${
                         game.availabilityFillRate >= 75
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                           : game.availabilityFillRate >= 50
@@ -260,10 +260,10 @@ function ActivityTab({ stats }: { stats: AdminStats }) {
                     <img
                       src={user.avatar_url}
                       alt={user.name}
-                      className="w-8 h-8 rounded-full"
+                      className="size-8 rounded-full"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
+                    <div className="size-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
                       {user.name[0]?.toUpperCase() || '?'}
                     </div>
                   )}
@@ -271,12 +271,12 @@ function ActivityTab({ stats }: { stats: AdminStats }) {
                     <p className="font-medium text-foreground">
                       {user.name}
                       {user.is_admin && (
-                        <span className="ml-2 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-1.5 py-0.5 rounded">
+                        <span className="ml-2 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-1.5 py-0.5 rounded-sm">
                           Admin
                         </span>
                       )}
                       {user.is_gm && (
-                        <span className="ml-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-1.5 py-0.5 rounded">
+                        <span className="ml-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-1.5 py-0.5 rounded-sm">
                           GM
                         </span>
                       )}

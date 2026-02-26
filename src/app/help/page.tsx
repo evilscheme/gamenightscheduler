@@ -9,7 +9,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <CardHeader>
         <h2 className="text-lg font-semibold text-card-foreground">{title}</h2>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+      <CardContent className="space-y-3 text-sm/relaxed text-muted-foreground">
         {children}
       </CardContent>
     </Card>
@@ -150,15 +150,15 @@ export default function HelpPage() {
               </p>
               <ul className="space-y-2 ml-1">
                 <li className="flex items-center gap-2">
-                  <span className="inline-block w-3 h-3 rounded-sm bg-green-500 shrink-0" />
+                  <span className="inline-block size-3 rounded-sm bg-green-500 shrink-0" />
                   <span><strong className="text-foreground">Available</strong> &mdash; you can play this date</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="inline-block w-3 h-3 rounded-sm bg-red-500 shrink-0" />
+                  <span className="inline-block size-3 rounded-sm bg-red-500 shrink-0" />
                   <span><strong className="text-foreground">Unavailable</strong> &mdash; you can&apos;t make it</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="inline-block w-3 h-3 rounded-sm bg-yellow-500 shrink-0" />
+                  <span className="inline-block size-3 rounded-sm bg-yellow-500 shrink-0" />
                   <span><strong className="text-foreground">Maybe</strong> &mdash; you might be able to play</span>
                 </li>
               </ul>

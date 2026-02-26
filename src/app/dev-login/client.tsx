@@ -104,7 +104,7 @@ export function DevLoginClient() {
                     {isPending && activePersona === persona.key ? (
                       <LoadingSpinner size="sm" />
                     ) : (
-                      <span className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                      <span className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
                         {persona.badge}
                       </span>
                     )}

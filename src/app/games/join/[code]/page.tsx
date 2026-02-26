@@ -108,7 +108,7 @@ export default function JoinGamePage() {
       {error ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <Frown className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <Frown className="size-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold text-card-foreground mb-2">Invite Not Found</h2>
             <p className="text-muted-foreground mb-6">{error}</p>
             <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
@@ -119,9 +119,9 @@ export default function JoinGamePage() {
           <CardContent className="py-8">
             <div className="text-center mb-6">
               {isGameFull && !alreadyMember ? (
-                <Frown className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                <Frown className="size-12 mx-auto mb-4 text-muted-foreground" />
               ) : (
-                <Dice6 className="w-12 h-12 mx-auto mb-4 text-primary" />
+                <Dice6 className="size-12 mx-auto mb-4 text-primary" />
               )}
               <h1 className="text-2xl font-bold text-card-foreground">
                 {alreadyMember

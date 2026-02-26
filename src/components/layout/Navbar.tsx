@@ -30,7 +30,7 @@ function HelpDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+        className="size-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
         aria-label="Help menu"
       >
         ?
@@ -42,7 +42,7 @@ function HelpDropdown() {
             className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors whitespace-nowrap"
             onClick={() => setIsOpen(false)}
           >
-            <BookOpen className="w-4 h-4" />
+            <BookOpen className="size-4" />
             How to Use
           </Link>
           <a
@@ -52,7 +52,7 @@ function HelpDropdown() {
             className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors whitespace-nowrap"
             onClick={() => setIsOpen(false)}
           >
-            <Bug className="w-4 h-4" />
+            <Bug className="size-4" />
             Report Bug
           </a>
           {FEEDBACK_EMAIL && (
@@ -61,7 +61,7 @@ function HelpDropdown() {
               className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors whitespace-nowrap"
               onClick={() => setIsOpen(false)}
             >
-              <Mail className="w-4 h-4" />
+              <Mail className="size-4" />
               Send Feedback
             </a>
           )}
@@ -91,16 +91,16 @@ function MobileMenu({ profile, signOut, hasGames }: { profile: { is_gm?: boolean
     <div className="relative sm:hidden" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="h-8 w-8 rounded-md bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+        className="size-8 rounded-md bg-muted hover:bg-muted/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
         aria-label="Mobile menu"
         aria-expanded={isOpen}
       >
         {isOpen ? (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         )}
@@ -224,7 +224,7 @@ export function Navbar() {
           <div className="flex items-center gap-2 sm:gap-3">
             <HelpDropdown />
             {authStatus === 'loading' ? (
-              <div className="h-8 w-8 animate-pulse bg-muted rounded-full shrink-0" />
+              <div className="size-8 animate-pulse bg-muted rounded-full shrink-0" />
             ) : profile ? (
               <>
                 <Link href="/settings" className="flex items-center gap-2 shrink-0">
@@ -233,10 +233,10 @@ export function Navbar() {
                     <img
                       src={profile.avatar_url}
                       alt={profile.name || ''}
-                      className="h-8 w-8 rounded-full shrink-0"
+                      className="size-8 rounded-full shrink-0"
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium shrink-0">
+                    <div className="size-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium shrink-0">
                       {profile.name?.[0]?.toUpperCase() || '?'}
                     </div>
                   )}

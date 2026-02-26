@@ -198,6 +198,24 @@ describe("calculatePlayerCompletionPercentages", () => {
     expect(result["player-1"]).toBe(Math.round((1 / playDates.length) * 100));
   });
 
+  it("uses pre-computed window bounds when provided", () => {
+    const referenceDate = new Date("2025-01-15T00:00:00");
+    const result = calculatePlayerCompletionPercentages({
+      playerIds: ["player-1"],
+      playDays: [5], // Fridays
+      schedulingWindowMonths: 2,
+      extraPlayDates: [],
+      availabilityRecords: [],
+      referenceDate,
+      // Campaign starts Feb 1, ends Feb 28 — only February Fridays count
+      windowStart: new Date("2025-02-01T00:00:00"),
+      windowEnd: new Date("2025-02-28T00:00:00"),
+    });
+
+    // 4 Fridays in Feb 2025: 7th, 14th, 21st, 28th. 0 filled = 0%
+    expect(result["player-1"]).toBe(0);
+  });
+
   it("rounds percentages to nearest integer", () => {
     // Create a scenario where the percentage would have decimals
     const playDates = getPlayDatesInWindow({
@@ -220,6 +238,22 @@ describe("calculatePlayerCompletionPercentages", () => {
     });
 
     expect(Number.isInteger(result["player-1"])).toBe(true);
+  });
+
+  it("returns empty object when window start is after window end", () => {
+    const referenceDate = new Date("2025-01-15T00:00:00");
+    const result = calculatePlayerCompletionPercentages({
+      playerIds: ["player-1"],
+      playDays: [5],
+      schedulingWindowMonths: 2,
+      extraPlayDates: [],
+      availabilityRecords: [],
+      referenceDate,
+      windowStart: new Date("2025-04-01T00:00:00"),
+      windowEnd: new Date("2025-02-28T00:00:00"),
+    });
+
+    expect(result).toEqual({});
   });
 });
 
@@ -309,6 +343,26 @@ describe("getPlayDatesInWindow", () => {
     expect(result3Months.length).toBeGreaterThan(result1Month.length);
   });
 
+  it("uses pre-computed window bounds when provided", () => {
+    const referenceDate = new Date("2025-01-15T00:00:00");
+    const result = getPlayDatesInWindow({
+      playDays: [5], // Fridays
+      schedulingWindowMonths: 2,
+      extraPlayDates: [],
+      referenceDate,
+      windowStart: new Date("2025-02-01T00:00:00"),
+      windowEnd: new Date("2025-02-28T00:00:00"),
+    });
+
+    // Only February Fridays: 7th, 14th, 21st, 28th
+    expect(result).toEqual([
+      "2025-02-07",
+      "2025-02-14",
+      "2025-02-21",
+      "2025-02-28",
+    ]);
+  });
+
   it("returns dates in yyyy-MM-dd format", () => {
     const result = getPlayDatesInWindow({
       playDays: [5],
@@ -320,5 +374,19 @@ describe("getPlayDatesInWindow", () => {
     result.forEach((dateStr) => {
       expect(dateStr).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
+  });
+
+  it("returns empty array when window start is after window end", () => {
+    const referenceDate = new Date("2025-01-15T00:00:00");
+    const result = getPlayDatesInWindow({
+      playDays: [5],
+      schedulingWindowMonths: 2,
+      extraPlayDates: [],
+      referenceDate,
+      windowStart: new Date("2025-04-01T00:00:00"),
+      windowEnd: new Date("2025-02-28T00:00:00"),
+    });
+
+    expect(result).toEqual([]);
   });
 });

@@ -36,13 +36,19 @@ CREATE TABLE games (
   gm_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   play_days INTEGER[] NOT NULL DEFAULT '{}',
   invite_code TEXT UNIQUE NOT NULL,
-  scheduling_window_months INTEGER DEFAULT 2 CHECK (scheduling_window_months BETWEEN 1 AND 3),
+  scheduling_window_months INTEGER DEFAULT 2 CHECK (scheduling_window_months IN (1, 2, 3, 6, 12)),
   default_start_time TIME DEFAULT '18:00',
   default_end_time TIME DEFAULT '22:00',
   timezone TEXT DEFAULT 'America/Los_Angeles',
   min_players_needed INTEGER DEFAULT 0 CHECK (min_players_needed >= 0),
   ad_hoc_only BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  campaign_start_date DATE DEFAULT NULL,
+  campaign_end_date DATE DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT valid_campaign_dates CHECK (
+    campaign_end_date IS NULL OR campaign_start_date IS NULL
+    OR campaign_end_date >= campaign_start_date
+  )
 );
 
 -- Game Membership table

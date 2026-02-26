@@ -23,6 +23,11 @@ export const SESSION_DEFAULTS = {
   END_TIME: '22:00',
 } as const;
 
+// Scheduling window options (in months)
+export const SCHEDULING_WINDOW_OPTIONS = [1, 2, 3, 6, 12] as const;
+
+export type SchedulingWindowMonths = (typeof SCHEDULING_WINDOW_OPTIONS)[number];
+
 // Usage limits to prevent abuse
 export const USAGE_LIMITS = {
   MAX_GAMES_PER_USER: 20,

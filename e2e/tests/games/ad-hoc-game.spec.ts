@@ -31,7 +31,7 @@ test.describe('Ad-Hoc Games', () => {
       await page.getByPlaceholder(/friday night board games/i).fill('Ad-Hoc Board Games');
 
       // Enable ad-hoc scheduling toggle
-      const toggle = page.getByRole('switch');
+      const toggle = page.getByRole('switch', { name: /ad-hoc scheduling/i });
       await toggle.click();
 
       // Play day buttons should be hidden
@@ -64,7 +64,7 @@ test.describe('Ad-Hoc Games', () => {
       await expect(page.getByRole('button', { name: 'Friday' })).toBeVisible();
 
       // Enable ad-hoc mode
-      const toggle = page.getByRole('switch');
+      const toggle = page.getByRole('switch', { name: /ad-hoc scheduling/i });
       await toggle.click();
 
       // Play day buttons should be hidden
@@ -93,7 +93,7 @@ test.describe('Ad-Hoc Games', () => {
       await page.getByPlaceholder(/friday night board games/i).fill('No Days Game');
 
       // Enable ad-hoc mode (no play days selected)
-      const toggle = page.getByRole('switch');
+      const toggle = page.getByRole('switch', { name: /ad-hoc scheduling/i });
       await toggle.click();
 
       // Submit should work without selecting play days
@@ -406,7 +406,7 @@ test.describe('Ad-Hoc Games', () => {
       });
 
       // The ad-hoc toggle should be checked (edit form uses role="switch")
-      const toggle = page.getByRole('switch');
+      const toggle = page.getByRole('switch', { name: /ad-hoc scheduling/i });
       await expect(toggle).toHaveAttribute('aria-checked', 'true');
 
       // Play day buttons should not be visible
@@ -439,7 +439,7 @@ test.describe('Ad-Hoc Games', () => {
       });
 
       // Uncheck ad-hoc toggle (edit form uses role="switch")
-      const toggle = page.getByRole('switch');
+      const toggle = page.getByRole('switch', { name: /ad-hoc scheduling/i });
       await toggle.click();
 
       // Play day buttons should now be visible

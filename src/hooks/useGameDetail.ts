@@ -32,10 +32,9 @@ import {
 } from "@/lib/data";
 import { filterAvailabilityForCopy } from "@/lib/copyAvailability";
 import { USAGE_LIMITS } from "@/lib/constants";
+import { getSchedulingWindow } from "@/lib/scheduling";
 import { nanoid } from "nanoid";
 import {
-  addMonths,
-  endOfMonth,
   getDay,
   startOfDay,
   parseISO,
@@ -283,9 +282,7 @@ export function useGameDetail(
       });
 
       const today = startOfDay(new Date());
-      const windowEnd = endOfMonth(
-        addMonths(today, game.scheduling_window_months)
-      );
+      const { end: windowEnd } = getSchedulingWindow(game, today);
 
       // Filter dates eligible for copy
       const toCopy = filterAvailabilityForCopy({

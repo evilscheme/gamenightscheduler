@@ -33,6 +33,8 @@ export async function createGame(
     ad_hoc_only: boolean;
     invite_code: string;
     scheduling_window_months: number;
+    campaign_start_date?: string | null;
+    campaign_end_date?: string | null;
     default_start_time: string;
     default_end_time: string;
     timezone: string | null;
@@ -62,6 +64,8 @@ export async function updateGame(
     description: string | null;
     play_days: number[];
     scheduling_window_months: number;
+    campaign_start_date?: string | null;
+    campaign_end_date?: string | null;
     default_start_time: string;
     default_end_time: string;
     timezone: string | null;

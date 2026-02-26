@@ -60,10 +60,12 @@ export async function createTestGame(options: {
   default_end_time?: string;
   timezone?: string;
   ad_hoc_only?: boolean;
+  campaign_start_date?: string | null;
+  campaign_end_date?: string | null;
 }): Promise<TestGame> {
   const admin = getAdminClient();
 
-  const gameData = {
+  const gameData: Record<string, unknown> = {
     name: options.name || `Test Game ${Date.now()}`,
     gm_id: options.gm_id,
     invite_code: options.invite_code || `test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
@@ -75,6 +77,14 @@ export async function createTestGame(options: {
     timezone: options.timezone || 'America/Los_Angeles',
     ad_hoc_only: options.ad_hoc_only || false,
   };
+
+  // Only include campaign dates if explicitly provided
+  if (options.campaign_start_date !== undefined) {
+    gameData.campaign_start_date = options.campaign_start_date;
+  }
+  if (options.campaign_end_date !== undefined) {
+    gameData.campaign_end_date = options.campaign_end_date;
+  }
 
   const { data, error } = await admin.from('games').insert(gameData).select().single();
 

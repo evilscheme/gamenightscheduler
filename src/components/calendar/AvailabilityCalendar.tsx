@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -10,6 +10,7 @@ import {
   getDay,
   isToday,
   isBefore,
+  isAfter,
   startOfDay,
   parseISO,
 } from "date-fns";
@@ -27,7 +28,8 @@ export type { AvailabilityEntry };
 
 interface AvailabilityCalendarProps {
   playDays: number[];
-  windowMonths: number;
+  windowStart: Date;
+  windowEnd: Date;
   availability: Record<string, AvailabilityEntry>;
   onToggle: (
     date: string,
@@ -46,11 +48,13 @@ interface AvailabilityCalendarProps {
   onCopyFromGame?: (sourceGameId: string) => Promise<number>;
   playDateNotes?: Map<string, string>;
   onUpdatePlayDateNote?: (date: string, note: string | null) => void;
+  hasCampaignDates?: boolean;
 }
 
 export function AvailabilityCalendar({
   playDays,
-  windowMonths,
+  windowStart,
+  windowEnd,
   availability,
   onToggle,
   confirmedSessions,
@@ -63,9 +67,10 @@ export function AvailabilityCalendar({
   onCopyFromGame,
   playDateNotes = new Map(),
   onUpdatePlayDateNote,
+  hasCampaignDates = false,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
-  const maxDate = endOfMonth(addMonths(today, windowMonths));
+  const maxDate = windowEnd;
   const [commentingDate, setCommentingDate] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [availableAfterText, setAvailableAfterText] = useState("");
@@ -80,10 +85,24 @@ export function AvailabilityCalendar({
   const [isCopying, setIsCopying] = useState(false);
   const [copyResultMessage, setCopyResultMessage] = useState<string | null>(null);
 
+  // Out-of-range toast state (mobile feedback)
+  const [outOfRangeToast, setOutOfRangeToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const showOutOfRangeToast = useCallback((message: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setOutOfRangeToast(message);
+    toastTimerRef.current = setTimeout(() => setOutOfRangeToast(null), 2000);
+  }, []);
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   // Generate array of months to display
   const months = useMemo(() => {
     const result = [];
-    let current = startOfMonth(today);
+    let current = startOfMonth(windowStart);
     while (
       isBefore(current, maxDate) ||
       current.getTime() === startOfMonth(maxDate).getTime()
@@ -92,7 +111,7 @@ export function AvailabilityCalendar({
       current = addMonths(current, 1);
     }
     return result;
-  }, [today, maxDate]);
+  }, [windowStart, maxDate]);
 
   // Reorder weekday headers based on week start preference
   const orderedWeekdays = useMemo(() => {
@@ -114,8 +133,9 @@ export function AvailabilityCalendar({
     // Can't toggle non-play days (unless it's a extra play date)
     if (!playDays.includes(dayOfWeek) && !isExtraPlayDate) return;
 
-    // Can't toggle past dates
+    // Can't toggle past dates or dates outside campaign range
     if (isBefore(date, today)) return;
+    if (isBefore(date, windowStart) || isAfter(date, windowEnd)) return;
 
     const currentAvail = availability[dateStr];
     const nextStatus = getNextStatus(currentAvail);
@@ -198,7 +218,7 @@ export function AvailabilityCalendar({
 
   const bulkSetDays = (filter: string, status: AvailabilityStatus) => {
     const datesInWindow = eachDayOfInterval({
-      start: today,
+      start: windowStart,
       end: maxDate,
     }).filter((date) => {
       const dayOfWeek = getDay(date);
@@ -260,7 +280,7 @@ export function AvailabilityCalendar({
     <div className="space-y-4">
       {/* Bulk actions */}
       <div className="bg-secondary rounded-lg p-3">
-        <div className="space-y-2 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-x-2 lg:gap-y-2 text-sm">
+        <div className="space-y-2 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-2 text-sm">
           {/* Mark all section — stacked on mobile, inline on desktop */}
           <div className="lg:contents">
             <p className="text-xs text-muted-foreground mb-1 lg:hidden">Mark all</p>
@@ -309,7 +329,7 @@ export function AvailabilityCalendar({
                   <select
                     value={copySourceGameId}
                     onChange={(e) => setCopySourceGameId(e.target.value)}
-                    className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-[200px]"
+                    className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-50"
                     data-testid="copy-game-select"
                   >
                     <option value="">Select a game</option>
@@ -361,6 +381,9 @@ export function AvailabilityCalendar({
             weekStartDay={weekStartDay}
             use24h={use24h}
             playDateNotes={playDateNotes}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
+            onOutOfRangeTap={showOutOfRangeToast}
           />
         ))}
       </div>
@@ -368,41 +391,41 @@ export function AvailabilityCalendar({
       {/* Compact Legend */}
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-available-bg" />
+          <div className="size-3.5 rounded-sm bg-cal-available-bg" />
           <span>Available</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-maybe-bg" />
+          <div className="size-3.5 rounded-sm bg-cal-maybe-bg" />
           <span>Maybe</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-unavailable-bg" />
+          <div className="size-3.5 rounded-sm bg-cal-unavailable-bg" />
           <span>Unavailable</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-unset-bg border-2 border-dashed border-cal-unset-border" />
+          <div className="size-3.5 rounded-sm bg-cal-unset-bg border-2 border-dashed border-cal-unset-border" />
           <span>Not set</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-disabled-bg" />
+          <div className="size-3.5 rounded-sm bg-cal-disabled-bg" />
           <span>Non-play day</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3.5 h-3.5 rounded-sm bg-cal-unset-bg shadow-[0_0_0_2px_var(--primary)]" />
+          <div className="size-3.5 rounded-sm bg-cal-unset-bg shadow-[0_0_0_2px_var(--primary)]" />
           <span>Today</span>
         </div>
         {playDays.length > 0 && (
           <div className="flex items-center gap-1.5">
-            <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-unset-bg border border-cal-unset-border">
-              <span className="absolute top-0 right-0 w-0 h-0 border-t-[6px] border-t-primary border-l-[6px] border-l-transparent" />
+            <div className="relative size-3.5 rounded-sm bg-cal-unset-bg border border-cal-unset-border">
+              <span className="absolute top-0 right-0 size-0 border-t-[6px] border-t-primary border-l-[6px] border-l-transparent" />
             </div>
             <span>Extra date</span>
           </div>
         )}
         <div className="flex items-center gap-1.5">
-          <div className="relative w-3.5 h-3.5 rounded-sm bg-cal-available-bg flex items-center justify-center">
+          <div className="relative size-3.5 rounded-sm bg-cal-available-bg flex items-center justify-center">
             <svg
-              className="w-2.5 h-2.5"
+              className="size-2.5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="white"
@@ -418,7 +441,24 @@ export function AvailabilityCalendar({
           </div>
           <span>Scheduled</span>
         </div>
+        {hasCampaignDates && (
+          <div className="flex items-center gap-1.5">
+            <div className="size-3.5 rounded-sm cal-out-of-range" />
+            <span>Outside campaign</span>
+          </div>
+        )}
       </div>
+
+      {/* Out-of-range toast (mobile feedback) */}
+      {outOfRangeToast && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-card border border-border shadow-lg text-sm text-foreground animate-in fade-in slide-in-from-bottom-2 duration-200"
+          role="status"
+          aria-live="polite"
+        >
+          {outOfRangeToast}
+        </div>
+      )}
 
       {/* Note & time editor popover */}
       {commentingDate && (
@@ -510,6 +550,9 @@ interface MonthCalendarProps {
   weekStartDay: 0 | 1;
   use24h: boolean;
   playDateNotes?: Map<string, string>;
+  windowStart: Date;
+  windowEnd: Date;
+  onOutOfRangeTap?: (message: string) => void;
 }
 
 function MonthCalendar({
@@ -529,6 +572,9 @@ function MonthCalendar({
   weekStartDay,
   use24h,
   playDateNotes,
+  windowStart,
+  windowEnd,
+  onOutOfRangeTap,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),
@@ -606,7 +652,7 @@ function MonthCalendar({
         {Array.from({ length: startDayOfWeek }).map((_, i) => (
           <div
             key={`empty-${i}`}
-            className="w-full aspect-square min-h-[36px]"
+            className="w-full aspect-square min-h-9"
           />
         ))}
 
@@ -616,18 +662,19 @@ function MonthCalendar({
           const dayOfWeek = getDay(date);
           const isRegularPlayDay = playDays.includes(dayOfWeek);
           const isExtraPlayDate = extraPlayDates.includes(dateStr);
-          const isPlayDay = isRegularPlayDay || isExtraPlayDate;
+          const isOutOfRange = isBefore(date, windowStart) || isAfter(date, windowEnd);
+          const isPlayDay = (isRegularPlayDay || isExtraPlayDate) && !isOutOfRange;
           const isPast = isBefore(date, today);
           const isConfirmed = confirmedDates.has(dateStr);
           const avail = availability[dateStr];
 
           // Can GM add this as a extra play date? Only non-play days that aren't past
           const canAddAsExtra =
-            isGmOrCoGm && !isRegularPlayDay && !isExtraPlayDate && !isPast;
+            isGmOrCoGm && !isRegularPlayDay && !isExtraPlayDate && !isPast && !isOutOfRange;
           // Can GM remove this extra play date?
           const canRemoveExtra = isGmOrCoGm && isExtraPlayDate && !isPast;
 
-          let bgColor = "bg-cal-disabled-bg"; // Non-play day
+          let bgColor = isOutOfRange ? "cal-out-of-range" : "bg-cal-disabled-bg"; // Non-play day or out-of-range
           let textColor = "text-cal-disabled-text";
           let cursor = "cursor-default";
           const extraStyles = "";
@@ -740,32 +787,41 @@ function MonthCalendar({
           const cellTooltip = tooltipParts.join("\n");
 
           // Data attribute for testing - represents the cell state
-          const dataStatus = isConfirmed
-            ? "scheduled"
-            : isPast
-              ? "past"
-              : !isPlayDay
-                ? "disabled"
-                : avail?.status === "available"
-                  ? "available"
-                  : avail?.status === "unavailable"
-                    ? "unavailable"
-                    : avail?.status === "maybe"
-                      ? "maybe"
-                      : "unset";
+          const dataStatus = isOutOfRange
+            ? "out-of-range"
+            : isConfirmed
+              ? "scheduled"
+              : isPast
+                ? "past"
+                : !isPlayDay
+                  ? "disabled"
+                  : avail?.status === "available"
+                    ? "available"
+                    : avail?.status === "unavailable"
+                      ? "unavailable"
+                      : avail?.status === "maybe"
+                        ? "maybe"
+                        : "unset";
 
           return (
             <button
               key={dateStr}
               onClick={() => handleDayClickWithLongPressCheck(date)}
-              onTouchStart={() =>
-                !isPast &&
-                handleTouchStart(dateStr, isRegularPlayDay, isExtraPlayDate)
-              }
+              onTouchStart={() => {
+                if (isOutOfRange && !isPast && onOutOfRangeTap) {
+                  onOutOfRangeTap(
+                    isBefore(date, windowStart) ? "Before campaign start" : "After campaign end"
+                  );
+                  return;
+                }
+                if (!isPast && !isOutOfRange) {
+                  handleTouchStart(dateStr, isRegularPlayDay, isExtraPlayDate);
+                }
+              }}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
-              disabled={(!isPlayDay && !canAddAsExtra) || isPast}
-              className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
+              disabled={(!isPlayDay && !canAddAsExtra) || isPast || isOutOfRange}
+              className={`group relative w-full aspect-square min-h-9 rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}
               data-status={dataStatus}
@@ -777,7 +833,7 @@ function MonthCalendar({
               {isConfirmed && (
                 <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <svg
-                    className="w-[85%] h-[85%]"
+                    className="size-[85%]"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="white"
@@ -795,7 +851,7 @@ function MonthCalendar({
               {format(date, "d")}
               {/* Extra date indicator - corner triangle (hidden for ad-hoc games) */}
               {isExtraPlayDate && !isPast && playDays.length > 0 && (
-                <span className="absolute top-0 right-0 w-0 h-0 border-t-[10px] border-t-primary border-l-[10px] border-l-transparent" />
+                <span className="absolute top-0 right-0 size-0 border-t-10 border-t-primary border-l-10 border-l-transparent" />
               )}
               {/* GM: Add extra play date icon on non-play days */}
               {canAddAsExtra && onToggleExtraDate && (
@@ -812,7 +868,7 @@ function MonthCalendar({
                   }}
                   title={playDays.length > 0 ? "Add extra date" : "Add play date"}
                 >
-                  <Plus className="w-2.5 h-2.5" />
+                  <Plus className="size-2.5" />
                 </span>
               )}
               {/* GM: Remove extra play date icon */}
@@ -830,7 +886,7 @@ function MonthCalendar({
                   }}
                   title={playDays.length > 0 ? "Remove extra date" : "Remove play date"}
                 >
-                  <X className="w-2.5 h-2.5" />
+                  <X className="size-2.5" />
                 </span>
               )}
               {/* Bottom-left status icons (clickable — open editor popover) */}
@@ -858,12 +914,12 @@ function MonthCalendar({
                         return `Until ${until}`;
                       })()}
                     >
-                      <Clock className="w-2.5 h-2.5" />
+                      <Clock className="size-2.5" />
                     </span>
                   )}
                   {playDateNotes?.has(dateStr) && (
                     <span data-testid="note-indicator" title={`GM note: ${playDateNotes.get(dateStr)}`}>
-                      <FileText className="w-2.5 h-2.5" />
+                      <FileText className="size-2.5" />
                     </span>
                   )}
                 </span>
@@ -887,7 +943,7 @@ function MonthCalendar({
                   }}
                   title={hasComment ? `Edit note: ${avail!.comment}` : "Add note"}
                 >
-                  {hasComment ? <MessageSquare className="w-2.5 h-2.5" /> : <Pencil className="w-2.5 h-2.5" />}
+                  {hasComment ? <MessageSquare className="size-2.5" /> : <Pencil className="size-2.5" />}
                 </span>
               )}
             </button>

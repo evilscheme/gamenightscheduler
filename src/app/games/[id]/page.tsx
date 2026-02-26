@@ -20,6 +20,7 @@ import {
   getDay,
   format,
   isAfter,
+  isBefore,
   startOfDay,
   parseISO,
 } from "date-fns";
@@ -28,6 +29,7 @@ import { calculatePlayerCompletionPercentages } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useGameDetail } from "@/hooks/useGameDetail";
+import { getSchedulingWindow } from "@/lib/scheduling";
 
 type Tab = "overview" | "availability" | "schedule";
 
@@ -104,6 +106,15 @@ export default function GameDetailPage() {
     [playDateEntries]
   );
 
+  const { start: windowStart, end: windowEnd } = useMemo(
+    () =>
+      game
+        ? getSchedulingWindow(game)
+        : { start: startOfDay(new Date()), end: endOfMonth(addMonths(new Date(), 2)) },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally depends on specific fields, not the full game object, to prevent re-render loops
+    [game?.scheduling_window_months, game?.campaign_start_date, game?.campaign_end_date]
+  );
+
   // Calculate availability completion percentage per player
   const playerCompletionPercentages = useMemo(() => {
     if (!game) return {};
@@ -115,8 +126,10 @@ export default function GameDetailPage() {
       schedulingWindowMonths: game.scheduling_window_months,
       extraPlayDates: extraDateStrings,
       availabilityRecords: allAvailability,
+      windowStart,
+      windowEnd,
     });
-  }, [game, allAvailability, extraDateStrings]);
+  }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
 
   useAuthRedirect();
 
@@ -128,26 +141,25 @@ export default function GameDetailPage() {
   }, [loading, game, profile?.id, router]);
 
   // Calculate suggestions when availability changes
-  // This is a valid pattern: deriving state from async-loaded data
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!game) return;
 
     const allPlayers = [game.gm, ...game.members];
     const today = startOfDay(new Date());
-    const endDate = endOfMonth(addMonths(today, game.scheduling_window_months));
 
     // Get play dates within the scheduling window
-    const playDates = eachDayOfInterval({ start: today, end: endDate })
-      .filter((date) => {
-        const dateStr = format(date, "yyyy-MM-dd");
-        return game.play_days.includes(getDay(date)) || extraDateStrings.includes(dateStr);
-      })
-      .filter(
-        (date) =>
-          isAfter(date, today) ||
-          format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
-      );
+    const playDates = isBefore(windowEnd, windowStart)
+      ? []
+      : eachDayOfInterval({ start: windowStart, end: windowEnd })
+          .filter((date) => {
+            const dateStr = format(date, "yyyy-MM-dd");
+            return game.play_days.includes(getDay(date)) || extraDateStrings.includes(dateStr);
+          })
+          .filter(
+            (date) =>
+              isAfter(date, today) ||
+              format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
+          );
 
     // Use the shared utility function to calculate suggestions
     const suggestionList = calculateDateSuggestions({
@@ -160,8 +172,7 @@ export default function GameDetailPage() {
     });
 
     setSuggestions(suggestionList);
-  }, [game, allAvailability, extraDateStrings]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
 
   // UI action wrappers
   const copyInviteLink = () => {
@@ -340,6 +351,8 @@ export default function GameDetailPage() {
             inviteCode={game.invite_code}
             use24h={use24h}
             adHocOnly={game.ad_hoc_only}
+            campaignStartDate={game.campaign_start_date}
+            campaignEndDate={game.campaign_end_date}
           />
         </div>
       )}
@@ -378,7 +391,8 @@ export default function GameDetailPage() {
           </div>
           <AvailabilityCalendar
             playDays={game.play_days}
-            windowMonths={game.scheduling_window_months}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
             availability={availability}
             onToggle={changeAvailability}
             confirmedSessions={confirmedSessions}
@@ -391,6 +405,7 @@ export default function GameDetailPage() {
             onCopyFromGame={copyFromGame}
             playDateNotes={playDateNotes}
             onUpdatePlayDateNote={updatePlayDateNote}
+            hasCampaignDates={!!(game.campaign_start_date || game.campaign_end_date)}
           />
         </div>
       )}

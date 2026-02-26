@@ -44,8 +44,10 @@ test.describe('Campaign Dates', () => {
     await page.getByPlaceholder(/friday night board games/i).fill('Campaign Test');
     await page.getByRole('button', { name: 'Friday' }).click();
 
-    // Set campaign dates (always in the future)
+    // Enable custom campaign date toggles, then fill dates
+    await page.getByRole('switch', { name: /custom start date/i }).click();
     await page.fill('#campaign-start', startDate.iso);
+    await page.getByRole('switch', { name: /custom end date/i }).click();
     await page.fill('#campaign-end', endDate.iso);
 
     // Submit
@@ -83,8 +85,10 @@ test.describe('Campaign Dates', () => {
       page.getByRole('heading', { name: /edit game/i })
     ).toBeVisible();
 
-    // Set campaign dates (always in the future)
+    // Enable custom campaign date toggles, then fill dates
+    await page.getByRole('switch', { name: /custom start date/i }).click();
     await page.fill('#campaign-start', startDate.iso);
+    await page.getByRole('switch', { name: /custom end date/i }).click();
     await page.fill('#campaign-end', endDate.iso);
 
     // Save

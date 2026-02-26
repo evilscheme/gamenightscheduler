@@ -27,6 +27,8 @@ export default function NewGamePage() {
   const [defaultEndTime, setDefaultEndTime] = useState<string>(SESSION_DEFAULTS.END_TIME);
   const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
   const [tzInitialized, setTzInitialized] = useState(false);
+  const [useCustomStart, setUseCustomStart] = useState(false);
+  const [useCustomEnd, setUseCustomEnd] = useState(false);
   const [campaignStartDate, setCampaignStartDate] = useState<string>("");
   const [campaignEndDate, setCampaignEndDate] = useState<string>("");
   const [creating, setCreating] = useState(false);
@@ -276,40 +278,87 @@ export default function NewGamePage() {
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
-                Campaign Dates <span className="text-muted-foreground font-normal">(optional)</span>
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-foreground">
+                Campaign Dates
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="campaign-start" className="block text-xs text-muted-foreground mb-1">
-                    Start date
-                  </label>
-                  <input
-                    type="date"
-                    id="campaign-start"
-                    value={campaignStartDate}
-                    onChange={(e) => setCampaignStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-                  />
+
+              <div className="flex items-center justify-between">
+                <div className="flex-1 mr-3">
+                  <label className="text-sm text-foreground">Custom start date</label>
+                  <p className="text-xs text-muted-foreground">
+                    {useCustomStart ? "Calendar starts on this date" : "Starts immediately"}
+                  </p>
                 </div>
-                <div>
-                  <label htmlFor="campaign-end" className="block text-xs text-muted-foreground mb-1">
-                    End date
-                  </label>
-                  <input
-                    type="date"
-                    id="campaign-end"
-                    value={campaignEndDate}
-                    min={campaignStartDate || undefined}
-                    onChange={(e) => setCampaignEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                <button
+                  type="button"
+                  role="switch"
+                  aria-label="Custom start date"
+                  aria-checked={useCustomStart}
+                  onClick={() => {
+                    const next = !useCustomStart;
+                    setUseCustomStart(next);
+                    if (!next) setCampaignStartDate("");
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                    useCustomStart ? 'bg-primary' : 'bg-secondary'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useCustomStart ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                   />
-                </div>
+                </button>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Limit the calendar to a specific date range
-              </p>
+              {useCustomStart && (
+                <input
+                  type="date"
+                  id="campaign-start"
+                  value={campaignStartDate}
+                  onChange={(e) => setCampaignStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                />
+              )}
+
+              <div className="flex items-center justify-between">
+                <div className="flex-1 mr-3">
+                  <label className="text-sm text-foreground">Custom end date</label>
+                  <p className="text-xs text-muted-foreground">
+                    {useCustomEnd ? "Calendar ends on this date" : "Runs indefinitely"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-label="Custom end date"
+                  aria-checked={useCustomEnd}
+                  onClick={() => {
+                    const next = !useCustomEnd;
+                    setUseCustomEnd(next);
+                    if (!next) setCampaignEndDate("");
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                    useCustomEnd ? 'bg-primary' : 'bg-secondary'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useCustomEnd ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              {useCustomEnd && (
+                <input
+                  type="date"
+                  id="campaign-end"
+                  value={campaignEndDate}
+                  min={campaignStartDate || undefined}
+                  onChange={(e) => setCampaignEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                />
+              )}
             </div>
 
             <div>

@@ -10,6 +10,7 @@ import {
   getDay,
   isToday,
   isBefore,
+  isAfter,
   startOfDay,
   parseISO,
 } from "date-fns";
@@ -116,8 +117,9 @@ export function AvailabilityCalendar({
     // Can't toggle non-play days (unless it's a extra play date)
     if (!playDays.includes(dayOfWeek) && !isExtraPlayDate) return;
 
-    // Can't toggle past dates
+    // Can't toggle past dates or dates outside campaign range
     if (isBefore(date, today)) return;
+    if (isBefore(date, windowStart) || isAfter(date, windowEnd)) return;
 
     const currentAvail = availability[dateStr];
     const nextStatus = getNextStatus(currentAvail);
@@ -363,6 +365,8 @@ export function AvailabilityCalendar({
             weekStartDay={weekStartDay}
             use24h={use24h}
             playDateNotes={playDateNotes}
+            windowStart={windowStart}
+            windowEnd={windowEnd}
           />
         ))}
       </div>
@@ -512,6 +516,8 @@ interface MonthCalendarProps {
   weekStartDay: 0 | 1;
   use24h: boolean;
   playDateNotes?: Map<string, string>;
+  windowStart: Date;
+  windowEnd: Date;
 }
 
 function MonthCalendar({
@@ -531,6 +537,8 @@ function MonthCalendar({
   weekStartDay,
   use24h,
   playDateNotes,
+  windowStart,
+  windowEnd,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),
@@ -618,14 +626,15 @@ function MonthCalendar({
           const dayOfWeek = getDay(date);
           const isRegularPlayDay = playDays.includes(dayOfWeek);
           const isExtraPlayDate = extraPlayDates.includes(dateStr);
-          const isPlayDay = isRegularPlayDay || isExtraPlayDate;
+          const isOutOfRange = isBefore(date, windowStart) || isAfter(date, windowEnd);
+          const isPlayDay = (isRegularPlayDay || isExtraPlayDate) && !isOutOfRange;
           const isPast = isBefore(date, today);
           const isConfirmed = confirmedDates.has(dateStr);
           const avail = availability[dateStr];
 
           // Can GM add this as a extra play date? Only non-play days that aren't past
           const canAddAsExtra =
-            isGmOrCoGm && !isRegularPlayDay && !isExtraPlayDate && !isPast;
+            isGmOrCoGm && !isRegularPlayDay && !isExtraPlayDate && !isPast && !isOutOfRange;
           // Can GM remove this extra play date?
           const canRemoveExtra = isGmOrCoGm && isExtraPlayDate && !isPast;
 
@@ -762,11 +771,12 @@ function MonthCalendar({
               onClick={() => handleDayClickWithLongPressCheck(date)}
               onTouchStart={() =>
                 !isPast &&
+                !isOutOfRange &&
                 handleTouchStart(dateStr, isRegularPlayDay, isExtraPlayDate)
               }
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
-              disabled={(!isPlayDay && !canAddAsExtra) || isPast}
+              disabled={(!isPlayDay && !canAddAsExtra) || isPast || isOutOfRange}
               className={`group relative w-full aspect-square min-h-[36px] rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}

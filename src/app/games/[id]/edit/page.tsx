@@ -7,7 +7,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
-import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE, USAGE_LIMITS } from '@/lib/constants';
+import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE, USAGE_LIMITS, SCHEDULING_WINDOW_OPTIONS } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 
@@ -30,6 +30,8 @@ export default function EditGamePage() {
   const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
   const [minPlayersNeeded, setMinPlayersNeeded] = useState(0);
   const [adHocOnly, setAdHocOnly] = useState(false);
+  const [campaignStartDate, setCampaignStartDate] = useState<string>("");
+  const [campaignEndDate, setCampaignEndDate] = useState<string>("");
   const [conversionMessage, setConversionMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -79,6 +81,8 @@ export default function EditGamePage() {
       setTimezone(data.timezone || DEFAULT_TIMEZONE);
       setMinPlayersNeeded(data.min_players_needed || 0);
       setAdHocOnly(data.ad_hoc_only || false);
+      setCampaignStartDate(data.campaign_start_date || "");
+      setCampaignEndDate(data.campaign_end_date || "");
       setLoading(false);
     }
 
@@ -101,7 +105,13 @@ export default function EditGamePage() {
     e.preventDefault();
     if (!profile?.id || !game) return;
 
-    const validation = validateGameForm({ name, playDays, adHocOnly });
+    const validation = validateGameForm({
+      name,
+      playDays,
+      adHocOnly,
+      campaignStartDate: campaignStartDate || null,
+      campaignEndDate: campaignEndDate || null,
+    });
     if (!validation.valid) {
       setError(validation.errors[0]);
       return;
@@ -139,6 +149,8 @@ export default function EditGamePage() {
         description: description.trim() || null,
         play_days: adHocOnly ? [] : playDays.sort((a, b) => a - b),
         scheduling_window_months: windowMonths,
+        campaign_start_date: campaignStartDate || null,
+        campaign_end_date: campaignEndDate || null,
         default_start_time: defaultStartTime,
         default_end_time: defaultEndTime,
         timezone: timezone || null,
@@ -276,12 +288,50 @@ export default function EditGamePage() {
                 onChange={(e) => setWindowMonths(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
               >
-                <option value={1}>1 month ahead</option>
-                <option value={2}>2 months ahead</option>
-                <option value={3}>3 months ahead</option>
+                {SCHEDULING_WINDOW_OPTIONS.map((months) => (
+                  <option key={months} value={months}>
+                    {months} {months === 1 ? "month" : "months"} ahead
+                  </option>
+                ))}
               </select>
               <p className="text-sm text-muted-foreground mt-1">
                 How far in advance players can mark their availability
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Campaign Dates <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="campaign-start" className="block text-xs text-muted-foreground mb-1">
+                    Start date
+                  </label>
+                  <input
+                    type="date"
+                    id="campaign-start"
+                    value={campaignStartDate}
+                    onChange={(e) => setCampaignStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="campaign-end" className="block text-xs text-muted-foreground mb-1">
+                    End date
+                  </label>
+                  <input
+                    type="date"
+                    id="campaign-end"
+                    value={campaignEndDate}
+                    min={campaignStartDate || undefined}
+                    onChange={(e) => setCampaignEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Limit the calendar to a specific date range
               </p>
             </div>
 

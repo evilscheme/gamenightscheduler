@@ -5,6 +5,8 @@ export interface GameFormData {
   description?: string;
   playDays: number[];
   adHocOnly?: boolean;
+  campaignStartDate?: string | null;
+  campaignEndDate?: string | null;
 }
 
 export interface ValidationResult {
@@ -36,6 +38,13 @@ export function validateGameForm(data: GameFormData): ValidationResult {
   // Validate play days
   if (!data.adHocOnly && (!data.playDays || data.playDays.length === 0)) {
     errors.push("Please select at least one play day");
+  }
+
+  // Validate campaign dates
+  if (data.campaignStartDate && data.campaignEndDate) {
+    if (data.campaignEndDate < data.campaignStartDate) {
+      errors.push("Campaign end date must be on or after start date");
+    }
   }
 
   return {

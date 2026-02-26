@@ -194,4 +194,59 @@ describe("validateGameForm", () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toContain("Please select at least one play day");
   });
+
+  describe("campaign date validation", () => {
+    const validBase = { name: "Game Night", playDays: [5] as number[] };
+
+    it("passes with no campaign dates", () => {
+      const result = validateGameForm(validBase);
+      expect(result.valid).toBe(true);
+    });
+
+    it("passes with only start date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignStartDate: "2025-06-01",
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("passes with only end date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignEndDate: "2025-06-01",
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("passes when end date is after start date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignStartDate: "2025-03-01",
+        campaignEndDate: "2025-06-01",
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("passes when end date equals start date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignStartDate: "2025-06-01",
+        campaignEndDate: "2025-06-01",
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("fails when end date is before start date", () => {
+      const result = validateGameForm({
+        ...validBase,
+        campaignStartDate: "2025-06-01",
+        campaignEndDate: "2025-03-01",
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContain(
+        "Campaign end date must be on or after start date"
+      );
+    });
+  });
 });

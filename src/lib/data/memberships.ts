@@ -73,13 +73,8 @@ export async function leaveGame(supabase: SupabaseClient, gameId: string, userId
     .eq('user_id', userId);
 }
 
-export async function removePlayer(supabase: SupabaseClient, gameId: string, userId: string) {
-  return supabase
-    .from('game_memberships')
-    .delete()
-    .eq('game_id', gameId)
-    .eq('user_id', userId);
-}
+// Same operation as leaveGame, but semantically distinct (GM removing a player vs. player leaving)
+export const removePlayer = leaveGame;
 
 export async function toggleCoGm(
   supabase: SupabaseClient,

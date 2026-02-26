@@ -7,7 +7,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
-import { checkCoGmStatus, fetchFutureSessions, upsertPlayDate, updateGame } from '@/lib/data';
+import { fetchGameWithGM, checkCoGmStatus, fetchFutureSessions, upsertPlayDate, updateGame } from '@/lib/data';
 import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE, USAGE_LIMITS } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
@@ -41,11 +41,7 @@ export default function EditGamePage() {
     async function fetchGame() {
       if (!gameId || !profile?.id) return;
 
-      const { data, error: fetchError } = await supabase
-        .from('games')
-        .select('*')
-        .eq('id', gameId)
-        .single();
+      const { data, error: fetchError } = await fetchGameWithGM(supabase, gameId);
 
       if (fetchError || !data) {
         router.push('/dashboard');

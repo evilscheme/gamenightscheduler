@@ -128,6 +128,8 @@ export default function GameDetailPage() {
   }, [loading, game, profile?.id, router]);
 
   // Calculate suggestions when availability changes
+  // This is a valid pattern: deriving state from async-loaded data
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!game) return;
 
@@ -159,6 +161,7 @@ export default function GameDetailPage() {
 
     setSuggestions(suggestionList);
   }, [game, allAvailability, extraDateStrings]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // UI action wrappers
   const copyInviteLink = () => {

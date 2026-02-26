@@ -35,8 +35,6 @@ export default function NewGamePage() {
   useAuthRedirect({ requireGM: true });
 
   // Initialize timezone: user preference > browser detection > default
-  // This is a valid pattern for form initialization from async profile data
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!tzInitialized) {
       if (userTimezone && isValidTimezone(userTimezone)) {
@@ -51,7 +49,6 @@ export default function NewGamePage() {
       }
     }
   }, [userTimezone, tzInitialized]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Reorder day options based on user's week start preference
   const orderedDayOptions = weekStartDay === 0
@@ -66,7 +63,8 @@ export default function NewGamePage() {
       setGameCount(count ?? 0);
     }
     fetchGameCount();
-  }, [profile?.id, supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
+  }, [profile?.id]);
 
   const toggleDay = (day: number) => {
     setPlayDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));

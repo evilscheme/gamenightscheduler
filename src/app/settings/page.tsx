@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { TEXT_LIMITS, TIMEZONE_GROUPS } from '@/lib/constants';
-import { updateUserProfile } from '@/lib/data';
 import { ThemePicker } from '@/components/settings/ThemePicker';
 import { getBrowserTimezone, isValidTimezone } from '@/lib/timezone';
 
@@ -58,12 +57,15 @@ export default function SettingsPage() {
     setSaving(true);
     setMessage('');
 
-    const { error } = await updateUserProfile(supabase, profile.id, {
-      name: name.trim(),
-      timezone: userTimezone || null,
-      week_start_day: weekStartDay,
-      time_format: timeFormat,
-    });
+    const { error } = await supabase
+      .from('users')
+      .update({
+        name: name.trim(),
+        timezone: userTimezone || null,
+        week_start_day: weekStartDay,
+        time_format: timeFormat,
+      })
+      .eq('id', profile.id);
 
     if (error) {
       // Check if it's a constraint violation

@@ -106,7 +106,7 @@ Supabase PostgreSQL with Row Level Security. Schema in `supabase/schema.sql`.
 
 Key tables:
 - `users` - Profiles linked to `auth.users` via id (auto-created on signup via trigger)
-- `games` - Games with host (GM), play days array, invite code, scheduling window, default session times, special play dates, minimum players needed
+- `games` - Games with host (GM), play days array, invite code, scheduling window (1/2/3/6/12 months), default session times, special play dates, minimum players needed, optional campaign start/end dates
 - `game_memberships` - Players in each game (includes `is_co_gm` flag)
 - `availability` - Available/unavailable/maybe dates per player per game (with optional comment, optional `available_after`/`available_until` time constraints)
 - `sessions` - Scheduled game nights (confirmed status with start/end times)
@@ -130,6 +130,7 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - `src/hooks/useUserPreferences.ts` - Single source of truth for user i18n preferences (time format, week start)
 - `src/lib/constants.ts` - Shared constants (day labels, timeouts, session defaults, usage limits, text limits)
 - `src/lib/availability.ts` - Player completion percentage calculations
+- `src/lib/scheduling.ts` - Scheduling window calculation (`getSchedulingWindow()`) for campaign date bounds
 - `src/lib/availabilityStatus.ts` - Availability state cycling (available → unavailable → maybe)
 - `src/lib/suggestions.ts` - Date suggestion ranking algorithm
 - `src/lib/ics.ts` - ICS (iCalendar) file generation for calendar export

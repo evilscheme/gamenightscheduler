@@ -878,6 +878,8 @@ export default function GameDetailPage() {
             inviteCode={game.invite_code}
             use24h={use24h}
             adHocOnly={game.ad_hoc_only}
+            campaignStartDate={game.campaign_start_date}
+            campaignEndDate={game.campaign_end_date}
           />
         </div>
       )}

@@ -26,6 +26,8 @@ export interface Game {
   timezone: string | null; // IANA timezone identifier (e.g., 'America/Los_Angeles')
   min_players_needed: number; // 0 means no minimum
   ad_hoc_only: boolean;
+  campaign_start_date: string | null;
+  campaign_end_date: string | null;
   created_at: string;
 }
 

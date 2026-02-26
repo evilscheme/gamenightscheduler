@@ -191,25 +191,18 @@ export default function NewGamePage() {
               rows={3}
             />
 
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-foreground">
-                  Ad-hoc scheduling only
-                </label>
-                <p className="text-sm text-muted-foreground">
-                  No fixed play days &mdash; schedule sessions on any date
-                </p>
-              </div>
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 role="switch"
+                aria-label="Ad-hoc scheduling only"
                 aria-checked={adHocOnly}
                 onClick={() => {
                   const next = !adHocOnly;
                   setAdHocOnly(next);
                   if (next) setPlayDays([]);
                 }}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
                   adHocOnly ? 'bg-primary' : 'bg-secondary'
                 }`}
               >
@@ -219,6 +212,14 @@ export default function NewGamePage() {
                   }`}
                 />
               </button>
+              <div>
+                <label className="text-sm font-medium text-foreground">
+                  Ad-hoc scheduling only
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  No fixed play days &mdash; schedule sessions on any date
+                </p>
+              </div>
             </div>
 
             {adHocOnly && (

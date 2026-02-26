@@ -7,6 +7,10 @@ export interface GameFormData {
   adHocOnly?: boolean;
   campaignStartDate?: string | null;
   campaignEndDate?: string | null;
+  /** Whether the "Custom start date" toggle is enabled */
+  useCustomStart?: boolean;
+  /** Whether the "Custom end date" toggle is enabled */
+  useCustomEnd?: boolean;
 }
 
 export interface ValidationResult {
@@ -41,6 +45,12 @@ export function validateGameForm(data: GameFormData): ValidationResult {
   }
 
   // Validate campaign dates
+  if (data.useCustomStart && !data.campaignStartDate) {
+    errors.push("Please select a campaign start date or disable the toggle");
+  }
+  if (data.useCustomEnd && !data.campaignEndDate) {
+    errors.push("Please select a campaign end date or disable the toggle");
+  }
   if (data.campaignStartDate && data.campaignEndDate) {
     if (data.campaignEndDate < data.campaignStartDate) {
       errors.push("Campaign end date must be on or after start date");

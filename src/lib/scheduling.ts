@@ -25,11 +25,12 @@ export function getSchedulingWindow(
   referenceDate: Date = new Date()
 ): { start: Date; end: Date } {
   const today = startOfDay(referenceDate);
-  const windowEnd = lastDayOfMonth(addMonths(today, game.scheduling_window_months));
 
   const start = game.campaign_start_date
     ? max([today, parseISO(game.campaign_start_date)])
     : today;
+
+  const windowEnd = lastDayOfMonth(addMonths(start, game.scheduling_window_months));
 
   const end = game.campaign_end_date
     ? min([windowEnd, parseISO(game.campaign_end_date)])

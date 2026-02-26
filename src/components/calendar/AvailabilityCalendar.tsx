@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import {
   format,
   startOfMonth,
@@ -48,6 +48,7 @@ interface AvailabilityCalendarProps {
   onCopyFromGame?: (sourceGameId: string) => Promise<number>;
   playDateNotes?: Map<string, string>;
   onUpdatePlayDateNote?: (date: string, note: string | null) => void;
+  hasCampaignDates?: boolean;
 }
 
 export function AvailabilityCalendar({
@@ -66,6 +67,7 @@ export function AvailabilityCalendar({
   onCopyFromGame,
   playDateNotes = new Map(),
   onUpdatePlayDateNote,
+  hasCampaignDates = false,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = windowEnd;
@@ -82,6 +84,20 @@ export function AvailabilityCalendar({
   const [copySourceGameId, setCopySourceGameId] = useState<string>("");
   const [isCopying, setIsCopying] = useState(false);
   const [copyResultMessage, setCopyResultMessage] = useState<string | null>(null);
+
+  // Out-of-range toast state (mobile feedback)
+  const [outOfRangeToast, setOutOfRangeToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const showOutOfRangeToast = useCallback((message: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setOutOfRangeToast(message);
+    toastTimerRef.current = setTimeout(() => setOutOfRangeToast(null), 2000);
+  }, []);
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   // Generate array of months to display
   const months = useMemo(() => {
@@ -367,6 +383,7 @@ export function AvailabilityCalendar({
             playDateNotes={playDateNotes}
             windowStart={windowStart}
             windowEnd={windowEnd}
+            onOutOfRangeTap={showOutOfRangeToast}
           />
         ))}
       </div>
@@ -424,7 +441,24 @@ export function AvailabilityCalendar({
           </div>
           <span>Scheduled</span>
         </div>
+        {hasCampaignDates && (
+          <div className="flex items-center gap-1.5">
+            <div className="w-3.5 h-3.5 rounded-sm cal-out-of-range" />
+            <span>Outside campaign</span>
+          </div>
+        )}
       </div>
+
+      {/* Out-of-range toast (mobile feedback) */}
+      {outOfRangeToast && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-card border border-border shadow-lg text-sm text-foreground animate-in fade-in slide-in-from-bottom-2 duration-200"
+          role="status"
+          aria-live="polite"
+        >
+          {outOfRangeToast}
+        </div>
+      )}
 
       {/* Note & time editor popover */}
       {commentingDate && (
@@ -518,6 +552,7 @@ interface MonthCalendarProps {
   playDateNotes?: Map<string, string>;
   windowStart: Date;
   windowEnd: Date;
+  onOutOfRangeTap?: (message: string) => void;
 }
 
 function MonthCalendar({
@@ -539,6 +574,7 @@ function MonthCalendar({
   playDateNotes,
   windowStart,
   windowEnd,
+  onOutOfRangeTap,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),
@@ -638,7 +674,7 @@ function MonthCalendar({
           // Can GM remove this extra play date?
           const canRemoveExtra = isGmOrCoGm && isExtraPlayDate && !isPast;
 
-          let bgColor = "bg-cal-disabled-bg"; // Non-play day
+          let bgColor = isOutOfRange ? "cal-out-of-range" : "bg-cal-disabled-bg"; // Non-play day or out-of-range
           let textColor = "text-cal-disabled-text";
           let cursor = "cursor-default";
           const extraStyles = "";
@@ -751,29 +787,37 @@ function MonthCalendar({
           const cellTooltip = tooltipParts.join("\n");
 
           // Data attribute for testing - represents the cell state
-          const dataStatus = isConfirmed
-            ? "scheduled"
-            : isPast
-              ? "past"
-              : !isPlayDay
-                ? "disabled"
-                : avail?.status === "available"
-                  ? "available"
-                  : avail?.status === "unavailable"
-                    ? "unavailable"
-                    : avail?.status === "maybe"
-                      ? "maybe"
-                      : "unset";
+          const dataStatus = isOutOfRange
+            ? "out-of-range"
+            : isConfirmed
+              ? "scheduled"
+              : isPast
+                ? "past"
+                : !isPlayDay
+                  ? "disabled"
+                  : avail?.status === "available"
+                    ? "available"
+                    : avail?.status === "unavailable"
+                      ? "unavailable"
+                      : avail?.status === "maybe"
+                        ? "maybe"
+                        : "unset";
 
           return (
             <button
               key={dateStr}
               onClick={() => handleDayClickWithLongPressCheck(date)}
-              onTouchStart={() =>
-                !isPast &&
-                !isOutOfRange &&
-                handleTouchStart(dateStr, isRegularPlayDay, isExtraPlayDate)
-              }
+              onTouchStart={() => {
+                if (isOutOfRange && !isPast && onOutOfRangeTap) {
+                  onOutOfRangeTap(
+                    isBefore(date, windowStart) ? "Before campaign start" : "After campaign end"
+                  );
+                  return;
+                }
+                if (!isPast && !isOutOfRange) {
+                  handleTouchStart(dateStr, isRegularPlayDay, isExtraPlayDate);
+                }
+              }}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
               disabled={(!isPlayDay && !canAddAsExtra) || isPast || isOutOfRange}

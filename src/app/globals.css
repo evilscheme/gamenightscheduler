@@ -442,6 +442,17 @@ body {
   }
 }
 
+/* Calendar: out-of-range day stripe pattern (works across all themes) */
+.cal-out-of-range {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--cal-disabled-bg),
+    var(--cal-disabled-bg) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
 .dice-filled rect {
   fill: var(--background);
 }

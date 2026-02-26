@@ -115,6 +115,8 @@ export default function EditGamePage() {
       adHocOnly,
       campaignStartDate: campaignStartDate || null,
       campaignEndDate: campaignEndDate || null,
+      useCustomStart,
+      useCustomEnd,
     });
     if (!validation.valid) {
       setError(validation.errors[0]);

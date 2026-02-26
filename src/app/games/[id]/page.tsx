@@ -111,6 +111,7 @@ export default function GameDetailPage() {
       game
         ? getSchedulingWindow(game)
         : { start: startOfDay(new Date()), end: endOfMonth(addMonths(new Date(), 2)) },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally depends on specific fields, not the full game object, to prevent re-render loops
     [game?.scheduling_window_months, game?.campaign_start_date, game?.campaign_end_date]
   );
 
@@ -936,6 +937,7 @@ export default function GameDetailPage() {
             onCopyFromGame={handleCopyFromGame}
             playDateNotes={playDateNotes}
             onUpdatePlayDateNote={handleUpdatePlayDateNote}
+            hasCampaignDates={!!(game.campaign_start_date || game.campaign_end_date)}
           />
         </div>
       )}

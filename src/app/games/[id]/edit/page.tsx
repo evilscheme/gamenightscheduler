@@ -308,13 +308,7 @@ export default function EditGamePage() {
                 Campaign Dates
               </label>
 
-              <div className="flex items-center justify-between">
-                <div className="flex-1 mr-3">
-                  <label className="text-sm text-foreground">Custom start date</label>
-                  <p className="text-xs text-muted-foreground">
-                    {useCustomStart ? "Calendar starts on this date" : "Starts immediately"}
-                  </p>
-                </div>
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   role="switch"
@@ -335,6 +329,12 @@ export default function EditGamePage() {
                     }`}
                   />
                 </button>
+                <div>
+                  <label className="text-sm text-foreground">Custom start date</label>
+                  <p className="text-xs text-muted-foreground">
+                    {useCustomStart ? "Calendar starts on this date" : "Starts immediately"}
+                  </p>
+                </div>
               </div>
               {useCustomStart && (
                 <input
@@ -346,13 +346,7 @@ export default function EditGamePage() {
                 />
               )}
 
-              <div className="flex items-center justify-between">
-                <div className="flex-1 mr-3">
-                  <label className="text-sm text-foreground">Custom end date</label>
-                  <p className="text-xs text-muted-foreground">
-                    {useCustomEnd ? "Calendar ends on this date" : "Runs indefinitely"}
-                  </p>
-                </div>
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   role="switch"
@@ -373,6 +367,12 @@ export default function EditGamePage() {
                     }`}
                   />
                 </button>
+                <div>
+                  <label className="text-sm text-foreground">Custom end date</label>
+                  <p className="text-xs text-muted-foreground">
+                    {useCustomEnd ? "Calendar ends on this date" : "Runs indefinitely"}
+                  </p>
+                </div>
               </div>
               {useCustomEnd && (
                 <input

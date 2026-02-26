@@ -7,6 +7,7 @@ import { BookOpen, Bug, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
+import { fetchUserGameCount } from '@/lib/data';
 
 const GITHUB_ISSUES_URL = 'https://github.com/evilscheme/gamenightscheduler/issues';
 const FEEDBACK_EMAIL = process.env.NEXT_PUBLIC_FEEDBACK_EMAIL;
@@ -168,7 +169,7 @@ export function Navbar() {
     const supabase = createClient();
     Promise.all([
       supabase.from('game_memberships').select('*', { count: 'exact', head: true }).eq('user_id', profile.id),
-      supabase.from('games').select('*', { count: 'exact', head: true }).eq('gm_id', profile.id),
+      fetchUserGameCount(supabase, profile.id),
     ]).then(([{ count: memberCount }, { count: gmCount }]) => {
       if (!cancelled) {
         setHasGames(((memberCount || 0) + (gmCount || 0)) > 0);

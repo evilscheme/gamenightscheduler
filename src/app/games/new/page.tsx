@@ -7,6 +7,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
+import { fetchUserGameCount, createGame } from '@/lib/data';
 import { DAY_OPTIONS, SESSION_DEFAULTS, USAGE_LIMITS, TEXT_LIMITS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE, SCHEDULING_WINDOW_OPTIONS } from '@/lib/constants';
 import { getBrowserTimezone, isValidTimezone } from '@/lib/timezone';
 import { validateGameForm } from '@/lib/gameValidation';
@@ -38,8 +39,6 @@ export default function NewGamePage() {
   useAuthRedirect({ requireGM: true });
 
   // Initialize timezone: user preference > browser detection > default
-  // This is a valid pattern for form initialization from async profile data
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!tzInitialized) {
       if (userTimezone && isValidTimezone(userTimezone)) {
@@ -54,7 +53,6 @@ export default function NewGamePage() {
       }
     }
   }, [userTimezone, tzInitialized]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Reorder day options based on user's week start preference
   const orderedDayOptions = weekStartDay === 0
@@ -65,14 +63,12 @@ export default function NewGamePage() {
   useEffect(() => {
     async function fetchGameCount() {
       if (!profile?.id) return;
-      const { count } = await supabase
-        .from('games')
-        .select('*', { count: 'exact', head: true })
-        .eq('gm_id', profile.id);
+      const { count } = await fetchUserGameCount(supabase, profile.id);
       setGameCount(count ?? 0);
     }
     fetchGameCount();
-  }, [profile?.id, supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
+  }, [profile?.id]);
 
   const toggleDay = (day: number) => {
     setPlayDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
@@ -108,22 +104,20 @@ export default function NewGamePage() {
 
     const inviteCode = nanoid(10);
 
-    const { error: insertError } = await supabase
-      .from('games')
-      .insert({
-        name: name.trim(),
-        description: description.trim() || null,
-        gm_id: profile.id,
-        play_days: playDays.sort((a, b) => a - b),
-        ad_hoc_only: adHocOnly,
-        invite_code: inviteCode,
-        scheduling_window_months: windowMonths,
-        campaign_start_date: campaignStartDate || null,
-        campaign_end_date: campaignEndDate || null,
-        default_start_time: defaultStartTime,
-        default_end_time: defaultEndTime,
-        timezone: timezone || null,
-      });
+    const { data: createdGame, error: insertError } = await createGame(supabase, {
+      name: name.trim(),
+      description: description.trim() || null,
+      gm_id: profile.id,
+      play_days: playDays.sort((a, b) => a - b),
+      ad_hoc_only: adHocOnly,
+      invite_code: inviteCode,
+      scheduling_window_months: windowMonths,
+      campaign_start_date: campaignStartDate || null,
+      campaign_end_date: campaignEndDate || null,
+      default_start_time: defaultStartTime,
+      default_end_time: defaultEndTime,
+      timezone: timezone || null,
+    });
 
     if (insertError) {
       // Check if it's a policy violation (likely game limit exceeded)
@@ -135,13 +129,6 @@ export default function NewGamePage() {
       setCreating(false);
       return;
     }
-
-    // Fetch the created game by invite code (we can't use .select() on insert due to RLS timing)
-    const { data: createdGame } = await supabase
-      .from('games')
-      .select('id')
-      .eq('invite_code', inviteCode)
-      .single();
 
     router.push(`/games/${createdGame?.id || '/dashboard'}`);
   };

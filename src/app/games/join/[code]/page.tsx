@@ -7,6 +7,7 @@ import { Dice6, Frown } from 'lucide-react';
 import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { DAY_LABELS, USAGE_LIMITS } from '@/lib/constants';
+import { joinGame } from '@/lib/data';
 
 interface GamePreview {
   id: string;
@@ -78,10 +79,7 @@ export default function JoinGamePage() {
 
     setJoining(true);
 
-    const { error: joinError } = await supabase.from('game_memberships').insert({
-      game_id: game.id,
-      user_id: profile.id,
-    });
+    const { error: joinError } = await joinGame(supabase, game.id, profile.id);
 
     if (joinError) {
       // Check if it's a policy violation (likely player limit exceeded)

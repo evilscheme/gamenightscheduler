@@ -2,27 +2,16 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { Button, LoadingSpinner } from "@/components/ui";
 import { PlayersCard } from "@/components/games/PlayersCard";
 import { GameDetailsCard } from "@/components/games/GameDetailsCard";
-import { createClient } from "@/lib/supabase/client";
 import {
   User,
-  Availability,
-  AvailabilityStatus,
-  GameSession,
-  GamePlayDate,
   DateSuggestion,
-  GameWithMembers,
-  MemberWithRole,
-  MembershipWithUser,
 } from "@/types";
-import {
-  AvailabilityCalendar,
-  AvailabilityEntry,
-} from "@/components/calendar/AvailabilityCalendar";
+import { AvailabilityCalendar } from "@/components/calendar/AvailabilityCalendar";
 import { SchedulingSuggestions } from "@/components/games/SchedulingSuggestions";
 import {
   addMonths,
@@ -35,12 +24,11 @@ import {
   startOfDay,
   parseISO,
 } from "date-fns";
-import { nanoid } from "nanoid";
-import { TIMEOUTS, USAGE_LIMITS } from "@/lib/constants";
+import { TIMEOUTS } from "@/lib/constants";
 import { calculatePlayerCompletionPercentages } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
-import { filterAvailabilityForCopy } from "@/lib/copyAvailability";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { useGameDetail } from "@/hooks/useGameDetail";
 import { getSchedulingWindow } from "@/lib/scheduling";
 
 type Tab = "overview" | "availability" | "schedule";
@@ -51,16 +39,33 @@ export default function GameDetailPage() {
   const router = useRouter();
   const params = useParams();
   const gameId = params.id as string;
-  const supabase = createClient();
 
-  const [game, setGame] = useState<GameWithMembers | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Data layer via hook
+  const {
+    game,
+    loading,
+    refreshing,
+    availability,
+    allAvailability,
+    sessions,
+    gamePlayDates,
+    otherGames,
+    refresh,
+    changeAvailability,
+    copyFromGame,
+    confirmSession,
+    cancelSession,
+    regenerateInvite,
+    leaveGame,
+    removePlayer,
+    deleteGame,
+    toggleCoGm,
+    toggleExtraDate,
+    updatePlayDateNote,
+  } = useGameDetail(gameId, profile?.id ?? "");
+
+  // UI state
   const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [availability, setAvailability] = useState<
-    Record<string, AvailabilityEntry>
-  >({});
-  const [allAvailability, setAllAvailability] = useState<Availability[]>([]);
-  const [sessions, setSessions] = useState<GameSession[]>([]);
   const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
   const [copied, setCopied] = useState(false);
   const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
@@ -70,11 +75,6 @@ export default function GameDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [otherGames, setOtherGames] = useState<{ id: string; name: string }[]>(
-    []
-  );
-  const [gamePlayDates, setGamePlayDates] = useState<GamePlayDate[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
@@ -133,118 +133,12 @@ export default function GameDetailPage() {
 
   useAuthRedirect();
 
-  const fetchData = useCallback(async () => {
-    if (!gameId || !profile?.id) return;
-
-    // Fetch game with GM
-    const { data: gameData, error: gameError } = await supabase
-      .from("games")
-      .select("*, gm:users!games_gm_id_fkey(*)")
-      .eq("id", gameId)
-      .single();
-
-    if (gameError || !gameData) {
-      router.push("/dashboard");
-      return;
-    }
-
-    // Fetch members with co-GM status
-    const { data: memberships } = await supabase
-      .from("game_memberships")
-      .select("user_id, is_co_gm, users(*)")
-      .eq("game_id", gameId);
-
-    // Type the memberships properly and map to MemberWithRole
-    const typedMemberships = memberships as MembershipWithUser[] | null;
-    const members: MemberWithRole[] = typedMemberships
-      ?.filter((m) => m.users !== null)
-      .map((m) => ({
-        ...m.users!,
-        is_co_gm: m.is_co_gm,
-      })) || [];
-
-    setGame({ ...gameData, members } as GameWithMembers);
-
-    // Fetch user's availability
-    const { data: userAvail } = await supabase
-      .from("availability")
-      .select("*")
-      .eq("game_id", gameId)
-      .eq("user_id", profile.id);
-
-    const availMap: Record<string, AvailabilityEntry> = {};
-    userAvail?.forEach((a) => {
-      availMap[a.date] = {
-        status: a.status,
-        comment: a.comment,
-        available_after: a.available_after,
-        available_until: a.available_until,
-      };
-    });
-    setAvailability(availMap);
-
-    // Fetch all availability for suggestions
-    const { data: allAvail } = await supabase
-      .from("availability")
-      .select("*")
-      .eq("game_id", gameId);
-
-    setAllAvailability(allAvail || []);
-
-    // Fetch sessions
-    const { data: sessionData } = await supabase
-      .from("sessions")
-      .select("*")
-      .eq("game_id", gameId)
-      .order("date", { ascending: true });
-
-    setSessions(sessionData || []);
-
-    // Fetch game play dates (new table)
-    const { data: playDateRows } = await supabase
-      .from("game_play_dates")
-      .select("*")
-      .eq("game_id", gameId);
-
-    setGamePlayDates(playDateRows || []);
-
-    // Fetch user's other games for "Copy from" feature
-    const { data: memberGames } = await supabase
-      .from("game_memberships")
-      .select("game_id, games(id, name)")
-      .eq("user_id", profile.id);
-
-    const { data: gmGames } = await supabase
-      .from("games")
-      .select("id, name")
-      .eq("gm_id", profile.id);
-
-    const gameMap = new Map<string, string>();
-    gmGames?.forEach((g) => gameMap.set(g.id, g.name));
-    memberGames?.forEach((m) => {
-      const g = m.games as unknown as { id: string; name: string } | null;
-      if (g) gameMap.set(g.id, g.name);
-    });
-    gameMap.delete(gameId); // Exclude current game
-    setOtherGames(
-      Array.from(gameMap.entries()).map(([id, name]) => ({ id, name }))
-    );
-
-    setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
-  }, [gameId, profile?.id, router]);
-
+  // Redirect to dashboard if game not found after loading
   useEffect(() => {
-    if (profile?.id) {
-      fetchData();
+    if (!loading && !game && profile?.id) {
+      router.push("/dashboard");
     }
-  }, [profile?.id, fetchData]);
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
-  }, [fetchData]);
+  }, [loading, game, profile?.id, router]);
 
   // Calculate suggestions when availability changes
   useEffect(() => {
@@ -280,260 +174,7 @@ export default function GameDetailPage() {
     setSuggestions(suggestionList);
   }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
 
-  const handleAvailabilityChange = async (
-    date: string,
-    status: AvailabilityStatus,
-    comment: string | null,
-    availableAfter: string | null,
-    availableUntil: string | null
-  ) => {
-    if (!profile?.id || !gameId) return;
-
-    // Optimistic update
-    setAvailability((prev) => ({
-      ...prev,
-      [date]: {
-        status,
-        comment,
-        available_after: availableAfter,
-        available_until: availableUntil,
-      },
-    }));
-
-    const { error } = await supabase.from("availability").upsert(
-      {
-        user_id: profile.id,
-        game_id: gameId,
-        date,
-        status,
-        comment,
-        available_after: availableAfter,
-        available_until: availableUntil,
-      },
-      { onConflict: "user_id,game_id,date" }
-    );
-
-    if (error) {
-      // Revert on error
-      setAvailability((prev) => {
-        const next = { ...prev };
-        delete next[date];
-        return next;
-      });
-    } else {
-      // Update all availability for suggestions
-      setAllAvailability((prev) => {
-        const existing = prev.findIndex(
-          (a) => a.user_id === profile.id && a.date === date
-        );
-        if (existing >= 0) {
-          const updated = [...prev];
-          updated[existing] = {
-            ...updated[existing],
-            status,
-            comment,
-            available_after: availableAfter,
-            available_until: availableUntil,
-          };
-          return updated;
-        }
-        return [
-          ...prev,
-          {
-            id: "temp",
-            user_id: profile.id,
-            game_id: gameId,
-            date,
-            status,
-            comment,
-            available_after: availableAfter,
-            available_until: availableUntil,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ];
-      });
-    }
-  };
-
-  const handleCopyFromGame = async (sourceGameId: string): Promise<number> => {
-    if (!profile?.id || !gameId || !game) return 0;
-
-    // Fetch user's availability from source game
-    const { data: sourceAvail } = await supabase
-      .from("availability")
-      .select("*")
-      .eq("game_id", sourceGameId)
-      .eq("user_id", profile.id);
-
-    if (!sourceAvail || sourceAvail.length === 0) return 0;
-
-    // Build source availability map
-    const sourceMap: Record<string, AvailabilityEntry> = {};
-    sourceAvail.forEach((a) => {
-      sourceMap[a.date] = {
-        status: a.status,
-        comment: a.comment,
-        available_after: a.available_after,
-        available_until: a.available_until,
-      };
-    });
-
-    const today = startOfDay(new Date());
-
-    // Filter dates eligible for copy
-    const toCopy = filterAvailabilityForCopy({
-      sourceAvailability: sourceMap,
-      destinationAvailability: availability,
-      destinationPlayDays: game.play_days,
-      destinationExtraPlayDates: extraDateStrings,
-      today,
-      windowEndDate: windowEnd,
-      getDayOfWeek: getDay,
-      isBefore,
-      isAfter,
-      parseDate: (s) => parseISO(s),
-    });
-
-    if (toCopy.length === 0) return 0;
-
-    // Optimistic update
-    setAvailability((prev) => {
-      const next = { ...prev };
-      for (const { date, entry } of toCopy) {
-        next[date] = entry;
-      }
-      return next;
-    });
-
-    // Batch upsert
-    const rows = toCopy.map(({ date, entry }) => ({
-      user_id: profile.id,
-      game_id: gameId,
-      date,
-      status: entry.status,
-      comment: entry.comment,
-      available_after: entry.available_after,
-      available_until: entry.available_until,
-    }));
-
-    const { error } = await supabase
-      .from("availability")
-      .upsert(rows, { onConflict: "user_id,game_id,date" });
-
-    if (error) {
-      // Revert on error
-      setAvailability((prev) => {
-        const next = { ...prev };
-        for (const { date } of toCopy) {
-          delete next[date];
-        }
-        return next;
-      });
-      throw error;
-    }
-
-    // Update allAvailability for suggestions
-    setAllAvailability((prev) => [
-      ...prev,
-      ...toCopy.map(({ date, entry }) => ({
-        id: "temp",
-        user_id: profile.id,
-        game_id: gameId,
-        date,
-        status: entry.status,
-        comment: entry.comment,
-        available_after: entry.available_after,
-        available_until: entry.available_until,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })),
-    ]);
-
-    return toCopy.length;
-  };
-
-  const handleConfirmSession = async (
-    date: string,
-    startTime: string,
-    endTime: string
-  ): Promise<{ success: boolean; error?: string }> => {
-    if (!profile?.id || !gameId) return { success: false, error: "Not authenticated" };
-
-    // Validate date is not in the past
-    const sessionDate = parseISO(date);
-    const today = startOfDay(new Date());
-    if (sessionDate < today) {
-      return { success: false, error: "Cannot schedule sessions in the past." };
-    }
-
-    // Check if we're updating an existing session or creating a new one
-    const existingSession = sessions.find((s) => s.date === date);
-    if (!existingSession) {
-      // Count future sessions (only for new sessions)
-      const futureSessionCount = sessions.filter(
-        (s) => parseISO(s.date) >= today
-      ).length;
-
-      if (futureSessionCount >= USAGE_LIMITS.MAX_FUTURE_SESSIONS_PER_GAME) {
-        return { success: false, error: `Cannot have more than ${USAGE_LIMITS.MAX_FUTURE_SESSIONS_PER_GAME} future sessions. Please cancel some sessions first.` };
-      }
-    }
-
-    const { data, error } = await supabase
-      .from("sessions")
-      .upsert(
-        {
-          game_id: gameId,
-          date,
-          start_time: startTime,
-          end_time: endTime,
-          status: "confirmed",
-          confirmed_by: profile.id,
-        },
-        { onConflict: "game_id,date" }
-      )
-      .select()
-      .single();
-
-    if (error) {
-      // Check for RLS policy violation
-      if (error.code === "42501") {
-        // Could be past date or session limit
-        return { success: false, error: "Cannot schedule this session. It may be in the past or the game has reached the session limit." };
-      }
-      return { success: false, error: "Failed to confirm session. Please try again." };
-    }
-
-    if (data) {
-      setSessions((prev) => {
-        const existing = prev.findIndex((s) => s.date === date);
-        if (existing >= 0) {
-          const updated = [...prev];
-          updated[existing] = data;
-          return updated;
-        }
-        return [...prev, data].sort((a, b) => a.date.localeCompare(b.date));
-      });
-    }
-
-    return { success: true };
-  };
-
-  const handleCancelSession = async (date: string) => {
-    if (!profile?.id || !gameId) return;
-
-    const { error } = await supabase
-      .from("sessions")
-      .delete()
-      .eq("game_id", gameId)
-      .eq("date", date);
-
-    if (!error) {
-      setSessions((prev) => prev.filter((s) => s.date !== date));
-    }
-  };
-
+  // UI action wrappers
   const copyInviteLink = () => {
     if (!game) return;
     const link = `${window.location.origin}/games/join/${game.invite_code}`;
@@ -542,78 +183,10 @@ export default function GameDetailPage() {
     setTimeout(() => setCopied(false), TIMEOUTS.NOTIFICATION);
   };
 
-  const handleRegenerateInvite = async () => {
-    if (!game || !gameId) return;
-
-    setIsRegenerating(true);
-    const newCode = nanoid(10);
-    const oldCode = game.invite_code;
-
-    // Optimistic update
-    setGame((prev) => (prev ? { ...prev, invite_code: newCode } : prev));
-
-    const { error } = await supabase
-      .from("games")
-      .update({ invite_code: newCode })
-      .eq("id", gameId);
-
-    if (error) {
-      // Revert on error
-      setGame((prev) => (prev ? { ...prev, invite_code: oldCode } : prev));
-    }
-
-    setIsRegenerating(false);
-    setShowRegenerateConfirm(false);
-  };
-
-  const handleLeaveGame = async () => {
-    if (!profile?.id || !gameId) return;
-
-    setIsLeaving(true);
-    const { error } = await supabase
-      .from("game_memberships")
-      .delete()
-      .eq("game_id", gameId)
-      .eq("user_id", profile.id);
-
-    if (!error) {
-      router.push("/dashboard");
-    } else {
-      setIsLeaving(false);
-      setShowLeaveConfirm(false);
-    }
-  };
-
-  const handleRemovePlayer = async (playerId: string) => {
-    if (!gameId) return;
-
-    const { error } = await supabase
-      .from("game_memberships")
-      .delete()
-      .eq("game_id", gameId)
-      .eq("user_id", playerId);
-
-    if (!error) {
-      setGame((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          members: prev.members.filter((m) => m.id !== playerId),
-        };
-      });
-      // Also remove their availability from allAvailability
-      setAllAvailability((prev) => prev.filter((a) => a.user_id !== playerId));
-    }
-    setPlayerToRemove(null);
-  };
-
   const handleDeleteGame = async () => {
-    if (!gameId) return;
-
     setIsDeleting(true);
-    const { error } = await supabase.from("games").delete().eq("id", gameId);
-
-    if (!error) {
+    const success = await deleteGame();
+    if (success) {
       router.push("/dashboard");
     } else {
       setIsDeleting(false);
@@ -621,132 +194,27 @@ export default function GameDetailPage() {
     }
   };
 
-  const handleToggleCoGm = async (playerId: string, makeCoGm: boolean) => {
-    if (!gameId) return;
-
-    const { error } = await supabase
-      .from("game_memberships")
-      .update({ is_co_gm: makeCoGm })
-      .eq("game_id", gameId)
-      .eq("user_id", playerId);
-
-    if (!error) {
-      setGame((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          members: prev.members.map((m) =>
-            m.id === playerId ? { ...m, is_co_gm: makeCoGm } : m
-          ),
-        };
-      });
+  const handleLeaveGame = async () => {
+    setIsLeaving(true);
+    const success = await leaveGame();
+    if (success) {
+      router.push("/dashboard");
+    } else {
+      setIsLeaving(false);
+      setShowLeaveConfirm(false);
     }
   };
 
-  const handleToggleExtraDate = async (date: string) => {
-    if (!gameId || !game) return;
-
-    const isCurrentlyExtra = extraDateStrings.includes(date);
-
-    if (isCurrentlyExtra) {
-      // Remove: delete from new table + legacy array
-      const existingRow = gamePlayDates.find((r) => r.date === date);
-      if (existingRow) {
-        setGamePlayDates((prev) => prev.filter((r) => r.date !== date));
-        const { error } = await supabase
-          .from("game_play_dates")
-          .delete()
-          .eq("game_id", gameId)
-          .eq("date", date);
-        if (error) {
-          // Revert: re-add the removed row
-          setGamePlayDates((prev) =>
-            [...prev, existingRow].sort((a, b) => a.date.localeCompare(b.date))
-          );
-        }
-      }
-    } else {
-      // Add: insert into new table only
-      const tempRow: GamePlayDate = {
-        id: "temp-" + date,
-        game_id: gameId,
-        date,
-        note: null,
-        created_at: new Date().toISOString(),
-      };
-      setGamePlayDates((prev) =>
-        [...prev, tempRow].sort((a, b) => a.date.localeCompare(b.date))
-      );
-
-      const { data, error } = await supabase
-        .from("game_play_dates")
-        .insert({ game_id: gameId, date, note: null })
-        .select()
-        .single();
-
-      if (error) {
-        setGamePlayDates((prev) => prev.filter((r) => r.date !== date));
-      } else if (data) {
-        setGamePlayDates((prev) =>
-          prev.map((r) =>
-            r.id === tempRow.id ? (data as GamePlayDate) : r
-          )
-        );
-      }
-    }
+  const handleRegenerateInvite = async () => {
+    setIsRegenerating(true);
+    await regenerateInvite();
+    setIsRegenerating(false);
+    setShowRegenerateConfirm(false);
   };
 
-  const handleUpdatePlayDateNote = async (
-    date: string,
-    note: string | null
-  ) => {
-    if (!gameId) return;
-
-    const existing = gamePlayDates.find((r) => r.date === date);
-    if (existing) {
-      const oldNote = existing.note;
-      setGamePlayDates((prev) =>
-        prev.map((r) => (r.date === date ? { ...r, note } : r))
-      );
-      const { error } = await supabase
-        .from("game_play_dates")
-        .update({ note })
-        .eq("game_id", gameId)
-        .eq("date", date);
-      if (error) {
-        // Revert to old note
-        setGamePlayDates((prev) =>
-          prev.map((r) => (r.date === date ? { ...r, note: oldNote } : r))
-        );
-      }
-    } else {
-      const tempRow: GamePlayDate = {
-        id: "temp-" + date,
-        game_id: gameId,
-        date,
-        note,
-        created_at: new Date().toISOString(),
-      };
-      setGamePlayDates((prev) => [...prev, tempRow]);
-      const { data, error } = await supabase
-        .from("game_play_dates")
-        .upsert(
-          { game_id: gameId, date, note },
-          { onConflict: "game_id,date" }
-        )
-        .select()
-        .single();
-      if (error) {
-        // Revert: remove the temp row
-        setGamePlayDates((prev) => prev.filter((r) => r.id !== tempRow.id));
-      } else if (data) {
-        setGamePlayDates((prev) =>
-          prev.map((r) =>
-            r.id === tempRow.id ? (data as GamePlayDate) : r
-          )
-        );
-      }
-    }
+  const handleRemovePlayer = async (playerId: string) => {
+    await removePlayer(playerId);
+    setPlayerToRemove(null);
   };
 
   if (authStatus === 'loading' || loading) {
@@ -776,7 +244,7 @@ export default function GameDetailPage() {
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <button
-              onClick={handleRefresh}
+              onClick={refresh}
               disabled={refreshing}
               className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
               title="Refresh data"
@@ -869,7 +337,7 @@ export default function GameDetailPage() {
             members={game.members}
             playerCompletionPercentages={playerCompletionPercentages}
             inviteCode={game.invite_code}
-            onToggleCoGm={handleToggleCoGm}
+            onToggleCoGm={async (playerId, makeCoGm) => { await toggleCoGm(playerId, makeCoGm); }}
             onRemovePlayer={(player) => setPlayerToRemove(player)}
           />
           <GameDetailsCard
@@ -926,17 +394,17 @@ export default function GameDetailPage() {
             windowStart={windowStart}
             windowEnd={windowEnd}
             availability={availability}
-            onToggle={handleAvailabilityChange}
+            onToggle={changeAvailability}
             confirmedSessions={confirmedSessions}
             extraPlayDates={extraDateStrings}
             isGmOrCoGm={canDoGmActions}
-            onToggleExtraDate={handleToggleExtraDate}
+            onToggleExtraDate={toggleExtraDate}
             weekStartDay={weekStartDay}
             use24h={use24h}
             otherGames={otherGames}
-            onCopyFromGame={handleCopyFromGame}
+            onCopyFromGame={copyFromGame}
             playDateNotes={playDateNotes}
-            onUpdatePlayDateNote={handleUpdatePlayDateNote}
+            onUpdatePlayDateNote={updatePlayDateNote}
             hasCampaignDates={!!(game.campaign_start_date || game.campaign_end_date)}
           />
         </div>
@@ -953,8 +421,8 @@ export default function GameDetailPage() {
           timezone={game.timezone}
           minPlayersNeeded={game.min_players_needed || 0}
           playDateNotes={playDateNotes}
-          onConfirm={handleConfirmSession}
-          onCancel={handleCancelSession}
+          onConfirm={confirmSession}
+          onCancel={cancelSession}
           use24h={use24h}
           userTimezone={userTimezone}
         />

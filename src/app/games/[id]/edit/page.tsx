@@ -7,6 +7,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
+import { fetchGameWithGM, checkCoGmStatus, fetchFutureSessions, upsertPlayDate, updateGame } from '@/lib/data';
 import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE, USAGE_LIMITS, SCHEDULING_WINDOW_OPTIONS } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
@@ -44,11 +45,7 @@ export default function EditGamePage() {
     async function fetchGame() {
       if (!gameId || !profile?.id) return;
 
-      const { data, error: fetchError } = await supabase
-        .from('games')
-        .select('*')
-        .eq('id', gameId)
-        .single();
+      const { data, error: fetchError } = await fetchGameWithGM(supabase, gameId);
 
       if (fetchError || !data) {
         router.push('/dashboard');
@@ -60,14 +57,9 @@ export default function EditGamePage() {
 
       if (!isGm) {
         // Check if user is a co-GM
-        const { data: membership } = await supabase
-          .from('game_memberships')
-          .select('is_co_gm')
-          .eq('game_id', gameId)
-          .eq('user_id', profile.id)
-          .single();
+        const { data: isCoGm } = await checkCoGmStatus(supabase, gameId, profile.id);
 
-        if (!membership?.is_co_gm) {
+        if (!isCoGm) {
           router.push(`/games/${gameId}`);
           return;
         }
@@ -129,18 +121,13 @@ export default function EditGamePage() {
 
     // When switching to ad-hoc mode, preserve confirmed session dates as special play dates
     if (adHocOnly && !game.ad_hoc_only) {
-      const { data: futureSessions } = await supabase
-        .from('sessions')
-        .select('date')
-        .eq('game_id', gameId)
-        .gte('date', new Date().toISOString().split('T')[0]);
+      const today = new Date().toISOString().split('T')[0];
+      const { data: futureSessions } = await fetchFutureSessions(supabase, gameId, today);
 
       if (futureSessions && futureSessions.length > 0) {
         const sessionDates = futureSessions.map((s) => s.date);
         for (const date of sessionDates) {
-          await supabase
-            .from('game_play_dates')
-            .upsert({ game_id: gameId, date }, { onConflict: 'game_id,date' });
+          await upsertPlayDate(supabase, gameId, date, null);
         }
         setConversionMessage(
           `${sessionDates.length} confirmed session date${sessionDates.length !== 1 ? 's were' : ' was'} preserved as play dates.`
@@ -148,22 +135,19 @@ export default function EditGamePage() {
       }
     }
 
-    const { error: updateError } = await supabase
-      .from('games')
-      .update({
-        name: name.trim(),
-        description: description.trim() || null,
-        play_days: adHocOnly ? [] : playDays.sort((a, b) => a - b),
-        scheduling_window_months: windowMonths,
-        campaign_start_date: campaignStartDate || null,
-        campaign_end_date: campaignEndDate || null,
-        default_start_time: defaultStartTime,
-        default_end_time: defaultEndTime,
-        timezone: timezone || null,
-        min_players_needed: minPlayersNeeded,
-        ad_hoc_only: adHocOnly,
-      })
-      .eq('id', gameId);
+    const { error: updateError } = await updateGame(supabase, gameId, {
+      name: name.trim(),
+      description: description.trim() || null,
+      play_days: adHocOnly ? [] : playDays.sort((a, b) => a - b),
+      scheduling_window_months: windowMonths,
+      campaign_start_date: campaignStartDate || null,
+      campaign_end_date: campaignEndDate || null,
+      default_start_time: defaultStartTime,
+      default_end_time: defaultEndTime,
+      timezone: timezone || null,
+      min_players_needed: minPlayersNeeded,
+      ad_hoc_only: adHocOnly,
+    });
 
     if (updateError) {
       setError('Failed to save changes. Please try again.');

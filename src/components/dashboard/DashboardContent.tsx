@@ -13,6 +13,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { GameWithGM } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
+import { fetchUserMemberships, fetchUserGmGames, fetchMembershipCount } from "@/lib/data";
 import { WelcomeEmptyState } from "./WelcomeEmptyState";
 
 interface GameWithGMAndCount extends GameWithGM {
@@ -35,20 +36,14 @@ export function DashboardContent() {
       }
 
       // Fetch games where user is GM or member, including co-GM status
-      const { data: memberships } = await supabase
-        .from("game_memberships")
-        .select("game_id, is_co_gm")
-        .eq("user_id", profile.id);
+      const { data: memberships } = await fetchUserMemberships(supabase, profile.id);
 
       const memberGameIds = memberships?.map((m) => m.game_id) || [];
       const coGmGameIds = new Set(
         memberships?.filter((m) => m.is_co_gm).map((m) => m.game_id) || []
       );
 
-      const { data: gmGames } = await supabase
-        .from("games")
-        .select("*, gm:users!games_gm_id_fkey(*)")
-        .eq("gm_id", profile.id);
+      const { data: gmGames } = await fetchUserGmGames(supabase, profile.id);
 
       // Only query for member games if user has memberships
       const memberGames =
@@ -70,10 +65,7 @@ export function DashboardContent() {
       // Get member counts and add co-GM status
       const gamesWithCounts = await Promise.all(
         uniqueGames.map(async (game) => {
-          const { count } = await supabase
-            .from("game_memberships")
-            .select("*", { count: "exact", head: true })
-            .eq("game_id", game.id);
+          const { count } = await fetchMembershipCount(supabase, game.id);
 
           return {
             ...game,

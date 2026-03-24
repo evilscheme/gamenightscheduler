@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
@@ -28,6 +28,15 @@ interface AdminStats {
   }>;
 }
 
+interface HealthBreakdown {
+  playerScore: number;
+  sessionScore: number;
+  fillRateScore: number;
+  recencyScore: number;
+}
+
+type HealthGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+
 interface GameWithEngagement {
   id: string;
   name: string;
@@ -38,7 +47,13 @@ interface GameWithEngagement {
   confirmedSessionCount: number;
   availabilityFillRate: number;
   lastActivity: string | null;
+  healthScore: number;
+  healthGrade: HealthGrade;
+  healthLabel: string;
+  healthBreakdown: HealthBreakdown;
 }
+
+type SortField = 'health' | 'name' | 'created' | 'lastActivity';
 
 export default function AdminPage() {
   const { authStatus, profile } = useAuth();
@@ -136,7 +151,7 @@ export default function AdminPage() {
         <div className="text-danger text-center py-12">{error}</div>
       ) : (
         <>
-          {activeTab === 'overview' && stats && <OverviewTab stats={stats} />}
+          {activeTab === 'overview' && stats && <OverviewTab stats={stats} games={games} />}
           {activeTab === 'games' && <GamesTab games={games} />}
           {activeTab === 'activity' && stats && <ActivityTab stats={stats} />}
         </>
@@ -145,64 +160,149 @@ export default function AdminPage() {
   );
 }
 
-function OverviewTab({ stats }: { stats: AdminStats }) {
+function OverviewTab({ stats, games }: { stats: AdminStats; games: GameWithEngagement[] }) {
+  const healthyCount = games.filter((g) => g.healthScore >= 60).length;
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Users" value={stats.totalUsers} />
         <StatCard title="Total Games" value={stats.totalGames} />
         <StatCard title="Confirmed Sessions" value={stats.totalSessions} />
+        <StatCard
+          title="Healthy Games"
+          value={healthyCount}
+          subtitle={`${stats.totalGames > 0 ? Math.round((healthyCount / stats.totalGames) * 100) : 0}% of all games`}
+        />
       </div>
     </div>
   );
 }
 
-function StatCard({ title, value }: { title: string; value: number }) {
+function StatCard({ title, value, subtitle }: { title: string; value: number; subtitle?: string }) {
   return (
     <Card>
       <CardContent className="pt-6">
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
         <p className="text-3xl font-bold text-foreground">{value}</p>
+        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
       </CardContent>
     </Card>
   );
 }
 
+const HEALTH_GRADE_STYLES: Record<HealthGrade, string> = {
+  A: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  B: 'bg-primary/10 text-primary',
+  C: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  D: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+  F: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+};
+
+function formatBreakdownTooltip(b: HealthBreakdown): string {
+  return `Players: ${b.playerScore} | Sessions: ${b.sessionScore} | Fill Rate: ${b.fillRateScore} | Recency: ${b.recencyScore}`;
+}
+
 function GamesTab({ games }: { games: GameWithEngagement[] }) {
+  const [sortBy, setSortBy] = useState<SortField>('health');
+  const [sortDesc, setSortDesc] = useState(true);
+  const [hideUnhealthy, setHideUnhealthy] = useState(false);
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'Never';
     return new Date(dateStr).toLocaleDateString();
   };
 
+  const sortedGames = useMemo(() => {
+    const filtered = hideUnhealthy ? games.filter((g) => g.healthScore >= 30) : games;
+
+    const sorted = [...filtered].sort((a, b) => {
+      let cmp = 0;
+      switch (sortBy) {
+        case 'health':
+          cmp = a.healthScore - b.healthScore;
+          break;
+        case 'name':
+          cmp = a.name.localeCompare(b.name);
+          break;
+        case 'created':
+          cmp = a.created_at.localeCompare(b.created_at);
+          break;
+        case 'lastActivity':
+          cmp = (a.lastActivity ?? '').localeCompare(b.lastActivity ?? '');
+          break;
+      }
+      return sortDesc ? -cmp : cmp;
+    });
+
+    return sorted;
+  }, [games, sortBy, sortDesc, hideUnhealthy]);
+
+  const healthyCount = games.filter((g) => g.healthScore >= 60).length;
+
+  const handleSortChange = (field: SortField) => {
+    if (sortBy === field) {
+      setSortDesc((prev) => !prev);
+    } else {
+      setSortBy(field);
+      setSortDesc(field === 'health' || field === 'lastActivity');
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-lg font-semibold text-card-foreground">All Games ({games.length})</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-lg font-semibold text-card-foreground">
+            Games
+            <span className="text-sm font-normal text-muted-foreground ml-2">
+              Showing {sortedGames.length} of {games.length} ({healthyCount} healthy)
+            </span>
+          </h2>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hideUnhealthy}
+                onChange={(e) => setHideUnhealthy(e.target.checked)}
+                className="rounded-sm border-border"
+              />
+              Hide unhealthy (score &lt; 30)
+            </label>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Game</th>
+                <SortableHeader field="health" label="Health" currentSort={sortBy} sortDesc={sortDesc} onSort={handleSortChange} align="center" />
+                <SortableHeader field="name" label="Game" currentSort={sortBy} sortDesc={sortDesc} onSort={handleSortChange} />
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">GM</th>
                 <th className="text-center py-3 px-2 font-medium text-muted-foreground">Players</th>
-                <th className="text-center py-3 px-2 font-medium text-muted-foreground">Confirmed Sessions</th>
+                <th className="text-center py-3 px-2 font-medium text-muted-foreground">Sessions</th>
                 <th className="text-center py-3 px-2 font-medium text-muted-foreground">Fill Rate</th>
-                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Last Activity</th>
-                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Created</th>
+                <SortableHeader field="lastActivity" label="Last Activity" currentSort={sortBy} sortDesc={sortDesc} onSort={handleSortChange} />
+                <SortableHeader field="created" label="Created" currentSort={sortBy} sortDesc={sortDesc} onSort={handleSortChange} />
               </tr>
             </thead>
             <tbody>
-              {games.map((game) => (
+              {sortedGames.map((game) => (
                 <tr key={game.id} className="border-b border-border/50 hover:bg-muted/50">
+                  <td className="py-3 px-2 text-center">
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded-sm text-xs font-medium cursor-help ${HEALTH_GRADE_STYLES[game.healthGrade]}`}
+                      title={`${game.healthLabel} (${game.healthScore}/100)\n${formatBreakdownTooltip(game.healthBreakdown)}`}
+                    >
+                      {game.healthGrade} {game.healthScore}
+                    </span>
+                  </td>
                   <td className="py-3 px-2 font-medium text-foreground">{game.name}</td>
                   <td className="py-3 px-2 text-muted-foreground">{game.gm?.name ?? 'Unknown'}</td>
                   <td className="py-3 px-2 text-center text-foreground">{game.playerCount}</td>
-                  <td className="py-3 px-2 text-center text-foreground">
-                    {game.sessionCount}
-                  </td>
+                  <td className="py-3 px-2 text-center text-foreground">{game.sessionCount}</td>
                   <td className="py-3 px-2 text-center">
                     <span
                       className={`inline-block px-2 py-0.5 rounded-sm text-xs font-medium ${
@@ -220,10 +320,10 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
                   <td className="py-3 px-2 text-muted-foreground">{formatDate(game.created_at)}</td>
                 </tr>
               ))}
-              {games.length === 0 && (
+              {sortedGames.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                    No games found
+                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                    {hideUnhealthy ? 'No healthy games found' : 'No games found'}
                   </td>
                 </tr>
               )}
@@ -232,6 +332,39 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function SortableHeader({
+  field,
+  label,
+  currentSort,
+  sortDesc,
+  onSort,
+  align = 'left',
+}: {
+  field: SortField;
+  label: string;
+  currentSort: SortField;
+  sortDesc: boolean;
+  onSort: (field: SortField) => void;
+  align?: 'left' | 'center';
+}) {
+  const isActive = currentSort === field;
+  return (
+    <th className={`text-${align} py-3 px-2 font-medium text-muted-foreground`}>
+      <button
+        onClick={() => onSort(field)}
+        className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${
+          isActive ? 'text-foreground' : ''
+        }`}
+      >
+        {label}
+        {isActive && (
+          <span className="text-xs">{sortDesc ? '↓' : '↑'}</span>
+        )}
+      </button>
+    </th>
   );
 }
 

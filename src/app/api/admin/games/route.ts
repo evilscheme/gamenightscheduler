@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { calculatePlayerCompletionPercentages } from '@/lib/availability';
+import { calculateGameHealth, type HealthBreakdown, type HealthGrade } from '@/lib/gameHealth';
 
 const PAGE_SIZE = 1000;
 
@@ -15,6 +16,10 @@ interface GameWithEngagement {
   confirmedSessionCount: number;
   availabilityFillRate: number;
   lastActivity: string | null;
+  healthScore: number;
+  healthGrade: HealthGrade;
+  healthLabel: string;
+  healthBreakdown: HealthBreakdown;
 }
 
 export async function GET(): Promise<Response> {
@@ -74,7 +79,7 @@ export async function GET(): Promise<Response> {
 
     const [memberships, sessions, availabilityRecords, gamePlayDates] = await Promise.all([
       fetchAllRows<{ game_id: string; user_id: string }>('game_memberships', 'game_id, user_id'),
-      fetchAllRows<{ game_id: string; status: string; created_at: string }>('sessions', 'game_id, status, created_at'),
+      fetchAllRows<{ game_id: string; status: string; created_at: string; date: string }>('sessions', 'game_id, status, created_at, date'),
       fetchAllRows<{ game_id: string; user_id: string; date: string; updated_at: string }>('availability', 'game_id, user_id, date, updated_at'),
       fetchAllRows<{ game_id: string; date: string }>('game_play_dates', 'game_id, date'),
     ]);
@@ -88,14 +93,16 @@ export async function GET(): Promise<Response> {
       membershipsByGame.get(m.game_id)!.add(m.user_id);
     }
 
-    const sessionsByGame = new Map<string, { total: number; confirmed: number; lastActivity: string | null }>();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const sessionsByGame = new Map<string, { total: number; confirmed: number; future: number; lastActivity: string | null }>();
     for (const s of sessions) {
       if (!sessionsByGame.has(s.game_id)) {
-        sessionsByGame.set(s.game_id, { total: 0, confirmed: 0, lastActivity: null });
+        sessionsByGame.set(s.game_id, { total: 0, confirmed: 0, future: 0, lastActivity: null });
       }
       const stats = sessionsByGame.get(s.game_id)!;
       stats.total++;
       if (s.status === 'confirmed') stats.confirmed++;
+      if (s.date >= todayStr) stats.future++;
       if (!stats.lastActivity || s.created_at > stats.lastActivity) {
         stats.lastActivity = s.created_at;
       }
@@ -125,7 +132,7 @@ export async function GET(): Promise<Response> {
     const gamesWithEngagement: GameWithEngagement[] = (games ?? []).map((game) => {
       const members = membershipsByGame.get(game.id) ?? new Set();
       const totalPlayers = members.size + 1; // +1 for GM
-      const sessionStats = sessionsByGame.get(game.id) ?? { total: 0, confirmed: 0, lastActivity: null };
+      const sessionStats = sessionsByGame.get(game.id) ?? { total: 0, confirmed: 0, future: 0, lastActivity: null };
       const availabilityStats = availabilityByGame.get(game.id) ?? { records: [], lastActivity: null };
 
       // Fill rate: average completion percentage across all current players
@@ -162,6 +169,16 @@ export async function GET(): Promise<Response> {
       const gmData = game.gm;
       const gm = Array.isArray(gmData) ? gmData[0] ?? null : gmData;
 
+      // Calculate health score
+      const health = calculateGameHealth({
+        playerCount: totalPlayers,
+        confirmedSessionCount: sessionStats.confirmed,
+        futureSessionCount: sessionStats.future,
+        availabilityFillRate: fillRate,
+        lastActivity,
+        createdAt: game.created_at,
+      });
+
       return {
         id: game.id,
         name: game.name,
@@ -172,6 +189,10 @@ export async function GET(): Promise<Response> {
         confirmedSessionCount: sessionStats.confirmed,
         availabilityFillRate: fillRate,
         lastActivity,
+        healthScore: health.score,
+        healthGrade: health.grade,
+        healthLabel: health.label,
+        healthBreakdown: health.breakdown,
       };
     });
 

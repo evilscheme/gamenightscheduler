@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
+import EngagementCharts from '@/components/admin/EngagementCharts';
+import type { HealthBreakdown, HealthGrade } from '@/lib/gameHealth';
 
 type Tab = 'overview' | 'games' | 'activity';
 
@@ -27,15 +29,6 @@ interface AdminStats {
     gm: { name: string } | null;
   }>;
 }
-
-interface HealthBreakdown {
-  playerScore: number;
-  sessionScore: number;
-  fillRateScore: number;
-  recencyScore: number;
-}
-
-type HealthGrade = 'A' | 'B' | 'C' | 'D' | 'F';
 
 interface GameWithEngagement {
   id: string;
@@ -176,6 +169,9 @@ function OverviewTab({ stats, games }: { stats: AdminStats; games: GameWithEngag
           subtitle={`${stats.totalGames > 0 ? Math.round((healthyCount / stats.totalGames) * 100) : 0}% of all games`}
         />
       </div>
+
+      {/* Engagement Charts */}
+      <EngagementCharts games={games} />
     </div>
   );
 }
@@ -352,7 +348,7 @@ function SortableHeader({
 }) {
   const isActive = currentSort === field;
   return (
-    <th className={`text-${align} py-3 px-2 font-medium text-muted-foreground`}>
+    <th className={`${align === 'center' ? 'text-center' : 'text-left'} py-3 px-2 font-medium text-muted-foreground`}>
       <button
         onClick={() => onSort(field)}
         className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${

@@ -189,11 +189,11 @@ function StatCard({ title, value, subtitle }: { title: string; value: number; su
 }
 
 const HEALTH_GRADE_STYLES: Record<HealthGrade, string> = {
-  A: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  A: 'bg-success/10 text-success',
   B: 'bg-primary/10 text-primary',
-  C: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  D: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-  F: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  C: 'bg-warning/10 text-warning',
+  D: 'bg-danger/10 text-danger',
+  F: 'bg-danger/20 text-danger font-semibold',
 };
 
 function formatBreakdownTooltip(b: HealthBreakdown): string {
@@ -298,15 +298,15 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
                   <td className="py-3 px-2 font-medium text-foreground">{game.name}</td>
                   <td className="py-3 px-2 text-muted-foreground">{game.gm?.name ?? 'Unknown'}</td>
                   <td className="py-3 px-2 text-center text-foreground">{game.playerCount}</td>
-                  <td className="py-3 px-2 text-center text-foreground">{game.sessionCount}</td>
+                  <td className="py-3 px-2 text-center text-foreground">{game.confirmedSessionCount}</td>
                   <td className="py-3 px-2 text-center">
                     <span
                       className={`inline-block px-2 py-0.5 rounded-sm text-xs font-medium ${
                         game.availabilityFillRate >= 75
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          ? 'bg-success/10 text-success'
                           : game.availabilityFillRate >= 50
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          ? 'bg-warning/10 text-warning'
+                          : 'bg-danger/10 text-danger'
                       }`}
                     >
                       {game.availabilityFillRate}%

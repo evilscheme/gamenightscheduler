@@ -8,7 +8,9 @@ const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 const VALID_WEEKS = [8, 12, 26] as const;
 
-// Simple in-memory cache keyed by weeks param
+// Best-effort in-memory cache keyed by weeks param.
+// In serverless, this only helps when the function instance is reused across
+// requests (Fluid Compute). Misses silently on cold starts — that's fine.
 const cache = new Map<string, { data: unknown; timestamp: number }>();
 
 interface WeekBucket {

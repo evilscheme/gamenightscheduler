@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { TEST_TIMEOUTS } from '../../constants';
 
 test.describe('Help Menu', () => {
-  test('help dropdown shows bug report and feedback links', async ({ page }) => {
+  test('help dropdown shows how-to and feedback links', async ({ page }) => {
     await page.goto('/');
 
     // Wait for page to load
@@ -13,13 +13,10 @@ test.describe('Help Menu', () => {
     // Click help menu button
     await page.getByRole('button', { name: 'Help menu' }).click();
 
-    // Report Bug link should be visible with correct href
-    const bugLink = page.getByRole('link', { name: 'Report Bug' });
-    await expect(bugLink).toBeVisible();
-    await expect(bugLink).toHaveAttribute(
-      'href',
-      'https://github.com/evilscheme/gamenightscheduler/issues'
-    );
+    // How to Use link should be visible
+    const howToLink = page.getByRole('link', { name: 'How to Use' });
+    await expect(howToLink).toBeVisible();
+    await expect(howToLink).toHaveAttribute('href', '/help');
 
     // Send Feedback link should be visible with mailto href
     const feedbackLink = page.getByRole('link', { name: 'Send Feedback' });
@@ -36,12 +33,12 @@ test.describe('Help Menu', () => {
 
     // Open help menu
     await page.getByRole('button', { name: 'Help menu' }).click();
-    await expect(page.getByRole('link', { name: 'Report Bug' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'How to Use' })).toBeVisible();
 
     // Click outside the menu (on the page body)
     await page.locator('main').click();
 
     // Menu should close
-    await expect(page.getByRole('link', { name: 'Report Bug' })).not.toBeVisible();
+    await expect(page.getByRole('link', { name: 'How to Use' })).not.toBeVisible();
   });
 });

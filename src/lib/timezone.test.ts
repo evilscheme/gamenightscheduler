@@ -45,8 +45,8 @@ describe("formatTimezoneDisplay", () => {
 
   it("formats Europe/London with city name and abbreviation", () => {
     const result = formatTimezoneDisplay("Europe/London");
-    // GMT in winter, BST in summer
-    expect(result).toMatch(/^London \((GMT|BST)\)$/);
+    // GMT in winter, BST (or GMT+1) in summer depending on ICU/Node version
+    expect(result).toMatch(/^London \((GMT|BST|GMT\+1)\)$/);
   });
 
   it("falls back to the raw string for an invalid timezone", () => {

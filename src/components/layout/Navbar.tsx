@@ -3,13 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { BookOpen, Bug, Mail } from 'lucide-react';
+import { BookOpen, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { fetchUserGameCount } from '@/lib/data';
 
-const GITHUB_ISSUES_URL = 'https://github.com/evilscheme/gamenightscheduler/issues';
 const FEEDBACK_EMAIL = process.env.NEXT_PUBLIC_FEEDBACK_EMAIL;
 
 function HelpDropdown() {
@@ -45,16 +44,6 @@ function HelpDropdown() {
             <BookOpen className="size-4" />
             How to Use
           </Link>
-          <a
-            href={GITHUB_ISSUES_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors whitespace-nowrap"
-            onClick={() => setIsOpen(false)}
-          >
-            <Bug className="size-4" />
-            Report Bug
-          </a>
           {FEEDBACK_EMAIL && (
             <a
               href={`mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent('Can We Play? Feedback')}`}

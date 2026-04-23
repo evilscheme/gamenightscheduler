@@ -64,6 +64,7 @@ export function RankedList({
         <div className="pt-2">
           <button
             type="button"
+            aria-expanded={showBelow}
             onClick={() => setShowBelow((v) => !v)}
             className="flex w-full items-center justify-between py-2"
           >

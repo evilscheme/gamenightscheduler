@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getAvatarColorClass, getInitial, AVATAR_PALETTE_SIZE } from './avatarColor';
+import { getAvatarColorClass, getInitial, AVATAR_PALETTE_SIZE, AVATAR_CLASSES } from './avatarColor';
 
 describe('getInitial', () => {
   it('returns first grapheme of name uppercased', () => {
@@ -13,6 +13,9 @@ describe('getInitial', () => {
   it('handles multi-byte first character (grapheme)', () => {
     expect(getInitial('Éric')).toBe('É');
     expect(getInitial('Ñiño')).toBe('Ñ');
+  });
+  it('returns the full emoji for an emoji leading character (surrogate pair)', () => {
+    expect(getInitial('😀Alex')).toBe('😀');
   });
 });
 
@@ -30,5 +33,10 @@ describe('getAvatarColorClass', () => {
     );
     expect(classes.size).toBeGreaterThan(1);
     expect(classes.size).toBeLessThanOrEqual(AVATAR_PALETTE_SIZE);
+  });
+  it('handles empty string deterministically', () => {
+    const result = getAvatarColorClass('');
+    expect(AVATAR_CLASSES).toContain(result);
+    expect(getAvatarColorClass('')).toBe(result);
   });
 });

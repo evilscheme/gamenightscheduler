@@ -22,5 +22,5 @@ export function getInitial(name: string | null | undefined): string {
   if (!name || typeof name !== 'string') return '?';
   const trimmed = name.trim();
   if (!trimmed) return '?';
-  return trimmed.charAt(0).toUpperCase();
+  return ([...trimmed][0] || '?').toUpperCase();
 }

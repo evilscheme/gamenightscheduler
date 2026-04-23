@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Modal, Button, Input, EyebrowLabel } from '@/components/ui';
 import type { DateSuggestion } from '@/types';
@@ -20,20 +20,25 @@ interface ScheduleSessionModalProps {
 export function ScheduleSessionModal({
   open, date, suggestion, gameDefaultStart, gameDefaultEnd, onClose, onConfirm,
 }: ScheduleSessionModalProps) {
-  const defaults = useMemo(() => {
-    if (!date) return { start: SESSION_DEFAULTS.START_TIME, end: SESSION_DEFAULTS.END_TIME };
-    return computeDefaultSessionTimes({
+  const [start, setStart] = useState<string>(SESSION_DEFAULTS.START_TIME);
+  const [end, setEnd] = useState<string>(SESSION_DEFAULTS.END_TIME);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!open || !date) return;
+    const defaults = computeDefaultSessionTimes({
       earliestStartTime: suggestion?.earliestStartTime ?? null,
       latestEndTime: suggestion?.latestEndTime ?? null,
       gameDefaultStart: gameDefaultStart?.slice(0, 5) || SESSION_DEFAULTS.START_TIME,
       gameDefaultEnd: gameDefaultEnd?.slice(0, 5) || SESSION_DEFAULTS.END_TIME,
     });
-  }, [date, suggestion, gameDefaultStart, gameDefaultEnd]);
-
-  const [start, setStart] = useState(defaults.start);
-  const [end, setEnd] = useState(defaults.end);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    setStart(defaults.start);
+    setEnd(defaults.end);
+    setError(null);
+  }, [open, date, suggestion, gameDefaultStart, gameDefaultEnd]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!date) return null;
 
@@ -51,7 +56,6 @@ export function ScheduleSessionModal({
 
   return (
     <Modal
-      key={date}
       open={open}
       onClose={onClose}
       eyebrow={<EyebrowLabel>Schedule session</EyebrowLabel>}

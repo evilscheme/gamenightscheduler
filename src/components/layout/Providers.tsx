@@ -4,13 +4,16 @@ import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeContextProvider } from '@/contexts/ThemeContext';
 import { ThemeCycler } from '@/components/dev/ThemeCycler';
+import { ToastProvider } from '@/components/ui/Toast';
 import { ReactNode } from 'react';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <ThemeContextProvider>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
         <ThemeCycler />
       </ThemeContextProvider>
     </ThemeProvider>

@@ -39,6 +39,13 @@
   --cal-disabled-text: #cbd5e1;
   --cal-scheduled-bg: #0ea5e9;
   --cal-scheduled-text: #ffffff;
+
+  --avatar-1: #3b82f6;
+  --avatar-2: #a855f7;
+  --avatar-3: #ec4899;
+  --avatar-4: #f97316;
+  --avatar-5: #10b981;
+  --avatar-6: #14b8a6;
 }
 
 .dark,
@@ -77,6 +84,13 @@
   --cal-disabled-text: #1e3a4f;
   --cal-scheduled-bg: #0284c7;
   --cal-scheduled-text: #ffffff;
+
+  --avatar-1: #60a5fa;
+  --avatar-2: #c084fc;
+  --avatar-3: #f472b6;
+  --avatar-4: #fb923c;
+  --avatar-5: #34d399;
+  --avatar-6: #2dd4bf;
 }
 
 /* ============================================
@@ -423,6 +437,14 @@
   --color-cal-disabled-text: var(--cal-disabled-text);
   --color-cal-scheduled-bg: var(--cal-scheduled-bg);
   --color-cal-scheduled-text: var(--cal-scheduled-text);
+
+  /* Avatar colors */
+  --color-avatar-1: var(--avatar-1);
+  --color-avatar-2: var(--avatar-2);
+  --color-avatar-3: var(--avatar-3);
+  --color-avatar-4: var(--avatar-4);
+  --color-avatar-5: var(--avatar-5);
+  --color-avatar-6: var(--avatar-6);
 }
 
 body {

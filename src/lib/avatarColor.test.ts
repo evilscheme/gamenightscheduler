@@ -10,6 +10,10 @@ describe('getInitial', () => {
     expect(getInitial('')).toBe('?');
     expect(getInitial(null as unknown as string)).toBe('?');
   });
+  it('handles multi-byte first character (grapheme)', () => {
+    expect(getInitial('Éric')).toBe('É');
+    expect(getInitial('Ñiño')).toBe('Ñ');
+  });
 });
 
 describe('getAvatarColorClass', () => {

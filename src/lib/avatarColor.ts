@@ -1,6 +1,6 @@
 export const AVATAR_PALETTE_SIZE = 6;
 
-const AVATAR_CLASSES = [
+export const AVATAR_CLASSES = [
   'bg-avatar-1',
   'bg-avatar-2',
   'bg-avatar-3',

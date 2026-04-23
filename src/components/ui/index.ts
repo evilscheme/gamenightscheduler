@@ -5,3 +5,4 @@ export { Input } from './Input';
 export { LoadingSpinner } from './LoadingSpinner';
 export { Textarea } from './Textarea';
 export { Avatar, type AvatarRingState } from './Avatar';
+export { StatePill, type PillState } from './StatePill';

@@ -3,6 +3,9 @@ import { formatTimeShort } from '@/lib/formatting';
 
 export type CellTintTier = 'high' | 'medium' | 'maybe' | 'warning' | 'conflict' | 'empty';
 
+/**
+ * Returns the colour tier for a mini-calendar cell. Any `maybeCount > 0` bumps to `'maybe'` even when `availableCount` is low.
+ */
 export function getCellTintTier(s: DateSuggestion): CellTintTier {
   if (s.totalPlayers === 0) return 'empty';
   const pct = s.availableCount / s.totalPlayers;
@@ -39,6 +42,9 @@ export function formatTimeWindow(
   return `until ${formatTimeShort(latestEndTime!, use24h)}`;
 }
 
+/**
+ * A session on the same day as `referenceDate` is treated as upcoming (not past).
+ */
 export function splitUpcomingPast(
   sessions: GameSession[],
   referenceDate: Date
@@ -62,6 +68,10 @@ interface ComputeDefaultsParams {
   gameDefaultEnd: string; // HH:MM
 }
 
+/**
+ * Start = max(gameDefault, playerConstraint); end = min(gameDefault, playerConstraint). Slices input times to HH:MM.
+ * Caller is responsible for guarding against constraints that would produce start > end.
+ */
 export function computeDefaultSessionTimes({
   earliestStartTime,
   latestEndTime,

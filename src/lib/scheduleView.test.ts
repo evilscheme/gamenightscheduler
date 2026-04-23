@@ -42,6 +42,12 @@ describe('getCellTintTier', () => {
   it('returns "warning" when > 0 available but below maybe tier', () => {
     expect(getCellTintTier(mkSuggestion({ availableCount: 1 }))).toBe('warning');
   });
+  it('prefers "maybe" over "warning" when availableCount low but maybeCount > 0', () => {
+    expect(getCellTintTier(mkSuggestion({ availableCount: 1, maybeCount: 2 }))).toBe('maybe');
+  });
+  it('returns "warning" explicitly when maybeCount is 0 and 0 < availableCount < 0.4 * total', () => {
+    expect(getCellTintTier(mkSuggestion({ availableCount: 1, maybeCount: 0, unavailableCount: 4 }))).toBe('warning');
+  });
   it('returns "conflict" when 0 available and no maybe', () => {
     expect(getCellTintTier(mkSuggestion({ unavailableCount: 5 }))).toBe('conflict');
   });
@@ -126,6 +132,24 @@ describe('computeDefaultSessionTimes', () => {
       gameDefaultEnd: '23:00',
     });
     expect(out.end).toBe('22:00');
+  });
+  it('keeps game default for start when player constraint is earlier', () => {
+    const out = computeDefaultSessionTimes({
+      earliestStartTime: '18:00:00',
+      latestEndTime: null,
+      gameDefaultStart: '19:00',
+      gameDefaultEnd: '23:00',
+    });
+    expect(out.start).toBe('19:00');
+  });
+  it('applies both start and end constraints simultaneously', () => {
+    const out = computeDefaultSessionTimes({
+      earliestStartTime: '19:30:00',
+      latestEndTime: '22:00:00',
+      gameDefaultStart: '19:00',
+      gameDefaultEnd: '23:00',
+    });
+    expect(out).toEqual({ start: '19:30', end: '22:00' });
   });
 });
 

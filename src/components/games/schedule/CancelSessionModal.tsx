@@ -17,9 +17,12 @@ export function CancelSessionModal({ open, date, onClose, onConfirm }: CancelSes
 
   const submit = async () => {
     setBusy(true);
-    await onConfirm(date);
-    setBusy(false);
-    onClose();
+    try {
+      await onConfirm(date);
+      onClose();
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

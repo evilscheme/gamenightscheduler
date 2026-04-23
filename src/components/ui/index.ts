@@ -7,3 +7,4 @@ export { Textarea } from './Textarea';
 export { Avatar, type AvatarRingState } from './Avatar';
 export { StatePill, type PillState } from './StatePill';
 export { RankCircle } from './RankCircle';
+export { EyebrowLabel } from './EyebrowLabel';

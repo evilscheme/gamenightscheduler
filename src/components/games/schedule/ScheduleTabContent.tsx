@@ -136,7 +136,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     }
   };
 
-  const subscribeLink = (
+  const subscribeLink = subscribeUrl ? (
     <Button
       size="sm"
       variant="ghost"
@@ -146,7 +146,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
       <Link2 className="size-3 mr-1" />
       Subscribe
     </Button>
-  );
+  ) : null;
 
   return (
     <HoverSyncProvider>

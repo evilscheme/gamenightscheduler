@@ -8,7 +8,6 @@ interface ScheduleHeaderProps {
   playDays: number[];
   monthRange: string;
   candidateCount: number;
-  updatedAgo: string | null;
 }
 
 function formatCadence(playDays: number[]): string {
@@ -16,7 +15,7 @@ function formatCadence(playDays: number[]): string {
   return playDays.map((d) => DAY_LABELS.short[d]).join(' / ');
 }
 
-export function ScheduleHeader({ gameName, playDays, monthRange, candidateCount, updatedAgo }: ScheduleHeaderProps) {
+export function ScheduleHeader({ gameName, playDays, monthRange, candidateCount }: ScheduleHeaderProps) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
       <div>
@@ -26,11 +25,6 @@ export function ScheduleHeader({ gameName, playDays, monthRange, candidateCount,
           {monthRange} · {candidateCount} candidate {candidateCount === 1 ? 'date' : 'dates'}
         </p>
       </div>
-      {updatedAgo && (
-        <p className="font-mono text-xs text-muted-foreground self-end sm:self-auto">
-          Updated {updatedAgo}
-        </p>
-      )}
     </div>
   );
 }

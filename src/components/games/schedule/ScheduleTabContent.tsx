@@ -168,7 +168,6 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
           playDays={playDays}
           monthRange={monthRange}
           candidateCount={suggestions.length}
-          updatedAgo={null}
         />
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">

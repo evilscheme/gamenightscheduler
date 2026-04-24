@@ -448,7 +448,7 @@ export default function GameDetailPage() {
         <ScheduleTabContent
           suggestions={suggestions}
           sessions={sessions}
-          members={game.members}
+          members={[{ ...game.gm, is_co_gm: false }, ...game.members]}
           gmId={game.gm_id}
           isGm={canDoGmActions}
           gameName={game.name}

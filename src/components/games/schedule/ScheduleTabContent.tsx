@@ -14,7 +14,7 @@ import { CancelSessionModal } from './CancelSessionModal';
 import { generateICS } from '@/lib/ics';
 import { getTopNDates, partitionByThreshold } from '@/lib/scheduleView';
 import { useToast } from '@/components/ui/Toast';
-import { Button } from '@/components/ui';
+import { Button, EyebrowLabel } from '@/components/ui';
 import { Link2 } from 'lucide-react';
 
 export interface ScheduleTabContentProps {
@@ -136,6 +136,18 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     }
   };
 
+  const miniCalendarProps = {
+    windowStart,
+    windowEnd,
+    suggestions,
+    sessions,
+    playDayWeekdays,
+    specialPlayDates,
+    weekStartDay,
+    topRanked,
+    onCellActivate: handleCellActivate,
+  };
+
   const subscribeLink = subscribeUrl ? (
     <Button
       size="sm"
@@ -184,21 +196,33 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               onDownloadAllIcs={handleDownloadAllIcs}
               onRequestCancel={(s) => setCancelFor(s)}
             />
+
+            {/* Mobile: collapsible cards below the list */}
+            <div className="space-y-3 lg:hidden">
+              <details className="rounded-xl border border-border bg-card p-4" data-testid="mobile-calendar-collapsible">
+                <summary className="cursor-pointer list-none flex items-center justify-between">
+                  <EyebrowLabel>Campaign window</EyebrowLabel>
+                  <span className="font-mono text-[11px] text-muted-foreground">tap to toggle</span>
+                </summary>
+                <div className="mt-3">
+                  <MiniCalendar {...miniCalendarProps} subscribeLink={subscribeLink} />
+                </div>
+              </details>
+              <details className="rounded-xl border border-border bg-card p-4" data-testid="mobile-response-collapsible">
+                <summary className="cursor-pointer list-none flex items-center justify-between">
+                  <EyebrowLabel>Response status</EyebrowLabel>
+                  <span className="font-mono text-[11px] text-muted-foreground">tap to toggle</span>
+                </summary>
+                <div className="mt-3">
+                  <ResponseStatus members={members} completionByUserId={completionByUserId} />
+                </div>
+              </details>
+            </div>
           </div>
 
-          <aside className="space-y-5 lg:sticky lg:top-20 lg:self-start">
-            <MiniCalendar
-              windowStart={windowStart}
-              windowEnd={windowEnd}
-              suggestions={suggestions}
-              sessions={sessions}
-              playDayWeekdays={playDayWeekdays}
-              specialPlayDates={specialPlayDates}
-              weekStartDay={weekStartDay}
-              topRanked={topRanked}
-              onCellActivate={handleCellActivate}
-              subscribeLink={subscribeLink}
-            />
+          {/* Desktop sidebar */}
+          <aside className="hidden lg:block space-y-5 lg:sticky lg:top-20 lg:self-start">
+            <MiniCalendar {...miniCalendarProps} subscribeLink={subscribeLink} />
             <ResponseStatus members={members} completionByUserId={completionByUserId} />
           </aside>
         </div>

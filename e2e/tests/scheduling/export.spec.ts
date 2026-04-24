@@ -47,8 +47,8 @@ test.describe('Session Export', () => {
     // Set up download listener before clicking
     const downloadPromise = page.waitForEvent('download');
 
-    // Click the individual export button (not "Export All")
-    const exportButton = page.getByRole('button', { name: /add to calendar/i }).first();
+    // Click the individual export button (data-testid="ics-download-single")
+    const exportButton = page.locator('[data-testid="ics-download-single"]').first();
     await expect(exportButton).toBeVisible();
     await exportButton.click();
 
@@ -109,8 +109,8 @@ test.describe('Session Export', () => {
     // Set up download listener
     const downloadPromise = page.waitForEvent('download');
 
-    // Click "Export All (.ics)" button
-    const exportAllButton = page.getByRole('button', { name: /export all/i });
+    // Click "Export all .ics" button
+    const exportAllButton = page.getByRole('button', { name: /export all \.ics/i });
     await expect(exportAllButton).toBeVisible();
     await exportAllButton.click();
 
@@ -163,7 +163,7 @@ test.describe('Session Export', () => {
     });
 
     const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: /add to calendar/i }).first().click();
+    await page.locator('[data-testid="ics-download-single"]').first().click();
 
     const download = await downloadPromise;
 

@@ -55,18 +55,22 @@ test.describe('Session Cancellation', () => {
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Verify session is in upcoming sessions
-    await expect(page.getByRole('heading', { name: /upcoming sessions/i })).toBeVisible({
+    await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Find and click the Cancel button for the session
-    const cancelButton = page.getByRole('button', { name: /^cancel$/i });
+    // Find and click the Cancel button for the session (row-level cancel)
+    const cancelButton = page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i });
     await expect(cancelButton).toBeVisible();
     await cancelButton.click();
 
+    // Confirm in the cancel modal
+    await expect(page.locator('[data-testid="cancel-session-modal"]')).toBeVisible();
+    await page.locator('[data-testid="cancel-session-submit"]').click();
+
     // Verify the session is removed - the "Upcoming Sessions" section should disappear
     // or at least the specific session should no longer be visible
-    await expect(page.getByRole('heading', { name: /upcoming sessions/i })).not.toBeVisible({
+    await expect(page.getByText(/upcoming sessions/i)).not.toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
   });
@@ -107,22 +111,25 @@ test.describe('Session Cancellation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Verify session shows as confirmed in suggestions
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+    // Verify schedule tab rendered
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // There should be a "Confirmed" badge visible
-    const confirmedBadge = page.getByText('Confirmed').first();
-    await expect(confirmedBadge).toBeVisible();
+    // There should be a scheduled row visible
+    const scheduledRow = page.locator('[data-testid="scheduled-row"]').first();
+    await expect(scheduledRow).toBeVisible();
 
-    // Cancel the session
-    const cancelButton = page.getByRole('button', { name: /^cancel$/i });
+    // Cancel the session (two-step: row button → modal confirm)
+    const cancelButton = scheduledRow.getByRole('button', { name: /^cancel$/i });
     await cancelButton.click();
 
-    // After cancellation, the date should no longer show as confirmed
-    // It should now show a "Confirm" button for GM to re-confirm if desired
-    await expect(page.getByRole('button', { name: /^confirm$/i }).first()).toBeVisible({
+    await expect(page.locator('[data-testid="cancel-session-modal"]')).toBeVisible();
+    await page.locator('[data-testid="cancel-session-submit"]').click();
+
+    // After cancellation, the scheduled row should be gone and the date should now
+    // appear as a ranked suggestion with a "Lock in this night" button for GM
+    await expect(page.getByRole('button', { name: /lock in this night/i }).first()).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
   });
@@ -179,12 +186,12 @@ test.describe('Session Cancellation', () => {
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Wait for sessions to load
-    await expect(page.getByRole('heading', { name: /upcoming sessions/i })).toBeVisible({
+    await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Player should NOT see cancel button
-    const cancelButtons = page.getByRole('button', { name: /^cancel$/i });
+    // Player should NOT see cancel button on scheduled rows
+    const cancelButtons = page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i });
     await expect(cancelButtons).toHaveCount(0);
   });
 
@@ -230,23 +237,27 @@ test.describe('Session Cancellation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Verify we have 2 sessions (2 Cancel buttons)
-    await expect(page.getByRole('heading', { name: /upcoming sessions/i })).toBeVisible({
+    // Verify we have 2 sessions (2 Cancel buttons on scheduled rows)
+    await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
-    const cancelButtons = page.getByRole('button', { name: /^cancel$/i });
+    const cancelButtons = page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i });
     await expect(cancelButtons).toHaveCount(2);
 
-    // Cancel the first one
+    // Cancel the first one (two-step)
     await cancelButtons.first().click();
+    await expect(page.locator('[data-testid="cancel-session-modal"]')).toBeVisible();
+    await page.locator('[data-testid="cancel-session-submit"]').click();
 
     // Now should only have 1 session
-    await expect(page.getByRole('button', { name: /^cancel$/i })).toHaveCount(1);
+    await expect(page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i })).toHaveCount(1);
 
-    // Cancel the second one
-    await page.getByRole('button', { name: /^cancel$/i }).click();
+    // Cancel the second one (two-step)
+    await page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i }).click();
+    await expect(page.locator('[data-testid="cancel-session-modal"]')).toBeVisible();
+    await page.locator('[data-testid="cancel-session-submit"]').click();
 
     // Now upcoming sessions section should be gone
-    await expect(page.getByRole('heading', { name: /upcoming sessions/i })).not.toBeVisible();
+    await expect(page.getByText(/upcoming sessions/i)).not.toBeVisible();
   });
 });

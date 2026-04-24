@@ -18,6 +18,7 @@ interface MiniCalendarProps {
   topRanked: string[];
   onCellActivate: (date: string) => void;
   subscribeLink?: React.ReactNode;
+  embedded?: boolean;
 }
 
 export function MiniCalendar({
@@ -31,6 +32,7 @@ export function MiniCalendar({
   topRanked,
   onCellActivate,
   subscribeLink,
+  embedded = false,
 }: MiniCalendarProps) {
   const months = useMemo(() => {
     const count = differenceInCalendarMonths(windowEnd, windowStart) + 1;
@@ -56,12 +58,16 @@ export function MiniCalendar({
     [sessions]
   );
 
-  return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between mb-3">
-        <EyebrowLabel>Campaign window</EyebrowLabel>
-        {subscribeLink}
-      </div>
+  const body = (
+    <>
+      {embedded ? (
+        subscribeLink && <div className="flex justify-end mb-3">{subscribeLink}</div>
+      ) : (
+        <div className="flex items-center justify-between mb-3">
+          <EyebrowLabel>Campaign window</EyebrowLabel>
+          {subscribeLink}
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {months.map((m) => (
           <CalendarMonth
@@ -82,6 +88,9 @@ export function MiniCalendar({
         <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-unavailable-bg/60" /> Conflict</span>
         <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-scheduled-bg" /> ★ Scheduled</span>
       </div>
-    </div>
+    </>
   );
+
+  if (embedded) return body;
+  return <div className="rounded-xl border border-border bg-card p-4">{body}</div>;
 }

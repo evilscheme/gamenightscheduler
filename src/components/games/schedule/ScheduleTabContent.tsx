@@ -199,22 +199,24 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
 
             {/* Mobile: collapsible cards below the list */}
             <div className="space-y-3 lg:hidden">
-              <details className="rounded-xl border border-border bg-card p-4" data-testid="mobile-calendar-collapsible">
+              <details className="group rounded-xl border border-border bg-card p-4" data-testid="mobile-calendar-collapsible">
                 <summary className="cursor-pointer list-none flex items-center justify-between">
                   <EyebrowLabel>Campaign window</EyebrowLabel>
-                  <span className="font-mono text-[11px] text-muted-foreground">tap to toggle</span>
+                  <span className="font-mono text-[11px] text-muted-foreground group-open:hidden">tap to expand</span>
+                  <span className="font-mono text-[11px] text-muted-foreground hidden group-open:inline">tap to collapse</span>
                 </summary>
                 <div className="mt-3">
-                  <MiniCalendar {...miniCalendarProps} subscribeLink={subscribeLink} />
+                  <MiniCalendar {...miniCalendarProps} subscribeLink={subscribeLink} embedded />
                 </div>
               </details>
-              <details className="rounded-xl border border-border bg-card p-4" data-testid="mobile-response-collapsible">
+              <details className="group rounded-xl border border-border bg-card p-4" data-testid="mobile-response-collapsible">
                 <summary className="cursor-pointer list-none flex items-center justify-between">
                   <EyebrowLabel>Response status</EyebrowLabel>
-                  <span className="font-mono text-[11px] text-muted-foreground">tap to toggle</span>
+                  <span className="font-mono text-[11px] text-muted-foreground group-open:hidden">tap to expand</span>
+                  <span className="font-mono text-[11px] text-muted-foreground hidden group-open:inline">tap to collapse</span>
                 </summary>
                 <div className="mt-3">
-                  <ResponseStatus members={members} completionByUserId={completionByUserId} />
+                  <ResponseStatus members={members} completionByUserId={completionByUserId} embedded />
                 </div>
               </details>
             </div>

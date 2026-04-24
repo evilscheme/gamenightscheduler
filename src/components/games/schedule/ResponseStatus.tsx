@@ -6,6 +6,7 @@ import { Avatar, EyebrowLabel } from '@/components/ui';
 interface ResponseStatusProps {
   members: MemberWithRole[];
   completionByUserId: Map<string, { answered: number; total: number }>;
+  embedded?: boolean;
 }
 
 function fillClass(pct: number): string {
@@ -14,11 +15,9 @@ function fillClass(pct: number): string {
   return 'bg-danger';
 }
 
-export function ResponseStatus({ members, completionByUserId }: ResponseStatusProps) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <EyebrowLabel>Response status</EyebrowLabel>
-      <ul className="mt-3 space-y-2">
+export function ResponseStatus({ members, completionByUserId, embedded = false }: ResponseStatusProps) {
+  const list = (
+    <ul className={embedded ? 'space-y-2' : 'mt-3 space-y-2'}>
         {members.map((m) => {
           const c = completionByUserId.get(m.id) ?? { answered: 0, total: 0 };
           const pct = c.total > 0 ? Math.round((c.answered / c.total) * 100) : 0;
@@ -37,7 +36,14 @@ export function ResponseStatus({ members, completionByUserId }: ResponseStatusPr
             </li>
           );
         })}
-      </ul>
+    </ul>
+  );
+
+  if (embedded) return list;
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <EyebrowLabel>Response status</EyebrowLabel>
+      {list}
     </div>
   );
 }

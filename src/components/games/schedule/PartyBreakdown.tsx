@@ -72,7 +72,7 @@ export function PartyBreakdown({ suggestion, gmId, coGmIds, use24h }: PartyBreak
             <p className="text-sm text-card-foreground flex items-center gap-2">
               <span className="truncate">{r.name}</span>
               {r.roleChip && (
-                <span className="rounded px-1.5 py-0.5 text-[9px] font-bold tracking-wide bg-primary/15 text-primary">
+                <span className="rounded-sm px-1.5 py-0.5 text-[9px] font-bold tracking-wide bg-primary/15 text-primary">
                   {r.roleChip}
                 </span>
               )}

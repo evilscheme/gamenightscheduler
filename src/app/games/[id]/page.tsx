@@ -12,7 +12,7 @@ import {
   DateSuggestion,
 } from "@/types";
 import { AvailabilityCalendar } from "@/components/calendar/AvailabilityCalendar";
-import { SchedulingSuggestions } from "@/components/games/SchedulingSuggestions";
+import { ScheduleTabContent } from "@/components/games/schedule/ScheduleTabContent";
 import {
   addMonths,
   endOfMonth,
@@ -25,7 +25,7 @@ import {
   parseISO,
 } from "date-fns";
 import { TIMEOUTS } from "@/lib/constants";
-import { calculatePlayerCompletionPercentages } from "@/lib/availability";
+import { calculatePlayerCompletionPercentages, getPlayDatesInWindow } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useGameDetail } from "@/hooks/useGameDetail";
@@ -130,6 +130,40 @@ export default function GameDetailPage() {
       windowEnd,
     });
   }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
+
+  const specialPlayDatesSet = useMemo(
+    () => new Set(extraDateStrings),
+    [extraDateStrings]
+  );
+
+  const completionByUserId = useMemo(() => {
+    const map = new Map<string, { answered: number; total: number }>();
+    if (!game) return map;
+    const playDates = getPlayDatesInWindow({
+      playDays: game.play_days,
+      schedulingWindowMonths: game.scheduling_window_months,
+      extraPlayDates: extraDateStrings,
+      windowStart,
+      windowEnd,
+    });
+    const total = playDates.length;
+    const playDateSet = new Set(playDates);
+    const allPlayers = [game.gm, ...game.members];
+    for (const p of allPlayers) {
+      const answered = allAvailability.filter(
+        (a) => a.user_id === p.id && playDateSet.has(a.date)
+      ).length;
+      map.set(p.id, { answered, total });
+    }
+    return map;
+  }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
+
+  const [subscribeUrl, setSubscribeUrl] = useState('');
+  useEffect(() => {
+    if (typeof window !== 'undefined' && game?.invite_code) {
+      setSubscribeUrl(`webcal://${window.location.host}/api/games/calendar/${game.invite_code}`);
+    }
+  }, [game?.invite_code]);
 
   useAuthRedirect();
 
@@ -411,20 +445,29 @@ export default function GameDetailPage() {
       )}
 
       {activeTab === "schedule" && (
-        <SchedulingSuggestions
+        <ScheduleTabContent
           suggestions={suggestions}
           sessions={sessions}
+          members={game.members}
+          gmId={game.gm_id}
           isGm={canDoGmActions}
           gameName={game.name}
+          playDays={game.play_days}
+          windowStart={windowStart}
+          windowEnd={windowEnd}
+          specialPlayDates={specialPlayDatesSet}
+          playDateNotes={playDateNotes}
           defaultStartTime={game.default_start_time}
           defaultEndTime={game.default_end_time}
           timezone={game.timezone}
+          userTimezone={userTimezone}
+          use24h={use24h}
+          weekStartDay={weekStartDay}
           minPlayersNeeded={game.min_players_needed || 0}
-          playDateNotes={playDateNotes}
+          completionByUserId={completionByUserId}
+          subscribeUrl={subscribeUrl}
           onConfirm={confirmSession}
           onCancel={cancelSession}
-          use24h={use24h}
-          userTimezone={userTimezone}
         />
       )}
 

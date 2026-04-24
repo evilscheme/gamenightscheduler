@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { format, parseISO } from 'date-fns';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
 import {
   createTestGame,
@@ -66,6 +67,10 @@ test.describe('Schedule Tab Redesign', () => {
     await expect(page.locator('[data-testid="upcoming-sessions-list"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
+
+    // The confirmed session's date should appear in the list
+    const expectedDateText = format(parseISO(playDates[0]), 'EEEE, MMMM d, yyyy');
+    await expect(page.locator('[data-testid="upcoming-sessions-list"]')).toContainText(expectedDateText);
   });
 
   // ────────────────────────────────────────────────────────────────────────────

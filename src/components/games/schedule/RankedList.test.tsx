@@ -44,5 +44,9 @@ describe('RankedList', () => {
     );
     expect(screen.getByTestId('ranked-list')).toBeInTheDocument();
     expect(screen.queryByTestId('below-threshold-list')).not.toBeInTheDocument();
+    // Viable row renders with its formatted date
+    expect(screen.getByText(/Fri, May 1/)).toBeInTheDocument();
+    // Below-threshold row is not in the DOM (list collapsed)
+    expect(screen.queryByText(/Sat, May 2/)).not.toBeInTheDocument();
   });
 });

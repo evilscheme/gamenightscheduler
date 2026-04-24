@@ -41,12 +41,14 @@ export function RankedRow({
   const { hoveredDate, setHoveredDate } = useHoverSync();
   const isHovered = hoveredDate === suggestion.date;
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (autoScrollTrigger && autoScrollTrigger === suggestion.date) {
       setExpanded(true);
       rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [autoScrollTrigger, suggestion.date]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const groupYesPct = Math.round(
     (suggestion.availableCount / Math.max(1, suggestion.totalPlayers)) * 100

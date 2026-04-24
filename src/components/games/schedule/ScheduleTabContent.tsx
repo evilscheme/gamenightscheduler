@@ -1,0 +1,225 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { format, parseISO } from 'date-fns';
+import type { DateSuggestion, GameSession, MemberWithRole } from '@/types';
+import { HoverSyncProvider } from './HoverSyncContext';
+import { ScheduleHeader } from './ScheduleHeader';
+import { RankedList } from './RankedList';
+import { MiniCalendar } from './MiniCalendar';
+import { ResponseStatus } from './ResponseStatus';
+import { ScheduledList } from './ScheduledList';
+import { ScheduleSessionModal } from './ScheduleSessionModal';
+import { CancelSessionModal } from './CancelSessionModal';
+import { generateICS } from '@/lib/ics';
+import { getTopNDates, partitionByThreshold } from '@/lib/scheduleView';
+import { useToast } from '@/components/ui/Toast';
+import { Button } from '@/components/ui';
+import { Link2 } from 'lucide-react';
+
+export interface ScheduleTabContentProps {
+  suggestions: DateSuggestion[];
+  sessions: GameSession[];
+  members: MemberWithRole[];
+  gmId: string;
+  isGm: boolean;
+  gameName: string;
+  playDays: number[];
+  windowStart: Date;
+  windowEnd: Date;
+  specialPlayDates: Set<string>;
+  playDateNotes?: Map<string, string>;
+  defaultStartTime?: string | null;
+  defaultEndTime?: string | null;
+  timezone?: string | null;
+  userTimezone?: string | null;
+  use24h?: boolean;
+  weekStartDay: number;
+  minPlayersNeeded?: number;
+  completionByUserId: Map<string, { answered: number; total: number }>;
+  subscribeUrl: string;
+  onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
+  onCancel: (date: string) => void | Promise<void>;
+}
+
+function downloadICS(content: string, filename: string) {
+  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function ScheduleTabContent(props: ScheduleTabContentProps) {
+  const {
+    suggestions, sessions, members, gmId, isGm, gameName, playDays,
+    windowStart, windowEnd, specialPlayDates, playDateNotes,
+    defaultStartTime, defaultEndTime, timezone, userTimezone,
+    use24h = false, weekStartDay, minPlayersNeeded = 0,
+    completionByUserId, subscribeUrl, onConfirm, onCancel,
+  } = props;
+
+  const toast = useToast();
+  const [scheduleFor, setScheduleFor] = useState<string | null>(null);
+  const [cancelFor, setCancelFor] = useState<GameSession | null>(null);
+  const [autoExpandDate, setAutoExpandDate] = useState<string | null>(null);
+
+  const coGmIds = useMemo(
+    () => new Set(members.filter((m) => m.is_co_gm).map((m) => m.id)),
+    [members]
+  );
+
+  const topRanked = useMemo(() => {
+    const { viable } = partitionByThreshold(suggestions);
+    return getTopNDates(viable, 5);
+  }, [suggestions]);
+
+  const playDayWeekdays = useMemo(() => new Set(playDays), [playDays]);
+
+  const handleCellActivate = (date: string) => {
+    const hasSession = sessions.some((s) => s.date === date && s.status === 'confirmed');
+    if (hasSession) {
+      return;
+    }
+    setAutoExpandDate(date);
+    setTimeout(() => setAutoExpandDate(null), 50);
+  };
+
+  const monthRange = `${format(windowStart, 'MMM')} – ${format(windowEnd, 'MMM yyyy')}`;
+
+  const handleConfirm = async (date: string, start: string, end: string) => {
+    const res = await onConfirm(date, start, end);
+    if (res.success) {
+      toast.show(`Locked in ${format(parseISO(date), 'MMM d')}. Party notified.`);
+    }
+    return res;
+  };
+
+  const handleCancelConfirm = async (date: string) => {
+    await onCancel(date);
+    toast.show(`Cancelled session on ${format(parseISO(date), 'MMM d')}.`);
+  };
+
+  const handleDownloadIcs = (session: GameSession) => {
+    const ics = generateICS([{
+      date: session.date,
+      startTime: session.start_time || undefined,
+      endTime: session.end_time || undefined,
+      title: gameName,
+      timezone: timezone || undefined,
+    }]);
+    downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-${session.date}.ics`);
+    toast.show(`Downloaded .ics for ${format(parseISO(session.date), 'MMM d')}.`);
+  };
+
+  const handleDownloadAllIcs = () => {
+    const upcoming = sessions.filter((s) => s.status === 'confirmed');
+    const events = upcoming.map((s) => ({
+      date: s.date,
+      startTime: s.start_time || undefined,
+      endTime: s.end_time || undefined,
+      title: gameName,
+      timezone: timezone || undefined,
+    }));
+    const ics = generateICS(events);
+    downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-sessions.ics`);
+  };
+
+  const handleCopySubscribe = async () => {
+    try {
+      await navigator.clipboard.writeText(subscribeUrl);
+      toast.show('Subscribe URL copied to clipboard.');
+    } catch {
+      toast.show('Could not copy. Select the URL manually.', 'danger');
+    }
+  };
+
+  const subscribeLink = (
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={handleCopySubscribe}
+      data-testid="calendar-subscribe-copy"
+    >
+      <Link2 className="size-3 mr-1" />
+      Subscribe
+    </Button>
+  );
+
+  return (
+    <HoverSyncProvider>
+      <div className="space-y-5" data-testid="schedule-tab-content">
+        <ScheduleHeader
+          gameName={gameName}
+          playDays={playDays}
+          monthRange={monthRange}
+          candidateCount={suggestions.length}
+          updatedAgo={null}
+        />
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-5 min-w-0">
+            <RankedList
+              suggestions={suggestions}
+              isGm={isGm}
+              gmId={gmId}
+              coGmIds={coGmIds}
+              use24h={use24h}
+              minPlayersNeeded={minPlayersNeeded}
+              onLockIn={(d) => setScheduleFor(d)}
+              autoExpandDate={autoExpandDate}
+            />
+
+            <ScheduledList
+              sessions={sessions}
+              suggestions={suggestions}
+              timezone={timezone}
+              userTimezone={userTimezone ?? null}
+              use24h={use24h}
+              isGm={isGm}
+              playDateNotes={playDateNotes}
+              onDownloadIcs={handleDownloadIcs}
+              onDownloadAllIcs={handleDownloadAllIcs}
+              onRequestCancel={(s) => setCancelFor(s)}
+            />
+          </div>
+
+          <aside className="space-y-5 lg:sticky lg:top-20 lg:self-start">
+            <MiniCalendar
+              windowStart={windowStart}
+              windowEnd={windowEnd}
+              suggestions={suggestions}
+              sessions={sessions}
+              playDayWeekdays={playDayWeekdays}
+              specialPlayDates={specialPlayDates}
+              weekStartDay={weekStartDay}
+              topRanked={topRanked}
+              onCellActivate={handleCellActivate}
+              subscribeLink={subscribeLink}
+            />
+            <ResponseStatus members={members} completionByUserId={completionByUserId} />
+          </aside>
+        </div>
+
+        <ScheduleSessionModal
+          open={scheduleFor !== null}
+          date={scheduleFor}
+          suggestion={scheduleFor ? suggestions.find((s) => s.date === scheduleFor) : undefined}
+          gameDefaultStart={defaultStartTime}
+          gameDefaultEnd={defaultEndTime}
+          onClose={() => setScheduleFor(null)}
+          onConfirm={handleConfirm}
+        />
+
+        <CancelSessionModal
+          open={cancelFor !== null}
+          date={cancelFor?.date ?? null}
+          onClose={() => setCancelFor(null)}
+          onConfirm={handleCancelConfirm}
+        />
+      </div>
+    </HoverSyncProvider>
+  );
+}

@@ -115,8 +115,12 @@ test.describe('Schedule Tab Redesign', () => {
     const rowDate = await firstRow.getAttribute('data-date');
     expect(rowDate).toBeTruthy();
 
-    // Find the matching calendar cell by data-date
-    const matchingCell = page.locator(`[data-testid="calendar-cell"][data-date="${rowDate}"]`);
+    // Find the matching calendar cell by data-date. Both mobile <details> and
+    // desktop <aside> render a MiniCalendar, so the selector resolves to two
+    // cells; filter to the visible one for the current viewport.
+    const matchingCell = page
+      .locator(`[data-testid="calendar-cell"][data-date="${rowDate}"]`)
+      .filter({ visible: true });
     await expect(matchingCell).toBeVisible();
 
     // Before hovering: the hover-specific ring should not be present yet

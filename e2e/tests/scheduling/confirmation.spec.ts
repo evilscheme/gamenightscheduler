@@ -222,11 +222,8 @@ test.describe('Session Confirmation', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Player should see suggestions but no "Lock in" buttons (only GM can confirm)
-    // The component shows "Ask your GM to confirm dates." for non-GM
-    await expect(page.getByText(/ask your gm/i)).toBeVisible();
-
-    // Lock in button should not be present for player
+    // Player sees the ranked list but no "Lock in" buttons (only GM can confirm)
+    await expect(page.locator('[data-testid="ranked-list"]')).toBeVisible();
     const lockInButtons = page.getByRole('button', { name: /lock in this night/i });
     await expect(lockInButtons).toHaveCount(0);
   });

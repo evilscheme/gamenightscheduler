@@ -119,11 +119,14 @@ test.describe('Schedule Tab Redesign', () => {
     const matchingCell = page.locator(`[data-testid="calendar-cell"][data-date="${rowDate}"]`);
     await expect(matchingCell).toBeVisible();
 
+    // Before hovering: the hover-specific ring should not be present yet
+    await expect(firstRow).not.toHaveClass(/ring-primary\/30/);
+
     // Hover the calendar cell — this should trigger HoverSyncContext
     await matchingCell.hover();
 
-    // The ranked row should now have the ring-primary highlight class
-    await expect(firstRow).toHaveClass(/ring-primary/, {
+    // The ranked row should now have the hover-specific ring-primary/30 highlight class
+    await expect(firstRow).toHaveClass(/ring-primary\/30/, {
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
   });

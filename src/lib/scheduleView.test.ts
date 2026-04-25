@@ -48,8 +48,8 @@ describe('getCellTintTier', () => {
   it('returns "warning" explicitly when maybeCount is 0 and 0 < availableCount < 0.4 * total', () => {
     expect(getCellTintTier(mkSuggestion({ availableCount: 1, maybeCount: 0, unavailableCount: 4 }))).toBe('warning');
   });
-  it('returns "conflict" when 0 available and no maybe', () => {
-    expect(getCellTintTier(mkSuggestion({ unavailableCount: 5 }))).toBe('conflict');
+  it('returns "warning" when 0 available and no maybe', () => {
+    expect(getCellTintTier(mkSuggestion({ unavailableCount: 5 }))).toBe('warning');
   });
   it('returns "empty" when totalPlayers is 0', () => {
     expect(getCellTintTier(mkSuggestion({ totalPlayers: 0 }))).toBe('empty');

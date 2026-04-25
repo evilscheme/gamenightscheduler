@@ -12,7 +12,6 @@ import { ScheduledList } from './ScheduledList';
 import { ScheduleSessionModal } from './ScheduleSessionModal';
 import { CancelSessionModal } from './CancelSessionModal';
 import { generateICS } from '@/lib/ics';
-import { getTopNDates, partitionByThreshold } from '@/lib/scheduleView';
 import { useToast } from '@/components/ui/Toast';
 import { Button, EyebrowLabel } from '@/components/ui';
 import { Link2 } from 'lucide-react';
@@ -71,10 +70,15 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     [members]
   );
 
-  const topRanked = useMemo(() => {
-    const { viable } = partitionByThreshold(suggestions);
-    return getTopNDates(viable, 5);
-  }, [suggestions]);
+  const scheduledDates = useMemo(
+    () => new Set(sessions.filter((s) => s.status === 'confirmed').map((s) => s.date)),
+    [sessions]
+  );
+
+  const unscheduledSuggestions = useMemo(
+    () => suggestions.filter((s) => !scheduledDates.has(s.date)),
+    [suggestions, scheduledDates]
+  );
 
   const playDayWeekdays = useMemo(() => new Set(playDays), [playDays]);
 
@@ -144,7 +148,6 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     playDayWeekdays,
     specialPlayDates,
     weekStartDay,
-    topRanked,
     onCellActivate: handleCellActivate,
   };
 
@@ -167,13 +170,13 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
           gameName={gameName}
           playDays={playDays}
           monthRange={monthRange}
-          candidateCount={suggestions.length}
+          candidateCount={unscheduledSuggestions.length}
         />
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-5 min-w-0">
             <RankedList
-              suggestions={suggestions}
+              suggestions={unscheduledSuggestions}
               isGm={isGm}
               gmId={gmId}
               coGmIds={coGmIds}

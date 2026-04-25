@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { DateSuggestion } from '@/types';
 import { EyebrowLabel, EmptyState } from '@/components/ui';
 import { partitionByThreshold } from '@/lib/scheduleView';
@@ -29,6 +29,14 @@ export function RankedList({
 }: RankedListProps) {
   const [showBelow, setShowBelow] = useState(false);
   const { viable, belowThreshold } = partitionByThreshold(suggestions);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (autoExpandDate && belowThreshold.some((s) => s.date === autoExpandDate)) {
+      setShowBelow(true);
+    }
+  }, [autoExpandDate, belowThreshold]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (suggestions.length === 0) {
     return (

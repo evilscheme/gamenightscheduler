@@ -114,7 +114,7 @@ export function RankedRow({
           )}
         </div>
         <div className="text-right">
-          <p className={`font-mono leading-none ${highlighted ? 'text-2xl text-primary' : 'text-xl text-card-foreground'} font-bold`}>
+          <p className={`font-mono leading-none text-card-foreground font-bold ${highlighted ? 'text-2xl' : 'text-xl'}`}>
             {groupYesPct}%
           </p>
           <EyebrowLabel variant="muted">group yes</EyebrowLabel>
@@ -127,8 +127,7 @@ export function RankedRow({
           <EyebrowLabel variant="muted" className="mb-2 block">Party breakdown</EyebrowLabel>
           <PartyBreakdown suggestion={suggestion} gmId={gmId} coGmIds={coGmIds} use24h={use24h} />
           {isGm && (
-            <div className="mt-3 flex items-center justify-end gap-3">
-              <span className="font-mono text-[11px] text-muted-foreground">Score: {suggestion.availableCount * 10 + suggestion.maybeCount}</span>
+            <div className="mt-3 flex items-center justify-end">
               <Button size="sm" onClick={() => onLockIn(suggestion.date)}>
                 ★ Lock in this night
               </Button>

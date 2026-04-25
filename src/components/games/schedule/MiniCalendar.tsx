@@ -15,7 +15,6 @@ interface MiniCalendarProps {
   playDayWeekdays: Set<number>;
   specialPlayDates: Set<string>;
   weekStartDay: number;
-  topRanked: string[];
   onCellActivate: (date: string) => void;
   subscribeLink?: React.ReactNode;
   embedded?: boolean;
@@ -29,7 +28,6 @@ export function MiniCalendar({
   playDayWeekdays,
   specialPlayDates,
   weekStartDay,
-  topRanked,
   onCellActivate,
   subscribeLink,
   embedded = false,
@@ -42,16 +40,12 @@ export function MiniCalendar({
   }, [windowStart, windowEnd]);
 
   const suggestionsByDate = useMemo(() => {
-    const m = new Map<string, { tier: CellTintTier; rank: number | null }>();
+    const m = new Map<string, { tier: CellTintTier }>();
     suggestions.forEach((s) => {
-      const rankIdx = topRanked.indexOf(s.date);
-      m.set(s.date, {
-        tier: getCellTintTier(s),
-        rank: rankIdx >= 0 && rankIdx < 5 ? rankIdx + 1 : null,
-      });
+      m.set(s.date, { tier: getCellTintTier(s) });
     });
     return m;
-  }, [suggestions, topRanked]);
+  }, [suggestions]);
 
   const scheduledDates = useMemo(
     () => new Set(sessions.filter((s) => s.status === 'confirmed').map((s) => s.date)),
@@ -85,7 +79,7 @@ export function MiniCalendar({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
         <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-available-bg" /> Most available</span>
         <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-maybe-bg" /> Mixed</span>
-        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-unavailable-bg/60" /> Conflict</span>
+        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-unavailable-bg/60" /> Low availability</span>
         <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-scheduled-bg" /> ★ Scheduled</span>
       </div>
     </>

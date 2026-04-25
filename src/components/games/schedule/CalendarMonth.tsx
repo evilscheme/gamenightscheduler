@@ -12,7 +12,7 @@ import { CellTintTier } from '@/lib/scheduleView';
 
 interface CalendarMonthProps {
   monthStart: Date;
-  suggestionsByDate: Map<string, { tier: CellTintTier; rank: number | null }>;
+  suggestionsByDate: Map<string, { tier: CellTintTier }>;
   scheduledDates: Set<string>;
   playDayWeekdays: Set<number>;
   specialPlayDates: Set<string>;
@@ -49,7 +49,7 @@ export function CalendarMonth({
       </div>
       <div className="grid grid-cols-7 gap-0.75">
         {Array.from({ length: leadingBlanks }).map((_, i) => (
-          <CalendarCell key={`lead-${i}`} date={null} day={null} isPlayDay={false} isScheduled={false} tier={null} rank={null} />
+          <CalendarCell key={`lead-${i}`} date={null} day={null} isPlayDay={false} isScheduled={false} tier={null} />
         ))}
         {days.map((d) => {
           const key = format(d, 'yyyy-MM-dd');
@@ -63,7 +63,6 @@ export function CalendarMonth({
               isPlayDay={isPlayDay}
               isScheduled={scheduledDates.has(key)}
               tier={info?.tier ?? null}
-              rank={info?.rank ?? null}
               onActivate={onCellActivate}
             />
           );

@@ -1,7 +1,7 @@
 import type { DateSuggestion, GameSession } from '@/types';
 import { formatTimeShort } from '@/lib/formatting';
 
-export type CellTintTier = 'high' | 'medium' | 'maybe' | 'warning' | 'conflict' | 'empty';
+export type CellTintTier = 'high' | 'medium' | 'maybe' | 'warning' | 'empty';
 
 /**
  * Returns the colour tier for a mini-calendar cell. Any `maybeCount > 0` bumps to `'maybe'` even when `availableCount` is low.
@@ -12,8 +12,7 @@ export function getCellTintTier(s: DateSuggestion): CellTintTier {
   if (pct >= 0.8) return 'high';
   if (pct >= 0.6) return 'medium';
   if (pct >= 0.4 || s.maybeCount > 0) return 'maybe';
-  if (s.availableCount > 0) return 'warning';
-  return 'conflict';
+  return 'warning';
 }
 
 export function partitionByThreshold(items: DateSuggestion[]): {

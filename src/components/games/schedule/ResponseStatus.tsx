@@ -23,7 +23,7 @@ export function ResponseStatus({ members, completionByUserId, embedded = false }
           const pct = c.total > 0 ? Math.round((c.answered / c.total) * 100) : 0;
           return (
             <li key={m.id} className="flex items-center gap-3">
-              <Avatar userId={m.id} name={m.name} size={22} />
+              <Avatar userId={m.id} name={m.name} avatarUrl={m.avatar_url} size={22} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-card-foreground truncate">{m.name}</p>
                 <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-muted">

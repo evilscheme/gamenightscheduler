@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { getAvatarColorClass, getInitial } from '@/lib/avatarColor';
 
 export type AvatarRingState = 'available' | 'maybe' | 'unavailable' | 'unset' | 'none';
@@ -7,6 +8,7 @@ export type AvatarRingState = 'available' | 'maybe' | 'unavailable' | 'unset' | 
 interface AvatarProps {
   userId: string;
   name: string | null | undefined;
+  avatarUrl?: string | null;
   size?: 18 | 22 | 30;
   ring?: AvatarRingState;
   className?: string;
@@ -26,14 +28,28 @@ const RING_CLASSES: Record<AvatarRingState, string> = {
   none: 'ring-1 ring-card',
 };
 
-export function Avatar({ userId, name, size = 22, ring = 'none', className = '' }: AvatarProps) {
+export function Avatar({ userId, name, avatarUrl, size = 22, ring = 'none', className = '' }: AvatarProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = !!avatarUrl && !imageFailed;
+  const label = name ?? 'Unknown player';
+
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full font-mono font-bold text-primary-foreground ${getAvatarColorClass(userId)} ${SIZE_CLASSES[size]} ${RING_CLASSES[ring]} ${className}`}
-      aria-label={name ?? 'Unknown player'}
-      title={name ?? 'Unknown player'}
+      className={`relative inline-flex items-center justify-center overflow-hidden rounded-full font-mono font-bold text-primary-foreground ${showImage ? '' : getAvatarColorClass(userId)} ${SIZE_CLASSES[size]} ${RING_CLASSES[ring]} ${className}`}
+      aria-label={label}
+      title={label}
     >
-      {getInitial(name)}
+      {showImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarUrl!}
+          alt=""
+          className="h-full w-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        getInitial(name)
+      )}
     </span>
   );
 }

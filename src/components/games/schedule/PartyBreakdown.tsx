@@ -14,6 +14,7 @@ interface PartyBreakdownProps {
 type Row = {
   userId: string;
   name: string;
+  avatarUrl: string | null;
   roleChip: 'GM' | 'CO-GM' | null;
   state: 'available' | 'maybe' | 'unavailable' | 'unset';
   subline: string | null;
@@ -32,6 +33,7 @@ export function PartyBreakdown({ suggestion, gmId, coGmIds, use24h }: PartyBreak
     ...suggestion.availablePlayers.map<Row>((p) => ({
       userId: p.user.id,
       name: p.user.name,
+      avatarUrl: p.user.avatar_url,
       roleChip: p.user.id === gmId ? 'GM' : coGmIds.has(p.user.id) ? 'CO-GM' : null,
       state: 'available',
       subline: subline(p.availableAfter, p.availableUntil, use24h),
@@ -40,6 +42,7 @@ export function PartyBreakdown({ suggestion, gmId, coGmIds, use24h }: PartyBreak
     ...suggestion.maybePlayers.map<Row>((p) => ({
       userId: p.user.id,
       name: p.user.name,
+      avatarUrl: p.user.avatar_url,
       roleChip: p.user.id === gmId ? 'GM' : coGmIds.has(p.user.id) ? 'CO-GM' : null,
       state: 'maybe',
       subline: subline(p.availableAfter, p.availableUntil, use24h),
@@ -48,6 +51,7 @@ export function PartyBreakdown({ suggestion, gmId, coGmIds, use24h }: PartyBreak
     ...suggestion.unavailablePlayers.map<Row>((p) => ({
       userId: p.user.id,
       name: p.user.name,
+      avatarUrl: p.user.avatar_url,
       roleChip: p.user.id === gmId ? 'GM' : coGmIds.has(p.user.id) ? 'CO-GM' : null,
       state: 'unavailable',
       subline: null,
@@ -56,6 +60,7 @@ export function PartyBreakdown({ suggestion, gmId, coGmIds, use24h }: PartyBreak
     ...suggestion.pendingPlayers.map<Row>((u) => ({
       userId: u.id,
       name: u.name,
+      avatarUrl: u.avatar_url,
       roleChip: u.id === gmId ? 'GM' : coGmIds.has(u.id) ? 'CO-GM' : null,
       state: 'unset',
       subline: null,
@@ -67,7 +72,7 @@ export function PartyBreakdown({ suggestion, gmId, coGmIds, use24h }: PartyBreak
     <ul className="space-y-2">
       {rows.map((r) => (
         <li key={r.userId} className="grid grid-cols-[22px_1fr_auto] items-center gap-3">
-          <Avatar userId={r.userId} name={r.name} size={22} ring={r.state} />
+          <Avatar userId={r.userId} name={r.name} avatarUrl={r.avatarUrl} size={22} ring={r.state} />
           <div className="min-w-0">
             <p className="text-sm text-card-foreground flex items-center gap-2">
               <span className="truncate">{r.name}</span>

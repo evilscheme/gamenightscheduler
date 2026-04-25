@@ -97,7 +97,7 @@ export function RankedRow({
           <div className="mt-1 flex items-center gap-2">
             <div className="flex -space-x-1">
               {visibleAvatars.map((a) => (
-                <Avatar key={a.user.id} userId={a.user.id} name={a.user.name} size={18} ring={a.state} />
+                <Avatar key={a.user.id} userId={a.user.id} name={a.user.name} avatarUrl={a.user.avatar_url} size={18} ring={a.state} />
               ))}
             </div>
             <span className="font-mono text-[11px] text-muted-foreground">

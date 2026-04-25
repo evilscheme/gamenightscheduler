@@ -44,7 +44,7 @@ export function Avatar({ userId, name, avatarUrl, size = 22, ring = 'none', clas
         <img
           src={avatarUrl!}
           alt=""
-          className="h-full w-full object-cover"
+          className="size-full object-cover"
           onError={() => setImageFailed(true)}
         />
       ) : (

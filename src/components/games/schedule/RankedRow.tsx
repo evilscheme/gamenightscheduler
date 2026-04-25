@@ -68,7 +68,7 @@ export function RankedRow({
       ref={rootRef}
       data-testid="ranked-row"
       data-date={suggestion.date}
-      onMouseEnter={() => setHoveredDate(suggestion.date)}
+      onMouseEnter={() => setHoveredDate(suggestion.date, 'row')}
       onMouseLeave={() => setHoveredDate(null)}
       className={`rounded-xl border p-4 transition-colors ${
         highlighted

@@ -11,6 +11,7 @@ import { ResponseStatus } from './ResponseStatus';
 import { ScheduledList } from './ScheduledList';
 import { ScheduleSessionModal } from './ScheduleSessionModal';
 import { CancelSessionModal } from './CancelSessionModal';
+import { CalendarHoverPopover } from './CalendarHoverPopover';
 import { generateICS } from '@/lib/ics';
 import { useToast } from '@/components/ui/Toast';
 import { Button, EyebrowLabel } from '@/components/ui';
@@ -247,6 +248,8 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
           onClose={() => setCancelFor(null)}
           onConfirm={handleCancelConfirm}
         />
+
+        <CalendarHoverPopover suggestions={suggestions} scheduledDates={scheduledDates} />
       </div>
     </HoverSyncProvider>
   );

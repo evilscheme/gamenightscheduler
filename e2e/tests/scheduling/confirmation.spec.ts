@@ -174,8 +174,9 @@ test.describe('Session Confirmation', () => {
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Should have export button
-    await expect(page.getByRole('button', { name: /export/i }).first()).toBeVisible();
+    // Should have a calendar export button (per-session "Add to calendar" or
+    // bulk "Add all to calendar")
+    await expect(page.getByRole('button', { name: /add (all )?to calendar/i }).first()).toBeVisible();
   });
 
   test('player cannot access confirm action', async ({ page, request }) => {

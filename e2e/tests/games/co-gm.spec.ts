@@ -211,14 +211,14 @@ test.describe('Co-GM Feature', () => {
       await page.goto(`/games/${game.id}`);
       await page.getByRole('button', { name: /schedule/i }).click();
 
-      await expect(page.getByText(/date suggestions/i)).toBeVisible({
+      await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
       // Co-GM should be able to confirm a session
-      await page.getByRole('button', { name: /^confirm$/i }).first().click();
-      await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
-      await page.getByRole('button', { name: /confirm session/i }).click();
+      await page.getByRole('button', { name: /schedule game/i }).first().click();
+      await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
+      await page.locator('[data-testid="confirm-session-submit"]').click();
 
       // Should see confirmed session
       await expect(page.getByText(/upcoming sessions/i)).toBeVisible({

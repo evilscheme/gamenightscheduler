@@ -364,18 +364,18 @@ test.describe('Ad-Hoc Games', () => {
       await page.goto(`/games/${game.id}`);
       await page.getByRole('button', { name: /schedule/i }).click();
 
-      // The ad-hoc date should appear in suggestions (format: "DayOfWeek, Month DayNum")
+      // The ad-hoc date should appear in the ranked list (format: "EEE, MMM d")
       const dateObj = new Date(futureDate + 'T00:00:00');
-      const monthName = dateObj.toLocaleDateString('en-US', { month: 'long' });
+      const monthAbbr = dateObj.toLocaleDateString('en-US', { month: 'short' });
       const dayNum = dateObj.getDate();
+      const list = page.locator('[data-testid="ranked-list"]');
 
-      // Match the formatted date like "March 1" with word boundary to avoid partial matches
-      await expect(page.getByText(new RegExp(`${monthName} ${dayNum}\\b`))).toBeVisible({
+      await expect(list.getByText(new RegExp(`${monthAbbr} ${dayNum}\\b`))).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
-      // Should show 1 available
-      await expect(page.getByText(/1 available/)).toBeVisible();
+      // The new ranked row shows availability counts as "1✓ · 0? · 0✕ · 0 pending"
+      await expect(list.getByText(/1✓/)).toBeVisible();
     });
   });
 

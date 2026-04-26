@@ -133,7 +133,7 @@ test.describe('Game Detail Page', () => {
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Should see scheduling content
-    await expect(page.getByText(/date suggestions/i)).toBeVisible();
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible();
   });
 
   test('shows member list', async ({ page, request }) => {
@@ -209,7 +209,7 @@ test.describe('Game Detail Page', () => {
 
     // Go to schedule tab and note initial state (no availability set yet)
     await page.getByRole('button', { name: /schedule/i }).click();
-    await expect(page.getByText(/date suggestions/i)).toBeVisible();
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible();
 
     // Add availability for the player directly in the DB (simulating another user marking dates)
     const playDates = getPlayDates([5, 6], 4);
@@ -222,8 +222,9 @@ test.describe('Game Detail Page', () => {
     await expect(refreshButton).toBeVisible();
     await refreshButton.click();
 
-    // After refresh, the schedule tab should reflect the new availability
-    await expect(page.getByText(/1 available/i).first()).toBeVisible({
+    // After refresh, the schedule tab should reflect the new availability.
+    // The new ranked row shows counts as "1✓ · 0? · 0✕ · 0 pending".
+    await expect(page.locator('[data-testid="ranked-list"]').getByText(/1✓/).first()).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
   });

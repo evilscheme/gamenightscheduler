@@ -178,19 +178,17 @@ test.describe('Time Availability Constraints', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Should show time constraint information
-    await expect(page.getByText(/earliest start/i).first()).toBeVisible({
+    // The rank-1 row auto-expands; its PartyBreakdown shows per-player time
+    // sublines using the new "from X" / "until Y" wording.
+    const list = page.locator('[data-testid="ranked-list"]');
+    await expect(list.getByText(/from 7pm/i).first()).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
-    await expect(page.getByText(/latest end/i).first()).toBeVisible();
-
-    // Should show player time annotations
-    await expect(page.getByText(/after 7pm/i).first()).toBeVisible();
-    await expect(page.getByText(/until 10pm/i).first()).toBeVisible();
+    await expect(list.getByText(/until 10pm/i).first()).toBeVisible();
   });
 
   test('confirm modal pre-fills with constrained times', async ({ page, request }) => {
@@ -228,20 +226,20 @@ test.describe('Time Availability Constraints', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Click confirm on the first suggestion
-    await page.getByRole('button', { name: /^confirm$/i }).first().click();
-    await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
+    // Click "Schedule game" on the first (auto-expanded) suggestion
+    await page.getByRole('button', { name: /schedule game/i }).first().click();
+    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
 
     // Start time should be pre-filled with 19:00 (later of default 18:00 and constraint 19:00)
-    const startTimeInput = page.getByLabel('Start Time');
+    const startTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').first();
     await expect(startTimeInput).toHaveValue('19:00');
 
     // End time should stay at default 23:00 (no end constraint)
-    const endTimeInput = page.getByLabel('End Time');
+    const endTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').nth(1);
     await expect(endTimeInput).toHaveValue('23:00');
   });
 

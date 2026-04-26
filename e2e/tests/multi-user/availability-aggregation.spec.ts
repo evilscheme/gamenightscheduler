@@ -71,12 +71,13 @@ test.describe('Multi-User Availability Aggregation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Verify correct counts displayed (2 available, 1 unavailable, 1 pending)
-    await expect(page.getByText('2 available')).toBeVisible({
+    // The new ranked row shows counts as "2✓ · 0? · 1✕ · 1 pending"
+    const list = page.locator('[data-testid="ranked-list"]');
+    await expect(list.getByText(/2✓/).first()).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
-    await expect(page.getByText('1 unavailable')).toBeVisible();
-    await expect(page.getByText('1 pending')).toBeVisible();
+    await expect(list.getByText(/1✕/).first()).toBeVisible();
+    await expect(list.getByText(/1 pending/).first()).toBeVisible();
   });
 
   test('date ranking respects availability count', async ({ page, request }) => {
@@ -141,12 +142,9 @@ test.describe('Multi-User Availability Aggregation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Get all suggestion items
-    const suggestions = page.locator('[data-testid="suggestions-list"]').locator('li');
-
-    // First suggestion should show "3 available" (dateA)
-    const firstSuggestion = suggestions.first();
-    await expect(firstSuggestion.getByText('3 available')).toBeVisible({
+    // Get all ranked rows. First (top-ranked) should show "3✓" for dateA.
+    const rows = page.locator('[data-testid="ranked-list"] [data-testid="ranked-row"]');
+    await expect(rows.first().getByText(/3✓/)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
   });
@@ -209,11 +207,12 @@ test.describe('Multi-User Availability Aggregation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Should show 2 available, 0 unavailable, 2 pending
-    await expect(page.getByText('2 available')).toBeVisible({
+    // The new ranked row shows counts as "2✓ · 0? · 0✕ · 2 pending"
+    const list = page.locator('[data-testid="ranked-list"]');
+    await expect(list.getByText(/2✓/).first()).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
-    await expect(page.getByText('2 pending')).toBeVisible();
+    await expect(list.getByText(/2 pending/).first()).toBeVisible();
   });
 
   test('cross-user visibility after availability change', async ({ browser, request }) => {
@@ -273,12 +272,12 @@ test.describe('Multi-User Availability Aggregation', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
       await gmPage.getByRole('button', { name: /schedule/i }).click();
-      await expect(gmPage.getByText(/date suggestions/i)).toBeVisible({
+      await expect(gmPage.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // Should show at least one date with 1 available
-      await expect(gmPage.getByText('1 available').first()).toBeVisible({
+      // Should show at least one date with 1✓ (the new "1 available" formatting)
+      await expect(gmPage.locator('[data-testid="ranked-list"]').getByText(/1✓/).first()).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
@@ -293,12 +292,12 @@ test.describe('Multi-User Availability Aggregation', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
       await gmPage.getByRole('button', { name: /schedule/i }).click();
-      await expect(gmPage.getByText(/date suggestions/i)).toBeVisible({
+      await expect(gmPage.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // Should show at least one date with 2 available
-      await expect(gmPage.getByText('2 available').first()).toBeVisible({
+      // Should show at least one date with 2✓
+      await expect(gmPage.locator('[data-testid="ranked-list"]').getByText(/2✓/).first()).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
@@ -308,12 +307,12 @@ test.describe('Multi-User Availability Aggregation', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
       await playerPage.getByRole('button', { name: /schedule/i }).click();
-      await expect(playerPage.getByText(/date suggestions/i)).toBeVisible({
+      await expect(playerPage.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // Should show at least one date with 2 available
-      await expect(playerPage.getByText('2 available').first()).toBeVisible({
+      // Should show at least one date with 2✓
+      await expect(playerPage.locator('[data-testid="ranked-list"]').getByText(/2✓/).first()).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
     } finally {

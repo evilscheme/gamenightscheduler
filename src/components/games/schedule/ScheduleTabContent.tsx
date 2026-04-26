@@ -184,6 +184,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               coGmIds={coGmIds}
               use24h={use24h}
               minPlayersNeeded={minPlayersNeeded}
+              playDateNotes={playDateNotes}
               onLockIn={(d) => setScheduleFor(d)}
               autoExpandDate={autoExpandDate}
             />

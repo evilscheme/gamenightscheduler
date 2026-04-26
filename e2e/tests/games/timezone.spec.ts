@@ -16,7 +16,7 @@ test.describe('Game Timezone', () => {
     await expect(page.getByRole('heading', { name: /create new game/i })).toBeVisible();
 
     // Should see timezone dropdown
-    const timezoneSelect = page.getByLabel('Timezone');
+    const timezoneSelect = page.getByLabel('Timezone', { exact: true });
     await expect(timezoneSelect).toBeVisible();
 
     // Should have a sensible default selected (browser timezone or fallback)
@@ -41,7 +41,7 @@ test.describe('Game Timezone', () => {
     await page.getByRole('button', { name: 'Saturday' }).click();
 
     // Select Eastern Time zone
-    const timezoneSelect = page.getByLabel('Timezone');
+    const timezoneSelect = page.getByLabel('Timezone', { exact: true });
     await timezoneSelect.selectOption('America/New_York');
 
     // Submit
@@ -106,7 +106,7 @@ test.describe('Game Timezone', () => {
     await expect(page.getByRole('heading', { name: /edit game/i })).toBeVisible();
 
     // Change timezone to Chicago
-    const timezoneSelect = page.getByLabel('Timezone');
+    const timezoneSelect = page.getByLabel('Timezone', { exact: true });
     await timezoneSelect.selectOption('America/Chicago');
 
     // Save

@@ -19,6 +19,7 @@ interface RankedRowProps {
   belowThreshold: boolean;
   defaultExpanded: boolean;
   minPlayersNeeded: number;
+  playDateNote?: string | null;
   onLockIn: (date: string) => void;
   autoScrollTrigger?: string | null;
 }
@@ -33,6 +34,7 @@ export function RankedRow({
   belowThreshold,
   defaultExpanded,
   minPlayersNeeded,
+  playDateNote,
   onLockIn,
   autoScrollTrigger,
 }: RankedRowProps) {
@@ -111,6 +113,9 @@ export function RankedRow({
             <p className="mt-1 inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
               <Clock className="size-3" /> {windowLabel}
             </p>
+          )}
+          {playDateNote && (
+            <p className="mt-1 text-[11px] italic text-muted-foreground">{playDateNote}</p>
           )}
         </div>
         <div className="text-right">

@@ -58,7 +58,7 @@ export function MiniCalendar({
         subscribeLink && <div className="flex justify-end mb-3">{subscribeLink}</div>
       ) : (
         <div className="flex items-center justify-between mb-3">
-          <EyebrowLabel>Campaign window</EyebrowLabel>
+          <EyebrowLabel>Calendar</EyebrowLabel>
           {subscribeLink}
         </div>
       )}

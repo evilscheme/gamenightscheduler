@@ -48,10 +48,14 @@ export function CalendarHoverPopover({ suggestions, scheduledDates }: CalendarHo
       setCoords(null);
       return;
     }
-    const el = document.querySelector<HTMLElement>(
+    // Both the mobile <details> block and the desktop <aside> render a calendar,
+    // so multiple cells can share the same data-date. Find the first one that
+    // is actually visible in the current viewport.
+    const candidates = document.querySelectorAll<HTMLElement>(
       `[data-testid="calendar-cell"][data-date="${activeDate}"]`
     );
-    if (!el || el.offsetParent === null) {
+    const el = Array.from(candidates).find((node) => node.offsetParent !== null);
+    if (!el) {
       setCoords(null);
       return;
     }

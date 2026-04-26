@@ -204,7 +204,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
             <div className="space-y-3 lg:hidden">
               <details className="group rounded-xl border border-border bg-card p-4" data-testid="mobile-calendar-collapsible">
                 <summary className="cursor-pointer list-none flex items-center justify-between">
-                  <EyebrowLabel>Campaign window</EyebrowLabel>
+                  <EyebrowLabel>Calendar</EyebrowLabel>
                   <span className="font-mono text-[11px] text-muted-foreground group-open:hidden">tap to expand</span>
                   <span className="font-mono text-[11px] text-muted-foreground hidden group-open:inline">tap to collapse</span>
                 </summary>

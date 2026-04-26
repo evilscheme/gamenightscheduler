@@ -8,7 +8,7 @@ interface CancelSessionModalProps {
   open: boolean;
   date: string | null;
   onClose: () => void;
-  onConfirm: (date: string) => Promise<void> | void;
+  onConfirm: (date: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export function CancelSessionModal({ open, date, onClose, onConfirm }: CancelSessionModalProps) {
@@ -18,8 +18,8 @@ export function CancelSessionModal({ open, date, onClose, onConfirm }: CancelSes
   const submit = async () => {
     setBusy(true);
     try {
-      await onConfirm(date);
-      onClose();
+      const res = await onConfirm(date);
+      if (res.success) onClose();
     } finally {
       setBusy(false);
     }

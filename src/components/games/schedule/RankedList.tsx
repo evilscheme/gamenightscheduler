@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { DateSuggestion } from '@/types';
 import { EyebrowLabel, EmptyState } from '@/components/ui';
 import { partitionByThreshold } from '@/lib/scheduleView';
@@ -30,7 +30,10 @@ export function RankedList({
   autoExpandDate,
 }: RankedListProps) {
   const [showBelow, setShowBelow] = useState(false);
-  const { viable, belowThreshold } = partitionByThreshold(suggestions);
+  const { viable, belowThreshold } = useMemo(
+    () => partitionByThreshold(suggestions),
+    [suggestions]
+  );
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {

@@ -39,7 +39,7 @@ export interface ScheduleTabContentProps {
   completionByUserId: Map<string, { answered: number; total: number }>;
   subscribeUrl: string;
   onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
-  onCancel: (date: string) => void | Promise<void>;
+  onCancel: (date: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 function downloadICS(content: string, filename: string) {
@@ -103,8 +103,13 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
   };
 
   const handleCancelConfirm = async (date: string) => {
-    await onCancel(date);
-    toast.show(`Cancelled session on ${format(parseISO(date), 'MMM d')}.`);
+    const res = await onCancel(date);
+    if (res.success) {
+      toast.show(`Cancelled session on ${format(parseISO(date), 'MMM d')}.`);
+    } else {
+      toast.show(res.error ?? 'Could not cancel the session.', 'danger');
+    }
+    return res;
   };
 
   const handleDownloadIcs = (session: GameSession) => {

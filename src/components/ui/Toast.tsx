@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 
 interface ToastItem {
   id: string;
@@ -14,23 +14,32 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
+const TOAST_DURATION_MS = 3500;
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  // Each toast owns its own dismissal timer. Scheduling here (rather than in
+  // an effect on `toasts`) keeps each timer ticking against the moment its
+  // toast was created, so showing a new toast can't reset older ones.
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const show = useCallback((message: string, tone: ToastItem['tone'] = 'primary') => {
     const id = `t-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setToasts((prev) => [...prev, { id, message, tone }]);
+    const timer = setTimeout(() => {
+      setToasts((prev) => prev.filter((p) => p.id !== id));
+      timersRef.current.delete(id);
+    }, TOAST_DURATION_MS);
+    timersRef.current.set(id, timer);
   }, []);
 
   useEffect(() => {
-    if (toasts.length === 0) return;
-    const timers = toasts.map((t) =>
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((p) => p.id !== t.id));
-      }, 3500)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [toasts]);
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+      timers.clear();
+    };
+  }, []);
 
   return (
     <ToastContext.Provider value={{ show }}>

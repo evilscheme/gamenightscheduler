@@ -75,11 +75,22 @@ export function ScheduledRow({
         </div>
         {!past && (
           <div className="flex shrink-0 gap-2">
-            <Button size="sm" variant="ghost" onClick={() => onDownloadIcs(session)} data-testid="ics-download-single">
-              <Calendar className="mr-1.5 size-4" /> .ics
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onDownloadIcs(session)}
+              data-testid="ics-download-single"
+              title="Download a calendar file (.ics) you can import into Google Calendar, Apple Calendar, or Outlook"
+            >
+              <Calendar className="mr-1.5 size-4" /> Add to calendar
             </Button>
             {isGm && (
-              <Button size="sm" variant="danger" onClick={() => onRequestCancel(session)}>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => onRequestCancel(session)}
+                title="Cancel this scheduled session and notify the party"
+              >
                 <X className="mr-1 size-4" /> Cancel
               </Button>
             )}

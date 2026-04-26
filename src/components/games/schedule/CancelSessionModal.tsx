@@ -34,8 +34,21 @@ export function CancelSessionModal({ open, date, onClose, onConfirm }: CancelSes
       data-testid="cancel-session-modal"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={busy}>Keep session</Button>
-          <Button variant="danger" onClick={submit} disabled={busy} data-testid="cancel-session-submit">
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            disabled={busy}
+            title="Keep this scheduled session and close the dialog"
+          >
+            Keep session
+          </Button>
+          <Button
+            variant="danger"
+            onClick={submit}
+            disabled={busy}
+            data-testid="cancel-session-submit"
+            title="Cancel this session and notify the party"
+          >
             {busy ? 'Cancelling…' : 'Cancel session'}
           </Button>
         </>

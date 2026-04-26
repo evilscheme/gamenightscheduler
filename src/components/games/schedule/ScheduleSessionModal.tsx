@@ -63,8 +63,20 @@ export function ScheduleSessionModal({
       data-testid="schedule-session-modal"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} disabled={busy} data-testid="confirm-session-submit">
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            disabled={busy}
+            title="Close this dialog without scheduling"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={submit}
+            disabled={busy}
+            data-testid="confirm-session-submit"
+            title="Schedule a session on this date and notify the party"
+          >
             {busy ? 'Confirming…' : '★ Confirm session'}
           </Button>
         </>

@@ -49,17 +49,17 @@ test.describe('Schedule Tab Redesign', () => {
     // The ranked list should be visible
     await expect(page.locator('[data-testid="ranked-list"]')).toBeVisible();
 
-    // Rank #1 row auto-expands and shows the Lock In button
-    const lockInButton = page.getByRole('button', { name: /lock in this night/i }).first();
-    await expect(lockInButton).toBeVisible();
-    await lockInButton.click();
+    // Rank #1 row auto-expands and shows the Schedule game button
+    const scheduleButton = page.getByRole('button', { name: /schedule game/i }).first();
+    await expect(scheduleButton).toBeVisible();
+    await scheduleButton.click();
 
     // Confirm the session via the modal
     await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
     await page.locator('[data-testid="confirm-session-submit"]').click();
 
     // Toast should appear
-    await expect(page.getByRole('status')).toContainText(/locked in/i, {
+    await expect(page.getByRole('status')).toContainText(/scheduled/i, {
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 

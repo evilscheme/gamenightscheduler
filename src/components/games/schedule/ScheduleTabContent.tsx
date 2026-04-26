@@ -97,7 +97,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
   const handleConfirm = async (date: string, start: string, end: string) => {
     const res = await onConfirm(date, start, end);
     if (res.success) {
-      toast.show(`Locked in ${format(parseISO(date), 'MMM d')}. Party notified.`);
+      toast.show(`Scheduled ${format(parseISO(date), 'MMM d')}. Party notified.`);
     }
     return res;
   };
@@ -116,7 +116,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
       timezone: timezone || undefined,
     }]);
     downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-${session.date}.ics`);
-    toast.show(`Downloaded .ics for ${format(parseISO(session.date), 'MMM d')}.`);
+    toast.show(`Downloaded calendar file for ${format(parseISO(session.date), 'MMM d')}.`);
   };
 
   const handleDownloadAllIcs = () => {
@@ -158,6 +158,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
       variant="ghost"
       onClick={handleCopySubscribe}
       data-testid="calendar-subscribe-copy"
+      title="Copy a webcal:// URL that auto-syncs scheduled sessions to Google Calendar, Apple Calendar, or Outlook"
     >
       <Link2 className="size-3 mr-1" />
       Subscribe

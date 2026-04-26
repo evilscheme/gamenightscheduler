@@ -128,8 +128,12 @@ export function RankedRow({
           <PartyBreakdown suggestion={suggestion} gmId={gmId} coGmIds={coGmIds} use24h={use24h} />
           {isGm && (
             <div className="mt-3 flex items-center justify-end">
-              <Button size="sm" onClick={() => onLockIn(suggestion.date)}>
-                ★ Lock in this night
+              <Button
+                size="sm"
+                onClick={() => onLockIn(suggestion.date)}
+                title="Schedule a game session for this date"
+              >
+                ★ Schedule game
               </Button>
             </div>
           )}

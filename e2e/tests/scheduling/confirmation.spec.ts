@@ -45,8 +45,8 @@ test.describe('Session Confirmation', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Click the first "Lock in this night" button (rank #1 row auto-expands)
-    const lockInButton = page.getByRole('button', { name: /lock in this night/i }).first();
+    // Click the first "Schedule game" button (rank #1 row auto-expands)
+    const lockInButton = page.getByRole('button', { name: /schedule game/i }).first();
     await expect(lockInButton).toBeVisible();
     await lockInButton.click();
 
@@ -97,7 +97,7 @@ test.describe('Session Confirmation', () => {
     });
 
     // Click lock in on first suggestion
-    await page.getByRole('button', { name: /lock in this night/i }).first().click();
+    await page.getByRole('button', { name: /schedule game/i }).first().click();
 
     // Wait for modal
     await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
@@ -165,7 +165,7 @@ test.describe('Session Confirmation', () => {
     // Note: we just check that we can get to this point; specific checks done after confirm
 
     // Confirm a session
-    await page.getByRole('button', { name: /lock in this night/i }).first().click();
+    await page.getByRole('button', { name: /schedule game/i }).first().click();
     await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
     await page.locator('[data-testid="confirm-session-submit"]').click();
 
@@ -224,7 +224,7 @@ test.describe('Session Confirmation', () => {
 
     // Player sees the ranked list but no "Lock in" buttons (only GM can confirm)
     await expect(page.locator('[data-testid="ranked-list"]')).toBeVisible();
-    const lockInButtons = page.getByRole('button', { name: /lock in this night/i });
+    const lockInButtons = page.getByRole('button', { name: /schedule game/i });
     await expect(lockInButtons).toHaveCount(0);
   });
 
@@ -266,7 +266,7 @@ test.describe('Session Confirmation', () => {
     });
 
     // Click lock in on first suggestion
-    await page.getByRole('button', { name: /lock in this night/i }).first().click();
+    await page.getByRole('button', { name: /schedule game/i }).first().click();
 
     // Wait for modal
     await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();

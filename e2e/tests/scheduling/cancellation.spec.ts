@@ -128,8 +128,8 @@ test.describe('Session Cancellation', () => {
     await page.locator('[data-testid="cancel-session-submit"]').click();
 
     // After cancellation, the scheduled row should be gone and the date should now
-    // appear as a ranked suggestion with a "Lock in this night" button for GM
-    await expect(page.getByRole('button', { name: /lock in this night/i }).first()).toBeVisible({
+    // appear as a ranked suggestion with a "Schedule game" button for GM
+    await expect(page.getByRole('button', { name: /schedule game/i }).first()).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
   });

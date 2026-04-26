@@ -37,8 +37,13 @@ export function ScheduledList({
         <div>
           <div className="flex items-center justify-between mb-2">
             <EyebrowLabel>Upcoming sessions</EyebrowLabel>
-            <Button size="sm" variant="ghost" onClick={onDownloadAllIcs}>
-              Export all .ics
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onDownloadAllIcs}
+              title="Download a single calendar file containing all upcoming sessions"
+            >
+              Add all to calendar
             </Button>
           </div>
           <ul className="space-y-2" data-testid="upcoming-sessions-list">
@@ -67,6 +72,7 @@ export function ScheduledList({
             aria-expanded={showPast}
             onClick={() => setShowPast((v) => !v)}
             className="flex w-full items-center justify-between py-1"
+            title={showPast ? 'Hide past sessions' : 'Show past sessions'}
           >
             <EyebrowLabel variant="muted">Previous sessions · {past.length}</EyebrowLabel>
             {showPast ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}

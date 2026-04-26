@@ -109,8 +109,8 @@ test.describe('Session Export', () => {
     // Set up download listener
     const downloadPromise = page.waitForEvent('download');
 
-    // Click "Export all .ics" button
-    const exportAllButton = page.getByRole('button', { name: /export all \.ics/i });
+    // Click "Add all to calendar" button
+    const exportAllButton = page.getByRole('button', { name: /add all to calendar/i });
     await expect(exportAllButton).toBeVisible();
     await exportAllButton.click();
 

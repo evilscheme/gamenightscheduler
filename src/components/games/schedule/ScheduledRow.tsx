@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Calendar, X } from 'lucide-react';
+import { Calendar, ChevronRight, X } from 'lucide-react';
 import type { DateSuggestion, GameSession } from '@/types';
-import { Avatar, Button } from '@/components/ui';
+import { Avatar, Button, EyebrowLabel } from '@/components/ui';
 import { formatTime } from '@/lib/formatting';
 import { convertTimeForDisplay } from '@/lib/timezone';
+import { PartyBreakdown } from './PartyBreakdown';
 
 interface ScheduledRowProps {
   session: GameSession;
@@ -14,6 +16,8 @@ interface ScheduledRowProps {
   userTimezone: string | null;
   use24h: boolean;
   isGm: boolean;
+  gmId: string;
+  coGmIds: Set<string>;
   playDateNote: string | null;
   past?: boolean;
   onDownloadIcs: (session: GameSession) => void;
@@ -21,9 +25,12 @@ interface ScheduledRowProps {
 }
 
 export function ScheduledRow({
-  session, suggestion, timezone, userTimezone, use24h, isGm, playDateNote, past = false,
-  onDownloadIcs, onRequestCancel,
+  session, suggestion, timezone, userTimezone, use24h, isGm, gmId, coGmIds,
+  playDateNote, past = false, onDownloadIcs, onRequestCancel,
 }: ScheduledRowProps) {
+  const [expanded, setExpanded] = useState(false);
+  const expandable = !!suggestion;
+
   const timeLine = () => {
     if (!session.start_time || !session.end_time) return format(parseISO(session.date), 'EEEE');
     const base = `${formatTime(session.start_time, use24h)} – ${formatTime(session.end_time, use24h)}`;
@@ -40,6 +47,35 @@ export function ScheduledRow({
   const availableAvatars = (suggestion?.availablePlayers ?? []).slice(0, 6);
   const maybeAvatars = (suggestion?.maybePlayers ?? []).slice(0, 4);
 
+  const infoContent = (
+    <>
+      <p className="font-semibold text-card-foreground">
+        {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
+      </p>
+      <p className="font-mono text-xs text-muted-foreground">{timeLine()}</p>
+      {playDateNote && (
+        <p className="mt-0.5 text-xs italic text-muted-foreground">{playDateNote}</p>
+      )}
+      {(availableAvatars.length > 0 || maybeAvatars.length > 0) && (
+        <div className="mt-2 flex items-center gap-2">
+          <div className="flex -space-x-1">
+            {availableAvatars.map((p) => (
+              <Avatar key={p.user.id} userId={p.user.id} name={p.user.name} size={18} ring="available" />
+            ))}
+            {maybeAvatars.map((p) => (
+              <Avatar key={p.user.id} userId={p.user.id} name={p.user.name} size={18} ring="maybe" />
+            ))}
+          </div>
+          {suggestion && (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {suggestion.availableCount}✓ · {suggestion.maybeCount}? · {suggestion.unavailableCount}✕
+            </span>
+          )}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <li
       data-testid={past ? 'past-session-row' : 'scheduled-row'}
@@ -47,32 +83,24 @@ export function ScheduledRow({
     >
       <div className="flex items-start gap-3">
         <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-card-foreground">
-            {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
-          </p>
-          <p className="font-mono text-xs text-muted-foreground">{timeLine()}</p>
-          {playDateNote && (
-            <p className="mt-0.5 text-xs italic text-muted-foreground">{playDateNote}</p>
-          )}
-          {(availableAvatars.length > 0 || maybeAvatars.length > 0) && (
-            <div className="mt-2 flex items-center gap-2">
-              <div className="flex -space-x-1">
-                {availableAvatars.map((p) => (
-                  <Avatar key={p.user.id} userId={p.user.id} name={p.user.name} size={18} ring="available" />
-                ))}
-                {maybeAvatars.map((p) => (
-                  <Avatar key={p.user.id} userId={p.user.id} name={p.user.name} size={18} ring="maybe" />
-                ))}
-              </div>
-              {suggestion && (
-                <span className="font-mono text-[11px] text-muted-foreground">
-                  {suggestion.availableCount}✓ · {suggestion.maybeCount}? · {suggestion.unavailableCount}✕
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        {expandable ? (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+            className="flex min-w-0 flex-1 items-start gap-2 text-left"
+            title={expanded ? 'Hide party breakdown' : 'Show who can make it'}
+          >
+            <div className="min-w-0 flex-1">{infoContent}</div>
+            <ChevronRight
+              className={`mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform ${
+                expanded ? 'rotate-90' : ''
+              }`}
+            />
+          </button>
+        ) : (
+          <div className="min-w-0 flex-1">{infoContent}</div>
+        )}
         {!past && (
           <div className="flex shrink-0 gap-2">
             <Button
@@ -97,6 +125,13 @@ export function ScheduledRow({
           </div>
         )}
       </div>
+
+      {expandable && expanded && (
+        <div className="mt-3 border-t border-border pt-3">
+          <EyebrowLabel variant="muted" className="mb-2 block">Party breakdown</EyebrowLabel>
+          <PartyBreakdown suggestion={suggestion!} gmId={gmId} coGmIds={coGmIds} use24h={use24h} />
+        </div>
+      )}
     </li>
   );
 }

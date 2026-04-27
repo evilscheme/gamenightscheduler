@@ -199,6 +199,8 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               userTimezone={userTimezone ?? null}
               use24h={use24h}
               isGm={isGm}
+              gmId={gmId}
+              coGmIds={coGmIds}
               playDateNotes={playDateNotes}
               onDownloadIcs={handleDownloadIcs}
               onDownloadAllIcs={handleDownloadAllIcs}

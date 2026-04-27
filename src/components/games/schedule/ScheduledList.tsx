@@ -14,6 +14,8 @@ interface ScheduledListProps {
   userTimezone: string | null;
   use24h: boolean;
   isGm: boolean;
+  gmId: string;
+  coGmIds: Set<string>;
   playDateNotes: Map<string, string> | undefined;
   onDownloadIcs: (session: GameSession) => void;
   onDownloadAllIcs: () => void;
@@ -21,7 +23,7 @@ interface ScheduledListProps {
 }
 
 export function ScheduledList({
-  sessions, suggestions, timezone, userTimezone, use24h, isGm, playDateNotes,
+  sessions, suggestions, timezone, userTimezone, use24h, isGm, gmId, coGmIds, playDateNotes,
   onDownloadIcs, onDownloadAllIcs, onRequestCancel,
 }: ScheduledListProps) {
   const [showPast, setShowPast] = useState(false);
@@ -56,6 +58,8 @@ export function ScheduledList({
                 userTimezone={userTimezone}
                 use24h={use24h}
                 isGm={isGm}
+                gmId={gmId}
+                coGmIds={coGmIds}
                 playDateNote={playDateNotes?.get(s.date) ?? null}
                 onDownloadIcs={onDownloadIcs}
                 onRequestCancel={onRequestCancel}
@@ -88,6 +92,8 @@ export function ScheduledList({
                   userTimezone={userTimezone}
                   use24h={use24h}
                   isGm={isGm}
+                  gmId={gmId}
+                  coGmIds={coGmIds}
                   playDateNote={playDateNotes?.get(s.date) ?? null}
                   past
                   onDownloadIcs={onDownloadIcs}

@@ -53,10 +53,8 @@ export default function GameDetailPage() {
     copyFromGame,
     confirmSession,
     cancelSession,
-    regenerateInvite,
     leaveGame,
     removePlayer,
-    deleteGame,
     toggleCoGm,
     toggleExtraDate,
     updatePlayDateNote,
@@ -68,10 +66,6 @@ export default function GameDetailPage() {
   const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
@@ -203,17 +197,6 @@ export default function GameDetailPage() {
     }
   };
 
-  const handleDeleteGame = async () => {
-    setIsDeleting(true);
-    const success = await deleteGame();
-    if (success) {
-      router.push("/dashboard");
-    } else {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
-    }
-  };
-
   const handleLeaveGame = async () => {
     setIsLeaving(true);
     const success = await leaveGame();
@@ -223,13 +206,6 @@ export default function GameDetailPage() {
       setIsLeaving(false);
       setShowLeaveConfirm(false);
     }
-  };
-
-  const handleRegenerateInvite = async () => {
-    setIsRegenerating(true);
-    await regenerateInvite();
-    setIsRegenerating(false);
-    setShowRegenerateConfirm(false);
   };
 
   const handleRemovePlayer = async (playerId: string) => {
@@ -296,21 +272,7 @@ export default function GameDetailPage() {
                 <Button onClick={copyInviteLink} variant="secondary">
                   Copy Invite Link
                 </Button>
-                <Button
-                  onClick={() => setShowRegenerateConfirm(true)}
-                  variant="secondary"
-                >
-                  Regenerate Invite
-                </Button>
               </>
-            )}
-            {isGm && (
-              <Button
-                onClick={() => setShowDeleteConfirm(true)}
-                variant="danger"
-              >
-                Delete Game
-              </Button>
             )}
             {isMember && !isGm && (
               <Button
@@ -477,62 +439,6 @@ export default function GameDetailPage() {
         </p>
       </Modal>
 
-      <Modal
-        open={showRegenerateConfirm}
-        onClose={() => !isRegenerating && setShowRegenerateConfirm(false)}
-        title="Regenerate Invite Code?"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => setShowRegenerateConfirm(false)}
-              disabled={isRegenerating}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleRegenerateInvite}
-              disabled={isRegenerating}
-            >
-              {isRegenerating ? "Regenerating..." : "Regenerate"}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-muted-foreground">
-          This will invalidate the current invite link and calendar subscription
-          URL. Anyone using the old link will no longer be able to join, and
-          calendar apps will need to re-subscribe with the new URL.
-        </p>
-      </Modal>
-
-      <Modal
-        open={showDeleteConfirm}
-        onClose={() => !isDeleting && setShowDeleteConfirm(false)}
-        title="Delete Game?"
-        footer={
-          <>
-            <Button
-              variant="secondary"
-              onClick={() => setShowDeleteConfirm(false)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleDeleteGame} disabled={isDeleting}>
-              {isDeleting ? "Deleting..." : "Delete Game"}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-muted-foreground">
-          Are you sure you want to permanently delete{" "}
-          <strong>{game.name}</strong>? This will remove all players,
-          availability data, and scheduled sessions. This action cannot be
-          undone.
-        </p>
-      </Modal>
     </div>
   );
 }

@@ -276,7 +276,7 @@ test.describe('Regenerate Invite Code', () => {
       is_gm: true,
     });
 
-    await page.goto(`/games/${game.id}`);
+    await page.goto(`/games/${game.id}/edit`);
 
     await expect(page.getByRole('button', { name: /regenerate invite/i })).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
@@ -342,7 +342,7 @@ test.describe('Regenerate Invite Code', () => {
       is_gm: true,
     });
 
-    await page.goto(`/games/${game.id}`);
+    await page.goto(`/games/${game.id}/edit`);
 
     // Wait for page to load
     await expect(page.getByRole('button', { name: /regenerate invite/i })).toBeVisible({
@@ -393,7 +393,7 @@ test.describe('Regenerate Invite Code', () => {
       is_gm: true,
     });
 
-    await page.goto(`/games/${game.id}`);
+    await page.goto(`/games/${game.id}/edit`);
 
     // Wait for page to load
     await expect(page.getByRole('button', { name: /regenerate invite/i })).toBeVisible({
@@ -412,7 +412,7 @@ test.describe('Regenerate Invite Code', () => {
     // Modal should close
     await expect(page.getByText(/regenerate invite code\?/i)).not.toBeVisible();
 
-    // Still on game page
-    await expect(page.getByRole('heading', { name: 'Regen Cancel Game' })).toBeVisible();
+    // Still on edit page
+    await expect(page.getByRole('heading', { name: /edit game/i })).toBeVisible();
   });
 });

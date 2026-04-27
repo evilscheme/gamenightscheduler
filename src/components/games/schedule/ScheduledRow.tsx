@@ -89,7 +89,7 @@ export function ScheduledRow({
                 size="sm"
                 variant="danger"
                 onClick={() => onRequestCancel(session)}
-                title="Cancel this scheduled session and notify the party"
+                title="Cancel this scheduled session"
               >
                 <X className="mr-1 size-4" /> Cancel
               </Button>

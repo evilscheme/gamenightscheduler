@@ -47,7 +47,7 @@ export function CancelSessionModal({ open, date, onClose, onConfirm }: CancelSes
             onClick={submit}
             disabled={busy}
             data-testid="cancel-session-submit"
-            title="Cancel this session and notify the party"
+            title="Cancel this scheduled session"
           >
             {busy ? 'Cancelling…' : 'Cancel session'}
           </Button>
@@ -55,7 +55,7 @@ export function CancelSessionModal({ open, date, onClose, onConfirm }: CancelSes
       }
     >
       <p className="text-sm text-muted-foreground">
-        The party will be notified that this session is no longer happening. You can re-schedule this date again later.
+        This session will be removed from the schedule. You can re-schedule this date again later.
       </p>
     </Modal>
   );

@@ -75,7 +75,7 @@ export function ScheduleSessionModal({
             onClick={submit}
             disabled={busy}
             data-testid="confirm-session-submit"
-            title="Schedule a session on this date and notify the party"
+            title="Schedule a session on this date"
           >
             {busy ? 'Confirming…' : '★ Confirm session'}
           </Button>

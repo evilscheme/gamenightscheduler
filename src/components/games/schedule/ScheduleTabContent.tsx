@@ -97,7 +97,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
   const handleConfirm = async (date: string, start: string, end: string) => {
     const res = await onConfirm(date, start, end);
     if (res.success) {
-      toast.show(`Scheduled ${format(parseISO(date), 'MMM d')}. Party notified.`);
+      toast.show(`Scheduled ${format(parseISO(date), 'MMM d')}.`);
     }
     return res;
   };

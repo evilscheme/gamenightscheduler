@@ -1,9 +1,8 @@
 'use client';
 
 import { Link2 } from 'lucide-react';
-import { format, parseISO, startOfDay, isBefore } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { Button, EyebrowLabel, useToast } from '@/components/ui';
-import { GameSession } from '@/types';
 import { DAY_LABELS } from '@/lib/constants';
 import { formatTime } from '@/lib/formatting';
 import { formatTimezoneDisplay } from '@/lib/timezone';
@@ -23,7 +22,6 @@ interface GameDetailsPanelProps {
   defaultEndTime: string | null;
   timezone: string | null;
   minPlayersNeeded?: number;
-  confirmedSessions: GameSession[];
   inviteCode: string;
   use24h?: boolean;
   adHocOnly?: boolean;
@@ -47,7 +45,6 @@ export function GameDetailsPanel({
   defaultEndTime,
   timezone,
   minPlayersNeeded = 0,
-  confirmedSessions,
   inviteCode,
   use24h = false,
   adHocOnly = false,
@@ -65,11 +62,6 @@ export function GameDetailsPanel({
       toast.show('Could not copy. Select the URL manually.', 'danger');
     }
   };
-
-  const today = startOfDay(new Date());
-  const upcomingSessions = confirmedSessions
-    .filter((s) => !isBefore(parseISO(s.date), today))
-    .slice(0, 3);
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -108,21 +100,6 @@ export function GameDetailsPanel({
         {minPlayersNeeded > 0 && (
           <Field label="Minimum players">
             <span className="font-mono">{minPlayersNeeded}</span> needed
-          </Field>
-        )}
-
-        {upcomingSessions.length > 0 && (
-          <Field label="Upcoming sessions">
-            <ul className="space-y-1">
-              {upcomingSessions.map((s) => (
-                <li
-                  key={s.id}
-                  className="font-mono text-[11px] text-card-foreground"
-                >
-                  {format(parseISO(s.date), 'EEE, MMM d, yyyy')}
-                </li>
-              ))}
-            </ul>
           </Field>
         )}
 

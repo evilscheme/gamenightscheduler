@@ -5,6 +5,7 @@ import type { User, MemberWithRole, GameSession } from '@/types';
 import { OverviewHeader } from './OverviewHeader';
 import { PartyPanel } from './PartyPanel';
 import { GameDetailsPanel } from './GameDetailsPanel';
+import { UpcomingSessionsCard } from './UpcomingSessionsCard';
 
 export interface OverviewTabContentProps {
   // Header
@@ -49,6 +50,7 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
       />
 
       <div className="space-y-5 lg:max-w-2xl">
+        <UpcomingSessionsCard sessions={props.confirmedSessions} use24h={props.use24h} />
         <PartyPanel
           allPlayers={props.allPlayers}
           gmId={props.gmId}
@@ -67,7 +69,6 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
           defaultEndTime={props.defaultEndTime}
           timezone={props.timezone}
           minPlayersNeeded={props.minPlayersNeeded}
-          confirmedSessions={props.confirmedSessions}
           inviteCode={props.inviteCode}
           use24h={props.use24h}
           adHocOnly={props.adHocOnly}

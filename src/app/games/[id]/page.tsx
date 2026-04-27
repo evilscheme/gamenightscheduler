@@ -380,7 +380,6 @@ export default function GameDetailPage() {
           windowEnd={windowEnd}
           currentUserId={profile.id}
           completionByUserId={completionByUserId}
-          members={[{ ...game.gm, is_co_gm: false }, ...game.members]}
           playDays={game.play_days}
           availability={availability}
           onToggle={changeAvailability}

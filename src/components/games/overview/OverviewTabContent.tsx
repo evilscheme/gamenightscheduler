@@ -49,32 +49,37 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
         scheduledCount={scheduledCount}
       />
 
-      <div className="space-y-5 lg:max-w-2xl">
-        <UpcomingSessionsCard sessions={props.confirmedSessions} use24h={props.use24h} />
-        <PartyPanel
-          allPlayers={props.allPlayers}
-          gmId={props.gmId}
-          isGm={props.isGm}
-          isCoGm={props.isCoGm}
-          members={props.members}
-          completionByUserId={props.completionByUserId}
-          inviteCode={props.inviteCode}
-          onToggleCoGm={props.onToggleCoGm}
-          onRemovePlayer={props.onRemovePlayer}
-        />
-        <GameDetailsPanel
-          playDays={props.playDays}
-          schedulingWindowMonths={props.schedulingWindowMonths}
-          defaultStartTime={props.defaultStartTime}
-          defaultEndTime={props.defaultEndTime}
-          timezone={props.timezone}
-          minPlayersNeeded={props.minPlayersNeeded}
-          inviteCode={props.inviteCode}
-          use24h={props.use24h}
-          adHocOnly={props.adHocOnly}
-          campaignStartDate={props.campaignStartDate}
-          campaignEndDate={props.campaignEndDate}
-        />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,460px)_340px]">
+        <div className="space-y-5 min-w-0">
+          <UpcomingSessionsCard sessions={props.confirmedSessions} use24h={props.use24h} />
+          <PartyPanel
+            allPlayers={props.allPlayers}
+            gmId={props.gmId}
+            isGm={props.isGm}
+            isCoGm={props.isCoGm}
+            members={props.members}
+            completionByUserId={props.completionByUserId}
+            inviteCode={props.inviteCode}
+            onToggleCoGm={props.onToggleCoGm}
+            onRemovePlayer={props.onRemovePlayer}
+          />
+        </div>
+
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <GameDetailsPanel
+            playDays={props.playDays}
+            schedulingWindowMonths={props.schedulingWindowMonths}
+            defaultStartTime={props.defaultStartTime}
+            defaultEndTime={props.defaultEndTime}
+            timezone={props.timezone}
+            minPlayersNeeded={props.minPlayersNeeded}
+            inviteCode={props.inviteCode}
+            use24h={props.use24h}
+            adHocOnly={props.adHocOnly}
+            campaignStartDate={props.campaignStartDate}
+            campaignEndDate={props.campaignEndDate}
+          />
+        </aside>
       </div>
     </div>
   );

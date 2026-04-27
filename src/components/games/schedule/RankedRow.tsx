@@ -91,9 +91,9 @@ export function RankedRow({
               {format(parseISO(suggestion.date), 'EEE, MMM d')}
             </span>
             {belowThreshold && (
-              <span className="rounded-sm bg-warning/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-warning">
+              <EyebrowLabel variant="warning" className="rounded-sm bg-warning/15 px-1.5 py-0.5">
                 Below threshold
-              </span>
+              </EyebrowLabel>
             )}
           </p>
           <div className="mt-1 flex items-center gap-2">

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
+import { Avatar, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 import EngagementCharts from '@/components/admin/EngagementCharts';
 import type { HealthBreakdown, HealthGrade } from '@/lib/gameHealth';
 
@@ -384,18 +384,12 @@ function ActivityTab({ stats }: { stats: AdminStats }) {
                 className="flex items-center justify-between py-2 border-b border-border/50 last:border-0"
               >
                 <div className="flex items-center gap-3">
-                  {user.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- external avatar URL from OAuth provider
-                    <img
-                      src={user.avatar_url}
-                      alt={user.name}
-                      className="size-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="size-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium">
-                      {user.name[0]?.toUpperCase() || '?'}
-                    </div>
-                  )}
+                  <Avatar
+                    userId={user.id}
+                    name={user.name}
+                    avatarUrl={user.avatar_url}
+                    size={30}
+                  />
                   <div>
                     <p className="font-medium text-foreground">
                       {user.name}

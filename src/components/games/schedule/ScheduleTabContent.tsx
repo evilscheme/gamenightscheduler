@@ -174,8 +174,6 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     <HoverSyncProvider>
       <div className="space-y-5" data-testid="schedule-tab-content">
         <ScheduleHeader
-          gameName={gameName}
-          playDays={playDays}
           monthRange={monthRange}
           candidateCount={unscheduledSuggestions.length}
         />

@@ -53,8 +53,10 @@ export function UpcomingSessionsCard({
               variant="ghost"
               onClick={onDownloadAllIcs}
               title="Download a single calendar file containing all upcoming sessions"
+              aria-label="Add all to calendar"
             >
-              <Calendar className="mr-1 size-3" /> Add all to calendar
+              <Calendar className="size-3 sm:mr-1" />
+              <span className="hidden sm:inline">Add all to calendar</span>
             </Button>
           )}
           {subscribeUrl && (
@@ -63,8 +65,10 @@ export function UpcomingSessionsCard({
               variant="ghost"
               onClick={onCopySubscribe}
               title="Copy a webcal:// URL that auto-syncs scheduled sessions to Google Calendar, Apple Calendar, or Outlook"
+              aria-label="Copy calendar subscription URL"
             >
-              <Link2 className="mr-1 size-3" /> Subscribe
+              <Link2 className="size-3 sm:mr-1" />
+              <span className="hidden sm:inline">Subscribe</span>
             </Button>
           )}
         </div>
@@ -110,9 +114,11 @@ export function UpcomingSessionsCard({
                 variant="ghost"
                 onClick={() => onDownloadIcs(s)}
                 title="Download a calendar file (.ics) you can import into Google Calendar, Apple Calendar, or Outlook"
+                aria-label="Add to calendar"
                 className="shrink-0"
               >
-                <Calendar className="mr-1 size-3" /> Add to calendar
+                <Calendar className="size-3 sm:mr-1" />
+                <span className="hidden sm:inline">Add to calendar</span>
               </Button>
             </li>
           );

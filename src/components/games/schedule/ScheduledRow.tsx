@@ -109,8 +109,10 @@ export function ScheduledRow({
               onClick={() => onDownloadIcs(session)}
               data-testid="ics-download-single"
               title="Download a calendar file (.ics) you can import into Google Calendar, Apple Calendar, or Outlook"
+              aria-label="Add to calendar"
             >
-              <Calendar className="mr-1.5 size-4" /> Add to calendar
+              <Calendar className="size-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Add to calendar</span>
             </Button>
             {isGm && (
               <Button
@@ -118,8 +120,10 @@ export function ScheduledRow({
                 variant="danger"
                 onClick={() => onRequestCancel(session)}
                 title="Cancel this scheduled session"
+                aria-label="Cancel session"
               >
-                <X className="mr-1 size-4" /> Cancel
+                <X className="size-4 sm:mr-1" />
+                <span className="hidden sm:inline">Cancel</span>
               </Button>
             )}
           </div>

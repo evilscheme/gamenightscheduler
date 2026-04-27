@@ -88,15 +88,10 @@ export function ScheduledRow({
             type="button"
             aria-expanded={expanded}
             onClick={() => setExpanded((v) => !v)}
-            className="flex min-w-0 flex-1 items-start gap-2 text-left"
+            className="min-w-0 flex-1 text-left"
             title={expanded ? 'Hide party breakdown' : 'Show who can make it'}
           >
-            <div className="min-w-0 flex-1">{infoContent}</div>
-            <ChevronRight
-              className={`mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform ${
-                expanded ? 'rotate-90' : ''
-              }`}
-            />
+            {infoContent}
           </button>
         ) : (
           <div className="min-w-0 flex-1">{infoContent}</div>
@@ -127,6 +122,20 @@ export function ScheduledRow({
               </Button>
             )}
           </div>
+        )}
+        {expandable && (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+            aria-label={expanded ? 'Hide party breakdown' : 'Show party breakdown'}
+            title={expanded ? 'Hide party breakdown' : 'Show who can make it'}
+            className="shrink-0 self-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ChevronRight
+              className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`}
+            />
+          </button>
         )}
       </div>
 

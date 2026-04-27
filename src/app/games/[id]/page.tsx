@@ -371,6 +371,8 @@ export default function GameDetailPage() {
           adHocOnly={game.ad_hoc_only}
           campaignStartDate={game.campaign_start_date}
           campaignEndDate={game.campaign_end_date}
+          gameName={game.name}
+          subscribeUrl={subscribeUrl}
         />
       )}
 

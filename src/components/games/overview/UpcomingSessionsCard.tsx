@@ -1,14 +1,18 @@
 'use client';
 
 import { format, parseISO, startOfDay, isBefore, differenceInCalendarDays } from 'date-fns';
-import { Star } from 'lucide-react';
-import { EyebrowLabel } from '@/components/ui';
+import { Calendar, Link2, Star } from 'lucide-react';
+import { Button, EyebrowLabel } from '@/components/ui';
 import type { GameSession } from '@/types';
 import { formatTime } from '@/lib/formatting';
 
 interface UpcomingSessionsCardProps {
   sessions: GameSession[];
   use24h: boolean;
+  subscribeUrl: string;
+  onDownloadIcs: (session: GameSession) => void;
+  onDownloadAllIcs: () => void;
+  onCopySubscribe: () => void;
 }
 
 function relativeLabel(daysFromNow: number): string {
@@ -20,7 +24,14 @@ function relativeLabel(daysFromNow: number): string {
   return `in ${Math.round(daysFromNow / 30)} months`;
 }
 
-export function UpcomingSessionsCard({ sessions, use24h }: UpcomingSessionsCardProps) {
+export function UpcomingSessionsCard({
+  sessions,
+  use24h,
+  subscribeUrl,
+  onDownloadIcs,
+  onDownloadAllIcs,
+  onCopySubscribe,
+}: UpcomingSessionsCardProps) {
   const today = startOfDay(new Date());
   const upcoming = sessions
     .filter((s) => !isBefore(parseISO(s.date), today))
@@ -30,9 +41,33 @@ export function UpcomingSessionsCard({ sessions, use24h }: UpcomingSessionsCardP
 
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-      <div className="flex items-center gap-2">
-        <Star className="size-4 fill-primary text-primary" />
-        <EyebrowLabel>Upcoming sessions ({upcoming.length})</EyebrowLabel>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Star className="size-4 fill-primary text-primary" />
+          <EyebrowLabel>Upcoming sessions ({upcoming.length})</EyebrowLabel>
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          {upcoming.length > 1 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onDownloadAllIcs}
+              title="Download a single calendar file containing all upcoming sessions"
+            >
+              <Calendar className="mr-1 size-3" /> Add all to calendar
+            </Button>
+          )}
+          {subscribeUrl && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onCopySubscribe}
+              title="Copy a webcal:// URL that auto-syncs scheduled sessions to Google Calendar, Apple Calendar, or Outlook"
+            >
+              <Link2 className="mr-1 size-3" /> Subscribe
+            </Button>
+          )}
+        </div>
       </div>
 
       <ul className="mt-3 space-y-2">
@@ -70,6 +105,15 @@ export function UpcomingSessionsCard({ sessions, use24h }: UpcomingSessionsCardP
                   <span>{relativeLabel(daysFromNow)}</span>
                 </p>
               </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onDownloadIcs(s)}
+                title="Download a calendar file (.ics) you can import into Google Calendar, Apple Calendar, or Outlook"
+                className="shrink-0"
+              >
+                <Calendar className="mr-1 size-3" /> Add to calendar
+              </Button>
             </li>
           );
         })}

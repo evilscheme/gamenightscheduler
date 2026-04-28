@@ -404,10 +404,11 @@ test.describe('Regenerate Invite Code', () => {
     await page.getByRole('button', { name: /regenerate invite/i }).click();
 
     // Modal should appear
-    await expect(page.getByText(/regenerate invite code\?/i)).toBeVisible();
+    const regenDialog = page.getByRole('dialog', { name: /regenerate invite code/i });
+    await expect(regenDialog).toBeVisible();
 
-    // Click Cancel
-    await page.getByRole('button', { name: /cancel/i }).click();
+    // Click Cancel inside the dialog (avoid the form's Cancel button)
+    await regenDialog.getByRole('button', { name: /cancel/i }).click();
 
     // Modal should close
     await expect(page.getByText(/regenerate invite code\?/i)).not.toBeVisible();

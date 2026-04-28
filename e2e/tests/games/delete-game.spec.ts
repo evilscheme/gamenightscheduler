@@ -159,12 +159,13 @@ test.describe('Delete Game', () => {
     await page.getByRole('button', { name: /delete game/i }).click();
 
     // Modal should appear
-    await expect(page.getByText(/are you sure you want to permanently delete/i)).toBeVisible({
+    const deleteDialog = page.getByRole('dialog', { name: /delete game/i });
+    await expect(deleteDialog).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Click Cancel
-    await page.getByRole('button', { name: /cancel/i }).click();
+    // Click Cancel inside the dialog (avoid the form's Cancel button)
+    await deleteDialog.getByRole('button', { name: /cancel/i }).click();
 
     // Modal should close
     await expect(page.getByText(/are you sure you want to permanently delete/i)).not.toBeVisible();

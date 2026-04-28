@@ -68,8 +68,13 @@ test.describe('Schedule Tab Redesign', () => {
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // The confirmed session's date should appear in the list
-    const expectedDateText = format(parseISO(playDates[0]), 'EEEE, MMMM d, yyyy');
+    // The confirmed session's date should appear in the list. The row uses the
+    // abbreviated 'EEE, MMM d' format (year omitted when same as current year).
+    const sessionDate = parseISO(playDates[0]);
+    const sameYear = sessionDate.getFullYear() === new Date().getFullYear();
+    const expectedDateText = sameYear
+      ? format(sessionDate, 'EEE, MMM d')
+      : format(sessionDate, 'EEE, MMM d, yyyy');
     await expect(page.locator('[data-testid="upcoming-sessions-list"]')).toContainText(expectedDateText);
   });
 

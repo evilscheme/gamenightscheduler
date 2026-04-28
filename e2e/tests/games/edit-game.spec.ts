@@ -211,7 +211,7 @@ test.describe('Game Edit Page', () => {
 
     // Verify changes are reflected
     await expect(page.getByRole('heading', { name: /updated campaign name/i })).toBeVisible();
-    await expect(page.getByText(/8:00 PM - 12:00 AM/)).toBeVisible();
+    await expect(page.getByText(/8:00 PM\s+[-–]\s+12:00 AM/)).toBeVisible();
   });
 
   test('non-GM is redirected from edit page', async ({ page, request }) => {

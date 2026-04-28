@@ -310,6 +310,6 @@ test.describe('Session Confirmation', () => {
 
     // Should show default session time in overview (5:00 PM - 9:00 PM)
     await expect(page.getByText(/default session time/i)).toBeVisible();
-    await expect(page.getByText(/5:00 PM - 9:00 PM/)).toBeVisible();
+    await expect(page.getByText(/5:00 PM\s+[-–]\s+9:00 PM/)).toBeVisible();
   });
 });

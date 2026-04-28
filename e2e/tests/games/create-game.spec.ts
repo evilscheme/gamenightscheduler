@@ -137,7 +137,7 @@ test.describe('Game Creation', () => {
     await expect(page).toHaveURL(/\/games\/[a-f0-9-]+$/);
 
     // Should show the default times in game details
-    await expect(page.getByText(/7:00 PM - 11:00 PM/)).toBeVisible();
+    await expect(page.getByText(/7:00 PM\s+[-–]\s+11:00 PM/)).toBeVisible();
   });
 
   test('default session times have sensible defaults', async ({ page }) => {

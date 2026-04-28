@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronRight, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { DateSuggestion } from '@/types';
-import { Avatar, Button, EyebrowLabel, RankCircle } from '@/components/ui';
+import { Button, EyebrowLabel, RankCircle } from '@/components/ui';
 import { formatTimeWindow } from '@/lib/scheduleView';
 import { PartyBreakdown } from './PartyBreakdown';
+import { PlayerAvatarCluster, type PlayerAvatarItem } from './PlayerAvatarCluster';
 import { useHoverSync } from './HoverSyncContext';
 
 interface RankedRowProps {
@@ -58,7 +59,7 @@ export function RankedRow({
   const windowLabel = formatTimeWindow(suggestion.earliestStartTime, suggestion.latestEndTime, use24h);
   const highlighted = rank === 1 && !belowThreshold;
 
-  const visibleAvatars = [
+  const visibleAvatars: PlayerAvatarItem[] = [
     ...suggestion.availablePlayers.map((p) => ({ state: 'available' as const, user: p.user })),
     ...suggestion.maybePlayers.map((p) => ({ state: 'maybe' as const, user: p.user })),
     ...suggestion.unavailablePlayers.map((p) => ({ state: 'unavailable' as const, user: p.user })),
@@ -97,11 +98,7 @@ export function RankedRow({
             )}
           </p>
           <div className="mt-1 flex items-center gap-2">
-            <div className="flex -space-x-1">
-              {visibleAvatars.map((a) => (
-                <Avatar key={a.user.id} userId={a.user.id} name={a.user.name} avatarUrl={a.user.avatar_url} size={18} ring={a.state} />
-              ))}
-            </div>
+            <PlayerAvatarCluster avatars={visibleAvatars} />
             <span className="font-mono text-[11px] text-muted-foreground">
               {minPlayersNeeded > 0 && (
                 <>

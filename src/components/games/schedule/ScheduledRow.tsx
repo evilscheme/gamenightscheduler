@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Calendar, ChevronRight, X } from 'lucide-react';
 import type { DateSuggestion, GameSession } from '@/types';
-import { Avatar, Button, EyebrowLabel } from '@/components/ui';
+import { Button, EyebrowLabel } from '@/components/ui';
 import { formatTime } from '@/lib/formatting';
 import { convertTimeForDisplay } from '@/lib/timezone';
 import { PartyBreakdown } from './PartyBreakdown';
+import { PlayerAvatarCluster, type PlayerAvatarItem } from './PlayerAvatarCluster';
 
 interface ScheduledRowProps {
   session: GameSession;
@@ -46,8 +47,16 @@ export function ScheduledRow({
     return gameStr;
   };
 
-  const availableAvatars = (suggestion?.availablePlayers ?? []).slice(0, 6);
-  const maybeAvatars = (suggestion?.maybePlayers ?? []).slice(0, 4);
+  const visibleAvatars: PlayerAvatarItem[] = [
+    ...(suggestion?.availablePlayers ?? []).slice(0, 6).map((p) => ({
+      user: p.user,
+      state: 'available' as const,
+    })),
+    ...(suggestion?.maybePlayers ?? []).slice(0, 4).map((p) => ({
+      user: p.user,
+      state: 'maybe' as const,
+    })),
+  ];
 
   const sessionDate = parseISO(session.date);
   const sameYear = sessionDate.getFullYear() === new Date().getFullYear();
@@ -62,16 +71,9 @@ export function ScheduledRow({
       {playDateNote && (
         <p className="mt-0.5 text-xs italic text-muted-foreground">{playDateNote}</p>
       )}
-      {(availableAvatars.length > 0 || maybeAvatars.length > 0) && (
+      {visibleAvatars.length > 0 && (
         <div className="mt-2 flex items-center gap-2">
-          <div className="flex -space-x-1">
-            {availableAvatars.map((p) => (
-              <Avatar key={p.user.id} userId={p.user.id} name={p.user.name} size={18} ring="available" />
-            ))}
-            {maybeAvatars.map((p) => (
-              <Avatar key={p.user.id} userId={p.user.id} name={p.user.name} size={18} ring="maybe" />
-            ))}
-          </div>
+          <PlayerAvatarCluster avatars={visibleAvatars} />
           {suggestion && (
             <span className="font-mono text-[11px] text-muted-foreground">
               {suggestion.availableCount}✓ · {suggestion.maybeCount}? · {suggestion.unavailableCount}✕

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator } from '@playwright/test';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
 import {
   createTestGame,
@@ -6,6 +6,18 @@ import {
   getPlayDates,
 } from '../../helpers/seed';
 import { TEST_TIMEOUTS } from '../../constants';
+
+/**
+ * Scheduled rows are collapsed by default; the per-row Cancel and
+ * Add-to-calendar actions live inside the expanded section. Tests must
+ * expand the row before reaching those actions.
+ */
+async function expandScheduledRow(row: Locator) {
+  const toggle = row.locator('button[aria-expanded="false"]').first();
+  if (await toggle.count()) {
+    await toggle.click();
+  }
+}
 
 /**
  * Session Cancellation Tests
@@ -59,8 +71,10 @@ test.describe('Session Cancellation', () => {
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Find and click the Cancel button for the session (row-level cancel)
-    const cancelButton = page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i });
+    // Expand the row to reveal the row-level Cancel button
+    const row = page.locator('[data-testid="scheduled-row"]').first();
+    await expandScheduledRow(row);
+    const cancelButton = row.getByRole('button', { name: /^cancel$/i });
     await expect(cancelButton).toBeVisible();
     await cancelButton.click();
 
@@ -120,7 +134,8 @@ test.describe('Session Cancellation', () => {
     const scheduledRow = page.locator('[data-testid="scheduled-row"]').first();
     await expect(scheduledRow).toBeVisible();
 
-    // Cancel the session (two-step: row button → modal confirm)
+    // Expand and cancel the session (two-step: row button → modal confirm)
+    await expandScheduledRow(scheduledRow);
     const cancelButton = scheduledRow.getByRole('button', { name: /^cancel$/i });
     await cancelButton.click();
 
@@ -190,8 +205,10 @@ test.describe('Session Cancellation', () => {
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Player should NOT see cancel button on scheduled rows
-    const cancelButtons = page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i });
+    // Player should NOT see cancel button on scheduled rows even when expanded
+    const row = page.locator('[data-testid="scheduled-row"]').first();
+    await expandScheduledRow(row);
+    const cancelButtons = row.getByRole('button', { name: /^cancel$/i });
     await expect(cancelButtons).toHaveCount(0);
   });
 
@@ -237,23 +254,26 @@ test.describe('Session Cancellation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Verify we have 2 sessions (2 Cancel buttons on scheduled rows)
+    // Verify we have 2 scheduled rows
     await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
-    const cancelButtons = page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i });
-    await expect(cancelButtons).toHaveCount(2);
+    await expect(page.locator('[data-testid="scheduled-row"]')).toHaveCount(2);
 
-    // Cancel the first one (two-step)
-    await cancelButtons.first().click();
+    // Expand and cancel the first row (two-step)
+    const firstRow = page.locator('[data-testid="scheduled-row"]').first();
+    await expandScheduledRow(firstRow);
+    await firstRow.getByRole('button', { name: /^cancel$/i }).click();
     await expect(page.locator('[data-testid="cancel-session-modal"]')).toBeVisible();
     await page.locator('[data-testid="cancel-session-submit"]').click();
 
-    // Now should only have 1 session
-    await expect(page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i })).toHaveCount(1);
+    // Now should only have 1 scheduled row
+    await expect(page.locator('[data-testid="scheduled-row"]')).toHaveCount(1);
 
-    // Cancel the second one (two-step)
-    await page.locator('[data-testid="scheduled-row"]').getByRole('button', { name: /^cancel$/i }).click();
+    // Expand and cancel the remaining row (two-step)
+    const remainingRow = page.locator('[data-testid="scheduled-row"]').first();
+    await expandScheduledRow(remainingRow);
+    await remainingRow.getByRole('button', { name: /^cancel$/i }).click();
     await expect(page.locator('[data-testid="cancel-session-modal"]')).toBeVisible();
     await page.locator('[data-testid="cancel-session-submit"]').click();
 

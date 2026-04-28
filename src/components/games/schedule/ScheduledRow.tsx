@@ -29,7 +29,9 @@ export function ScheduledRow({
   playDateNote, past = false, onDownloadIcs, onRequestCancel,
 }: ScheduledRowProps) {
   const [expanded, setExpanded] = useState(false);
-  const expandable = !!suggestion;
+  // Expandable when there's something in the expanded section worth showing:
+  // a party breakdown (from suggestion) or the calendar/cancel actions (upcoming only).
+  const expandable = !!suggestion || !past;
 
   const timeLine = () => {
     if (!session.start_time || !session.end_time) return format(parseISO(session.date), 'EEEE');
@@ -85,68 +87,61 @@ export function ScheduledRow({
       data-testid={past ? 'past-session-row' : 'scheduled-row'}
       className={`rounded-xl border border-border bg-card p-4 ${past ? 'opacity-70' : ''}`}
     >
-      <div className="flex items-start gap-3">
-        <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
-        {expandable ? (
-          <button
-            type="button"
-            aria-expanded={expanded}
-            onClick={() => setExpanded((v) => !v)}
-            className="min-w-0 flex-1 text-left"
-            title={expanded ? 'Hide party breakdown' : 'Show who can make it'}
-          >
-            {infoContent}
-          </button>
-        ) : (
+      {expandable ? (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+          className="flex w-full items-start gap-3 text-left"
+          title={expanded ? 'Hide details' : 'Show details'}
+        >
+          <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
           <div className="min-w-0 flex-1">{infoContent}</div>
-        )}
-        {!past && (
-          <div className="flex shrink-0 gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onDownloadIcs(session)}
-              data-testid="ics-download-single"
-              title="Download a calendar file (.ics) you can import into Google Calendar, Apple Calendar, or Outlook"
-              aria-label="Add to calendar"
-            >
-              <Calendar className="size-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">Add to calendar</span>
-            </Button>
-            {isGm && (
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => onRequestCancel(session)}
-                title="Cancel this scheduled session"
-                aria-label="Cancel"
-              >
-                <X className="size-4 sm:mr-1" />
-                <span className="hidden sm:inline">Cancel</span>
-              </Button>
-            )}
-          </div>
-        )}
-        {expandable && (
-          <button
-            type="button"
-            aria-expanded={expanded}
-            onClick={() => setExpanded((v) => !v)}
-            aria-label={expanded ? 'Hide party breakdown' : 'Show party breakdown'}
-            title={expanded ? 'Hide party breakdown' : 'Show who can make it'}
-            className="shrink-0 self-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <ChevronRight
-              className={`size-4 transition-transform ${expanded ? 'rotate-90' : ''}`}
-            />
-          </button>
-        )}
-      </div>
+          <ChevronRight
+            className={`mt-0.5 size-4 shrink-0 self-center text-muted-foreground transition-transform ${
+              expanded ? 'rotate-90' : ''
+            }`}
+          />
+        </button>
+      ) : (
+        <div className="flex items-start gap-3">
+          <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
+          <div className="min-w-0 flex-1">{infoContent}</div>
+        </div>
+      )}
 
       {expandable && expanded && (
-        <div className="mt-3 border-t border-border pt-3">
-          <EyebrowLabel variant="muted" className="mb-2 block">Party breakdown</EyebrowLabel>
-          <PartyBreakdown suggestion={suggestion!} gmId={gmId} coGmIds={coGmIds} use24h={use24h} />
+        <div className="mt-3 space-y-3 border-t border-border pt-3">
+          {suggestion && (
+            <div>
+              <EyebrowLabel variant="muted" className="mb-2 block">Party breakdown</EyebrowLabel>
+              <PartyBreakdown suggestion={suggestion} gmId={gmId} coGmIds={coGmIds} use24h={use24h} />
+            </div>
+          )}
+          {!past && (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onDownloadIcs(session)}
+                data-testid="ics-download-single"
+                title="Download a calendar file (.ics) you can import into Google Calendar, Apple Calendar, or Outlook"
+              >
+                <Calendar className="mr-1.5 size-4" /> Add to calendar
+              </Button>
+              {isGm && (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => onRequestCancel(session)}
+                  title="Cancel this scheduled session"
+                  aria-label="Cancel"
+                >
+                  <X className="mr-1 size-4" /> Cancel
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </li>

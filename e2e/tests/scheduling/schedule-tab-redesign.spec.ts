@@ -183,6 +183,14 @@ test.describe('Schedule Tab Redesign', () => {
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
+    // Expand the scheduled row to reveal the per-session export button
+    await page
+      .locator('[data-testid="scheduled-row"]')
+      .first()
+      .locator('button[aria-expanded="false"]')
+      .first()
+      .click();
+
     // Click the per-session .ics download button and capture the download event
     const [download] = await Promise.all([
       page.waitForEvent('download'),

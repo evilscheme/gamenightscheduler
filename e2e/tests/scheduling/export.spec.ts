@@ -44,6 +44,14 @@ test.describe('Session Export', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
+    // Expand the scheduled row to reveal the per-session export button
+    await page
+      .locator('[data-testid="scheduled-row"]')
+      .first()
+      .locator('button[aria-expanded="false"]')
+      .first()
+      .click();
+
     // Set up download listener before clicking
     const downloadPromise = page.waitForEvent('download');
 
@@ -161,6 +169,14 @@ test.describe('Session Export', () => {
     await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
+
+    // Expand the scheduled row to reveal the per-session export button
+    await page
+      .locator('[data-testid="scheduled-row"]')
+      .first()
+      .locator('button[aria-expanded="false"]')
+      .first()
+      .click();
 
     const downloadPromise = page.waitForEvent('download');
     await page.locator('[data-testid="ics-download-single"]').first().click();

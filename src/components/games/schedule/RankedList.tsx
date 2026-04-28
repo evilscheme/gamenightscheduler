@@ -54,6 +54,7 @@ export function RankedList({
 
   return (
     <div className="space-y-3">
+      <EyebrowLabel className="block">Suggested dates</EyebrowLabel>
       <ul className="space-y-3" data-testid="ranked-list">
         {viable.map((s, idx) => (
           <RankedRow

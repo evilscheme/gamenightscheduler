@@ -825,7 +825,7 @@ function MonthCalendar({
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
               disabled={(!isPlayDay && !canAddAsExtra) || isPast || isOutOfRange}
-              className={`group relative w-full aspect-square min-h-9 rounded-sm flex items-center justify-center font-mono text-sm transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
+              className={`group relative w-full aspect-square min-h-9 rounded-sm flex items-center justify-center font-mono text-xl transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}
               data-status={dataStatus}

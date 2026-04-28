@@ -180,18 +180,6 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-5 min-w-0">
-            <RankedList
-              suggestions={unscheduledSuggestions}
-              isGm={isGm}
-              gmId={gmId}
-              coGmIds={coGmIds}
-              use24h={use24h}
-              minPlayersNeeded={minPlayersNeeded}
-              playDateNotes={playDateNotes}
-              onLockIn={(d) => setScheduleFor(d)}
-              autoExpandDate={autoExpandDate}
-            />
-
             <ScheduledList
               sessions={sessions}
               suggestions={suggestions}
@@ -205,6 +193,18 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               onDownloadIcs={handleDownloadIcs}
               onDownloadAllIcs={handleDownloadAllIcs}
               onRequestCancel={(s) => setCancelFor(s)}
+            />
+
+            <RankedList
+              suggestions={unscheduledSuggestions}
+              isGm={isGm}
+              gmId={gmId}
+              coGmIds={coGmIds}
+              use24h={use24h}
+              minPlayersNeeded={minPlayersNeeded}
+              playDateNotes={playDateNotes}
+              onLockIn={(d) => setScheduleFor(d)}
+              autoExpandDate={autoExpandDate}
             />
 
             {/* Mobile: collapsible cards below the list */}

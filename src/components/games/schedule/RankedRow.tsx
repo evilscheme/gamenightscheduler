@@ -103,10 +103,21 @@ export function RankedRow({
               ))}
             </div>
             <span className="font-mono text-[11px] text-muted-foreground">
-              {minPlayersNeeded > 0 ? (
-                <>{suggestion.availableCount}/{minPlayersNeeded} needed · </>
-              ) : null}
-              {suggestion.availableCount}✓ · {suggestion.maybeCount}? · {suggestion.unavailableCount}✕ · {suggestion.pendingCount} pending
+              {minPlayersNeeded > 0 && (
+                <>
+                  <span className="whitespace-nowrap">
+                    {suggestion.availableCount}/{minPlayersNeeded} needed
+                  </span>
+                  {' · '}
+                </>
+              )}
+              <span className="whitespace-nowrap">{suggestion.availableCount}✓</span>
+              {' · '}
+              <span className="whitespace-nowrap">{suggestion.maybeCount}?</span>
+              {' · '}
+              <span className="whitespace-nowrap">{suggestion.unavailableCount}✕</span>
+              {' · '}
+              <span className="whitespace-nowrap">{suggestion.pendingCount} pending</span>
             </span>
           </div>
           {windowLabel && (

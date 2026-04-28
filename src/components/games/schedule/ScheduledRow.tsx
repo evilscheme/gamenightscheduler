@@ -47,11 +47,15 @@ export function ScheduledRow({
   const availableAvatars = (suggestion?.availablePlayers ?? []).slice(0, 6);
   const maybeAvatars = (suggestion?.maybePlayers ?? []).slice(0, 4);
 
+  const sessionDate = parseISO(session.date);
+  const sameYear = sessionDate.getFullYear() === new Date().getFullYear();
+  const dateLabel = sameYear
+    ? format(sessionDate, 'EEE, MMM d')
+    : format(sessionDate, 'EEE, MMM d, yyyy');
+
   const infoContent = (
     <>
-      <p className="font-semibold text-card-foreground">
-        {format(parseISO(session.date), 'EEEE, MMMM d, yyyy')}
-      </p>
+      <p className="font-semibold text-card-foreground">{dateLabel}</p>
       <p className="font-mono text-xs text-muted-foreground">{timeLine()}</p>
       {playDateNote && (
         <p className="mt-0.5 text-xs italic text-muted-foreground">{playDateNote}</p>
@@ -115,7 +119,7 @@ export function ScheduledRow({
                 variant="danger"
                 onClick={() => onRequestCancel(session)}
                 title="Cancel this scheduled session"
-                aria-label="Cancel session"
+                aria-label="Cancel"
               >
                 <X className="size-4 sm:mr-1" />
                 <span className="hidden sm:inline">Cancel</span>

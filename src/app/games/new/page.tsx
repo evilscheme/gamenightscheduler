@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
+import { Button, EyebrowLabel, Input, LoadingSpinner, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
 import { fetchUserGameCount, createGame } from '@/lib/data';
@@ -145,10 +145,15 @@ export default function NewGamePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-foreground mb-8">Create New Game</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">Create New Game</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Set up a new game so your party can mark availability and schedule sessions.
+        </p>
+      </div>
 
       {atGameLimit && (
-        <div className="mb-6 p-4 bg-danger/10 border border-danger/20 rounded-lg">
+        <div className="mb-6 rounded-lg border border-danger/30 bg-danger/10 p-3">
           <p className="text-sm text-danger">
             You have reached the maximum of {USAGE_LIMITS.MAX_GAMES_PER_USER} games.
             Please delete an existing game before creating a new one.
@@ -156,12 +161,11 @@ export default function NewGamePage() {
         </div>
       )}
 
-      <form onSubmit={handleCreate}>
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Game Details</h2>
-          </CardHeader>
-          <CardContent className="space-y-6">
+      <form onSubmit={handleCreate} className="space-y-5">
+        {/* ── Identity ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Identity</EyebrowLabel>
+          <div className="space-y-6">
             <Input
               label="Game Name"
               value={name}
@@ -179,7 +183,13 @@ export default function NewGamePage() {
               maxLength={TEXT_LIMITS.GAME_DESCRIPTION}
               rows={3}
             />
+          </div>
+        </section>
 
+        {/* ── Schedule ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Schedule</EyebrowLabel>
+          <div className="space-y-6">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -350,7 +360,13 @@ export default function NewGamePage() {
                 />
               )}
             </div>
+          </div>
+        </section>
 
+        {/* ── Sessions ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Sessions</EyebrowLabel>
+          <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">
                 Default Session Time
@@ -410,24 +426,24 @@ export default function NewGamePage() {
                 Used for calendar exports so events appear at the correct time
               </p>
             </div>
+          </div>
+        </section>
 
-            {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
-            <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={creating || atGameLimit} className="flex-1">
-                {creating ? 'Creating...' : 'Create Game'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.back()}
-                disabled={creating}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex gap-4 pt-2">
+          <Button type="submit" disabled={creating || atGameLimit} className="flex-1">
+            {creating ? 'Creating...' : 'Create Game'}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => router.back()}
+            disabled={creating}
+          >
+            Cancel
+          </Button>
+        </div>
       </form>
     </div>
   );

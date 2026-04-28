@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Modal, Textarea, useToast } from '@/components/ui';
+import { Button, EyebrowLabel, Input, LoadingSpinner, Modal, Textarea, useToast } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
 import {
@@ -215,14 +215,18 @@ export default function EditGamePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-foreground mb-8">Edit Game</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">Edit Game</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Update {game.name}&apos;s settings, schedule, or session defaults.
+        </p>
+      </div>
 
-      <form onSubmit={handleSave}>
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Game Settings</h2>
-          </CardHeader>
-          <CardContent className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-5">
+        {/* ── Identity ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Identity</EyebrowLabel>
+          <div className="space-y-6">
             <Input
               label="Game Name"
               value={name}
@@ -238,7 +242,13 @@ export default function EditGamePage() {
               placeholder="A brief description of your game..."
               rows={3}
             />
+          </div>
+        </section>
 
+        {/* ── Schedule ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Schedule</EyebrowLabel>
+          <div className="space-y-6">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -417,7 +427,13 @@ export default function EditGamePage() {
                 />
               )}
             </div>
+          </div>
+        </section>
 
+        {/* ── Sessions ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Sessions</EyebrowLabel>
+          <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">
                 Default Session Time
@@ -494,31 +510,29 @@ export default function EditGamePage() {
                 Dates with fewer available players will be ranked lower. Set to 0 to disable.
               </p>
             </div>
+          </div>
+        </section>
 
-            {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
-            <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={saving} className="flex-1">
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push(`/games/${gameId}`)}
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex gap-4 pt-2">
+          <Button type="submit" disabled={saving} className="flex-1">
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => router.push(`/games/${gameId}`)}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+        </div>
       </form>
 
-      <Card className="mt-6 border-destructive/40">
-        <CardHeader>
-          <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <section className="mt-6 rounded-xl border border-destructive/40 bg-card p-4 sm:p-6">
+        <EyebrowLabel variant="danger" className="mb-4 block">Danger Zone</EyebrowLabel>
+        <div className="space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="sm:max-w-md">
               <p className="text-sm font-medium text-foreground">Regenerate invite code</p>
@@ -561,8 +575,8 @@ export default function EditGamePage() {
               </div>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <Modal
         open={showRegenerateConfirm}

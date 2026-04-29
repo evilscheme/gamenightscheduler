@@ -62,8 +62,7 @@ test.describe('Delete Account — settings entry point', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Use heading role to avoid strict-mode conflict with username in navbar
-    await expect(page.getByRole('heading', { name: 'Danger Zone' })).toBeVisible();
+    await expect(page.getByText('Danger Zone', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /delete account/i })).toBeVisible();
   });
 

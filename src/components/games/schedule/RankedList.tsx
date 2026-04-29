@@ -101,6 +101,7 @@ export function RankedList({
                   belowThreshold={true}
                   defaultExpanded={false}
                   minPlayersNeeded={minPlayersNeeded}
+                  playDateNote={playDateNotes?.get(s.date) ?? null}
                   onLockIn={onLockIn}
                   autoScrollTrigger={autoExpandDate}
                 />

@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import type { User, MemberWithRole, GameSession } from '@/types';
 import { useToast } from '@/components/ui';
 import { generateICS } from '@/lib/ics';
+import { splitUpcomingPast } from '@/lib/scheduleView';
 import { OverviewHeader } from './OverviewHeader';
 import { PartyPanel } from './PartyPanel';
 import { GameDetailsPanel } from './GameDetailsPanel';
@@ -74,7 +75,8 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
   };
 
   const handleDownloadAllIcs = () => {
-    const upcoming = props.confirmedSessions.filter((s) => s.status === 'confirmed');
+    const confirmed = props.confirmedSessions.filter((s) => s.status === 'confirmed');
+    const { upcoming } = splitUpcomingPast(confirmed, new Date());
     const ics = generateICS(
       upcoming.map((s) => ({
         date: s.date,

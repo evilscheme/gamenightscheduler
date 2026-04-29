@@ -28,17 +28,6 @@ export function CalendarCell({ date, day, isPlayDay, isScheduled, tier, onActiva
     return <div aria-hidden className="aspect-square" />;
   }
 
-  if (!isPlayDay) {
-    return (
-      <div
-        className="aspect-square rounded-sm bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)] opacity-40 flex items-center justify-center text-[9px] text-muted-foreground"
-        aria-hidden
-      >
-        {day}
-      </div>
-    );
-  }
-
   if (isScheduled) {
     return (
       <button
@@ -48,9 +37,22 @@ export function CalendarCell({ date, day, isPlayDay, isScheduled, tier, onActiva
         onMouseLeave={() => setHoveredDate(null)}
         className={`aspect-square rounded-sm flex items-center justify-center bg-cal-scheduled-bg text-cal-scheduled-text font-mono text-[10px] font-bold ${hovered ? 'outline outline-2 outline-primary' : ''}`}
         aria-label={`Scheduled on ${date}`}
+        data-testid="calendar-cell"
+        data-date={date}
       >
         ★
       </button>
+    );
+  }
+
+  if (!isPlayDay) {
+    return (
+      <div
+        className="aspect-square rounded-sm bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)] opacity-40 flex items-center justify-center text-[9px] text-muted-foreground"
+        aria-hidden
+      >
+        {day}
+      </div>
     );
   }
 

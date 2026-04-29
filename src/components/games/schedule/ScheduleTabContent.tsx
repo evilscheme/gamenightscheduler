@@ -13,6 +13,7 @@ import { ScheduleSessionModal } from './ScheduleSessionModal';
 import { CancelSessionModal } from './CancelSessionModal';
 import { CalendarHoverPopover } from './CalendarHoverPopover';
 import { generateICS } from '@/lib/ics';
+import { splitUpcomingPast } from '@/lib/scheduleView';
 import { useToast } from '@/components/ui/Toast';
 import { Button, EyebrowLabel } from '@/components/ui';
 import { Link2 } from 'lucide-react';
@@ -125,7 +126,8 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
   };
 
   const handleDownloadAllIcs = () => {
-    const upcoming = sessions.filter((s) => s.status === 'confirmed');
+    const confirmed = sessions.filter((s) => s.status === 'confirmed');
+    const { upcoming } = splitUpcomingPast(confirmed, new Date());
     const events = upcoming.map((s) => ({
       date: s.date,
       startTime: s.start_time || undefined,

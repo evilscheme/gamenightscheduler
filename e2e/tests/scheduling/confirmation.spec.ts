@@ -40,26 +40,26 @@ test.describe('Session Confirmation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Wait for suggestions to load
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+    // Wait for schedule tab to render
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Click the first confirm button
-    const confirmButton = page.getByRole('button', { name: /^confirm$/i }).first();
-    await expect(confirmButton).toBeVisible();
-    await confirmButton.click();
+    // Click the first "Schedule game" button (rank #1 row auto-expands)
+    const lockInButton = page.getByRole('button', { name: /schedule game/i }).first();
+    await expect(lockInButton).toBeVisible();
+    await lockInButton.click();
 
-    // Modal should appear with "Schedule Session" heading
-    await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
+    // Modal should appear (identified by data-testid)
+    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
 
-    // Should have start and end time inputs (use text to find the parent, then get the input)
-    await expect(page.getByText('Start Time').locator('..').locator('input')).toBeVisible();
-    await expect(page.getByText('End Time').locator('..').locator('input')).toBeVisible();
+    // Should have start and end time inputs
+    await expect(page.locator('[data-testid="schedule-session-modal"] input[type="time"]').first()).toBeVisible();
+    await expect(page.locator('[data-testid="schedule-session-modal"] input[type="time"]').nth(1)).toBeVisible();
 
     // Should have confirm and cancel buttons in modal
-    await expect(page.getByRole('button', { name: /confirm session/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /cancel/i })).toBeVisible();
+    await expect(page.locator('[data-testid="confirm-session-submit"]')).toBeVisible();
+    await expect(page.locator('[data-testid="schedule-session-modal"]').getByRole('button', { name: /cancel/i })).toBeVisible();
   });
 
   test('GM can set custom times and confirm session', async ({ page, request }) => {
@@ -92,19 +92,19 @@ test.describe('Session Confirmation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Click confirm on first suggestion
-    await page.getByRole('button', { name: /^confirm$/i }).first().click();
+    // Click lock in on first suggestion
+    await page.getByRole('button', { name: /schedule game/i }).first().click();
 
     // Wait for modal
-    await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
+    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
 
     // Set custom times: 7 PM to 11 PM
-    const startTimeInput = page.getByText('Start Time').locator('..').locator('input');
-    const endTimeInput = page.getByText('End Time').locator('..').locator('input');
+    const startTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').first();
+    const endTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').nth(1);
 
     await startTimeInput.clear();
     await startTimeInput.fill('19:00');
@@ -112,10 +112,10 @@ test.describe('Session Confirmation', () => {
     await endTimeInput.fill('23:00');
 
     // Submit the confirmation
-    await page.getByRole('button', { name: /confirm session/i }).click();
+    await page.locator('[data-testid="confirm-session-submit"]').click();
 
     // Modal should close
-    await expect(page.getByRole('heading', { name: /schedule session/i })).not.toBeVisible();
+    await expect(page.locator('[data-testid="schedule-session-modal"]')).not.toBeVisible();
 
     // Session should appear in confirmed sessions section
     await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
@@ -157,7 +157,7 @@ test.describe('Session Confirmation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 
@@ -165,20 +165,18 @@ test.describe('Session Confirmation', () => {
     // Note: we just check that we can get to this point; specific checks done after confirm
 
     // Confirm a session
-    await page.getByRole('button', { name: /^confirm$/i }).first().click();
-    await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
-    await page.getByRole('button', { name: /confirm session/i }).click();
+    await page.getByRole('button', { name: /schedule game/i }).first().click();
+    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
+    await page.locator('[data-testid="confirm-session-submit"]').click();
 
     // Now confirmed sessions should be visible
     await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Should show the dice icon for confirmed sessions
-    await expect(page.locator('svg.lucide-dice-6').first()).toBeVisible();
-
-    // Should have export button
-    await expect(page.getByRole('button', { name: /export/i }).first()).toBeVisible();
+    // Should have a calendar export button (per-session "Add to calendar" or
+    // bulk "Add all to calendar")
+    await expect(page.getByRole('button', { name: /add (all )?to calendar/i }).first()).toBeVisible();
   });
 
   test('player cannot access confirm action', async ({ page, request }) => {
@@ -221,17 +219,14 @@ test.describe('Session Confirmation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Player should see suggestions but no confirm buttons
-    // The component shows "Ask your GM to confirm dates." for non-GM
-    await expect(page.getByText(/ask your gm/i)).toBeVisible();
-
-    // Confirm button should not be present for player
-    const confirmButtons = page.getByRole('button', { name: /^confirm$/i });
-    await expect(confirmButtons).toHaveCount(0);
+    // Player sees the ranked list but no "Lock in" buttons (only GM can confirm)
+    await expect(page.locator('[data-testid="ranked-list"]')).toBeVisible();
+    const lockInButtons = page.getByRole('button', { name: /schedule game/i });
+    await expect(lockInButtons).toHaveCount(0);
   });
 
   test('confirmation modal uses game default times', async ({ page, request }) => {
@@ -267,19 +262,19 @@ test.describe('Session Confirmation', () => {
     });
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Click confirm on first suggestion
-    await page.getByRole('button', { name: /^confirm$/i }).first().click();
+    // Click lock in on first suggestion
+    await page.getByRole('button', { name: /schedule game/i }).first().click();
 
     // Wait for modal
-    await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
+    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
 
     // Check that the time inputs are pre-filled with game's default times
-    const startTimeInput = page.getByText('Start Time').locator('..').locator('input');
-    const endTimeInput = page.getByText('End Time').locator('..').locator('input');
+    const startTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').first();
+    const endTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').nth(1);
 
     await expect(startTimeInput).toHaveValue('19:30');
     await expect(endTimeInput).toHaveValue('23:30');
@@ -315,6 +310,6 @@ test.describe('Session Confirmation', () => {
 
     // Should show default session time in overview (5:00 PM - 9:00 PM)
     await expect(page.getByText(/default session time/i)).toBeVisible();
-    await expect(page.getByText(/5:00 PM - 9:00 PM/)).toBeVisible();
+    await expect(page.getByText(/5:00 PM\s+[-–]\s+9:00 PM/)).toBeVisible();
   });
 });

@@ -4,12 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Users, Calendar } from "lucide-react";
-import {
-  Button,
-  Card,
-  CardContent,
-  LoadingSpinner,
-} from "@/components/ui";
+import { Button, LoadingSpinner } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { GameWithGM } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
@@ -98,15 +93,18 @@ export function DashboardContent() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Your Games</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your games and sessions
-          </p>
+          <h1 className="text-2xl font-semibold text-foreground">Your Games</h1>
+          {games.length > 0 && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              <span className="font-mono">{games.length}</span>{' '}
+              {games.length === 1 ? 'game' : 'games'}
+            </p>
+          )}
         </div>
         {profile?.is_gm && games.length > 0 && (
-          <Link href="/games/new">
+          <Link href="/games/new" className="shrink-0">
             <Button>Create New Game</Button>
           </Link>
         )}
@@ -115,59 +113,62 @@ export function DashboardContent() {
       {games.length === 0 ? (
         <WelcomeEmptyState />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {games.map((game) => (
-            <Link key={game.id} href={`/games/${game.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                <CardContent className="py-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
+        <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {games.map((game) => {
+            const isOwner = game.gm_id === profile?.id;
+            const cadence = game.ad_hoc_only
+              ? 'Ad-hoc'
+              : game.play_days.map((d) => DAY_LABELS.short[d]).join(', ');
+
+            return (
+              <li key={game.id} className="contents">
+                <Link
+                  href={`/games/${game.id}`}
+                  className="flex h-full flex-col rounded-xl border border-border bg-card p-4 transition-colors hover:ring-2 hover:ring-primary/30"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
                       <h3 className="text-lg font-semibold text-card-foreground">
                         {game.name}
                       </h3>
                       <p className="text-sm text-muted-foreground">
                         GM: {game.gm.name}
-                        {game.gm_id === profile?.id && " (You)"}
+                        {isOwner && " (You)"}
                       </p>
                     </div>
-                    {game.gm_id === profile?.id && (
-                      <span className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-sm">
+                    {isOwner && (
+                      <span className="rounded-sm bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-primary">
                         GM
                       </span>
                     )}
                     {game.is_co_gm && (
-                      <span className="px-2 py-1 text-xs font-medium bg-secondary text-secondary-foreground rounded-sm">
-                        Co-GM
+                      <span className="rounded-sm bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-primary">
+                        CO-GM
                       </span>
                     )}
                   </div>
 
                   {game.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                    <p className="mt-3 text-sm text-muted-foreground line-clamp-2">
                       {game.description}
                     </p>
                   )}
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                      <Users className="size-4" />
-                      {game.member_count} player
-                      {game.member_count !== 1 ? "s" : ""}
+                  <div className="mt-auto flex items-center gap-3 pt-3 font-mono text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Users className="size-3" />
+                      {game.member_count} player{game.member_count !== 1 ? 's' : ''}
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="size-4" />
-                      {game.ad_hoc_only
-                        ? "Ad-hoc"
-                        : game.play_days
-                            .map((d) => DAY_LABELS.short[d])
-                            .join(", ")}
+                    <span className="inline-flex items-center gap-1.5">
+                      <Calendar className="size-3" />
+                      {cadence}
                     </span>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

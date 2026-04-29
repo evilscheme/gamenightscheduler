@@ -68,7 +68,7 @@ export interface UseGameDetailReturn {
     startTime: string,
     endTime: string
   ) => Promise<{ success: boolean; error?: string }>;
-  cancelSession: (date: string) => Promise<void>;
+  cancelSession: (date: string) => Promise<{ success: boolean; error?: string }>;
   regenerateInvite: () => Promise<void>;
   leaveGame: () => Promise<boolean>;
   removePlayer: (playerId: string) => Promise<boolean>;
@@ -434,14 +434,15 @@ export function useGameDetail(
   );
 
   const cancelSession = useCallback(
-    async (date: string) => {
-      if (!userId || !gameId) return;
+    async (date: string): Promise<{ success: boolean; error?: string }> => {
+      if (!userId || !gameId) return { success: false, error: 'Not authenticated' };
 
       const { error } = await cancelSessionQuery(supabase, gameId, date);
 
-      if (!error) {
-        setSessions((prev) => prev.filter((s) => s.date !== date));
-      }
+      if (error) return { success: false, error: error.message };
+
+      setSessions((prev) => prev.filter((s) => s.date !== date));
+      return { success: true };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
     [userId, gameId]

@@ -4,13 +4,22 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner, Textarea } from '@/components/ui';
+import { Button, EyebrowLabel, Input, LoadingSpinner, Modal, Textarea, useToast } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
-import { fetchGameWithGM, checkCoGmStatus, fetchFutureSessions, upsertPlayDate, updateGame } from '@/lib/data';
+import {
+  fetchGameWithGM,
+  checkCoGmStatus,
+  fetchFutureSessions,
+  upsertPlayDate,
+  updateGame,
+  regenerateInviteCode,
+  deleteGame as deleteGameQuery,
+} from '@/lib/data';
 import { DAY_OPTIONS, SESSION_DEFAULTS, TIMEZONE_GROUPS, DEFAULT_TIMEZONE, USAGE_LIMITS, SCHEDULING_WINDOW_OPTIONS } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { nanoid } from 'nanoid';
 
 export default function EditGamePage() {
   const { profile, authStatus } = useAuth();
@@ -38,6 +47,13 @@ export default function EditGamePage() {
   const [conversionMessage, setConversionMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const toast = useToast();
 
   useAuthRedirect();
 
@@ -158,6 +174,33 @@ export default function EditGamePage() {
     router.push(`/games/${gameId}`);
   };
 
+  const handleRegenerateInvite = async () => {
+    if (!game) return;
+    setIsRegenerating(true);
+    const newCode = nanoid(10);
+    const { error: regenError } = await regenerateInviteCode(supabase, gameId, newCode);
+    setIsRegenerating(false);
+    setShowRegenerateConfirm(false);
+    if (regenError) {
+      toast.show('Could not regenerate invite code. Please try again.', 'danger');
+      return;
+    }
+    setGame({ ...game, invite_code: newCode });
+    toast.show('Invite code regenerated. The old link no longer works.');
+  };
+
+  const handleDeleteGame = async () => {
+    setIsDeleting(true);
+    const { error: deleteError } = await deleteGameQuery(supabase, gameId);
+    if (deleteError) {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      toast.show('Could not delete the game. Please try again.', 'danger');
+      return;
+    }
+    router.push('/dashboard');
+  };
+
   if (authStatus === 'loading' || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
@@ -168,16 +211,22 @@ export default function EditGamePage() {
 
   if (!game) return null;
 
+  const isOwner = game.gm_id === profile?.id;
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-foreground mb-8">Edit Game</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">Edit Game</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Update {game.name}&apos;s settings, schedule, or session defaults.
+        </p>
+      </div>
 
-      <form onSubmit={handleSave}>
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Game Settings</h2>
-          </CardHeader>
-          <CardContent className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-5">
+        {/* ── Identity ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Identity</EyebrowLabel>
+          <div className="space-y-6">
             <Input
               label="Game Name"
               value={name}
@@ -193,7 +242,13 @@ export default function EditGamePage() {
               placeholder="A brief description of your game..."
               rows={3}
             />
+          </div>
+        </section>
 
+        {/* ── Schedule ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Schedule</EyebrowLabel>
+          <div className="space-y-6">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -372,7 +427,13 @@ export default function EditGamePage() {
                 />
               )}
             </div>
+          </div>
+        </section>
 
+        {/* ── Sessions ─────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Sessions</EyebrowLabel>
+          <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-foreground mb-3">
                 Default Session Time
@@ -449,25 +510,129 @@ export default function EditGamePage() {
                 Dates with fewer available players will be ranked lower. Set to 0 to disable.
               </p>
             </div>
+          </div>
+        </section>
 
-            {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
-            <div className="flex gap-4 pt-4">
-              <Button type="submit" disabled={saving} className="flex-1">
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push(`/games/${gameId}`)}
-                disabled={saving}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex gap-4 pt-2">
+          <Button type="submit" disabled={saving} className="flex-1">
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => router.push(`/games/${gameId}`)}
+            disabled={saving}
+          >
+            Cancel
+          </Button>
+        </div>
       </form>
+
+      <section className="mt-6 rounded-xl border border-destructive/40 bg-card p-4 sm:p-6">
+        <EyebrowLabel variant="danger" className="mb-4 block">Danger Zone</EyebrowLabel>
+        <div className="space-y-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="sm:max-w-md">
+              <p className="text-sm font-medium text-foreground">Regenerate invite code</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Use this if the invite link has been shared somewhere it shouldn&apos;t be. The
+                old link stops working immediately. Players already in the game keep access,
+                but anyone holding the old link will be cut off, and calendar subscribers will
+                need to re-subscribe with the new URL.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowRegenerateConfirm(true)}
+              className="shrink-0"
+            >
+              Regenerate invite code
+            </Button>
+          </div>
+
+          {isOwner && (
+            <>
+              <div className="border-t border-destructive/20" />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="sm:max-w-md">
+                  <p className="text-sm font-medium text-foreground">Delete game</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Permanently delete this game and all of its players, availability data,
+                    and scheduled sessions. This cannot be undone.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="shrink-0"
+                >
+                  Delete game
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
+      <Modal
+        open={showRegenerateConfirm}
+        onClose={() => !isRegenerating && setShowRegenerateConfirm(false)}
+        title="Regenerate invite code?"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setShowRegenerateConfirm(false)}
+              disabled={isRegenerating}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleRegenerateInvite}
+              disabled={isRegenerating}
+            >
+              {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          This will invalidate the current invite link and calendar subscription URL. Anyone
+          using the old link will no longer be able to join, and calendar apps will need to
+          re-subscribe with the new URL.
+        </p>
+      </Modal>
+
+      <Modal
+        open={showDeleteConfirm}
+        onClose={() => !isDeleting && setShowDeleteConfirm(false)}
+        title="Delete game?"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeleteGame} disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete game'}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Are you sure you want to permanently delete <strong>{game.name}</strong>? This will
+          remove all players, availability data, and scheduled sessions. This action cannot be
+          undone.
+        </p>
+      </Modal>
     </div>
   );
 }

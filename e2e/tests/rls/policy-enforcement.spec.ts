@@ -394,14 +394,17 @@ test.describe('Availability Record Isolation', () => {
     // Go to schedule tab to see everyone's availability
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Player should see both GM and their own availability in suggestions
-    await expect(page.getByText(/date suggestions/i)).toBeVisible({
+    // Player should see the schedule tab (with both GM and own availability aggregated)
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
       timeout: TEST_TIMEOUTS.SHORT,
     });
 
-    // The availability summary shows player counts, which means both records are visible
-    // This confirms RLS SELECT policy allows viewing others' availability
-    await expect(page.getByText(/available/i).first()).toBeVisible();
+    // The ranked row shows "1✓ · 1?" — both GM (available) and player (maybe)
+    // are aggregated. This confirms RLS SELECT policy allows viewing others'
+    // availability.
+    const list = page.locator('[data-testid="ranked-list"]');
+    await expect(list.getByText(/1✓/).first()).toBeVisible();
+    await expect(list.getByText(/1\?/).first()).toBeVisible();
   });
 });
 

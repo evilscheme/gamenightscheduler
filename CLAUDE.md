@@ -155,8 +155,11 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 
 ### Game Components
 
-- `src/components/games/GameDetailsCard.tsx` - Game settings and info display
-- `src/components/games/PlayersCard.tsx` - Player list and management
+- `src/components/games/overview/OverviewTabContent.tsx` - Overview tab orchestrator (header + party panel + details sidebar)
+- `src/components/games/overview/PartyPanel.tsx` - Player list and management
+- `src/components/games/overview/GameDetailsPanel.tsx` - Game settings and info display
+- `src/components/games/availability/AvailabilityTabContent.tsx` - Availability tab orchestrator (header + calendar + response-status sidebar)
+- `src/components/games/availability/AvailabilityHeader.tsx` - Availability tab header with progress meta line
 - `src/components/games/SchedulingSuggestions.tsx` - Date suggestions ranked by availability
   - Shows player breakdown (available/maybe/unavailable/pending) with time annotations
   - Displays computed time window (earliest start / latest end) from player constraints

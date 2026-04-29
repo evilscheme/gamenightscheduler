@@ -15,7 +15,7 @@ import {
   parseISO,
 } from "date-fns";
 import { Clock, FileText, MessageSquare, Pencil, Plus, X } from "lucide-react";
-import { Button } from "@/components/ui";
+import { Button, EyebrowLabel } from "@/components/ui";
 import type { GameSession, AvailabilityStatus } from "@/types";
 import { DAY_LABELS, TEXT_LIMITS } from "@/lib/constants";
 import {
@@ -399,7 +399,7 @@ export function AvailabilityCalendar({
           <span>Maybe</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="size-3.5 rounded-sm bg-cal-unavailable-bg" />
+          <div className="size-3.5 rounded-sm bg-cal-unavailable-bg/60" />
           <span>Unavailable</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -407,7 +407,7 @@ export function AvailabilityCalendar({
           <span>Not set</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="size-3.5 rounded-sm bg-cal-disabled-bg" />
+          <div className="size-3.5 rounded-sm bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)]" />
           <span>Non-play day</span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -624,10 +624,10 @@ function MonthCalendar({
   };
 
   return (
-    <div className="bg-card rounded-lg border border-border p-2">
+    <div className="rounded-md bg-background/40 p-2">
       {/* Month header */}
-      <h4 className="text-xs font-semibold text-card-foreground text-center mb-1.5">
-        {format(month, "MMM yyyy")}
+      <h4 className="mb-1 text-xs font-semibold text-card-foreground">
+        {format(month, "MMMM yyyy")}
       </h4>
 
       {/* Weekday headers */}
@@ -635,7 +635,7 @@ function MonthCalendar({
         {weekdays.map((day, i) => (
           <div
             key={`${day}-${i}`}
-            className={`text-center text-[10px] font-medium ${
+            className={`text-center font-mono text-[10px] ${
               playDays.includes((i + weekStartDay) % 7)
                 ? "text-card-foreground"
                 : "text-muted-foreground"
@@ -674,7 +674,11 @@ function MonthCalendar({
           // Can GM remove this extra play date?
           const canRemoveExtra = isGmOrCoGm && isExtraPlayDate && !isPast;
 
-          let bgColor = isOutOfRange ? "cal-out-of-range" : "bg-cal-disabled-bg"; // Non-play day or out-of-range
+          // Non-play day in-range: diagonal stripes (matches schedule mini-calendar).
+          // Out-of-range: dimmer stripe utility class. Both override below for play/scheduled cells.
+          let bgColor = isOutOfRange
+            ? "cal-out-of-range"
+            : "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)]";
           let textColor = "text-cal-disabled-text";
           let cursor = "cursor-default";
           const extraStyles = "";
@@ -691,7 +695,7 @@ function MonthCalendar({
               bgColor = "bg-cal-maybe-bg";
               textColor = "text-cal-maybe-text font-semibold";
             } else if (avail?.status === "unavailable") {
-              bgColor = "bg-cal-unavailable-bg";
+              bgColor = "bg-cal-unavailable-bg/60";
               textColor = "text-cal-unavailable-text font-semibold";
             } else {
               // Unset - use unset styling so player knows they haven't responded
@@ -708,7 +712,7 @@ function MonthCalendar({
             } else if (avail?.status === "maybe") {
               bgColor = "bg-cal-maybe-bg";
             } else if (avail?.status === "unavailable") {
-              bgColor = "bg-cal-unavailable-bg";
+              bgColor = "bg-cal-unavailable-bg/60";
             } else {
               bgColor = "bg-cal-unset-bg";
             }
@@ -722,7 +726,7 @@ function MonthCalendar({
               bgColor = "bg-cal-maybe-bg";
               textColor = "text-cal-maybe-text font-medium";
             } else if (avail?.status === "unavailable") {
-              bgColor = "bg-cal-unavailable-bg";
+              bgColor = "bg-cal-unavailable-bg/60";
               textColor = "text-cal-unavailable-text font-medium";
             } else {
               // Unset play day - but not if it's today (today gets solid styling)
@@ -821,7 +825,7 @@ function MonthCalendar({
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
               disabled={(!isPlayDay && !canAddAsExtra) || isPast || isOutOfRange}
-              className={`group relative w-full aspect-square min-h-9 rounded-sm flex items-center justify-center text-xs transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
+              className={`group relative w-full aspect-square min-h-9 rounded-sm flex items-center justify-center font-mono text-xl transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}
               data-status={dataStatus}
@@ -1039,9 +1043,7 @@ function NoteEditorPopover({
         {/* GM Note section */}
         {showGmNote && (
           <div className="mb-3">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-              GM Note
-            </div>
+            <EyebrowLabel variant="muted" className="block mb-2">GM Note</EyebrowLabel>
             <div className="bg-secondary/50 rounded-md p-3">
               {isGmOrCoGm ? (
                 <div>
@@ -1073,9 +1075,7 @@ function NoteEditorPopover({
         {/* Your Availability section — only when user has set availability */}
         {hasAvailability && (
           <div className="mb-3">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-              Your Availability
-            </div>
+            <EyebrowLabel variant="muted" className="block mb-2">Your Availability</EyebrowLabel>
             <div className="space-y-3">
               {showTimeFields && (
                 <div className="grid grid-cols-2 gap-3">

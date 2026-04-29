@@ -63,13 +63,13 @@ test.describe('Multi-User Session Visibility', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
       await gmPage.getByRole('button', { name: /schedule/i }).click();
-      await expect(gmPage.getByText(/date suggestions/i)).toBeVisible({
+      await expect(gmPage.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      await gmPage.getByRole('button', { name: /^confirm$/i }).first().click();
-      await expect(gmPage.getByRole('heading', { name: /schedule session/i })).toBeVisible();
-      await gmPage.getByRole('button', { name: /confirm session/i }).click();
+      await gmPage.getByRole('button', { name: /schedule game/i }).first().click();
+      await expect(gmPage.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
+      await gmPage.locator('[data-testid="confirm-session-submit"]').click();
 
       // GM sees confirmed session
       await expect(gmPage.getByText(/upcoming sessions/i)).toBeVisible({
@@ -87,8 +87,8 @@ test.describe('Multi-User Session Visibility', () => {
         timeout: TEST_TIMEOUTS.LONG,
       });
 
-      // Player should see the dice icon for confirmed session
-      await expect(playerPage.locator('[data-testid="suggestion-icon"]').first()).toBeVisible();
+      // Player should see the confirmed session row
+      await expect(playerPage.locator('[data-testid="scheduled-row"]').first()).toBeVisible();
     } finally {
       await gmContext.close();
       await playerContext.close();

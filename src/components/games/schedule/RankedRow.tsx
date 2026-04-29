@@ -1,0 +1,157 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { ChevronRight, Clock } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import type { DateSuggestion } from '@/types';
+import { Button, EyebrowLabel, RankCircle } from '@/components/ui';
+import { formatTimeWindow } from '@/lib/scheduleView';
+import { PartyBreakdown } from './PartyBreakdown';
+import { PlayerAvatarCluster, type PlayerAvatarItem } from './PlayerAvatarCluster';
+import { useHoverSync } from './HoverSyncContext';
+
+interface RankedRowProps {
+  rank: number;
+  suggestion: DateSuggestion;
+  isGm: boolean;
+  gmId: string;
+  coGmIds: Set<string>;
+  use24h: boolean;
+  belowThreshold: boolean;
+  defaultExpanded: boolean;
+  minPlayersNeeded: number;
+  playDateNote?: string | null;
+  onLockIn: (date: string) => void;
+  autoScrollTrigger?: string | null;
+}
+
+export function RankedRow({
+  rank,
+  suggestion,
+  isGm,
+  gmId,
+  coGmIds,
+  use24h,
+  belowThreshold,
+  defaultExpanded,
+  minPlayersNeeded,
+  playDateNote,
+  onLockIn,
+  autoScrollTrigger,
+}: RankedRowProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const rootRef = useRef<HTMLLIElement | null>(null);
+  const { hoveredDate, setHoveredDate } = useHoverSync();
+  const isHovered = hoveredDate === suggestion.date;
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (autoScrollTrigger && autoScrollTrigger === suggestion.date) {
+      setExpanded(true);
+      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [autoScrollTrigger, suggestion.date]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const groupYesPct = Math.round(
+    (suggestion.availableCount / Math.max(1, suggestion.totalPlayers)) * 100
+  );
+  const windowLabel = formatTimeWindow(suggestion.earliestStartTime, suggestion.latestEndTime, use24h);
+  const highlighted = rank === 1 && !belowThreshold;
+
+  const visibleAvatars: PlayerAvatarItem[] = [
+    ...suggestion.availablePlayers.map((p) => ({ state: 'available' as const, user: p.user })),
+    ...suggestion.maybePlayers.map((p) => ({ state: 'maybe' as const, user: p.user })),
+    ...suggestion.unavailablePlayers.map((p) => ({ state: 'unavailable' as const, user: p.user })),
+    ...suggestion.pendingPlayers.map((u) => ({ state: 'unset' as const, user: u })),
+  ].slice(0, 8);
+
+  return (
+    <li
+      ref={rootRef}
+      data-testid="ranked-row"
+      data-date={suggestion.date}
+      onMouseEnter={() => setHoveredDate(suggestion.date, 'row')}
+      onMouseLeave={() => setHoveredDate(null)}
+      className={`rounded-xl border p-4 transition-colors ${
+        highlighted
+          ? 'border-primary/40 bg-card ring-1 ring-primary/15'
+          : 'border-border bg-card'
+      } ${isHovered ? 'ring-2 ring-primary/30' : ''}`}
+    >
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+        className="grid w-full grid-cols-[auto_1fr_auto_auto] items-center gap-3 text-left"
+      >
+        <RankCircle rank={rank} highlighted={highlighted} />
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-2">
+            <span className="text-base font-semibold text-card-foreground">
+              {format(parseISO(suggestion.date), 'EEE, MMM d')}
+            </span>
+            {belowThreshold && (
+              <EyebrowLabel variant="warning" className="rounded-sm bg-warning/15 px-1.5 py-0.5">
+                Below threshold
+              </EyebrowLabel>
+            )}
+          </p>
+          <div className="mt-1 flex items-center gap-2">
+            <PlayerAvatarCluster avatars={visibleAvatars} />
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {minPlayersNeeded > 0 && (
+                <>
+                  <span className="whitespace-nowrap">
+                    {suggestion.availableCount}/{minPlayersNeeded} needed
+                  </span>
+                  {' · '}
+                </>
+              )}
+              <span className="whitespace-nowrap">{suggestion.availableCount}✓</span>
+              {' · '}
+              <span className="whitespace-nowrap">{suggestion.maybeCount}?</span>
+              {' · '}
+              <span className="whitespace-nowrap">{suggestion.unavailableCount}✕</span>
+              {' · '}
+              <span className="whitespace-nowrap">{suggestion.pendingCount} pending</span>
+            </span>
+          </div>
+          {windowLabel && (
+            <p className="mt-1 inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+              <Clock className="size-3" /> {windowLabel}
+            </p>
+          )}
+          {playDateNote && (
+            <p className="mt-1 text-[11px] italic text-muted-foreground">{playDateNote}</p>
+          )}
+        </div>
+        <div className="text-right">
+          <p className={`font-mono leading-none text-card-foreground font-bold ${highlighted ? 'text-2xl' : 'text-xl'}`}>
+            {groupYesPct}%
+          </p>
+          <EyebrowLabel variant="muted">group yes</EyebrowLabel>
+        </div>
+        <ChevronRight className={`size-4 text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`} />
+      </button>
+
+      {expanded && (
+        <div className="mt-3 border-t border-border pt-3">
+          <EyebrowLabel variant="muted" className="mb-2 block">Party breakdown</EyebrowLabel>
+          <PartyBreakdown suggestion={suggestion} gmId={gmId} coGmIds={coGmIds} use24h={use24h} />
+          {isGm && (
+            <div className="mt-3 flex items-center justify-end">
+              <Button
+                size="sm"
+                onClick={() => onLockIn(suggestion.date)}
+                title="Schedule a game session for this date"
+              >
+                ★ Schedule game
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}

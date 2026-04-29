@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import Link from 'next/link';
-import { Button, Card, CardContent, CardHeader, Input, LoadingSpinner } from '@/components/ui';
+import { Button, EyebrowLabel, Input, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { TEXT_LIMITS, TIMEZONE_GROUPS } from '@/lib/constants';
 import { ThemePicker } from '@/components/settings/ThemePicker';
@@ -44,7 +44,6 @@ export default function SettingsPage() {
   const handleSave = async () => {
     if (!profile?.id) return;
 
-    // Validate name length
     if (!name.trim()) {
       setMessage('Display name cannot be empty.');
       return;
@@ -68,7 +67,6 @@ export default function SettingsPage() {
       .eq('id', profile.id);
 
     if (error) {
-      // Check if it's a constraint violation
       if (error.code === '23514') {
         setMessage(`Display name must be ${TEXT_LIMITS.USER_DISPLAY_NAME} characters or less.`);
       } else {
@@ -76,7 +74,6 @@ export default function SettingsPage() {
       }
     } else {
       setMessage('Settings saved successfully!');
-      // Refresh profile data
       await refreshProfile();
     }
 
@@ -93,170 +90,164 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-foreground mb-8">Settings</h1>
-
-      <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold text-card-foreground">Profile</h2>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
-            <p className="text-foreground">{profile?.email}</p>
-            <p className="text-sm text-muted-foreground mt-1">Email cannot be changed</p>
-          </div>
-
-          <Input
-            label="Display Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            maxLength={TEXT_LIMITS.USER_DISPLAY_NAME}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <h2 className="text-lg font-semibold text-card-foreground">Preferences</h2>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Timezone
-            </label>
-            <div className="flex gap-2">
-              <select
-                value={userTimezone}
-                onChange={(e) => setUserTimezone(e.target.value)}
-                className="flex-1 px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
-              >
-                <option value="">Not set (use browser default)</option>
-                {TIMEZONE_GROUPS.map((group) => (
-                  <optgroup key={group.label} label={group.label}>
-                    {group.options.map((tz) => (
-                      <option key={tz.value} value={tz.value}>
-                        {tz.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleDetectTimezone}
-                className="shrink-0"
-              >
-                Detect
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Used as default when creating games and for converting session times
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Week starts on
-            </label>
-            <div className="flex rounded-lg border border-border overflow-hidden w-fit">
-              <button
-                type="button"
-                onClick={() => setWeekStartDay(0)}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  weekStartDay === 0
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                Sunday
-              </button>
-              <button
-                type="button"
-                onClick={() => setWeekStartDay(1)}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  weekStartDay === 1
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                Monday
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Time format
-            </label>
-            <div className="flex rounded-lg border border-border overflow-hidden w-fit">
-              <button
-                type="button"
-                onClick={() => setTimeFormat('12h')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  timeFormat === '12h'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                12-hour (2:30 PM)
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimeFormat('24h')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                  timeFormat === '24h'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                24-hour (14:30)
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {message && (
-        <p
-          className={`text-sm mt-4 ${message.includes('Error') ? 'text-danger' : 'text-success'}`}
-        >
-          {message}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Update your profile, display preferences, and theme.
         </p>
-      )}
-
-      <div className="flex justify-end mt-6">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
       </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <h2 className="text-lg font-semibold text-card-foreground">Appearance</h2>
-        </CardHeader>
-        <CardContent>
-          <ThemePicker />
-        </CardContent>
-      </Card>
+      <div className="space-y-5">
+        {/* ── Profile ──────────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Profile</EyebrowLabel>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
+              <p className="text-foreground">{profile?.email}</p>
+              <p className="text-sm text-muted-foreground mt-1">Email cannot be changed</p>
+            </div>
 
-      <Card className="mt-6 border-destructive/40">
-        <CardHeader>
-          <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-foreground">Delete Account</p>
-            <p className="text-sm text-muted-foreground">
-              Permanently delete your account and all data associated with it.
-            </p>
+            <Input
+              label="Display Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              maxLength={TEXT_LIMITS.USER_DISPLAY_NAME}
+            />
           </div>
-          <Link href="/settings/delete-account" className="shrink-0">
-            <Button variant="danger">Delete Account</Button>
-          </Link>
-        </CardContent>
-      </Card>
+        </section>
+
+        {/* ── Preferences ──────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Preferences</EyebrowLabel>
+          <div className="space-y-6">
+            <div>
+              <label htmlFor="timezone" className="block text-sm font-medium text-foreground mb-1">
+                Timezone
+              </label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <select
+                  id="timezone"
+                  value={userTimezone}
+                  onChange={(e) => setUserTimezone(e.target.value)}
+                  className="w-full min-w-0 sm:flex-1 px-3 py-2 border border-border rounded-lg shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring"
+                >
+                  <option value="">Not set (use browser default)</option>
+                  {TIMEZONE_GROUPS.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.options.map((tz) => (
+                        <option key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleDetectTimezone}
+                  className="shrink-0 sm:w-auto"
+                >
+                  Detect
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Used as default when creating games and for converting session times
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Week starts on
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 0, label: 'Sunday' },
+                  { value: 1, label: 'Monday' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    aria-pressed={weekStartDay === opt.value}
+                    onClick={() => setWeekStartDay(opt.value)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      weekStartDay === opt.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Time format
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: '12h', label: '12-hour (2:30 PM)' },
+                  { value: '24h', label: '24-hour (14:30)' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    aria-pressed={timeFormat === opt.value}
+                    onClick={() => setTimeFormat(opt.value)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      timeFormat === opt.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Appearance ───────────────────────────────────────────────── */}
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <EyebrowLabel className="mb-4 block">Appearance</EyebrowLabel>
+          <ThemePicker />
+        </section>
+
+        {message && (
+          <p
+            className={`text-sm ${message.includes('Error') ? 'text-danger' : 'text-success'}`}
+          >
+            {message}
+          </p>
+        )}
+
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </div>
+
+        {/* ── Danger Zone ──────────────────────────────────────────────── */}
+        <section className="mt-2 rounded-xl border border-destructive/40 bg-card p-4 sm:p-6">
+          <EyebrowLabel variant="danger" className="mb-4 block">Danger Zone</EyebrowLabel>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="sm:max-w-md">
+              <p className="text-sm font-medium text-foreground">Delete Account</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Permanently delete your account and all data associated with it.
+              </p>
+            </div>
+            <Link href="/settings/delete-account" className="shrink-0">
+              <Button variant="danger">Delete Account</Button>
+            </Link>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

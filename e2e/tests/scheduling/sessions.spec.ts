@@ -50,8 +50,8 @@ test.describe('Session Scheduling', () => {
     await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Should see date suggestions section
-    await expect(page.getByText(/date suggestions/i)).toBeVisible();
+    // Should see the schedule tab content with ranked list
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible();
   });
 
   // Note: "GM can see confirm button" test removed - it was a no-op assertion
@@ -91,8 +91,8 @@ test.describe('Session Scheduling', () => {
     await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Player should see suggestions but no confirm buttons (only GM can confirm)
-    await expect(page.getByText(/date suggestions/i)).toBeVisible();
+    // Player should see schedule tab but no "Lock in" buttons (only GM can confirm)
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible();
   });
 
   test('shows confirmed sessions', async ({ page, request }) => {
@@ -132,8 +132,8 @@ test.describe('Session Scheduling', () => {
     await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Should see confirmed sessions section or the session
-    await expect(page.getByText(/confirmed|session/i).first()).toBeVisible();
+    // Should see a scheduled row for the confirmed session
+    await expect(page.locator('[data-testid="scheduled-row"]').first()).toBeVisible();
   });
 
   test('shows export options for confirmed sessions', async ({ page, request }) => {
@@ -231,11 +231,11 @@ test.describe('Session Scheduling', () => {
     await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // Should see "Upcoming Sessions" heading
-    await expect(page.getByRole('heading', { name: /upcoming sessions/i })).toBeVisible();
+    // Should see "Upcoming Sessions" text
+    await expect(page.getByText(/upcoming sessions/i)).toBeVisible();
 
-    // Should see "Past Sessions" toggle button (collapsed by default)
-    await expect(page.getByRole('button', { name: /past sessions \(\d+\)/i })).toBeVisible();
+    // Should see "Previous sessions" toggle button (collapsed by default)
+    await expect(page.locator('[data-testid="past-sessions"] button').first()).toBeVisible();
   });
 
   test('past sessions section is collapsed by default', async ({ page, request }) => {
@@ -276,8 +276,11 @@ test.describe('Session Scheduling', () => {
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Past sessions toggle button should be visible (collapsed)
-    const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\)/i });
+    const pastSessionsButton = page.locator('[data-testid="past-sessions"] button').first();
     await expect(pastSessionsButton).toBeVisible();
+
+    // Should show "Previous sessions" text
+    await expect(page.getByText(/previous sessions/i)).toBeVisible();
   });
 
   test('past sessions can be expanded and collapsed', async ({ page, request }) => {
@@ -318,17 +321,21 @@ test.describe('Session Scheduling', () => {
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Click to expand past sessions
-    const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\)/i });
+    const pastSessionsButton = page.locator('[data-testid="past-sessions"] button').first();
+    await expect(pastSessionsButton).toBeVisible();
     await pastSessionsButton.click();
 
-    // Should still be visible (expanded state doesn't change button name)
-    await expect(page.getByRole('button', { name: /past sessions \(\d+\)/i })).toBeVisible();
+    // Past session rows should now be visible
+    await expect(page.locator('[data-testid="past-session-row"]').first()).toBeVisible();
 
     // Click again to collapse
     await pastSessionsButton.click();
 
+    // Past session rows should be hidden again
+    await expect(page.locator('[data-testid="past-session-row"]').first()).not.toBeVisible();
+
     // Button should still be visible (collapsed)
-    await expect(page.getByRole('button', { name: /past sessions \(\d+\)/i })).toBeVisible();
+    await expect(pastSessionsButton).toBeVisible();
   });
 
   test('past sessions do not have Cancel button for GM', async ({ page, request }) => {
@@ -369,102 +376,18 @@ test.describe('Session Scheduling', () => {
     await page.getByRole('button', { name: /schedule/i }).click();
 
     // Expand past sessions
-    const pastSessionsButton = page.getByRole('button', { name: /past sessions \(\d+\)/i });
+    const pastSessionsButton = page.locator('[data-testid="past-sessions"] button').first();
     await pastSessionsButton.click();
 
     // Wait for the content to be visible
-    await expect(page.getByRole('button', { name: /past sessions \(\d+\)/i })).toBeVisible();
+    await expect(page.locator('[data-testid="past-session-row"]').first()).toBeVisible();
 
-    // The past sessions card should be visible now
-    // Since we only have past sessions (no upcoming), there should be no Cancel buttons on the page
-    // in the sessions area. Wait a moment for content to load.
+    // Wait a moment for content to load.
     await page.waitForTimeout(500);
 
     // There should be no Cancel button visible (past sessions don't have them)
     // The only Cancel buttons on the schedule tab would be in upcoming sessions
     const cancelButtons = page.locator('[data-testid="past-sessions"]').getByRole('button', { name: /^cancel$/i });
     await expect(cancelButtons).toHaveCount(0);
-  });
-
-  test('can toggle between Best Match and By Date sorting', async ({ page, request }) => {
-    const gm = await createTestUser(request, {
-      email: `gm-sort-toggle-${Date.now()}@e2e.local`,
-      name: 'Sort Toggle GM',
-      is_gm: true,
-    });
-
-    const game = await createTestGame({
-      gm_id: gm.id,
-      name: 'Sort Toggle Campaign',
-      play_days: [5, 6],
-    });
-
-    await loginTestUser(page, {
-      email: gm.email,
-      name: gm.name,
-      is_gm: true,
-    });
-
-    await page.goto(`/games/${game.id}`);
-
-    // Switch to schedule tab
-    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
-    await page.getByRole('button', { name: /schedule/i }).click();
-
-    // Should see the sort toggle buttons
-    const bestMatchButton = page.getByRole('button', { name: /best match/i });
-    const byDateButton = page.getByRole('button', { name: /by date/i });
-
-    await expect(bestMatchButton).toBeVisible();
-    await expect(byDateButton).toBeVisible();
-
-    // Default should be Best Match (aria-pressed=true)
-    await expect(bestMatchButton).toHaveAttribute('aria-pressed', 'true');
-    await expect(byDateButton).toHaveAttribute('aria-pressed', 'false');
-
-    // Click By Date
-    await byDateButton.click();
-    await expect(byDateButton).toHaveAttribute('aria-pressed', 'true');
-    await expect(bestMatchButton).toHaveAttribute('aria-pressed', 'false');
-
-    // Click back to Best Match
-    await bestMatchButton.click();
-    await expect(bestMatchButton).toHaveAttribute('aria-pressed', 'true');
-    await expect(byDateButton).toHaveAttribute('aria-pressed', 'false');
-  });
-
-  test('sort toggle updates description text', async ({ page, request }) => {
-    const gm = await createTestUser(request, {
-      email: `gm-sort-desc-${Date.now()}@e2e.local`,
-      name: 'Sort Description GM',
-      is_gm: true,
-    });
-
-    const game = await createTestGame({
-      gm_id: gm.id,
-      name: 'Sort Description Campaign',
-      play_days: [5, 6],
-    });
-
-    await loginTestUser(page, {
-      email: gm.email,
-      name: gm.name,
-      is_gm: true,
-    });
-
-    await page.goto(`/games/${game.id}`);
-
-    // Switch to schedule tab
-    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
-    await page.getByRole('button', { name: /schedule/i }).click();
-
-    // Default description should mention "ranked by"
-    await expect(page.getByText(/ranked by player availability/i)).toBeVisible();
-
-    // Click By Date
-    await page.getByRole('button', { name: /by date/i }).click();
-
-    // Description should now mention "sorted by date"
-    await expect(page.getByText(/sorted by date/i)).toBeVisible();
   });
 });

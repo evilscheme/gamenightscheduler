@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { BookOpen, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui';
+import { Avatar, Button } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { fetchUserGameCount } from '@/lib/data';
 
@@ -217,18 +217,13 @@ export function Navbar() {
             ) : profile ? (
               <>
                 <Link href="/settings" className="flex items-center gap-2 shrink-0">
-                  {profile.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- external avatar URL
-                    <img
-                      src={profile.avatar_url}
-                      alt={profile.name || ''}
-                      className="size-8 rounded-full shrink-0"
-                    />
-                  ) : (
-                    <div className="size-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium shrink-0">
-                      {profile.name?.[0]?.toUpperCase() || '?'}
-                    </div>
-                  )}
+                  <Avatar
+                    userId={profile.id}
+                    name={profile.name}
+                    avatarUrl={profile.avatar_url}
+                    size={30}
+                    className="shrink-0"
+                  />
                   <span className="hidden sm:block text-sm font-medium text-foreground">
                     {profile.name}
                   </span>

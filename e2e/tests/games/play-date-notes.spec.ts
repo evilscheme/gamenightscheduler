@@ -251,7 +251,7 @@ test.describe('Play Date Notes', () => {
       await page.getByRole('button', { name: /schedule/i }).click();
 
       // Wait for suggestions to load
-      await expect(page.getByText(/date suggestions/i)).toBeVisible({
+      await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 

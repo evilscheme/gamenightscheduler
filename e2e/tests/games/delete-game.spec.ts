@@ -23,7 +23,7 @@ test.describe('Delete Game', () => {
       is_gm: true,
     });
 
-    await page.goto(`/games/${game.id}`);
+    await page.goto(`/games/${game.id}/edit`);
 
     await expect(page.getByRole('button', { name: /delete game/i })).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
@@ -101,7 +101,7 @@ test.describe('Delete Game', () => {
       is_gm: true,
     });
 
-    await page.goto(`/games/${game.id}`);
+    await page.goto(`/games/${game.id}/edit`);
 
     // Wait for page to load
     await expect(page.getByRole('button', { name: /delete game/i })).toBeVisible({
@@ -148,7 +148,7 @@ test.describe('Delete Game', () => {
       is_gm: true,
     });
 
-    await page.goto(`/games/${game.id}`);
+    await page.goto(`/games/${game.id}/edit`);
 
     // Wait for page to load
     await expect(page.getByRole('button', { name: /delete game/i })).toBeVisible({
@@ -159,18 +159,19 @@ test.describe('Delete Game', () => {
     await page.getByRole('button', { name: /delete game/i }).click();
 
     // Modal should appear
-    await expect(page.getByText(/are you sure you want to permanently delete/i)).toBeVisible({
+    const deleteDialog = page.getByRole('dialog', { name: /delete game/i });
+    await expect(deleteDialog).toBeVisible({
       timeout: TEST_TIMEOUTS.DEFAULT,
     });
 
-    // Click Cancel
-    await page.getByRole('button', { name: /cancel/i }).click();
+    // Click Cancel inside the dialog (avoid the form's Cancel button)
+    await deleteDialog.getByRole('button', { name: /cancel/i }).click();
 
     // Modal should close
     await expect(page.getByText(/are you sure you want to permanently delete/i)).not.toBeVisible();
 
-    // Still on game page
-    await expect(page.getByRole('heading', { name: 'Cancel Delete Game' })).toBeVisible();
+    // Still on edit page
+    await expect(page.getByRole('heading', { name: /edit game/i })).toBeVisible();
   });
 
   // Note: "deleted game no longer appears on dashboard" test removed as redundant.

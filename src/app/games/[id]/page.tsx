@@ -4,15 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
-import { Button, LoadingSpinner } from "@/components/ui";
-import { PlayersCard } from "@/components/games/PlayersCard";
-import { GameDetailsCard } from "@/components/games/GameDetailsCard";
+import { Button, LoadingSpinner, Modal, useToast } from "@/components/ui";
+import { OverviewTabContent } from "@/components/games/overview/OverviewTabContent";
 import {
   User,
   DateSuggestion,
 } from "@/types";
-import { AvailabilityCalendar } from "@/components/calendar/AvailabilityCalendar";
-import { SchedulingSuggestions } from "@/components/games/SchedulingSuggestions";
+import { AvailabilityTabContent } from "@/components/games/availability/AvailabilityTabContent";
+import { ScheduleTabContent } from "@/components/games/schedule/ScheduleTabContent";
 import {
   addMonths,
   endOfMonth,
@@ -24,8 +23,7 @@ import {
   startOfDay,
   parseISO,
 } from "date-fns";
-import { TIMEOUTS } from "@/lib/constants";
-import { calculatePlayerCompletionPercentages } from "@/lib/availability";
+import { getPlayDatesInWindow } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useGameDetail } from "@/hooks/useGameDetail";
@@ -55,10 +53,8 @@ export default function GameDetailPage() {
     copyFromGame,
     confirmSession,
     cancelSession,
-    regenerateInvite,
     leaveGame,
     removePlayer,
-    deleteGame,
     toggleCoGm,
     toggleExtraDate,
     updatePlayDateNote,
@@ -67,14 +63,9 @@ export default function GameDetailPage() {
   // UI state
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
-  const [copied, setCopied] = useState(false);
   const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
-  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
@@ -115,21 +106,39 @@ export default function GameDetailPage() {
     [game?.scheduling_window_months, game?.campaign_start_date, game?.campaign_end_date]
   );
 
-  // Calculate availability completion percentage per player
-  const playerCompletionPercentages = useMemo(() => {
-    if (!game) return {};
+  const specialPlayDatesSet = useMemo(
+    () => new Set(extraDateStrings),
+    [extraDateStrings]
+  );
 
-    const allPlayers = [game.gm, ...game.members];
-    return calculatePlayerCompletionPercentages({
-      playerIds: allPlayers.map((p) => p.id),
+  const completionByUserId = useMemo(() => {
+    const map = new Map<string, { answered: number; total: number }>();
+    if (!game) return map;
+    const playDates = getPlayDatesInWindow({
       playDays: game.play_days,
       schedulingWindowMonths: game.scheduling_window_months,
       extraPlayDates: extraDateStrings,
-      availabilityRecords: allAvailability,
       windowStart,
       windowEnd,
     });
+    const total = playDates.length;
+    const playDateSet = new Set(playDates);
+    const allPlayers = [game.gm, ...game.members];
+    for (const p of allPlayers) {
+      const answered = allAvailability.filter(
+        (a) => a.user_id === p.id && playDateSet.has(a.date)
+      ).length;
+      map.set(p.id, { answered, total });
+    }
+    return map;
   }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
+
+  const [subscribeUrl, setSubscribeUrl] = useState('');
+  useEffect(() => {
+    if (typeof window !== 'undefined' && game?.invite_code) {
+      setSubscribeUrl(`webcal://${window.location.host}/api/games/calendar/${game.invite_code}`);
+    }
+  }, [game?.invite_code]);
 
   useAuthRedirect();
 
@@ -174,23 +183,17 @@ export default function GameDetailPage() {
     setSuggestions(suggestionList);
   }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
 
+  const toast = useToast();
+
   // UI action wrappers
-  const copyInviteLink = () => {
+  const copyInviteLink = async () => {
     if (!game) return;
     const link = `${window.location.origin}/games/join/${game.invite_code}`;
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), TIMEOUTS.NOTIFICATION);
-  };
-
-  const handleDeleteGame = async () => {
-    setIsDeleting(true);
-    const success = await deleteGame();
-    if (success) {
-      router.push("/dashboard");
-    } else {
-      setIsDeleting(false);
-      setShowDeleteConfirm(false);
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.show('Invite link copied to clipboard.');
+    } catch {
+      toast.show('Could not copy. Select the URL manually.', 'danger');
     }
   };
 
@@ -203,13 +206,6 @@ export default function GameDetailPage() {
       setIsLeaving(false);
       setShowLeaveConfirm(false);
     }
-  };
-
-  const handleRegenerateInvite = async () => {
-    setIsRegenerating(true);
-    await regenerateInvite();
-    setIsRegenerating(false);
-    setShowRegenerateConfirm(false);
   };
 
   const handleRemovePlayer = async (playerId: string) => {
@@ -274,23 +270,9 @@ export default function GameDetailPage() {
                   Edit
                 </Button>
                 <Button onClick={copyInviteLink} variant="secondary">
-                  {copied ? "Copied!" : "Copy Invite Link"}
-                </Button>
-                <Button
-                  onClick={() => setShowRegenerateConfirm(true)}
-                  variant="secondary"
-                >
-                  Regenerate Invite
+                  Copy Invite Link
                 </Button>
               </>
-            )}
-            {isGm && (
-              <Button
-                onClick={() => setShowDeleteConfirm(true)}
-                variant="danger"
-              >
-                Delete Game
-              </Button>
             )}
             {isMember && !isGm && (
               <Button
@@ -328,240 +310,135 @@ export default function GameDetailPage() {
 
       {/* Tab Content */}
       {activeTab === "overview" && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <PlayersCard
-            allPlayers={allPlayers}
-            gmId={game.gm_id}
-            isGm={isGm}
-            isCoGm={isCoGm}
-            members={game.members}
-            playerCompletionPercentages={playerCompletionPercentages}
-            inviteCode={game.invite_code}
-            onToggleCoGm={async (playerId, makeCoGm) => { await toggleCoGm(playerId, makeCoGm); }}
-            onRemovePlayer={(player) => setPlayerToRemove(player)}
-          />
-          <GameDetailsCard
-            playDays={game.play_days}
-            schedulingWindowMonths={game.scheduling_window_months}
-            defaultStartTime={game.default_start_time}
-            defaultEndTime={game.default_end_time}
-            timezone={game.timezone}
-            minPlayersNeeded={game.min_players_needed || 0}
-            confirmedSessions={confirmedSessions}
-            inviteCode={game.invite_code}
-            use24h={use24h}
-            adHocOnly={game.ad_hoc_only}
-            campaignStartDate={game.campaign_start_date}
-            campaignEndDate={game.campaign_end_date}
-          />
-        </div>
-      )}
-
-      {activeTab === "availability" && (
-        <div>
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              Mark Your Availability
-            </h2>
-            <p className="text-muted-foreground">
-              Click on dates to cycle through: available → unavailable → maybe.
-              Add notes or time constraints by hovering and clicking the pencil icon (or long-press
-              on mobile).
-            </p>
-            {game.ad_hoc_only &&
-              extraDateStrings.length === 0 &&
-              !canDoGmActions && (
-                <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
-                  <p className="text-sm text-primary">
-                    No play dates have been added yet. Your GM will add dates to
-                    the calendar when they&apos;re ready — check back soon!
-                  </p>
-                </div>
-              )}
-            {game.ad_hoc_only &&
-              canDoGmActions &&
-              extraDateStrings.length === 0 && (
-                <div className="mt-3 p-3 bg-primary/10 border border-primary/30 rounded-lg">
-                  <p className="text-sm text-primary">
-                    Add potential play dates by clicking the + on any date in the
-                    calendar below (or long-press on mobile).
-                  </p>
-                </div>
-              )}
-          </div>
-          <AvailabilityCalendar
-            playDays={game.play_days}
-            windowStart={windowStart}
-            windowEnd={windowEnd}
-            availability={availability}
-            onToggle={changeAvailability}
-            confirmedSessions={confirmedSessions}
-            extraPlayDates={extraDateStrings}
-            isGmOrCoGm={canDoGmActions}
-            onToggleExtraDate={toggleExtraDate}
-            weekStartDay={weekStartDay}
-            use24h={use24h}
-            otherGames={otherGames}
-            onCopyFromGame={copyFromGame}
-            playDateNotes={playDateNotes}
-            onUpdatePlayDateNote={updatePlayDateNote}
-            hasCampaignDates={!!(game.campaign_start_date || game.campaign_end_date)}
-          />
-        </div>
-      )}
-
-      {activeTab === "schedule" && (
-        <SchedulingSuggestions
-          suggestions={suggestions}
-          sessions={sessions}
-          isGm={canDoGmActions}
-          gameName={game.name}
+        <OverviewTabContent
+          playDays={game.play_days}
+          windowStart={windowStart}
+          windowEnd={windowEnd}
+          allPlayers={allPlayers}
+          members={game.members}
+          gmId={game.gm_id}
+          isGm={isGm}
+          isCoGm={isCoGm}
+          completionByUserId={completionByUserId}
+          inviteCode={game.invite_code}
+          onToggleCoGm={async (playerId, makeCoGm) => { await toggleCoGm(playerId, makeCoGm); }}
+          onRemovePlayer={(player) => setPlayerToRemove(player)}
+          schedulingWindowMonths={game.scheduling_window_months}
           defaultStartTime={game.default_start_time}
           defaultEndTime={game.default_end_time}
           timezone={game.timezone}
           minPlayersNeeded={game.min_players_needed || 0}
-          playDateNotes={playDateNotes}
-          onConfirm={confirmSession}
-          onCancel={cancelSession}
+          confirmedSessions={confirmedSessions}
           use24h={use24h}
-          userTimezone={userTimezone}
+          adHocOnly={game.ad_hoc_only}
+          campaignStartDate={game.campaign_start_date}
+          campaignEndDate={game.campaign_end_date}
+          gameName={game.name}
+          subscribeUrl={subscribeUrl}
         />
       )}
 
-      {/* Leave Game Confirmation Modal */}
-      {showLeaveConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-label="Leave game confirmation">
-          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-card-foreground mb-2">
-              Leave Game?
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Are you sure you want to leave <strong>{game.name}</strong>? Your
-              availability data will be removed.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setShowLeaveConfirm(false)}
-                disabled={isLeaving}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                className="flex-1"
-                onClick={handleLeaveGame}
-                disabled={isLeaving}
-              >
-                {isLeaving ? "Leaving..." : "Leave Game"}
-              </Button>
-            </div>
-          </div>
-        </div>
+      {activeTab === "availability" && profile && (
+        <AvailabilityTabContent
+          windowStart={windowStart}
+          windowEnd={windowEnd}
+          currentUserId={profile.id}
+          completionByUserId={completionByUserId}
+          playDays={game.play_days}
+          availability={availability}
+          onToggle={changeAvailability}
+          confirmedSessions={confirmedSessions}
+          extraPlayDates={extraDateStrings}
+          isGmOrCoGm={canDoGmActions}
+          onToggleExtraDate={toggleExtraDate}
+          weekStartDay={weekStartDay}
+          use24h={use24h}
+          otherGames={otherGames}
+          onCopyFromGame={copyFromGame}
+          playDateNotes={playDateNotes}
+          onUpdatePlayDateNote={updatePlayDateNote}
+          hasCampaignDates={!!(game.campaign_start_date || game.campaign_end_date)}
+          adHocOnly={game.ad_hoc_only}
+        />
       )}
 
-      {/* Remove Player Confirmation Modal */}
-      {playerToRemove && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-label="Remove player confirmation">
-          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-card-foreground mb-2">
-              Remove Player?
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Are you sure you want to remove{" "}
-              <strong>{playerToRemove.name}</strong> from this game? Their
-              availability data will be deleted.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setPlayerToRemove(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                className="flex-1"
-                onClick={() => handleRemovePlayer(playerToRemove.id)}
-              >
-                Remove Player
-              </Button>
-            </div>
-          </div>
-        </div>
+      {activeTab === "schedule" && (
+        <ScheduleTabContent
+          suggestions={suggestions}
+          sessions={sessions}
+          members={[{ ...game.gm, is_co_gm: false }, ...game.members]}
+          gmId={game.gm_id}
+          isGm={canDoGmActions}
+          gameName={game.name}
+          playDays={game.play_days}
+          windowStart={windowStart}
+          windowEnd={windowEnd}
+          specialPlayDates={specialPlayDatesSet}
+          playDateNotes={playDateNotes}
+          defaultStartTime={game.default_start_time}
+          defaultEndTime={game.default_end_time}
+          timezone={game.timezone}
+          userTimezone={userTimezone}
+          use24h={use24h}
+          weekStartDay={weekStartDay}
+          minPlayersNeeded={game.min_players_needed || 0}
+          completionByUserId={completionByUserId}
+          subscribeUrl={subscribeUrl}
+          onConfirm={confirmSession}
+          onCancel={cancelSession}
+        />
       )}
 
-      {/* Regenerate Invite Confirmation Modal */}
-      {showRegenerateConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-label="Regenerate invite confirmation">
-          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-card-foreground mb-2">
-              Regenerate Invite Code?
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              This will invalidate the current invite link and calendar
-              subscription URL. Anyone using the old link will no longer be able
-              to join, and calendar apps will need to re-subscribe with the new
-              URL.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setShowRegenerateConfirm(false)}
-                disabled={isRegenerating}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                className="flex-1"
-                onClick={handleRegenerateInvite}
-                disabled={isRegenerating}
-              >
-                {isRegenerating ? "Regenerating..." : "Regenerate"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={showLeaveConfirm}
+        onClose={() => !isLeaving && setShowLeaveConfirm(false)}
+        title="Leave Game?"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setShowLeaveConfirm(false)}
+              disabled={isLeaving}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleLeaveGame} disabled={isLeaving}>
+              {isLeaving ? "Leaving..." : "Leave Game"}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Are you sure you want to leave <strong>{game.name}</strong>? Your
+          availability data will be removed.
+        </p>
+      </Modal>
 
-      {/* Delete Game Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog" aria-label="Delete game confirmation">
-          <div className="bg-card rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-card-foreground mb-2">
-              Delete Game?
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Are you sure you want to permanently delete{" "}
-              <strong>{game.name}</strong>? This will remove all players,
-              availability data, and scheduled sessions. This action cannot be
-              undone.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                className="flex-1"
-                onClick={handleDeleteGame}
-                disabled={isDeleting}
-              >
-                {isDeleting ? "Deleting..." : "Delete Game"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={!!playerToRemove}
+        onClose={() => setPlayerToRemove(null)}
+        title="Remove Player?"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setPlayerToRemove(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => playerToRemove && handleRemovePlayer(playerToRemove.id)}
+            >
+              Remove Player
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          Are you sure you want to remove{" "}
+          <strong>{playerToRemove?.name}</strong> from this game? Their
+          availability data will be deleted.
+        </p>
+      </Modal>
+
     </div>
   );
 }

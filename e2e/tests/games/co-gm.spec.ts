@@ -53,7 +53,7 @@ test.describe('Co-GM Feature', () => {
       await page.getByRole('button', { name: /make co-gm/i }).click();
 
       // Verify the Co-GM badge appears
-      await expect(playerRow.getByText('Co-GM', { exact: true })).toBeVisible({
+      await expect(playerRow.getByText('CO-GM', { exact: true })).toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
@@ -97,7 +97,7 @@ test.describe('Co-GM Feature', () => {
 
       // Find the player row and verify Co-GM badge exists
       const playerRow = page.locator('[data-testid="players-list"]').locator('li').filter({ hasText: player.name });
-      await expect(playerRow.getByText('Co-GM', { exact: true })).toBeVisible();
+      await expect(playerRow.getByText('CO-GM', { exact: true })).toBeVisible();
 
       // Open actions menu and click "Remove Co-GM"
       await playerRow.getByLabel('Player actions').click();
@@ -105,7 +105,7 @@ test.describe('Co-GM Feature', () => {
       await page.getByRole('button', { name: /remove co-gm/i }).click();
 
       // Verify the Co-GM badge is gone (the span with exact text "Co-GM")
-      await expect(playerRow.getByText('Co-GM', { exact: true })).not.toBeVisible({
+      await expect(playerRow.getByText('CO-GM', { exact: true })).not.toBeVisible({
         timeout: TEST_TIMEOUTS.DEFAULT,
       });
 
@@ -211,14 +211,14 @@ test.describe('Co-GM Feature', () => {
       await page.goto(`/games/${game.id}`);
       await page.getByRole('button', { name: /schedule/i }).click();
 
-      await expect(page.getByText(/date suggestions/i)).toBeVisible({
+      await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
         timeout: TEST_TIMEOUTS.LONG,
       });
 
       // Co-GM should be able to confirm a session
-      await page.getByRole('button', { name: /^confirm$/i }).first().click();
-      await expect(page.getByRole('heading', { name: /schedule session/i })).toBeVisible();
-      await page.getByRole('button', { name: /confirm session/i }).click();
+      await page.getByRole('button', { name: /schedule game/i }).first().click();
+      await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
+      await page.locator('[data-testid="confirm-session-submit"]').click();
 
       // Should see confirmed session
       await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
@@ -345,7 +345,7 @@ test.describe('Co-GM Feature', () => {
 
       // Find the other co-GM's row
       const coGm2Row = page.locator('[data-testid="players-list"]').locator('li').filter({ hasText: coGm2.name });
-      await expect(coGm2Row.getByText('Co-GM', { exact: true })).toBeVisible();
+      await expect(coGm2Row.getByText('CO-GM', { exact: true })).toBeVisible();
 
       // Co-GM should not see a menu for other co-GMs (since they can't do anything to them)
       await expect(coGm2Row.getByLabel('Player actions')).not.toBeVisible();

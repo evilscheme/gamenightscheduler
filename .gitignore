@@ -3,6 +3,10 @@
 # superpowers brainstorming mockups
 .superpowers/
 
+# design handoffs and implementation plans (kept locally, not committed)
+/claude design/
+/docs/superpowers/
+
 # dependencies
 /node_modules
 /.pnp

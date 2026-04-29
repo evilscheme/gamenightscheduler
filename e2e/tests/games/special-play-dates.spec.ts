@@ -307,14 +307,13 @@ test.describe('Special Play Dates', () => {
     await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible();
     await page.getByRole('button', { name: /schedule/i }).click();
 
-    // The special date should appear in the suggestions
-    // Format the date for display (e.g., "Thu, Jan 23")
+    // The special date should appear in the ranked list (format: "Thu, Jan 23")
     const dateObj = new Date(nonPlayDate + 'T00:00:00');
     const monthAbbr = dateObj.toLocaleDateString('en-US', { month: 'short' });
     const dayNum = dateObj.getDate();
+    const list = page.locator('[data-testid="ranked-list"]');
 
-    // Look for the date in the suggestions (format: "Thu, Jan 23" or similar)
-    await expect(page.getByText(new RegExp(`${monthAbbr}.*${dayNum}|${dayNum}.*${monthAbbr}`, 'i'))).toBeVisible();
+    await expect(list.getByText(new RegExp(`${monthAbbr} ${dayNum}\\b`))).toBeVisible();
   });
 
   test('legend shows "Extra date" entry', async ({ page, request }) => {

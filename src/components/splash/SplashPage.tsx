@@ -16,7 +16,7 @@ import {
   Dice5,
   Dice6,
 } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Button, EyebrowLabel } from '@/components/ui';
 
 // ─── Dice configuration ─────────────────────────────────────────────────────
 
@@ -206,9 +206,7 @@ function Step({
       <div className="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary mb-4">
         {icon}
       </div>
-      <div className="text-xs font-bold text-primary uppercase tracking-wide mb-1">
-        Step {num}
-      </div>
+      <EyebrowLabel className="block mb-1">Step {num}</EyebrowLabel>
       <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
       <p className="text-muted-foreground text-sm">{desc}</p>
     </div>

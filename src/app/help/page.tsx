@@ -76,20 +76,19 @@ export default function HelpPage() {
 
             <Section title="Scheduling Sessions">
               <p>
-                The <strong className="text-foreground">scheduling suggestions</strong> section shows upcoming dates
+                The <strong className="text-foreground">Schedule</strong> tab shows upcoming dates
                 ranked by how many players can make it. Each date breaks down who&apos;s available,
                 who said maybe, and who can&apos;t come.
               </p>
               <p>
-                You can switch between <strong className="text-foreground">Best Match</strong> (ranked by
-                availability) and <strong className="text-foreground">By Date</strong> (chronological) sorting
-                using the toggle at the top of the suggestions list.
+                Dates that don&apos;t meet your <strong className="text-foreground">minimum players</strong> threshold
+                are tucked under a <em>Below threshold</em> divider so they don&apos;t crowd the
+                top suggestions, but stay one click away.
               </p>
               <p>
-                When you&apos;re ready, click a date to confirm it as a session. The confirmation dialog
-                pre-fills times based on player constraints and your default session times.
-                Dates that don&apos;t meet the minimum player count are flagged so you know
-                before committing.
+                When you&apos;re ready, expand a date and click <strong className="text-foreground">Schedule game</strong>.
+                The confirmation dialog pre-fills times based on player constraints and your
+                default session times.
               </p>
             </Section>
 

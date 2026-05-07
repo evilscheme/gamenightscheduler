@@ -1,16 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { EyebrowLabel } from '@/components/ui';
+import { EyebrowLabel, Panel } from '@/components/ui';
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function HelpSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+    <Panel as="section" padded="md">
       <EyebrowLabel className="mb-4 block">{title}</EyebrowLabel>
       <div className="space-y-3 text-sm/relaxed text-muted-foreground">
         {children}
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -32,7 +32,7 @@ export default function HelpPage() {
 
       <div className="space-y-5">
         {/* ── Getting Started ──────────────────────────────────────────── */}
-        <Panel title="Getting Started">
+        <HelpSection title="Getting Started">
           <p>
             <strong className="text-foreground">Can We Play?</strong> is a scheduling tool for tabletop gaming groups.
             GMs create games and share invite links, players mark when they&apos;re free on a calendar,
@@ -42,13 +42,13 @@ export default function HelpPage() {
             Sign in with your Google or Discord account to get started. Once signed in, you can
             create games as a GM or join existing games using an invite link.
           </p>
-        </Panel>
+        </HelpSection>
 
         {/* ── For GMs ──────────────────────────────────────────────────── */}
         <div>
           <GroupHeading>For GMs</GroupHeading>
           <div className="space-y-5">
-            <Panel title="Creating a Game">
+            <HelpSection title="Creating a Game">
               <p>
                 Click <strong className="text-foreground">New Game</strong> in the navigation bar to create a game.
                 You&apos;ll set:
@@ -64,9 +64,9 @@ export default function HelpPage() {
                 Other settings, including minimum players, can be adjusted later from
                 the game&apos;s <strong className="text-foreground">Edit</strong> page.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Campaign Dates">
+            <HelpSection title="Campaign Dates">
               <p>
                 By default, the calendar shows dates from today through the scheduling window.
                 If your campaign has a known start or end, set campaign dates on the
@@ -76,25 +76,25 @@ export default function HelpPage() {
                 Dates outside the campaign window are shown as out-of-range and can&apos;t be marked
                 or confirmed as sessions, so players only see dates that actually matter.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Inviting Players">
+            <HelpSection title="Inviting Players">
               <p>
                 Every game has a unique invite link. Share it with your players and they can join
                 with one click. You&apos;ll find the invite link on your game&apos;s detail page.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Managing Players & Co-GMs">
+            <HelpSection title="Managing Players & Co-GMs">
               <p>
                 On the game detail page you can see all players and their availability completion.
                 You can promote any player to co-GM so they can edit game settings
                 and confirm sessions too.
                 You can also remove players from the game.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Scheduling Sessions">
+            <HelpSection title="Scheduling Sessions">
               <p>
                 The <strong className="text-foreground">Schedule</strong> tab lists already-confirmed
                 sessions at the top, then ranks upcoming dates by how many players can make it.
@@ -110,9 +110,9 @@ export default function HelpPage() {
                 The confirmation dialog pre-fills times based on player constraints and your
                 default session times.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Ad-Hoc Scheduling">
+            <HelpSection title="Ad-Hoc Scheduling">
               <p>
                 Not every game has a regular weekly schedule. When creating or editing a game, toggle
                 on <strong className="text-foreground">ad-hoc scheduling</strong> to skip selecting play days entirely.
@@ -120,33 +120,33 @@ export default function HelpPage() {
                 the <strong className="text-foreground">+</strong> button. Works well for one-shots,
                 irregular schedules, or groups that play on different days each time.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Extra Play Dates">
+            <HelpSection title="Extra Play Dates">
               <p>
                 For one-off sessions on a day you don&apos;t normally play, GMs and co-GMs
                 can add extra dates by clicking the <strong className="text-foreground">+</strong> button
                 on any non-play day on the calendar. They show up alongside regular
                 play days so players can mark availability for them.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Play Date Notes">
+            <HelpSection title="Play Date Notes">
               <p>
                 GMs can add notes to any play date. Click the pencil icon (or long-press
                 on mobile) on a date to open the detail popover and add a note (e.g.,
                 &ldquo;Session zero&rdquo; or &ldquo;Character creation&rdquo;). Notes are visible to all
                 players on the calendar and in scheduling suggestions.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Calendar Export">
+            <HelpSection title="Calendar Export">
               <p>
                 You can add confirmed sessions to your calendar app. Download an .ics
                 file for a single session, or subscribe to a webcal:// feed that stays
                 in sync as you confirm new sessions.
               </p>
-            </Panel>
+            </HelpSection>
           </div>
         </div>
 
@@ -154,14 +154,14 @@ export default function HelpPage() {
         <div>
           <GroupHeading>For Players</GroupHeading>
           <div className="space-y-5">
-            <Panel title="Joining a Game">
+            <HelpSection title="Joining a Game">
               <p>
                 Your GM will share an invite link with you. Click it, sign in if you haven&apos;t
                 already, and you&apos;ll be added to the game.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Marking Availability">
+            <HelpSection title="Marking Availability">
               <p>
                 On the game page, you&apos;ll see a calendar showing upcoming play days. Click any
                 date to cycle through three states:
@@ -183,9 +183,9 @@ export default function HelpPage() {
               <p>
                 Dates you haven&apos;t responded to yet show as <strong className="text-foreground">pending</strong>.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Adding Notes & Time Constraints">
+            <HelpSection title="Adding Notes & Time Constraints">
               <p>
                 Once you&apos;ve set availability for a date, you can add details to it:
               </p>
@@ -205,36 +205,36 @@ export default function HelpPage() {
                 The pencil and editor only show after you&apos;ve marked the date as available, unavailable,
                 or maybe.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Bulk Actions">
+            <HelpSection title="Bulk Actions">
               <p>
                 Bulk actions let you mark all remaining dates, or all dates on a specific
                 day of the week, as available, unavailable, or maybe at once.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Copy Availability">
+            <HelpSection title="Copy Availability">
               <p>
                 If you&apos;re in multiple games with overlapping dates, use <strong className="text-foreground">Copy
                 from</strong> in the bulk actions bar to pull your availability over from another game.
                 It only fills in dates you haven&apos;t responded to yet, so anything
                 you&apos;ve already set stays untouched.
               </p>
-            </Panel>
+            </HelpSection>
 
-            <Panel title="Viewing Confirmed Sessions">
+            <HelpSection title="Viewing Confirmed Sessions">
               <p>
                 Once your GM confirms a session, it shows up on the calendar with the
                 confirmed time. You can add it to your personal calendar with an .ics
                 download, or with a webcal:// subscription that stays in sync automatically.
               </p>
-            </Panel>
+            </HelpSection>
           </div>
         </div>
 
         {/* ── General ──────────────────────────────────────────────────── */}
-        <Panel title="Customization">
+        <HelpSection title="Customization">
           <p>
             Head to <Link href="/settings" className="text-primary hover:underline">Settings</Link> to
             change your display name, pick a color theme, and set your preferences:
@@ -245,7 +245,7 @@ export default function HelpPage() {
             <li><strong className="text-foreground">Time format</strong>: 12-hour or 24-hour</li>
             <li><strong className="text-foreground">Color theme</strong>: applies across all your games</li>
           </ul>
-        </Panel>
+        </HelpSection>
       </div>
     </div>
   );

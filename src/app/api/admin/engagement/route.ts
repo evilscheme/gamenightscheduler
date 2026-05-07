@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin, paginate } from '@/lib/api/admin';
 import { startOfWeek, subWeeks, format } from 'date-fns';
 
-const PAGE_SIZE = 1000;
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 const VALID_WEEKS = [8, 12, 26] as const;
@@ -23,32 +21,9 @@ interface WeekBucket {
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
-    // Verify the user is authenticated and is an admin
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const admin = createAdminClient();
-
-    // Check if user is admin
-    const { data: profile, error: profileError } = await admin
-      .from('users')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile?.is_admin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
+    const result = await requireAdmin();
+    if (result instanceof NextResponse) return result;
+    const { admin } = result;
 
     // Parse weeks param
     const weeksParam = request.nextUrl.searchParams.get('weeks');
@@ -71,29 +46,12 @@ export async function GET(request: NextRequest): Promise<Response> {
       ? format(subWeeks(currentWeekStart, weeks), 'yyyy-MM-dd')
       : null;
 
-    // Fetch raw data with optional date cutoff
-    async function fetchAllRows<T>(table: string, columns: string, dateColumn?: string): Promise<T[]> {
-      const all: T[] = [];
-      let offset = 0;
-      for (;;) {
-        let query = admin.from(table).select(columns);
-        if (cutoffDate && dateColumn) {
-          query = query.gte(dateColumn, cutoffDate);
-        }
-        const { data } = await query.range(offset, offset + PAGE_SIZE - 1);
-        if (!data || data.length === 0) break;
-        all.push(...(data as T[]));
-        if (data.length < PAGE_SIZE) break;
-        offset += PAGE_SIZE;
-      }
-      return all;
-    }
-
+    const cutoff = cutoffDate ?? undefined;
     const [users, games, sessions, availability] = await Promise.all([
-      fetchAllRows<{ created_at: string }>('users', 'created_at', 'created_at'),
-      fetchAllRows<{ created_at: string }>('games', 'created_at', 'created_at'),
-      fetchAllRows<{ created_at: string; status: string }>('sessions', 'created_at, status', 'created_at'),
-      fetchAllRows<{ user_id: string; updated_at: string }>('availability', 'user_id, updated_at', 'updated_at'),
+      paginate<{ created_at: string }>(admin, 'users', 'created_at', { dateColumn: 'created_at', cutoff }),
+      paginate<{ created_at: string }>(admin, 'games', 'created_at', { dateColumn: 'created_at', cutoff }),
+      paginate<{ created_at: string; status: string }>(admin, 'sessions', 'created_at, status', { dateColumn: 'created_at', cutoff }),
+      paginate<{ user_id: string; updated_at: string }>(admin, 'availability', 'user_id, updated_at', { dateColumn: 'updated_at', cutoff }),
     ]);
 
     // Build week buckets

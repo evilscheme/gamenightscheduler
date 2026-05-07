@@ -4,6 +4,7 @@ import {
   sortSuggestions,
   sortSuggestionsChronologically,
   calculateDateSuggestions,
+  buildAvailabilityIndex,
 } from "./suggestions";
 import { User, Availability, DateSuggestion } from "@/types";
 
@@ -51,7 +52,7 @@ describe("categorizePlayers", () => {
       makeAvailability("1", "2025-01-20", "available"),
       makeAvailability("2", "2025-01-20", "available"),
     ];
-    const result = categorizePlayers([player1, player2], availability, "2025-01-20");
+    const result = categorizePlayers([player1, player2], buildAvailabilityIndex(availability), "2025-01-20");
 
     expect(result.available.length).toBe(2);
     expect(result.maybe.length).toBe(0);
@@ -64,7 +65,7 @@ describe("categorizePlayers", () => {
       makeAvailability("1", "2025-01-20", "unavailable"),
       makeAvailability("2", "2025-01-20", "unavailable"),
     ];
-    const result = categorizePlayers([player1, player2], availability, "2025-01-20");
+    const result = categorizePlayers([player1, player2], buildAvailabilityIndex(availability), "2025-01-20");
 
     expect(result.available.length).toBe(0);
     expect(result.unavailable.length).toBe(2);
@@ -78,7 +79,7 @@ describe("categorizePlayers", () => {
     ];
     const result = categorizePlayers(
       [player1, player2, player3, player4],
-      availability,
+      buildAvailabilityIndex(availability),
       "2025-01-20"
     );
 
@@ -94,14 +95,14 @@ describe("categorizePlayers", () => {
 
   it("treats players with no records as pending", () => {
     const availability: Availability[] = [];
-    const result = categorizePlayers([player1, player2], availability, "2025-01-20");
+    const result = categorizePlayers([player1, player2], buildAvailabilityIndex(availability), "2025-01-20");
 
     expect(result.available.length).toBe(0);
     expect(result.pending.length).toBe(2);
   });
 
   it("returns empty arrays for empty players array", () => {
-    const result = categorizePlayers([], [], "2025-01-20");
+    const result = categorizePlayers([], buildAvailabilityIndex([]), "2025-01-20");
 
     expect(result.available.length).toBe(0);
     expect(result.maybe.length).toBe(0);
@@ -114,7 +115,7 @@ describe("categorizePlayers", () => {
       makeAvailability("1", "2025-01-20", "available", "Works for me!"),
       makeAvailability("2", "2025-01-20", "maybe", "Depends on work"),
     ];
-    const result = categorizePlayers([player1, player2], availability, "2025-01-20");
+    const result = categorizePlayers([player1, player2], buildAvailabilityIndex(availability), "2025-01-20");
 
     expect(result.available[0].comment).toBe("Works for me!");
     expect(result.maybe[0].comment).toBe("Depends on work");
@@ -128,7 +129,7 @@ describe("categorizePlayers", () => {
     ];
     const result = categorizePlayers(
       [player1, player2, player3],
-      availability,
+      buildAvailabilityIndex(availability),
       "2025-01-20"
     );
 
@@ -144,7 +145,7 @@ describe("categorizePlayers", () => {
     const availability = [
       makeAvailability("1", "2025-01-20", "available"),
     ];
-    const result = categorizePlayers([player1], availability, "2025-01-20");
+    const result = categorizePlayers([player1], buildAvailabilityIndex(availability), "2025-01-20");
 
     expect(result.available[0].availableAfter).toBeNull();
     expect(result.available[0].availableUntil).toBeNull();

@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { addMonths, startOfMonth, differenceInCalendarMonths } from 'date-fns';
 import type { DateSuggestion, GameSession } from '@/types';
 import { CalendarMonth } from './CalendarMonth';
-import { EyebrowLabel } from '@/components/ui';
+import { EyebrowLabel, Panel } from '@/components/ui';
 import { getCellTintTier, CellTintTier } from '@/lib/scheduleView';
 
 interface MiniCalendarProps {
@@ -86,5 +86,5 @@ export function MiniCalendar({
   );
 
   if (embedded) return body;
-  return <div className="rounded-xl border border-border bg-card p-4">{body}</div>;
+  return <Panel>{body}</Panel>;
 }

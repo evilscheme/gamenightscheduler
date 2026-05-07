@@ -12,10 +12,10 @@ import { ScheduledList } from './ScheduledList';
 import { ScheduleSessionModal } from './ScheduleSessionModal';
 import { CancelSessionModal } from './CancelSessionModal';
 import { CalendarHoverPopover } from './CalendarHoverPopover';
-import { generateICS } from '@/lib/ics';
+import { generateICS, slugifyGameName, triggerICSDownload } from '@/lib/ics';
 import { splitUpcomingPast } from '@/lib/scheduleView';
 import { useToast } from '@/components/ui/Toast';
-import { Button, EyebrowLabel } from '@/components/ui';
+import { Button, EyebrowLabel, Panel } from '@/components/ui';
 import { Link2 } from 'lucide-react';
 
 export interface ScheduleTabContentProps {
@@ -41,16 +41,6 @@ export interface ScheduleTabContentProps {
   subscribeUrl: string;
   onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (date: string) => Promise<{ success: boolean; error?: string }>;
-}
-
-function downloadICS(content: string, filename: string) {
-  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 export function ScheduleTabContent(props: ScheduleTabContentProps) {
@@ -121,7 +111,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
       title: gameName,
       timezone: timezone || undefined,
     }]);
-    downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-${session.date}.ics`);
+    triggerICSDownload(ics, `${slugifyGameName(gameName)}-${session.date}.ics`);
     toast.show(`Downloaded calendar file for ${format(parseISO(session.date), 'MMM d')}.`);
   };
 
@@ -136,7 +126,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
       timezone: timezone || undefined,
     }));
     const ics = generateICS(events);
-    downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-sessions.ics`);
+    triggerICSDownload(ics, `${slugifyGameName(gameName)}-sessions.ics`);
   };
 
   const handleCopySubscribe = async () => {
@@ -211,7 +201,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
 
             {/* Mobile: collapsible cards below the list */}
             <div className="space-y-3 lg:hidden">
-              <details className="group rounded-xl border border-border bg-card p-4" data-testid="mobile-calendar-collapsible">
+              <Panel as="details" className="group" data-testid="mobile-calendar-collapsible">
                 <summary className="cursor-pointer list-none flex items-center justify-between">
                   <EyebrowLabel>Calendar</EyebrowLabel>
                   <span className="font-mono text-[11px] text-muted-foreground group-open:hidden">tap to expand</span>
@@ -220,8 +210,8 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
                 <div className="mt-3">
                   <MiniCalendar {...miniCalendarProps} subscribeLink={subscribeLink} embedded />
                 </div>
-              </details>
-              <details className="group rounded-xl border border-border bg-card p-4" data-testid="mobile-response-collapsible">
+              </Panel>
+              <Panel as="details" className="group" data-testid="mobile-response-collapsible">
                 <summary className="cursor-pointer list-none flex items-center justify-between">
                   <EyebrowLabel>Response status</EyebrowLabel>
                   <span className="font-mono text-[11px] text-muted-foreground group-open:hidden">tap to expand</span>
@@ -230,7 +220,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
                 <div className="mt-3">
                   <ResponseStatus members={members} completionByUserId={completionByUserId} embedded />
                 </div>
-              </details>
+              </Panel>
             </div>
           </div>
 

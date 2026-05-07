@@ -355,3 +355,17 @@ export function escapeICS(text: string): string {
     .replace(/\r/g, '\\n')
     .replace(/\n/g, '\\n');
 }
+
+export function slugifyGameName(name: string): string {
+  return name.toLowerCase().replace(/\s+/g, '-');
+}
+
+export function triggerICSDownload(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

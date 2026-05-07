@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin, paginate } from '@/lib/api/admin';
 import { calculatePlayerCompletionPercentages } from '@/lib/availability';
 import { calculateGameHealth, type HealthBreakdown, type HealthGrade } from '@/lib/gameHealth';
-
-const PAGE_SIZE = 1000;
 
 interface GameWithEngagement {
   id: string;
@@ -24,35 +21,10 @@ interface GameWithEngagement {
 
 export async function GET(): Promise<Response> {
   try {
-    // Verify the user is authenticated and is an admin
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const result = await requireAdmin();
+    if (result instanceof NextResponse) return result;
+    const { admin } = result;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Use admin client to check if user is admin and fetch data
-    const admin = createAdminClient();
-
-    // Check if user is admin
-    const { data: profile, error: profileError } = await admin
-      .from('users')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile?.is_admin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    // Fetch all games with GM info
     const { data: games, error: gamesError } = await admin
       .from('games')
       .select('id, name, created_at, play_days, scheduling_window_months, gm_id, gm:users!games_gm_id_fkey(id, name, email)')
@@ -62,26 +34,11 @@ export async function GET(): Promise<Response> {
       throw gamesError;
     }
 
-    // Fetch all memberships, sessions, and availability
-    // Paginate to avoid Supabase's default 1000-row limit silently truncating results
-    async function fetchAllRows<T>(table: string, columns: string): Promise<T[]> {
-      const all: T[] = [];
-      let offset = 0;
-      for (;;) {
-        const { data } = await admin.from(table).select(columns).range(offset, offset + PAGE_SIZE - 1);
-        if (!data || data.length === 0) break;
-        all.push(...(data as T[]));
-        if (data.length < PAGE_SIZE) break;
-        offset += PAGE_SIZE;
-      }
-      return all;
-    }
-
     const [memberships, sessions, availabilityRecords, gamePlayDates] = await Promise.all([
-      fetchAllRows<{ game_id: string; user_id: string }>('game_memberships', 'game_id, user_id'),
-      fetchAllRows<{ game_id: string; status: string; created_at: string; date: string }>('sessions', 'game_id, status, created_at, date'),
-      fetchAllRows<{ game_id: string; user_id: string; date: string; updated_at: string }>('availability', 'game_id, user_id, date, updated_at'),
-      fetchAllRows<{ game_id: string; date: string }>('game_play_dates', 'game_id, date'),
+      paginate<{ game_id: string; user_id: string }>(admin, 'game_memberships', 'game_id, user_id'),
+      paginate<{ game_id: string; status: string; created_at: string; date: string }>(admin, 'sessions', 'game_id, status, created_at, date'),
+      paginate<{ game_id: string; user_id: string; date: string; updated_at: string }>(admin, 'availability', 'game_id, user_id, date, updated_at'),
+      paginate<{ game_id: string; date: string }>(admin, 'game_play_dates', 'game_id, date'),
     ]);
 
     // Build lookup maps

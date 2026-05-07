@@ -1,5 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateICS, escapeICS } from "./ics";
+import { generateICS, escapeICS, slugifyGameName } from "./ics";
+
+describe("slugifyGameName", () => {
+  it("lowercases the name", () => {
+    expect(slugifyGameName("Curse of Strahd")).toBe("curse-of-strahd");
+  });
+
+  it("replaces consecutive whitespace with a single hyphen", () => {
+    expect(slugifyGameName("Tomb   of  Annihilation")).toBe("tomb-of-annihilation");
+  });
+
+  it("handles tabs and newlines as whitespace", () => {
+    expect(slugifyGameName("Game\tName\nTwo")).toBe("game-name-two");
+  });
+
+  it("returns empty string for empty input", () => {
+    expect(slugifyGameName("")).toBe("");
+  });
+});
 
 describe("escapeICS", () => {
   it("escapes backslashes", () => {

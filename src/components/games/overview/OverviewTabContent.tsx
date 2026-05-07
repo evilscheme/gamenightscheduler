@@ -3,7 +3,7 @@
 import { format, parseISO } from 'date-fns';
 import type { User, MemberWithRole, GameSession } from '@/types';
 import { useToast } from '@/components/ui';
-import { generateICS } from '@/lib/ics';
+import { generateICS, slugifyGameName, triggerICSDownload } from '@/lib/ics';
 import { splitUpcomingPast } from '@/lib/scheduleView';
 import { OverviewHeader } from './OverviewHeader';
 import { PartyPanel } from './PartyPanel';
@@ -44,16 +44,6 @@ export interface OverviewTabContentProps {
   subscribeUrl: string;
 }
 
-function downloadICS(content: string, filename: string) {
-  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export function OverviewTabContent(props: OverviewTabContentProps) {
   const monthRange = `${format(props.windowStart, 'MMM')} – ${format(props.windowEnd, 'MMM yyyy')}`;
   const scheduledCount = props.confirmedSessions.length;
@@ -69,8 +59,8 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
         timezone: props.timezone || undefined,
       },
     ]);
-    const slug = props.gameName.toLowerCase().replace(/\s+/g, '-');
-    downloadICS(ics, `${slug}-${session.date}.ics`);
+    const slug = slugifyGameName(props.gameName);
+    triggerICSDownload(ics, `${slug}-${session.date}.ics`);
     toast.show(`Downloaded calendar file for ${format(parseISO(session.date), 'MMM d')}.`);
   };
 
@@ -86,8 +76,8 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
         timezone: props.timezone || undefined,
       }))
     );
-    const slug = props.gameName.toLowerCase().replace(/\s+/g, '-');
-    downloadICS(ics, `${slug}-sessions.ics`);
+    const slug = slugifyGameName(props.gameName);
+    triggerICSDownload(ics, `${slug}-sessions.ics`);
   };
 
   const handleCopySubscribe = async () => {

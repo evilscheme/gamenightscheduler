@@ -7,12 +7,27 @@ interface CategorizedPlayers {
   pending: User[];
 }
 
+export type AvailabilityIndex = Map<string, Availability>;
+
+const indexKey = (userId: string, date: string) => `${userId}:${date}`;
+
+export function buildAvailabilityIndex(
+  availability: Availability[]
+): AvailabilityIndex {
+  const index: AvailabilityIndex = new Map();
+  for (const a of availability) {
+    index.set(indexKey(a.user_id, a.date), a);
+  }
+  return index;
+}
+
 /**
- * Categorize players by their availability for a specific date
+ * Categorize players by their availability for a specific date.
+ * Takes a pre-built index for O(1) lookup per (player, date).
  */
 export function categorizePlayers(
   players: User[],
-  availability: Availability[],
+  availabilityIndex: AvailabilityIndex,
   date: string
 ): CategorizedPlayers {
   const available: PlayerWithComment[] = [];
@@ -21,9 +36,7 @@ export function categorizePlayers(
   const pending: User[] = [];
 
   players.forEach((player) => {
-    const playerAvail = availability.find(
-      (a) => a.user_id === player.id && a.date === date
-    );
+    const playerAvail = availabilityIndex.get(indexKey(player.id, date));
 
     if (!playerAvail) {
       pending.push(player);
@@ -118,11 +131,13 @@ export function calculateDateSuggestions({
   formatDate,
   minPlayersNeeded = 0,
 }: CalculateSuggestionsParams): DateSuggestion[] {
+  const availabilityIndex = buildAvailabilityIndex(availability);
+
   const suggestions: DateSuggestion[] = playDates.map((date) => {
     const dateStr = formatDate(date);
     const { available, maybe, unavailable, pending } = categorizePlayers(
       players,
-      availability,
+      availabilityIndex,
       dateStr
     );
 

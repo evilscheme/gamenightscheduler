@@ -26,7 +26,10 @@ import {
 import { getPlayDatesInWindow } from "@/lib/availability";
 import { calculateDateSuggestions } from "@/lib/suggestions";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
-import { useGameDetail } from "@/hooks/useGameDetail";
+import { useGameMeta } from "@/hooks/useGameMeta";
+import { useAvailability } from "@/hooks/useAvailability";
+import { useSessions } from "@/hooks/useSessions";
+import { usePlayDates } from "@/hooks/usePlayDates";
 import { getSchedulingWindow } from "@/lib/scheduling";
 
 type Tab = "overview" | "availability" | "schedule";
@@ -38,27 +41,38 @@ export default function GameDetailPage() {
   const params = useParams();
   const gameId = params.id as string;
 
-  // Data layer via hook
-  const {
-    game,
-    loading,
-    refreshing,
-    availability,
-    allAvailability,
-    sessions,
-    gamePlayDates,
-    otherGames,
-    refresh,
-    changeAvailability,
-    copyFromGame,
-    confirmSession,
-    cancelSession,
-    leaveGame,
-    removePlayer,
-    toggleCoGm,
-    toggleExtraDate,
-    updatePlayDateNote,
-  } = useGameDetail(gameId, profile?.id ?? "");
+  const userId = profile?.id ?? "";
+
+  // Data layer via focused hooks
+  const meta = useGameMeta(gameId, userId);
+  const { game, otherGames, refreshing, leaveGame, removePlayer, toggleCoGm } = meta;
+
+  const ready = !!game;
+  const availabilityHook = useAvailability(gameId, userId, game);
+  const { availability, allAvailability, changeAvailability, copyFromGame: copyFromGameRaw, removePlayerData } = availabilityHook;
+
+  const sessionsHook = useSessions(gameId, ready);
+  const { sessions, confirmSession: confirmSessionRaw, cancelSession } = sessionsHook;
+
+  const playDatesHook = usePlayDates(gameId, ready);
+  const { gamePlayDates, toggleExtraDate: toggleExtraDateRaw, updatePlayDateNote } = playDatesHook;
+
+  // Loading is driven by meta until the game resolves; only then do we wait
+  // on downstream hooks. Without the `!game` short-circuit, a non-member
+  // request leaves downstream loading=true forever (their fetches never run).
+  const loading =
+    meta.loading ||
+    (!!game &&
+      (availabilityHook.loading || sessionsHook.loading || playDatesHook.loading));
+
+  const refresh = async () => {
+    await Promise.all([
+      meta.refresh(),
+      availabilityHook.refresh(),
+      sessionsHook.refresh(),
+      playDatesHook.refresh(),
+    ]);
+  };
 
   // UI state
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -209,9 +223,19 @@ export default function GameDetailPage() {
   };
 
   const handleRemovePlayer = async (playerId: string) => {
-    await removePlayer(playerId);
+    const ok = await removePlayer(playerId);
+    if (ok) removePlayerData(playerId);
     setPlayerToRemove(null);
   };
+
+  const toggleExtraDate = (date: string) =>
+    toggleExtraDateRaw(date, extraDateStrings.includes(date));
+
+  const copyFromGame = (sourceGameId: string) =>
+    copyFromGameRaw(sourceGameId, extraDateStrings);
+
+  const confirmSession = (date: string, startTime: string, endTime: string) =>
+    confirmSessionRaw(date, startTime, endTime, profile?.id ?? "");
 
   if (authStatus === 'loading' || loading) {
     return (

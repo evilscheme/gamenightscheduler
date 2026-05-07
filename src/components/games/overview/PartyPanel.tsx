@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { MoreVertical } from 'lucide-react';
-import { Avatar, Button, EyebrowLabel, useToast } from '@/components/ui';
+import { Avatar, Button, EyebrowLabel, Panel, useToast } from '@/components/ui';
 import type { User, MemberWithRole } from '@/types';
 
 interface PartyPanelProps {
@@ -48,7 +48,7 @@ export function PartyPanel({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <Panel>
       <EyebrowLabel>Players ({allPlayers.length})</EyebrowLabel>
       <ul className="mt-3 space-y-3" data-testid="players-list">
         {allPlayers.map((player) => {
@@ -157,6 +157,6 @@ export function PartyPanel({
           </Button>
         </div>
       )}
-    </div>
+    </Panel>
   );
 }

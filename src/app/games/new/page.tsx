@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, EyebrowLabel, Input, LoadingSpinner, Panel, Textarea } from '@/components/ui';
+import { Button, EyebrowLabel, Input, LoadingSpinner, Panel, Textarea, ToggleSwitch } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
 import { fetchUserGameCount, createGame } from '@/lib/data';
@@ -191,26 +191,14 @@ export default function NewGamePage() {
           <EyebrowLabel className="mb-4 block">Schedule</EyebrowLabel>
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                role="switch"
-                aria-label="Ad-hoc scheduling only"
-                aria-checked={adHocOnly}
-                onClick={() => {
-                  const next = !adHocOnly;
+              <ToggleSwitch
+                checked={adHocOnly}
+                onChange={(next) => {
                   setAdHocOnly(next);
                   if (next) setPlayDays([]);
                 }}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
-                  adHocOnly ? 'bg-primary' : 'bg-secondary'
-                }`}
-              >
-                <span
-                  className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
-                    adHocOnly ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+                ariaLabel="Ad-hoc scheduling only"
+              />
               <div>
                 <label className="text-sm font-medium text-foreground">
                   Ad-hoc scheduling only
@@ -284,26 +272,14 @@ export default function NewGamePage() {
               </label>
 
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-label="Custom start date"
-                  aria-checked={useCustomStart}
-                  onClick={() => {
-                    const next = !useCustomStart;
+                <ToggleSwitch
+                  checked={useCustomStart}
+                  onChange={(next) => {
                     setUseCustomStart(next);
                     if (!next) setCampaignStartDate("");
                   }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
-                    useCustomStart ? 'bg-primary' : 'bg-secondary'
-                  }`}
-                >
-                  <span
-                    className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
-                      useCustomStart ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
+                  ariaLabel="Custom start date"
+                />
                 <div>
                   <label className="text-sm text-foreground">Custom start date</label>
                   <p className="text-xs text-muted-foreground">
@@ -322,26 +298,14 @@ export default function NewGamePage() {
               )}
 
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-label="Custom end date"
-                  aria-checked={useCustomEnd}
-                  onClick={() => {
-                    const next = !useCustomEnd;
+                <ToggleSwitch
+                  checked={useCustomEnd}
+                  onChange={(next) => {
                     setUseCustomEnd(next);
                     if (!next) setCampaignEndDate("");
                   }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
-                    useCustomEnd ? 'bg-primary' : 'bg-secondary'
-                  }`}
-                >
-                  <span
-                    className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
-                      useCustomEnd ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
+                  ariaLabel="Custom end date"
+                />
                 <div>
                   <label className="text-sm text-foreground">Custom end date</label>
                   <p className="text-xs text-muted-foreground">

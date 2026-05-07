@@ -1,6 +1,7 @@
 export { Button } from './Button';
 export { Card, CardHeader, CardContent } from './Card';
 export { Panel } from './Panel';
+export { ToggleSwitch } from './ToggleSwitch';
 export { EmptyState } from './EmptyState';
 export { Input } from './Input';
 export { LoadingSpinner } from './LoadingSpinner';

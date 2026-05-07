@@ -2,7 +2,7 @@
 
 import { Link2 } from 'lucide-react';
 import { parseISO } from 'date-fns';
-import { Button, EyebrowLabel, useToast } from '@/components/ui';
+import { Button, EyebrowLabel, Panel, useToast } from '@/components/ui';
 import { DAY_LABELS } from '@/lib/constants';
 import { formatTime } from '@/lib/formatting';
 import { formatTimezoneDisplay } from '@/lib/timezone';
@@ -64,7 +64,7 @@ export function GameDetailsPanel({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <Panel>
       <EyebrowLabel>Game details</EyebrowLabel>
       <div className="mt-3 space-y-4">
         <Field label={adHocOnly ? 'Scheduling' : 'Play days'}>
@@ -114,6 +114,6 @@ export function GameDetailsPanel({
           </Button>
         </div>
       </div>
-    </div>
+    </Panel>
   );
 }

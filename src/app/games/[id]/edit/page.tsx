@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, EyebrowLabel, Input, LoadingSpinner, Modal, Textarea, useToast } from '@/components/ui';
+import { Button, EyebrowLabel, Input, LoadingSpinner, Modal, Panel, Textarea, useToast } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
 import {
@@ -224,7 +224,7 @@ export default function EditGamePage() {
 
       <form onSubmit={handleSave} className="space-y-5">
         {/* ── Identity ─────────────────────────────────────────────────── */}
-        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        <Panel as="section" padded="md">
           <EyebrowLabel className="mb-4 block">Identity</EyebrowLabel>
           <div className="space-y-6">
             <Input
@@ -243,10 +243,10 @@ export default function EditGamePage() {
               rows={3}
             />
           </div>
-        </section>
+        </Panel>
 
         {/* ── Schedule ─────────────────────────────────────────────────── */}
-        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        <Panel as="section" padded="md">
           <EyebrowLabel className="mb-4 block">Schedule</EyebrowLabel>
           <div className="space-y-6">
             <div className="flex items-center gap-3">
@@ -428,10 +428,10 @@ export default function EditGamePage() {
               )}
             </div>
           </div>
-        </section>
+        </Panel>
 
         {/* ── Sessions ─────────────────────────────────────────────────── */}
-        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        <Panel as="section" padded="md">
           <EyebrowLabel className="mb-4 block">Sessions</EyebrowLabel>
           <div className="space-y-6">
             <div>
@@ -511,7 +511,7 @@ export default function EditGamePage() {
               </p>
             </div>
           </div>
-        </section>
+        </Panel>
 
         {error && <p className="text-sm text-danger">{error}</p>}
 

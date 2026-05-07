@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, EyebrowLabel, Input, LoadingSpinner, Textarea } from '@/components/ui';
+import { Button, EyebrowLabel, Input, LoadingSpinner, Panel, Textarea } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
 import { fetchUserGameCount, createGame } from '@/lib/data';
@@ -163,7 +163,7 @@ export default function NewGamePage() {
 
       <form onSubmit={handleCreate} className="space-y-5">
         {/* ── Identity ─────────────────────────────────────────────────── */}
-        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        <Panel as="section" padded="md">
           <EyebrowLabel className="mb-4 block">Identity</EyebrowLabel>
           <div className="space-y-6">
             <Input
@@ -184,10 +184,10 @@ export default function NewGamePage() {
               rows={3}
             />
           </div>
-        </section>
+        </Panel>
 
         {/* ── Schedule ─────────────────────────────────────────────────── */}
-        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        <Panel as="section" padded="md">
           <EyebrowLabel className="mb-4 block">Schedule</EyebrowLabel>
           <div className="space-y-6">
             <div className="flex items-center gap-3">
@@ -361,10 +361,10 @@ export default function NewGamePage() {
               )}
             </div>
           </div>
-        </section>
+        </Panel>
 
         {/* ── Sessions ─────────────────────────────────────────────────── */}
-        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        <Panel as="section" padded="md">
           <EyebrowLabel className="mb-4 block">Sessions</EyebrowLabel>
           <div className="space-y-6">
             <div>
@@ -427,7 +427,7 @@ export default function NewGamePage() {
               </p>
             </div>
           </div>
-        </section>
+        </Panel>
 
         {error && <p className="text-sm text-danger">{error}</p>}
 

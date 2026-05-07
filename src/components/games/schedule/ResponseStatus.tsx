@@ -1,7 +1,7 @@
 'use client';
 
 import type { MemberWithRole } from '@/types';
-import { Avatar, EyebrowLabel } from '@/components/ui';
+import { Avatar, EyebrowLabel, Panel } from '@/components/ui';
 
 interface ResponseStatusProps {
   members: MemberWithRole[];
@@ -41,9 +41,9 @@ export function ResponseStatus({ members, completionByUserId, embedded = false }
 
   if (embedded) return list;
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <Panel>
       <EyebrowLabel>Response status</EyebrowLabel>
       {list}
-    </div>
+    </Panel>
   );
 }

@@ -15,7 +15,7 @@ import { CalendarHoverPopover } from './CalendarHoverPopover';
 import { generateICS, slugifyGameName, triggerICSDownload } from '@/lib/ics';
 import { splitUpcomingPast } from '@/lib/scheduleView';
 import { useToast } from '@/components/ui/Toast';
-import { Button, EyebrowLabel } from '@/components/ui';
+import { Button, EyebrowLabel, Panel } from '@/components/ui';
 import { Link2 } from 'lucide-react';
 
 export interface ScheduleTabContentProps {
@@ -201,7 +201,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
 
             {/* Mobile: collapsible cards below the list */}
             <div className="space-y-3 lg:hidden">
-              <details className="group rounded-xl border border-border bg-card p-4" data-testid="mobile-calendar-collapsible">
+              <Panel as="details" className="group" data-testid="mobile-calendar-collapsible">
                 <summary className="cursor-pointer list-none flex items-center justify-between">
                   <EyebrowLabel>Calendar</EyebrowLabel>
                   <span className="font-mono text-[11px] text-muted-foreground group-open:hidden">tap to expand</span>
@@ -210,8 +210,8 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
                 <div className="mt-3">
                   <MiniCalendar {...miniCalendarProps} subscribeLink={subscribeLink} embedded />
                 </div>
-              </details>
-              <details className="group rounded-xl border border-border bg-card p-4" data-testid="mobile-response-collapsible">
+              </Panel>
+              <Panel as="details" className="group" data-testid="mobile-response-collapsible">
                 <summary className="cursor-pointer list-none flex items-center justify-between">
                   <EyebrowLabel>Response status</EyebrowLabel>
                   <span className="font-mono text-[11px] text-muted-foreground group-open:hidden">tap to expand</span>
@@ -220,7 +220,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
                 <div className="mt-3">
                   <ResponseStatus members={members} completionByUserId={completionByUserId} embedded />
                 </div>
-              </details>
+              </Panel>
             </div>
           </div>
 

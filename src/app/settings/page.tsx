@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import Link from 'next/link';
-import { Button, EyebrowLabel, Input, LoadingSpinner } from '@/components/ui';
+import { Button, EyebrowLabel, Input, LoadingSpinner, Panel } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { TEXT_LIMITS, TIMEZONE_GROUPS } from '@/lib/constants';
 import { ThemePicker } from '@/components/settings/ThemePicker';
@@ -99,7 +99,7 @@ export default function SettingsPage() {
 
       <div className="space-y-5">
         {/* ── Profile ──────────────────────────────────────────────────── */}
-        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        <Panel as="section" padded="md">
           <EyebrowLabel className="mb-4 block">Profile</EyebrowLabel>
           <div className="space-y-6">
             <div>
@@ -116,10 +116,10 @@ export default function SettingsPage() {
               maxLength={TEXT_LIMITS.USER_DISPLAY_NAME}
             />
           </div>
-        </section>
+        </Panel>
 
         {/* ── Preferences ──────────────────────────────────────────────── */}
-        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        <Panel as="section" padded="md">
           <EyebrowLabel className="mb-4 block">Preferences</EyebrowLabel>
           <div className="space-y-6">
             <div>
@@ -210,13 +210,13 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        </section>
+        </Panel>
 
         {/* ── Appearance ───────────────────────────────────────────────── */}
-        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+        <Panel as="section" padded="md">
           <EyebrowLabel className="mb-4 block">Appearance</EyebrowLabel>
           <ThemePicker />
-        </section>
+        </Panel>
 
         {message && (
           <p

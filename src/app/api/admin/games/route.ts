@@ -31,9 +31,12 @@ export async function GET(): Promise<Response> {
     if (result instanceof NextResponse) return result;
     const { admin } = result;
 
-    const cached = cache.get(CACHE_KEY);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return NextResponse.json(cached.data);
+    const cacheEnabled = process.env.NODE_ENV === 'production';
+    if (cacheEnabled) {
+      const cached = cache.get(CACHE_KEY);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        return NextResponse.json(cached.data);
+      }
     }
 
     const { data: games, error: gamesError } = await admin
@@ -165,7 +168,9 @@ export async function GET(): Promise<Response> {
     });
 
     const responseData = { games: gamesWithEngagement };
-    cache.set(CACHE_KEY, { data: responseData, timestamp: Date.now() });
+    if (cacheEnabled) {
+      cache.set(CACHE_KEY, { data: responseData, timestamp: Date.now() });
+    }
     return NextResponse.json(responseData);
   } catch (error) {
     console.error('Admin games error:', error);

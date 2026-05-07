@@ -45,7 +45,7 @@ export default function GameDetailPage() {
 
   // Data layer via focused hooks
   const meta = useGameMeta(gameId, userId);
-  const { game, otherGames, refreshing, refresh, leaveGame, removePlayer, toggleCoGm } = meta;
+  const { game, otherGames, refreshing, leaveGame, removePlayer, toggleCoGm } = meta;
 
   const ready = !!game;
   const availabilityHook = useAvailability(gameId, userId, game);
@@ -57,8 +57,22 @@ export default function GameDetailPage() {
   const playDatesHook = usePlayDates(gameId, ready);
   const { gamePlayDates, toggleExtraDate: toggleExtraDateRaw, updatePlayDateNote } = playDatesHook;
 
+  // Loading is driven by meta until the game resolves; only then do we wait
+  // on downstream hooks. Without the `!game` short-circuit, a non-member
+  // request leaves downstream loading=true forever (their fetches never run).
   const loading =
-    meta.loading || availabilityHook.loading || sessionsHook.loading || playDatesHook.loading;
+    meta.loading ||
+    (!!game &&
+      (availabilityHook.loading || sessionsHook.loading || playDatesHook.loading));
+
+  const refresh = async () => {
+    await Promise.all([
+      meta.refresh(),
+      availabilityHook.refresh(),
+      sessionsHook.refresh(),
+      playDatesHook.refresh(),
+    ]);
+  };
 
   // UI state
   const [activeTab, setActiveTab] = useState<Tab>("overview");

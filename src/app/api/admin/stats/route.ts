@@ -1,38 +1,12 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/api/admin';
 
 export async function GET(): Promise<Response> {
   try {
-    // Verify the user is authenticated and is an admin
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const result = await requireAdmin();
+    if (result instanceof NextResponse) return result;
+    const { admin } = result;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Use admin client to check if user is admin and fetch stats
-    const admin = createAdminClient();
-
-    // Check if user is admin
-    const { data: profile, error: profileError } = await admin
-      .from('users')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile?.is_admin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    // Fetch all stats in parallel
     const [
       usersResult,
       gamesResult,
@@ -56,9 +30,6 @@ export async function GET(): Promise<Response> {
     });
   } catch (error) {
     console.error('Admin stats error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

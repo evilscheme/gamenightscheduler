@@ -3,6 +3,12 @@ import { requireAdmin, paginate } from '@/lib/api/admin';
 import { calculatePlayerCompletionPercentages } from '@/lib/availability';
 import { calculateGameHealth, type HealthBreakdown, type HealthGrade } from '@/lib/gameHealth';
 
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+// Best-effort in-memory cache. Helps when the Fluid Compute instance is
+// reused across requests; misses silently on cold starts.
+const cache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_KEY = 'all';
+
 interface GameWithEngagement {
   id: string;
   name: string;
@@ -24,6 +30,11 @@ export async function GET(): Promise<Response> {
     const result = await requireAdmin();
     if (result instanceof NextResponse) return result;
     const { admin } = result;
+
+    const cached = cache.get(CACHE_KEY);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return NextResponse.json(cached.data);
+    }
 
     const { data: games, error: gamesError } = await admin
       .from('games')
@@ -153,7 +164,9 @@ export async function GET(): Promise<Response> {
       };
     });
 
-    return NextResponse.json({ games: gamesWithEngagement });
+    const responseData = { games: gamesWithEngagement };
+    cache.set(CACHE_KEY, { data: responseData, timestamp: Date.now() });
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Admin games error:', error);
     return NextResponse.json(

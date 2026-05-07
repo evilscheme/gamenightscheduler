@@ -110,7 +110,6 @@ export function useGameDetail(
   const fetchData = useCallback(async () => {
     if (!gameId || !userId) return;
 
-    // Fetch game with GM
     const { data: gameData, error: gameError } = await fetchGameWithGM(
       supabase,
       gameId
@@ -121,20 +120,26 @@ export function useGameDetail(
       return;
     }
 
-    // Fetch members with co-GM status
-    const { data: members } = await fetchGameMembers(supabase, gameId);
+    const [
+      membersRes,
+      userAvailRes,
+      allAvailRes,
+      sessionRes,
+      playDateRes,
+      otherGamesList,
+    ] = await Promise.all([
+      fetchGameMembers(supabase, gameId),
+      fetchUserAvailability(supabase, gameId, userId),
+      fetchAllAvailability(supabase, gameId),
+      fetchGameSessions(supabase, gameId),
+      fetchGamePlayDates(supabase, gameId),
+      fetchUserOtherGames(supabase, userId, gameId),
+    ]);
 
-    setGame({ ...gameData, members } as GameWithMembers);
-
-    // Fetch user's availability
-    const { data: userAvail } = await fetchUserAvailability(
-      supabase,
-      gameId,
-      userId
-    );
+    setGame({ ...gameData, members: membersRes.data } as GameWithMembers);
 
     const availMap: Record<string, AvailabilityEntry> = {};
-    userAvail?.forEach((a) => {
+    userAvailRes.data?.forEach((a) => {
       availMap[a.date] = {
         status: a.status,
         comment: a.comment,
@@ -144,24 +149,9 @@ export function useGameDetail(
     });
     setAvailability(availMap);
 
-    // Fetch all availability for suggestions
-    const { data: allAvail } = await fetchAllAvailability(supabase, gameId);
-    setAllAvailability(allAvail || []);
-
-    // Fetch sessions
-    const { data: sessionData } = await fetchGameSessions(supabase, gameId);
-    setSessions(sessionData || []);
-
-    // Fetch game play dates
-    const { data: playDateRows } = await fetchGamePlayDates(supabase, gameId);
-    setGamePlayDates(playDateRows || []);
-
-    // Fetch user's other games for "Copy from" feature
-    const otherGamesList = await fetchUserOtherGames(
-      supabase,
-      userId,
-      gameId
-    );
+    setAllAvailability(allAvailRes.data || []);
+    setSessions(sessionRes.data || []);
+    setGamePlayDates(playDateRes.data || []);
     setOtherGames(otherGamesList);
 
     setLoading(false);

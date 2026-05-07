@@ -64,7 +64,8 @@ export async function paginate<T>(
     if (opts.dateColumn && opts.cutoff) {
       query = query.gte(opts.dateColumn, opts.cutoff);
     }
-    const { data } = await query.range(offset, offset + pageSize - 1);
+    const { data, error } = await query.range(offset, offset + pageSize - 1);
+    if (error) throw error;
     if (!data || data.length === 0) break;
     all.push(...(data as T[]));
     if (data.length < pageSize) break;

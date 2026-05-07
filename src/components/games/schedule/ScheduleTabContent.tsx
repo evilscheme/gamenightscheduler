@@ -12,7 +12,7 @@ import { ScheduledList } from './ScheduledList';
 import { ScheduleSessionModal } from './ScheduleSessionModal';
 import { CancelSessionModal } from './CancelSessionModal';
 import { CalendarHoverPopover } from './CalendarHoverPopover';
-import { generateICS } from '@/lib/ics';
+import { generateICS, slugifyGameName, triggerICSDownload } from '@/lib/ics';
 import { splitUpcomingPast } from '@/lib/scheduleView';
 import { useToast } from '@/components/ui/Toast';
 import { Button, EyebrowLabel } from '@/components/ui';
@@ -41,16 +41,6 @@ export interface ScheduleTabContentProps {
   subscribeUrl: string;
   onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
   onCancel: (date: string) => Promise<{ success: boolean; error?: string }>;
-}
-
-function downloadICS(content: string, filename: string) {
-  const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 export function ScheduleTabContent(props: ScheduleTabContentProps) {
@@ -121,7 +111,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
       title: gameName,
       timezone: timezone || undefined,
     }]);
-    downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-${session.date}.ics`);
+    triggerICSDownload(ics, `${slugifyGameName(gameName)}-${session.date}.ics`);
     toast.show(`Downloaded calendar file for ${format(parseISO(session.date), 'MMM d')}.`);
   };
 
@@ -136,7 +126,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
       timezone: timezone || undefined,
     }));
     const ics = generateICS(events);
-    downloadICS(ics, `${gameName.toLowerCase().replace(/\s+/g, '-')}-sessions.ics`);
+    triggerICSDownload(ics, `${slugifyGameName(gameName)}-sessions.ics`);
   };
 
   const handleCopySubscribe = async () => {

@@ -26,7 +26,8 @@ function ClampedNotes({ text }: { text: string }) {
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-0.5 text-[11px] font-semibold text-primary md:hidden"
+          aria-expanded={expanded}
+          className="mt-0.5 py-1 text-[11px] font-semibold text-primary md:hidden"
           data-testid="session-notes-toggle"
         >
           {expanded ? 'Show less' : 'Show more'}

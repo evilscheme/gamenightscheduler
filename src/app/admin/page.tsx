@@ -37,7 +37,7 @@ interface GameWithEngagement {
   gm: { id: string; name: string; email: string } | null;
   playerCount: number;
   sessionCount: number;
-  confirmedSessionCount: number;
+  futureSessionCount: number;
   availabilityFillRate: number;
   lastActivity: string | null;
   healthScore: number;
@@ -278,7 +278,8 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
                 <SortableHeader field="name" label="Game" currentSort={sortBy} sortDesc={sortDesc} onSort={handleSortChange} />
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">GM</th>
                 <th className="text-center py-3 px-2 font-medium text-muted-foreground">Players</th>
-                <th className="text-center py-3 px-2 font-medium text-muted-foreground">Sessions</th>
+                <th className="text-center py-3 px-2 font-medium text-muted-foreground">Total Sessions</th>
+                <th className="text-center py-3 px-2 font-medium text-muted-foreground">Upcoming Sessions</th>
                 <th className="text-center py-3 px-2 font-medium text-muted-foreground">Fill Rate</th>
                 <SortableHeader field="lastActivity" label="Last Activity" currentSort={sortBy} sortDesc={sortDesc} onSort={handleSortChange} />
                 <SortableHeader field="created" label="Created" currentSort={sortBy} sortDesc={sortDesc} onSort={handleSortChange} />
@@ -289,7 +290,7 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
                 <tr key={game.id} className="border-b border-border/50 hover:bg-muted/50">
                   <td className="py-3 px-2 text-center">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-sm text-xs font-medium cursor-help ${HEALTH_GRADE_STYLES[game.healthGrade]}`}
+                      className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-sm text-xs font-medium cursor-help ${HEALTH_GRADE_STYLES[game.healthGrade]}`}
                       title={`${game.healthLabel} (${game.healthScore}/100)\n${formatBreakdownTooltip(game.healthBreakdown)}`}
                     >
                       {game.healthGrade} {game.healthScore}
@@ -298,7 +299,8 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
                   <td className="py-3 px-2 font-medium text-foreground">{game.name}</td>
                   <td className="py-3 px-2 text-muted-foreground">{game.gm?.name ?? 'Unknown'}</td>
                   <td className="py-3 px-2 text-center text-foreground">{game.playerCount}</td>
-                  <td className="py-3 px-2 text-center text-foreground">{game.confirmedSessionCount}</td>
+                  <td className="py-3 px-2 text-center text-foreground">{game.sessionCount}</td>
+                  <td className="py-3 px-2 text-center text-foreground">{game.futureSessionCount}</td>
                   <td className="py-3 px-2 text-center">
                     <span
                       className={`inline-block px-2 py-0.5 rounded-sm text-xs font-medium ${
@@ -318,7 +320,7 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
               ))}
               {sortedGames.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-8 text-center text-muted-foreground">
                     {hideUnhealthy ? 'No healthy games found' : 'No games found'}
                   </td>
                 </tr>

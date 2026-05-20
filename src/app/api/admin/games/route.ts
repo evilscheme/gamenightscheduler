@@ -10,7 +10,7 @@ interface GameWithEngagement {
   gm: { id: string; name: string; email: string } | null;
   playerCount: number;
   sessionCount: number;
-  confirmedSessionCount: number;
+  futureSessionCount: number;
   availabilityFillRate: number;
   lastActivity: string | null;
   healthScore: number;
@@ -36,7 +36,7 @@ export async function GET(): Promise<Response> {
 
     const [memberships, sessions, availabilityRecords, gamePlayDates] = await Promise.all([
       paginate<{ game_id: string; user_id: string }>(admin, 'game_memberships', 'game_id, user_id'),
-      paginate<{ game_id: string; status: string; created_at: string; date: string }>(admin, 'sessions', 'game_id, status, created_at, date'),
+      paginate<{ game_id: string; created_at: string; date: string }>(admin, 'sessions', 'game_id, created_at, date'),
       paginate<{ game_id: string; user_id: string; date: string; updated_at: string }>(admin, 'availability', 'game_id, user_id, date, updated_at'),
       paginate<{ game_id: string; date: string }>(admin, 'game_play_dates', 'game_id, date'),
     ]);
@@ -51,14 +51,13 @@ export async function GET(): Promise<Response> {
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const sessionsByGame = new Map<string, { total: number; confirmed: number; future: number; lastActivity: string | null }>();
+    const sessionsByGame = new Map<string, { total: number; future: number; lastActivity: string | null }>();
     for (const s of sessions) {
       if (!sessionsByGame.has(s.game_id)) {
-        sessionsByGame.set(s.game_id, { total: 0, confirmed: 0, future: 0, lastActivity: null });
+        sessionsByGame.set(s.game_id, { total: 0, future: 0, lastActivity: null });
       }
       const stats = sessionsByGame.get(s.game_id)!;
       stats.total++;
-      if (s.status === 'confirmed') stats.confirmed++;
       if (s.date >= todayStr) stats.future++;
       if (!stats.lastActivity || s.created_at > stats.lastActivity) {
         stats.lastActivity = s.created_at;
@@ -89,7 +88,7 @@ export async function GET(): Promise<Response> {
     const gamesWithEngagement: GameWithEngagement[] = (games ?? []).map((game) => {
       const members = membershipsByGame.get(game.id) ?? new Set();
       const totalPlayers = members.size + 1; // +1 for GM
-      const sessionStats = sessionsByGame.get(game.id) ?? { total: 0, confirmed: 0, future: 0, lastActivity: null };
+      const sessionStats = sessionsByGame.get(game.id) ?? { total: 0, future: 0, lastActivity: null };
       const availabilityStats = availabilityByGame.get(game.id) ?? { records: [], lastActivity: null };
 
       // Fill rate: average completion percentage across all current players
@@ -129,7 +128,6 @@ export async function GET(): Promise<Response> {
       // Calculate health score
       const health = calculateGameHealth({
         playerCount: totalPlayers,
-        confirmedSessionCount: sessionStats.confirmed,
         futureSessionCount: sessionStats.future,
         availabilityFillRate: fillRate,
         lastActivity,
@@ -143,7 +141,7 @@ export async function GET(): Promise<Response> {
         gm: gm as GameWithEngagement['gm'],
         playerCount: totalPlayers,
         sessionCount: sessionStats.total,
-        confirmedSessionCount: sessionStats.confirmed,
+        futureSessionCount: sessionStats.future,
         availabilityFillRate: fillRate,
         lastActivity,
         healthScore: health.score,

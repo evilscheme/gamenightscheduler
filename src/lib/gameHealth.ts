@@ -2,7 +2,6 @@
 
 export interface GameHealthInput {
   playerCount: number;
-  confirmedSessionCount: number;
   futureSessionCount: number;
   availabilityFillRate: number; // 0-100
   lastActivity: string | null; // ISO timestamp
@@ -47,29 +46,21 @@ function daysBetween(dateStr: string, referenceDate: Date): number {
   );
 }
 
-/** 1 player = 0, 2 = 30, 3 = 60, 4 = 80, 5+ = 100 */
+/** Linear ramp: 1 player = 0, 4+ players = 100 */
 function calcPlayerScore(playerCount: number): number {
-  if (playerCount >= 5) return 100;
-  if (playerCount === 4) return 80;
-  if (playerCount === 3) return 60;
-  if (playerCount === 2) return 30;
-  return 0;
+  if (playerCount >= 4) return 100;
+  if (playerCount <= 1) return 0;
+  return Math.round(((playerCount - 1) / 3) * 100);
 }
 
-/**
- * Blend of total confirmed sessions (50%) and future sessions presence (50%).
- * 5+ confirmed sessions = max for the total sub-signal.
- */
+/** Smoothly score upcoming momentum: 0 future sessions = 0, 2+ = 100 */
 function calcSessionScore(
-  confirmedSessionCount: number,
   futureSessionCount: number
 ): number {
-  const totalSignal = Math.min(confirmedSessionCount / 5, 1) * 100;
-  const futureSignal = futureSessionCount > 0 ? 100 : 0;
-  return Math.round((totalSignal + futureSignal) / 2);
+  return Math.round(Math.min(futureSessionCount / 2, 1) * 100);
 }
 
-/** Aggressive decay: 0 at 60+ days */
+/** Full credit through 14 days, then linear decay to 0 at 60+ days */
 function calcRecencyScore(
   lastActivity: string | null,
   referenceDate: Date
@@ -77,12 +68,9 @@ function calcRecencyScore(
   if (!lastActivity) return 0;
   const days = daysBetween(lastActivity, referenceDate);
   if (days < 0) return 100; // future date, treat as very recent
-  if (days < 7) return 100;
-  if (days < 14) return 75;
-  if (days < 30) return 50;
-  if (days < 45) return 25;
-  if (days < 60) return 10;
-  return 0;
+  if (days <= 14) return 100;
+  if (days >= 60) return 0;
+  return Math.round(((60 - days) / (60 - 14)) * 100);
 }
 
 // ── Grade mapping ──────────────────────────────────────────
@@ -117,10 +105,7 @@ export function calculateGameHealth(
 ): GameHealthResult {
   const breakdown: HealthBreakdown = {
     playerScore: calcPlayerScore(input.playerCount),
-    sessionScore: calcSessionScore(
-      input.confirmedSessionCount,
-      input.futureSessionCount
-    ),
+    sessionScore: calcSessionScore(input.futureSessionCount),
     fillRateScore: Math.round(
       Math.max(0, Math.min(100, input.availabilityFillRate))
     ),

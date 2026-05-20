@@ -68,6 +68,8 @@ export interface GameSession {
   end_time: string | null; // HH:MM:SS format
   status: SessionStatus;
   confirmed_by: string | null;
+  location: string | null;
+  notes: string | null;
   created_at: string;
 }
 

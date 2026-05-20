@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateICS, escapeICS, slugifyGameName } from "./ics";
+import { generateICS, escapeICS, slugifyGameName, composeIcsDescription } from "./ics";
 
 describe("slugifyGameName", () => {
   it("lowercases the name", () => {
@@ -504,5 +504,35 @@ describe("generateICS", () => {
     expect(result).toContain("BEGIN:VEVENT");
     expect(result).toContain("SUMMARY:Mystery Game Night");
     expect(result).toContain("END:VEVENT");
+  });
+});
+
+describe("composeIcsDescription", () => {
+  it("returns undefined when both inputs are null/empty", () => {
+    expect(composeIcsDescription(null, null)).toBeUndefined();
+    expect(composeIcsDescription(undefined, undefined)).toBeUndefined();
+    expect(composeIcsDescription("", "")).toBeUndefined();
+  });
+
+  it("returns game description alone when notes are absent", () => {
+    expect(composeIcsDescription("D&D campaign", null)).toBe("D&D campaign");
+    expect(composeIcsDescription("D&D campaign", "")).toBe("D&D campaign");
+  });
+
+  it("returns notes alone when game description is absent", () => {
+    expect(composeIcsDescription(null, "bring dice")).toBe("bring dice");
+    expect(composeIcsDescription("", "bring dice")).toBe("bring dice");
+  });
+
+  it("appends notes to game description with a blank-line separator", () => {
+    expect(composeIcsDescription("D&D campaign", "bring dice")).toBe(
+      "D&D campaign\n\nbring dice",
+    );
+  });
+
+  it("trims whitespace from each input before composing", () => {
+    expect(composeIcsDescription("  campaign  ", "  notes  ")).toBe(
+      "campaign\n\nnotes",
+    );
   });
 });

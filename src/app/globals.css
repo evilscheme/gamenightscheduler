@@ -28,6 +28,10 @@
 
   --cal-available-bg: #22c55e;
   --cal-available-text: #ffffff;
+  --cal-available-medium-bg: #86efac;
+  --cal-available-medium-text: #ffffff;
+  --cal-empty-bg: #cbd5e1;
+  --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
   --cal-maybe-text: #ffffff;
   --cal-unavailable-bg: #dc2626;
@@ -81,8 +85,12 @@
   --danger-muted: #ef4444;
   --scheduled: #38bdf8;
 
-  --cal-available-bg: #166534;
-  --cal-available-text: #86efac;
+  --cal-available-bg: #15803d;
+  --cal-available-text: #dcfce7;
+  --cal-available-medium-bg: #14532d;
+  --cal-available-medium-text: #4ade80;
+  --cal-empty-bg: #334155;
+  --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
   --cal-maybe-text: #fde68a;
   --cal-unavailable-bg: #991b1b;
@@ -140,6 +148,10 @@
 
   --cal-available-bg: #22c55e;
   --cal-available-text: #ffffff;
+  --cal-available-medium-bg: #86efac;
+  --cal-available-medium-text: #ffffff;
+  --cal-empty-bg: #cbd5e1;
+  --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
   --cal-maybe-text: #ffffff;
   --cal-unavailable-bg: #dc2626;
@@ -175,8 +187,12 @@
   --danger-muted: #ef4444;
   --scheduled: #a78bfa;
 
-  --cal-available-bg: #166534;
-  --cal-available-text: #86efac;
+  --cal-available-bg: #15803d;
+  --cal-available-text: #dcfce7;
+  --cal-available-medium-bg: #14532d;
+  --cal-available-medium-text: #4ade80;
+  --cal-empty-bg: #334155;
+  --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
   --cal-maybe-text: #fde68a;
   --cal-unavailable-bg: #991b1b;
@@ -217,6 +233,10 @@
 
   --cal-available-bg: #22c55e;
   --cal-available-text: #ffffff;
+  --cal-available-medium-bg: #86efac;
+  --cal-available-medium-text: #ffffff;
+  --cal-empty-bg: #cbd5e1;
+  --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
   --cal-maybe-text: #ffffff;
   --cal-unavailable-bg: #dc2626;
@@ -252,8 +272,12 @@
   --danger-muted: #ef4444;
   --scheduled: #4ade80;
 
-  --cal-available-bg: #166534;
-  --cal-available-text: #86efac;
+  --cal-available-bg: #15803d;
+  --cal-available-text: #dcfce7;
+  --cal-available-medium-bg: #14532d;
+  --cal-available-medium-text: #4ade80;
+  --cal-empty-bg: #334155;
+  --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
   --cal-maybe-text: #fde68a;
   --cal-unavailable-bg: #991b1b;
@@ -294,6 +318,10 @@
 
   --cal-available-bg: #22c55e;
   --cal-available-text: #ffffff;
+  --cal-available-medium-bg: #86efac;
+  --cal-available-medium-text: #ffffff;
+  --cal-empty-bg: #cbd5e1;
+  --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
   --cal-maybe-text: #ffffff;
   --cal-unavailable-bg: #dc2626;
@@ -329,8 +357,12 @@
   --danger-muted: #ef4444;
   --scheduled: #94a3b8;
 
-  --cal-available-bg: #166534;
-  --cal-available-text: #86efac;
+  --cal-available-bg: #15803d;
+  --cal-available-text: #dcfce7;
+  --cal-available-medium-bg: #14532d;
+  --cal-available-medium-text: #4ade80;
+  --cal-empty-bg: #334155;
+  --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
   --cal-maybe-text: #fde68a;
   --cal-unavailable-bg: #991b1b;
@@ -371,6 +403,10 @@
 
   --cal-available-bg: #22c55e;
   --cal-available-text: #ffffff;
+  --cal-available-medium-bg: #86efac;
+  --cal-available-medium-text: #ffffff;
+  --cal-empty-bg: #cbd5e1;
+  --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
   --cal-maybe-text: #ffffff;
   --cal-unavailable-bg: #dc2626;
@@ -406,8 +442,12 @@
   --danger-muted: #ef4444;
   --scheduled: #fb7185;
 
-  --cal-available-bg: #166534;
-  --cal-available-text: #86efac;
+  --cal-available-bg: #15803d;
+  --cal-available-text: #dcfce7;
+  --cal-available-medium-bg: #14532d;
+  --cal-available-medium-text: #4ade80;
+  --cal-empty-bg: #334155;
+  --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
   --cal-maybe-text: #fde68a;
   --cal-unavailable-bg: #991b1b;
@@ -446,6 +486,10 @@
   /* Calendar colors */
   --color-cal-available-bg: var(--cal-available-bg);
   --color-cal-available-text: var(--cal-available-text);
+  --color-cal-available-medium-bg: var(--cal-available-medium-bg);
+  --color-cal-available-medium-text: var(--cal-available-medium-text);
+  --color-cal-empty-bg: var(--cal-empty-bg);
+  --color-cal-empty-text: var(--cal-empty-text);
   --color-cal-maybe-bg: var(--cal-maybe-bg);
   --color-cal-maybe-text: var(--cal-maybe-text);
   --color-cal-unavailable-bg: var(--cal-unavailable-bg);

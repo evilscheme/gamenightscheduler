@@ -2,25 +2,19 @@
 
 import { CellTintTier } from '@/lib/scheduleView';
 import { useHoverSync } from './HoverSyncContext';
+import { CALENDAR_STYLES } from './calendarStyles';
 
 interface CalendarCellProps {
   date: string | null;
   day: number | null;
   isPlayDay: boolean;
   isScheduled: boolean;
+  isPast: boolean;
   tier: CellTintTier | null;
   onActivate?: (date: string) => void;
 }
 
-const TIER_BG: Record<CellTintTier, string> = {
-  high: 'bg-cal-available-bg text-cal-available-text',
-  medium: 'bg-cal-available-bg/60 text-cal-available-text',
-  maybe: 'bg-cal-maybe-bg text-cal-maybe-text',
-  warning: 'bg-cal-unavailable-bg/60 text-cal-unavailable-text',
-  empty: 'bg-muted/40 text-muted-foreground',
-};
-
-export function CalendarCell({ date, day, isPlayDay, isScheduled, tier, onActivate }: CalendarCellProps) {
+export function CalendarCell({ date, day, isPlayDay, isScheduled, isPast, tier, onActivate }: CalendarCellProps) {
   const { hoveredDate, setHoveredDate } = useHoverSync();
   const hovered = !!date && hoveredDate === date;
 
@@ -35,7 +29,7 @@ export function CalendarCell({ date, day, isPlayDay, isScheduled, tier, onActiva
         onClick={() => onActivate?.(date)}
         onMouseEnter={() => setHoveredDate(date)}
         onMouseLeave={() => setHoveredDate(null)}
-        className={`aspect-square rounded-sm flex items-center justify-center bg-cal-scheduled-bg text-cal-scheduled-text font-mono text-[10px] font-bold ${hovered ? 'outline outline-2 outline-primary' : ''}`}
+        className={`aspect-square rounded-sm flex items-center justify-center ${CALENDAR_STYLES.scheduled.className} font-mono text-[10px] font-bold ${hovered ? 'outline outline-2 outline-primary' : ''}`}
         aria-label={`Scheduled on ${date}`}
         data-testid="calendar-cell"
         data-date={date}
@@ -56,7 +50,9 @@ export function CalendarCell({ date, day, isPlayDay, isScheduled, tier, onActiva
     );
   }
 
-  const tintCls = tier ? TIER_BG[tier] : TIER_BG.empty;
+  const tintCls = isPast
+    ? CALENDAR_STYLES.past.className
+    : CALENDAR_STYLES[tier ?? 'empty'].className;
 
   return (
     <button

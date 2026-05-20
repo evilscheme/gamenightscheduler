@@ -10,6 +10,32 @@ import { convertTimeForDisplay } from '@/lib/timezone';
 import { PartyBreakdown } from './PartyBreakdown';
 import { PlayerAvatarCluster, type PlayerAvatarItem } from './PlayerAvatarCluster';
 
+function ClampedNotes({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  // Auto-detect: only show toggle if rendered content exceeds ~80 chars (heuristic for 2 lines on mobile).
+  const showToggle = text.length > 80;
+  return (
+    <div>
+      <p
+        className={`wrap-break-word ${!expanded && showToggle ? 'line-clamp-2 md:line-clamp-none' : ''}`}
+        data-testid="session-notes-text"
+      >
+        {text}
+      </p>
+      {showToggle && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-0.5 text-[11px] font-semibold text-primary md:hidden"
+          data-testid="session-notes-toggle"
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 interface ScheduledRowProps {
   session: GameSession;
   suggestion: DateSuggestion | undefined;
@@ -83,9 +109,7 @@ export function ScheduledRow({
           {session.notes && (
             <div className="flex items-start gap-2 text-xs text-card-foreground">
               <StickyNote className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
-              <span className="wrap-break-word" data-testid="session-notes-text">
-                {session.notes}
-              </span>
+              <ClampedNotes text={session.notes} />
             </div>
           )}
         </div>

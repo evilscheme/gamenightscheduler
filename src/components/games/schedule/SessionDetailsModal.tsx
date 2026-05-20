@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { Modal, Button, Input, Textarea, EyebrowLabel } from '@/components/ui';
 import type { DateSuggestion, GameSession } from '@/types';
 import { computeDefaultSessionTimes } from '@/lib/scheduleView';
-import { SESSION_DEFAULTS } from '@/lib/constants';
+import { SESSION_DEFAULTS, TEXT_LIMITS } from '@/lib/constants';
 
 export type SessionDetailsMode = 'schedule' | 'edit';
 
@@ -28,8 +28,8 @@ interface SessionDetailsModalProps {
   }) => Promise<{ success: boolean; error?: string }>;
 }
 
-const LOCATION_MAX = 200;
-const NOTES_MAX = 500;
+const LOCATION_MAX = TEXT_LIMITS.SESSION_LOCATION;
+const NOTES_MAX = TEXT_LIMITS.SESSION_NOTES;
 const LOCATION_WARN = 150;
 const NOTES_WARN = 400;
 
@@ -76,8 +76,8 @@ export function SessionDetailsModal({
   // In edit mode, the submit button is disabled until at least one field differs.
   const hasChanges = useMemo(() => {
     if (mode !== 'edit' || !session) return true;
-    const startChanged = start !== (session.start_time ?? '').slice(0, 5);
-    const endChanged = end !== (session.end_time ?? '').slice(0, 5);
+    const startChanged = start !== (session.start_time ?? SESSION_DEFAULTS.START_TIME).slice(0, 5);
+    const endChanged = end !== (session.end_time ?? SESSION_DEFAULTS.END_TIME).slice(0, 5);
     const locationChanged = normalize(location) !== (session.location ?? null);
     const notesChanged = normalize(notes) !== (session.notes ?? null);
     return startChanged || endChanged || locationChanged || notesChanged;
@@ -106,7 +106,7 @@ export function SessionDetailsModal({
   const title = format(parseISO(date), 'EEEE, MMMM d, yyyy');
   const eyebrow = isSchedule ? 'Schedule session' : 'Edit session details';
   const submitLabel = isSchedule
-    ? busy ? 'Confirming…' : '★ Confirm session'
+    ? busy ? 'Confirming…' : 'Confirm session'
     : busy ? 'Saving…' : 'Save changes';
 
   const locationCounterClass =

@@ -66,6 +66,8 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
   const toast = useToast();
   const [scheduleFor, setScheduleFor] = useState<string | null>(null);
   const [cancelFor, setCancelFor] = useState<GameSession | null>(null);
+  // editFor is set via onEditDetails in ScheduledList (added in a later task);
+  // the edit-mode modal is rendered here so it's ready when that wiring lands.
   const [editFor, setEditFor] = useState<GameSession | null>(null);
   const [autoExpandDate, setAutoExpandDate] = useState<string | null>(null);
 

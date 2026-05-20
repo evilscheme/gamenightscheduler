@@ -17,6 +17,8 @@ export async function confirmSession(
     start_time: string;
     end_time: string;
     confirmed_by: string;
+    location?: string | null;
+    notes?: string | null;
   }
 ) {
   return supabase
@@ -47,4 +49,22 @@ export async function fetchFutureSessions(
     .select('date')
     .eq('game_id', gameId)
     .gte('date', fromDate);
+}
+
+export async function updateSession(
+  supabase: SupabaseClient,
+  sessionId: string,
+  patch: {
+    start_time?: string;
+    end_time?: string;
+    location?: string | null;
+    notes?: string | null;
+  }
+) {
+  return supabase
+    .from('sessions')
+    .update(patch)
+    .eq('id', sessionId)
+    .select()
+    .single<GameSession>();
 }

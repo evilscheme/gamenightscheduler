@@ -25,7 +25,10 @@ function ClampedNotes({ text }: { text: string }) {
       {showToggle && (
         <button
           type="button"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((v) => !v);
+          }}
           aria-expanded={expanded}
           className="mt-0.5 py-1 text-[11px] font-semibold text-primary md:hidden"
           data-testid="session-notes-toggle"
@@ -134,11 +137,18 @@ export function ScheduledRow({
       className={`rounded-xl border border-border bg-card p-4 ${past ? 'opacity-70' : ''}`}
     >
       {expandable ? (
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           aria-expanded={expanded}
           onClick={() => setExpanded((v) => !v)}
-          className="flex w-full items-start gap-3 text-left"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setExpanded((v) => !v);
+            }
+          }}
+          className="flex w-full cursor-pointer items-start gap-3 text-left"
           title={expanded ? 'Hide details' : 'Show details'}
         >
           <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
@@ -148,7 +158,7 @@ export function ScheduledRow({
               expanded ? 'rotate-90' : ''
             }`}
           />
-        </button>
+        </div>
       ) : (
         <div className="flex items-start gap-3">
           <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>

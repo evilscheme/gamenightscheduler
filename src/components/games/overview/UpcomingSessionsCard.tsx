@@ -39,7 +39,10 @@ function ClampedNotes({ text }: { text: string }) {
       {showToggle && (
         <button
           type="button"
-          onClick={() => setExpanded((v) => !v)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((v) => !v);
+          }}
           aria-expanded={expanded}
           className="mt-0.5 py-1 text-[11px] font-semibold text-primary md:hidden"
           data-testid="session-notes-toggle"

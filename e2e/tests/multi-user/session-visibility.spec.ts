@@ -68,8 +68,8 @@ test.describe('Multi-User Session Visibility', () => {
       });
 
       await gmPage.getByRole('button', { name: /schedule game/i }).first().click();
-      await expect(gmPage.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
-      await gmPage.locator('[data-testid="confirm-session-submit"]').click();
+      await expect(gmPage.locator('[data-testid="session-details-modal"]')).toBeVisible();
+      await gmPage.locator('[data-testid="session-details-submit"]').click();
 
       // GM sees confirmed session
       await expect(gmPage.getByText(/upcoming sessions/i)).toBeVisible({

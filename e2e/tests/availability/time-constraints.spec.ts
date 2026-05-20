@@ -232,14 +232,14 @@ test.describe('Time Availability Constraints', () => {
 
     // Click "Schedule game" on the first (auto-expanded) suggestion
     await page.getByRole('button', { name: /schedule game/i }).first().click();
-    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
+    await expect(page.locator('[data-testid="session-details-modal"]')).toBeVisible();
 
     // Start time should be pre-filled with 19:00 (later of default 18:00 and constraint 19:00)
-    const startTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').first();
+    const startTimeInput = page.locator('[data-testid="session-details-modal"] input[type="time"]').first();
     await expect(startTimeInput).toHaveValue('19:00');
 
     // End time should stay at default 23:00 (no end constraint)
-    const endTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').nth(1);
+    const endTimeInput = page.locator('[data-testid="session-details-modal"] input[type="time"]').nth(1);
     await expect(endTimeInput).toHaveValue('23:00');
   });
 

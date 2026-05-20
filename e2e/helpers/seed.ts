@@ -194,6 +194,8 @@ export async function createTestSession(options: {
   confirmed_by: string;
   start_time?: string;
   end_time?: string;
+  location?: string | null;
+  notes?: string | null;
 }): Promise<{ id: string }> {
   const admin = getAdminClient();
 
@@ -204,6 +206,8 @@ export async function createTestSession(options: {
     confirmed_by: options.confirmed_by,
     start_time: options.start_time || '18:00',
     end_time: options.end_time || '22:00',
+    location: options.location ?? null,
+    notes: options.notes ?? null,
   };
 
   const { data, error } = await admin

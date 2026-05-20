@@ -51,15 +51,15 @@ test.describe('Session Confirmation', () => {
     await lockInButton.click();
 
     // Modal should appear (identified by data-testid)
-    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
+    await expect(page.locator('[data-testid="session-details-modal"]')).toBeVisible();
 
     // Should have start and end time inputs
-    await expect(page.locator('[data-testid="schedule-session-modal"] input[type="time"]').first()).toBeVisible();
-    await expect(page.locator('[data-testid="schedule-session-modal"] input[type="time"]').nth(1)).toBeVisible();
+    await expect(page.locator('[data-testid="session-details-modal"] input[type="time"]').first()).toBeVisible();
+    await expect(page.locator('[data-testid="session-details-modal"] input[type="time"]').nth(1)).toBeVisible();
 
     // Should have confirm and cancel buttons in modal
-    await expect(page.locator('[data-testid="confirm-session-submit"]')).toBeVisible();
-    await expect(page.locator('[data-testid="schedule-session-modal"]').getByRole('button', { name: /cancel/i })).toBeVisible();
+    await expect(page.locator('[data-testid="session-details-submit"]')).toBeVisible();
+    await expect(page.locator('[data-testid="session-details-modal"]').getByRole('button', { name: /cancel/i })).toBeVisible();
   });
 
   test('GM can set custom times and confirm session', async ({ page, request }) => {
@@ -100,11 +100,11 @@ test.describe('Session Confirmation', () => {
     await page.getByRole('button', { name: /schedule game/i }).first().click();
 
     // Wait for modal
-    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
+    await expect(page.locator('[data-testid="session-details-modal"]')).toBeVisible();
 
     // Set custom times: 7 PM to 11 PM
-    const startTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').first();
-    const endTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').nth(1);
+    const startTimeInput = page.locator('[data-testid="session-details-modal"] input[type="time"]').first();
+    const endTimeInput = page.locator('[data-testid="session-details-modal"] input[type="time"]').nth(1);
 
     await startTimeInput.clear();
     await startTimeInput.fill('19:00');
@@ -112,10 +112,10 @@ test.describe('Session Confirmation', () => {
     await endTimeInput.fill('23:00');
 
     // Submit the confirmation
-    await page.locator('[data-testid="confirm-session-submit"]').click();
+    await page.locator('[data-testid="session-details-submit"]').click();
 
     // Modal should close
-    await expect(page.locator('[data-testid="schedule-session-modal"]')).not.toBeVisible();
+    await expect(page.locator('[data-testid="session-details-modal"]')).not.toBeVisible();
 
     // Session should appear in confirmed sessions section
     await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
@@ -166,8 +166,8 @@ test.describe('Session Confirmation', () => {
 
     // Confirm a session
     await page.getByRole('button', { name: /schedule game/i }).first().click();
-    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
-    await page.locator('[data-testid="confirm-session-submit"]').click();
+    await expect(page.locator('[data-testid="session-details-modal"]')).toBeVisible();
+    await page.locator('[data-testid="session-details-submit"]').click();
 
     // Now confirmed sessions should be visible
     await expect(page.getByText(/upcoming sessions/i)).toBeVisible({
@@ -270,11 +270,11 @@ test.describe('Session Confirmation', () => {
     await page.getByRole('button', { name: /schedule game/i }).first().click();
 
     // Wait for modal
-    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
+    await expect(page.locator('[data-testid="session-details-modal"]')).toBeVisible();
 
     // Check that the time inputs are pre-filled with game's default times
-    const startTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').first();
-    const endTimeInput = page.locator('[data-testid="schedule-session-modal"] input[type="time"]').nth(1);
+    const startTimeInput = page.locator('[data-testid="session-details-modal"] input[type="time"]').first();
+    const endTimeInput = page.locator('[data-testid="session-details-modal"] input[type="time"]').nth(1);
 
     await expect(startTimeInput).toHaveValue('19:30');
     await expect(endTimeInput).toHaveValue('23:30');

@@ -2,13 +2,43 @@
 
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Calendar, ChevronRight, X } from 'lucide-react';
+import { Calendar, ChevronRight, MapPin, Pencil, StickyNote, X } from 'lucide-react';
 import type { DateSuggestion, GameSession } from '@/types';
 import { Button, EyebrowLabel } from '@/components/ui';
 import { formatTime } from '@/lib/formatting';
 import { convertTimeForDisplay } from '@/lib/timezone';
 import { PartyBreakdown } from './PartyBreakdown';
 import { PlayerAvatarCluster, type PlayerAvatarItem } from './PlayerAvatarCluster';
+
+function ClampedNotes({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  // Auto-detect: only show toggle if rendered content exceeds ~80 chars (heuristic for 2 lines on mobile).
+  const showToggle = text.length > 80;
+  return (
+    <div>
+      <p
+        className={`wrap-break-word ${!expanded && showToggle ? 'line-clamp-2 md:line-clamp-none' : ''}`}
+        data-testid="session-notes-text"
+      >
+        {text}
+      </p>
+      {showToggle && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((v) => !v);
+          }}
+          aria-expanded={expanded}
+          className="mt-0.5 py-1 text-[11px] font-semibold text-primary md:hidden"
+          data-testid="session-notes-toggle"
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  );
+}
 
 interface ScheduledRowProps {
   session: GameSession;
@@ -23,11 +53,12 @@ interface ScheduledRowProps {
   past?: boolean;
   onDownloadIcs: (session: GameSession) => void;
   onRequestCancel: (session: GameSession) => void;
+  onEditDetails?: (session: GameSession) => void;
 }
 
 export function ScheduledRow({
   session, suggestion, timezone, userTimezone, use24h, isGm, gmId, coGmIds,
-  playDateNote, past = false, onDownloadIcs, onRequestCancel,
+  playDateNote, past = false, onDownloadIcs, onRequestCancel, onEditDetails,
 }: ScheduledRowProps) {
   const [expanded, setExpanded] = useState(false);
   // Expandable when there's something in the expanded section worth showing:
@@ -71,6 +102,22 @@ export function ScheduledRow({
       {playDateNote && (
         <p className="mt-0.5 text-xs italic text-muted-foreground">{playDateNote}</p>
       )}
+      {(session.location || session.notes) && (
+        <div className="mt-2 space-y-1 border-t border-dashed border-border pt-2">
+          {session.location && (
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+              <MapPin className="mt-0.5 size-3 shrink-0" />
+              <span className="wrap-break-word" data-testid="session-location-text">{session.location}</span>
+            </div>
+          )}
+          {session.notes && (
+            <div className="flex items-start gap-2 text-xs text-card-foreground">
+              <StickyNote className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
+              <ClampedNotes text={session.notes} />
+            </div>
+          )}
+        </div>
+      )}
       {visibleAvatars.length > 0 && (
         <div className="mt-2 flex items-center gap-2">
           <PlayerAvatarCluster avatars={visibleAvatars} />
@@ -89,28 +136,26 @@ export function ScheduledRow({
       data-testid={past ? 'past-session-row' : 'scheduled-row'}
       className={`rounded-xl border border-border bg-card p-4 ${past ? 'opacity-70' : ''}`}
     >
-      {expandable ? (
-        <button
-          type="button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((v) => !v)}
-          className="flex w-full items-start gap-3 text-left"
-          title={expanded ? 'Hide details' : 'Show details'}
-        >
-          <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
-          <div className="min-w-0 flex-1">{infoContent}</div>
-          <ChevronRight
-            className={`mt-0.5 size-4 shrink-0 self-center text-muted-foreground transition-transform ${
-              expanded ? 'rotate-90' : ''
-            }`}
-          />
-        </button>
-      ) : (
-        <div className="flex items-start gap-3">
-          <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
-          <div className="min-w-0 flex-1">{infoContent}</div>
-        </div>
-      )}
+      <div className="flex items-start gap-3">
+        <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
+        <div className="min-w-0 flex-1">{infoContent}</div>
+        {expandable && (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Hide session details' : 'Show session details'}
+            onClick={() => setExpanded((v) => !v)}
+            className="self-center p-1"
+            title={expanded ? 'Hide details' : 'Show details'}
+          >
+            <ChevronRight
+              className={`size-4 text-muted-foreground transition-transform ${
+                expanded ? 'rotate-90' : ''
+              }`}
+            />
+          </button>
+        )}
+      </div>
 
       {expandable && expanded && (
         <div className="mt-3 space-y-3 border-t border-border pt-3">
@@ -131,6 +176,17 @@ export function ScheduledRow({
               >
                 <Calendar className="mr-1.5 size-4" /> Add to calendar
               </Button>
+              {isGm && onEditDetails && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onEditDetails(session)}
+                  data-testid="session-edit-details"
+                  title="Edit times, location, and notes for this session"
+                >
+                  <Pencil className="mr-1 size-4" /> Edit details
+                </Button>
+              )}
               {isGm && (
                 <Button
                   size="sm"

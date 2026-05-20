@@ -13,7 +13,7 @@ import { TEST_TIMEOUTS } from '../../constants';
  * expand the row before reaching those actions.
  */
 async function expandScheduledRow(row: Locator) {
-  const toggle = row.locator('button[aria-expanded="false"]').first();
+  const toggle = row.locator('[aria-expanded="false"]').first();
   if (await toggle.count()) {
     await toggle.click();
   }

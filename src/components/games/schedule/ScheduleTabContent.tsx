@@ -9,10 +9,10 @@ import { RankedList } from './RankedList';
 import { MiniCalendar } from './MiniCalendar';
 import { ResponseStatus } from './ResponseStatus';
 import { ScheduledList } from './ScheduledList';
-import { ScheduleSessionModal } from './ScheduleSessionModal';
+import { SessionDetailsModal } from './SessionDetailsModal';
 import { CancelSessionModal } from './CancelSessionModal';
 import { CalendarHoverPopover } from './CalendarHoverPopover';
-import { generateICS, slugifyGameName, triggerICSDownload } from '@/lib/ics';
+import { generateICS, slugifyGameName, triggerICSDownload, composeIcsDescription } from '@/lib/ics';
 import { splitUpcomingPast } from '@/lib/scheduleView';
 import { useToast } from '@/components/ui/Toast';
 import { Button, EyebrowLabel, Panel } from '@/components/ui';
@@ -25,6 +25,7 @@ export interface ScheduleTabContentProps {
   gmId: string;
   isGm: boolean;
   gameName: string;
+  gameDescription?: string | null;
   playDays: number[];
   windowStart: Date;
   windowEnd: Date;
@@ -39,22 +40,35 @@ export interface ScheduleTabContentProps {
   minPlayersNeeded?: number;
   completionByUserId: Map<string, { answered: number; total: number }>;
   subscribeUrl: string;
-  onConfirm: (date: string, startTime: string, endTime: string) => Promise<{ success: boolean; error?: string }>;
+  onConfirm: (
+    date: string,
+    startTime: string,
+    endTime: string,
+    location: string | null,
+    notes: string | null,
+  ) => Promise<{ success: boolean; error?: string }>;
+  onUpdateSession: (
+    sessionId: string,
+    patch: { start_time?: string; end_time?: string; location?: string | null; notes?: string | null },
+  ) => Promise<{ success: boolean; error?: string }>;
   onCancel: (date: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export function ScheduleTabContent(props: ScheduleTabContentProps) {
   const {
-    suggestions, sessions, members, gmId, isGm, gameName, playDays,
-    windowStart, windowEnd, specialPlayDates, playDateNotes,
+    suggestions, sessions, members, gmId, isGm, gameName, gameDescription,
+    playDays, windowStart, windowEnd, specialPlayDates, playDateNotes,
     defaultStartTime, defaultEndTime, timezone, userTimezone,
     use24h = false, weekStartDay, minPlayersNeeded = 0,
-    completionByUserId, subscribeUrl, onConfirm, onCancel,
+    completionByUserId, subscribeUrl, onConfirm, onUpdateSession, onCancel,
   } = props;
 
   const toast = useToast();
   const [scheduleFor, setScheduleFor] = useState<string | null>(null);
   const [cancelFor, setCancelFor] = useState<GameSession | null>(null);
+  // editFor is set via onEditDetails in ScheduledList (added in a later task);
+  // the edit-mode modal is rendered here so it's ready when that wiring lands.
+  const [editFor, setEditFor] = useState<GameSession | null>(null);
   const [autoExpandDate, setAutoExpandDate] = useState<string | null>(null);
 
   const coGmIds = useMemo(
@@ -85,10 +99,29 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
 
   const monthRange = `${format(windowStart, 'MMM')} – ${format(windowEnd, 'MMM yyyy')}`;
 
-  const handleConfirm = async (date: string, start: string, end: string) => {
-    const res = await onConfirm(date, start, end);
+  const handleConfirm = async (values: {
+    start: string; end: string; location: string | null; notes: string | null;
+  }) => {
+    if (!scheduleFor) return { success: false, error: 'No date selected' };
+    const res = await onConfirm(scheduleFor, values.start, values.end, values.location, values.notes);
     if (res.success) {
-      toast.show(`Scheduled ${format(parseISO(date), 'MMM d')}.`);
+      toast.show(`Scheduled ${format(parseISO(scheduleFor), 'MMM d')}.`);
+    }
+    return res;
+  };
+
+  const handleEdit = async (values: {
+    start: string; end: string; location: string | null; notes: string | null;
+  }) => {
+    if (!editFor) return { success: false, error: 'No session selected' };
+    const res = await onUpdateSession(editFor.id, {
+      start_time: values.start,
+      end_time: values.end,
+      location: values.location,
+      notes: values.notes,
+    });
+    if (res.success) {
+      toast.show(`Updated ${format(parseISO(editFor.date), 'MMM d')}.`);
     }
     return res;
   };
@@ -109,6 +142,8 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
       startTime: session.start_time || undefined,
       endTime: session.end_time || undefined,
       title: gameName,
+      location: session.location || undefined,
+      description: composeIcsDescription(gameDescription, session.notes),
       timezone: timezone || undefined,
     }]);
     triggerICSDownload(ics, `${slugifyGameName(gameName)}-${session.date}.ics`);
@@ -123,6 +158,8 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
       startTime: s.start_time || undefined,
       endTime: s.end_time || undefined,
       title: gameName,
+      location: s.location || undefined,
+      description: composeIcsDescription(gameDescription, s.notes),
       timezone: timezone || undefined,
     }));
     const ics = generateICS(events);
@@ -185,6 +222,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               onDownloadIcs={handleDownloadIcs}
               onDownloadAllIcs={handleDownloadAllIcs}
               onRequestCancel={(s) => setCancelFor(s)}
+              onEditDetails={(s) => setEditFor(s)}
             />
 
             <RankedList
@@ -231,14 +269,24 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
           </aside>
         </div>
 
-        <ScheduleSessionModal
+        <SessionDetailsModal
           open={scheduleFor !== null}
           date={scheduleFor}
+          mode="schedule"
           suggestion={scheduleFor ? suggestions.find((s) => s.date === scheduleFor) : undefined}
           gameDefaultStart={defaultStartTime}
           gameDefaultEnd={defaultEndTime}
           onClose={() => setScheduleFor(null)}
-          onConfirm={handleConfirm}
+          onSubmit={handleConfirm}
+        />
+
+        <SessionDetailsModal
+          open={editFor !== null}
+          date={editFor?.date ?? null}
+          mode="edit"
+          session={editFor ?? undefined}
+          onClose={() => setEditFor(null)}
+          onSubmit={handleEdit}
         />
 
         <CancelSessionModal

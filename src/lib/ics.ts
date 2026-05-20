@@ -360,6 +360,18 @@ export function slugifyGameName(name: string): string {
   return name.toLowerCase().replace(/\s+/g, '-');
 }
 
+export function composeIcsDescription(
+  gameDescription: string | null | undefined,
+  sessionNotes: string | null | undefined,
+): string | undefined {
+  const g = (gameDescription ?? "").trim();
+  const n = (sessionNotes ?? "").trim();
+  if (!g && !n) return undefined;
+  if (!g) return n;
+  if (!n) return g;
+  return `${g}\n\n${n}`;
+}
+
 export function triggerICSDownload(content: string, filename: string): void {
   const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);

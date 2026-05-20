@@ -52,7 +52,7 @@ export default function GameDetailPage() {
   const { availability, allAvailability, changeAvailability, copyFromGame: copyFromGameRaw, removePlayerData } = availabilityHook;
 
   const sessionsHook = useSessions(gameId, ready);
-  const { sessions, confirmSession: confirmSessionRaw, cancelSession } = sessionsHook;
+  const { sessions, confirmSession: confirmSessionRaw, updateSession, cancelSession } = sessionsHook;
 
   const playDatesHook = usePlayDates(gameId, ready);
   const { gamePlayDates, toggleExtraDate: toggleExtraDateRaw, updatePlayDateNote } = playDatesHook;
@@ -234,8 +234,13 @@ export default function GameDetailPage() {
   const copyFromGame = (sourceGameId: string) =>
     copyFromGameRaw(sourceGameId, extraDateStrings);
 
-  const confirmSession = (date: string, startTime: string, endTime: string) =>
-    confirmSessionRaw(date, startTime, endTime, profile?.id ?? "");
+  const confirmSession = (
+    date: string,
+    startTime: string,
+    endTime: string,
+    location: string | null,
+    notes: string | null,
+  ) => confirmSessionRaw(date, startTime, endTime, profile?.id ?? "", location, notes);
 
   if (authStatus === 'loading' || loading) {
     return (
@@ -394,6 +399,7 @@ export default function GameDetailPage() {
           gmId={game.gm_id}
           isGm={canDoGmActions}
           gameName={game.name}
+          gameDescription={game.description}
           playDays={game.play_days}
           windowStart={windowStart}
           windowEnd={windowEnd}
@@ -409,6 +415,7 @@ export default function GameDetailPage() {
           completionByUserId={completionByUserId}
           subscribeUrl={subscribeUrl}
           onConfirm={confirmSession}
+          onUpdateSession={updateSession}
           onCancel={cancelSession}
         />
       )}

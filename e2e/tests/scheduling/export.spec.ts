@@ -48,7 +48,7 @@ test.describe('Session Export', () => {
     await page
       .locator('[data-testid="scheduled-row"]')
       .first()
-      .locator('button[aria-expanded="false"]')
+      .locator('[aria-expanded="false"]')
       .first()
       .click();
 
@@ -174,7 +174,7 @@ test.describe('Session Export', () => {
     await page
       .locator('[data-testid="scheduled-row"]')
       .first()
-      .locator('button[aria-expanded="false"]')
+      .locator('[aria-expanded="false"]')
       .first()
       .click();
 

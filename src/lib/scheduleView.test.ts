@@ -28,29 +28,48 @@ const mkSuggestion = (overrides: Partial<DateSuggestion>): DateSuggestion => ({
 });
 
 describe('getCellTintTier', () => {
-  it('returns "high" when >= 80% available', () => {
-    expect(getCellTintTier(mkSuggestion({ availableCount: 4 }))).toBe('high');
-    expect(getCellTintTier(mkSuggestion({ availableCount: 5 }))).toBe('high');
+  it('returns "high" when weighted score >= 80%', () => {
+    // 4/5 available = 0.8
+    expect(getCellTintTier(mkSuggestion({ availableCount: 4, unavailableCount: 1 }))).toBe('high');
+    // 3 available + 2 maybe = (3 + 1)/5 = 0.8
+    expect(getCellTintTier(mkSuggestion({ availableCount: 3, maybeCount: 2 }))).toBe('high');
   });
-  it('returns "medium" when 60-79% available', () => {
-    expect(getCellTintTier(mkSuggestion({ availableCount: 3 }))).toBe('medium');
+
+  it('returns "medium" when weighted score is 60-79%', () => {
+    // 3/5 available = 0.6
+    expect(getCellTintTier(mkSuggestion({ availableCount: 3, unavailableCount: 2 }))).toBe('medium');
+    // 2 available + 2 maybe = (2 + 1)/5 = 0.6
+    expect(getCellTintTier(mkSuggestion({ availableCount: 2, maybeCount: 2, unavailableCount: 1 }))).toBe('medium');
   });
-  it('returns "maybe" when >= 40% available OR any maybe without majority', () => {
-    expect(getCellTintTier(mkSuggestion({ availableCount: 2 }))).toBe('maybe');
-    expect(getCellTintTier(mkSuggestion({ maybeCount: 3 }))).toBe('maybe');
+
+  it('returns "maybe" when weighted score is 40-59%', () => {
+    // 2/5 available = 0.4
+    expect(getCellTintTier(mkSuggestion({ availableCount: 2, unavailableCount: 3 }))).toBe('maybe');
+    // 4 maybe = (0 + 2)/5 = 0.4
+    expect(getCellTintTier(mkSuggestion({ maybeCount: 4, unavailableCount: 1 }))).toBe('maybe');
   });
-  it('returns "warning" when > 0 available but below maybe tier', () => {
-    expect(getCellTintTier(mkSuggestion({ availableCount: 1 }))).toBe('warning');
+
+  it('treats one maybe as 0.5 of a yes (not auto-amber)', () => {
+    // 5 players, 1 maybe, 4 pending → score 0.1, no majority-no → empty (gray), NOT amber
+    expect(getCellTintTier(mkSuggestion({ maybeCount: 1, pendingCount: 4 }))).toBe('empty');
+    // 5 players, 2 maybe, 3 pending → score 0.2 → empty (gray)
+    expect(getCellTintTier(mkSuggestion({ maybeCount: 2, pendingCount: 3 }))).toBe('empty');
   });
-  it('prefers "maybe" over "warning" when availableCount low but maybeCount > 0', () => {
-    expect(getCellTintTier(mkSuggestion({ availableCount: 1, maybeCount: 2 }))).toBe('maybe');
-  });
-  it('returns "warning" explicitly when maybeCount is 0 and 0 < availableCount < 0.4 * total', () => {
-    expect(getCellTintTier(mkSuggestion({ availableCount: 1, maybeCount: 0, unavailableCount: 4 }))).toBe('warning');
-  });
-  it('returns "warning" when 0 available and no maybe', () => {
+
+  it('returns "warning" only when a majority said no', () => {
+    // 5 players, 3 unavailable, 2 pending → unavailableRatio 0.6 → red
+    expect(getCellTintTier(mkSuggestion({ unavailableCount: 3, pendingCount: 2 }))).toBe('warning');
+    // All 5 said no → red
     expect(getCellTintTier(mkSuggestion({ unavailableCount: 5 }))).toBe('warning');
   });
+
+  it('returns "empty" (gray) when responses are mostly pending', () => {
+    // 5 players, all pending → gray, not red
+    expect(getCellTintTier(mkSuggestion({ pendingCount: 5 }))).toBe('empty');
+    // 5 players, 1 unavailable, 4 pending → unavailableRatio 0.2 → gray, not red
+    expect(getCellTintTier(mkSuggestion({ unavailableCount: 1, pendingCount: 4 }))).toBe('empty');
+  });
+
   it('returns "empty" when totalPlayers is 0', () => {
     expect(getCellTintTier(mkSuggestion({ totalPlayers: 0 }))).toBe('empty');
   });

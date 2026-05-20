@@ -17,6 +17,7 @@ interface CalendarMonthProps {
   playDayWeekdays: Set<number>;
   specialPlayDates: Set<string>;
   weekStartDay: number;
+  today: Date;
   onCellActivate: (date: string) => void;
 }
 
@@ -27,6 +28,7 @@ export function CalendarMonth({
   playDayWeekdays,
   specialPlayDates,
   weekStartDay,
+  today,
   onCellActivate,
 }: CalendarMonthProps) {
   const first = startOfMonth(monthStart);
@@ -49,12 +51,13 @@ export function CalendarMonth({
       </div>
       <div className="grid grid-cols-7 gap-0.75">
         {Array.from({ length: leadingBlanks }).map((_, i) => (
-          <CalendarCell key={`lead-${i}`} date={null} day={null} isPlayDay={false} isScheduled={false} tier={null} />
+          <CalendarCell key={`lead-${i}`} date={null} day={null} isPlayDay={false} isScheduled={false} isPast={false} tier={null} />
         ))}
         {days.map((d) => {
           const key = format(d, 'yyyy-MM-dd');
           const info = suggestionsByDate.get(key);
           const isPlayDay = playDayWeekdays.has(getDay(d)) || specialPlayDates.has(key);
+          const isPast = d < today;
           return (
             <CalendarCell
               key={key}
@@ -62,6 +65,7 @@ export function CalendarMonth({
               day={d.getDate()}
               isPlayDay={isPlayDay}
               isScheduled={scheduledDates.has(key)}
+              isPast={isPast}
               tier={info?.tier ?? null}
               onActivate={onCellActivate}
             />

@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo } from 'react';
-import { addMonths, startOfMonth, differenceInCalendarMonths } from 'date-fns';
+import { addMonths, startOfMonth, differenceInCalendarMonths, startOfDay } from 'date-fns';
 import type { DateSuggestion, GameSession } from '@/types';
 import { CalendarMonth } from './CalendarMonth';
 import { EyebrowLabel, Panel } from '@/components/ui';
 import { getCellTintTier, CellTintTier } from '@/lib/scheduleView';
+import { CALENDAR_STYLES, LEGEND_ORDER } from './calendarStyles';
 
 interface MiniCalendarProps {
   windowStart: Date;
@@ -52,6 +53,8 @@ export function MiniCalendar({
     [sessions]
   );
 
+  const today = useMemo(() => startOfDay(new Date()), []);
+
   const body = (
     <>
       {embedded ? (
@@ -72,15 +75,18 @@ export function MiniCalendar({
             playDayWeekdays={playDayWeekdays}
             specialPlayDates={specialPlayDates}
             weekStartDay={weekStartDay}
+            today={today}
             onCellActivate={onCellActivate}
           />
         ))}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
-        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-available-bg" /> Most available</span>
-        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-maybe-bg" /> Mixed</span>
-        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-unavailable-bg/60" /> Low availability</span>
-        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-cal-scheduled-bg" /> ★ Scheduled</span>
+        {LEGEND_ORDER.map((state) => (
+          <span key={state} className="inline-flex items-center gap-1">
+            <span className={`size-2 rounded-sm ${CALENDAR_STYLES[state].className}`} />
+            {CALENDAR_STYLES[state].label}
+          </span>
+        ))}
       </div>
     </>
   );

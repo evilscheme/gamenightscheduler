@@ -42,7 +42,7 @@ test.describe('Session Location & Notes', () => {
 
     // Expand the scheduled row to see details
     const scheduledRow = page.locator('[data-testid="scheduled-row"]').first();
-    await scheduledRow.click();
+    await scheduledRow.getByRole('button', { name: /show session details/i }).click();
 
     await expect(scheduledRow).toContainText("Tom's basement");
     await expect(scheduledRow).toContainText('Bring printed character sheets and dice.');
@@ -76,7 +76,7 @@ test.describe('Session Location & Notes', () => {
     await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
 
     const scheduledRow = page.locator('[data-testid="scheduled-row"]').first();
-    await scheduledRow.click();
+    await scheduledRow.getByRole('button', { name: /show session details/i }).click();
     await page.locator('[data-testid="session-edit-details"]').click();
     await expect(page.locator('[data-testid="session-details-modal"]')).toBeVisible();
 
@@ -155,7 +155,7 @@ test.describe('Session Location & Notes', () => {
     await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
 
     const scheduledRow = page.locator('[data-testid="scheduled-row"]').first();
-    await scheduledRow.click();
+    await scheduledRow.getByRole('button', { name: /show session details/i }).click();
 
     await expect(scheduledRow).toContainText("Tom's basement");
     await expect(scheduledRow).toContainText('Bring snacks');
@@ -227,7 +227,7 @@ test.describe('Session Location & Notes', () => {
     await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
 
     const scheduledRow = page.locator('[data-testid="scheduled-row"]').first();
-    await scheduledRow.click();
+    await scheduledRow.getByRole('button', { name: /show session details/i }).click();
 
     const toggle = page.locator('[data-testid="session-notes-toggle"]').first();
     await expect(toggle).toBeVisible();

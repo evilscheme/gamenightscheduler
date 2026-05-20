@@ -136,35 +136,26 @@ export function ScheduledRow({
       data-testid={past ? 'past-session-row' : 'scheduled-row'}
       className={`rounded-xl border border-border bg-card p-4 ${past ? 'opacity-70' : ''}`}
     >
-      {expandable ? (
-        <div
-          role="button"
-          tabIndex={0}
-          aria-expanded={expanded}
-          onClick={() => setExpanded((v) => !v)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setExpanded((v) => !v);
-            }
-          }}
-          className="flex w-full cursor-pointer items-start gap-3 text-left"
-          title={expanded ? 'Hide details' : 'Show details'}
-        >
-          <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
-          <div className="min-w-0 flex-1">{infoContent}</div>
-          <ChevronRight
-            className={`mt-0.5 size-4 shrink-0 self-center text-muted-foreground transition-transform ${
-              expanded ? 'rotate-90' : ''
-            }`}
-          />
-        </div>
-      ) : (
-        <div className="flex items-start gap-3">
-          <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
-          <div className="min-w-0 flex-1">{infoContent}</div>
-        </div>
-      )}
+      <div className="flex items-start gap-3">
+        <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
+        <div className="min-w-0 flex-1">{infoContent}</div>
+        {expandable && (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Hide session details' : 'Show session details'}
+            onClick={() => setExpanded((v) => !v)}
+            className="self-center p-1"
+            title={expanded ? 'Hide details' : 'Show details'}
+          >
+            <ChevronRight
+              className={`size-4 text-muted-foreground transition-transform ${
+                expanded ? 'rotate-90' : ''
+              }`}
+            />
+          </button>
+        )}
+      </div>
 
       {expandable && expanded && (
         <div className="mt-3 space-y-3 border-t border-border pt-3">

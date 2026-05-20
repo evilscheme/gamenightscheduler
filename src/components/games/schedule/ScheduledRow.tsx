@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Calendar, ChevronRight, X } from 'lucide-react';
+import { Calendar, ChevronRight, MapPin, Pencil, StickyNote, X } from 'lucide-react';
 import type { DateSuggestion, GameSession } from '@/types';
 import { Button, EyebrowLabel } from '@/components/ui';
 import { formatTime } from '@/lib/formatting';
@@ -23,11 +23,12 @@ interface ScheduledRowProps {
   past?: boolean;
   onDownloadIcs: (session: GameSession) => void;
   onRequestCancel: (session: GameSession) => void;
+  onEditDetails?: (session: GameSession) => void;
 }
 
 export function ScheduledRow({
   session, suggestion, timezone, userTimezone, use24h, isGm, gmId, coGmIds,
-  playDateNote, past = false, onDownloadIcs, onRequestCancel,
+  playDateNote, past = false, onDownloadIcs, onRequestCancel, onEditDetails,
 }: ScheduledRowProps) {
   const [expanded, setExpanded] = useState(false);
   // Expandable when there's something in the expanded section worth showing:
@@ -70,6 +71,24 @@ export function ScheduledRow({
       <p className="font-mono text-xs text-muted-foreground">{timeLine()}</p>
       {playDateNote && (
         <p className="mt-0.5 text-xs italic text-muted-foreground">{playDateNote}</p>
+      )}
+      {(session.location || session.notes) && (
+        <div className="mt-2 space-y-1 border-t border-dashed border-border pt-2">
+          {session.location && (
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+              <MapPin className="mt-0.5 size-3 shrink-0" />
+              <span className="wrap-break-word" data-testid="session-location-text">{session.location}</span>
+            </div>
+          )}
+          {session.notes && (
+            <div className="flex items-start gap-2 text-xs text-card-foreground">
+              <StickyNote className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
+              <span className="wrap-break-word" data-testid="session-notes-text">
+                {session.notes}
+              </span>
+            </div>
+          )}
+        </div>
       )}
       {visibleAvatars.length > 0 && (
         <div className="mt-2 flex items-center gap-2">
@@ -131,6 +150,17 @@ export function ScheduledRow({
               >
                 <Calendar className="mr-1.5 size-4" /> Add to calendar
               </Button>
+              {isGm && onEditDetails && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onEditDetails(session)}
+                  data-testid="session-edit-details"
+                  title="Edit times, location, and notes for this session"
+                >
+                  <Pencil className="mr-1 size-4" /> Edit details
+                </Button>
+              )}
               {isGm && (
                 <Button
                   size="sm"

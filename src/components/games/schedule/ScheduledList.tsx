@@ -20,11 +20,12 @@ interface ScheduledListProps {
   onDownloadIcs: (session: GameSession) => void;
   onDownloadAllIcs: () => void;
   onRequestCancel: (session: GameSession) => void;
+  onEditDetails: (session: GameSession) => void;
 }
 
 export function ScheduledList({
   sessions, suggestions, timezone, userTimezone, use24h, isGm, gmId, coGmIds, playDateNotes,
-  onDownloadIcs, onDownloadAllIcs, onRequestCancel,
+  onDownloadIcs, onDownloadAllIcs, onRequestCancel, onEditDetails,
 }: ScheduledListProps) {
   const [showPast, setShowPast] = useState(false);
   const confirmed = sessions.filter((s) => s.status === 'confirmed');
@@ -63,6 +64,7 @@ export function ScheduledList({
                 playDateNote={playDateNotes?.get(s.date) ?? null}
                 onDownloadIcs={onDownloadIcs}
                 onRequestCancel={onRequestCancel}
+                onEditDetails={onEditDetails}
               />
             ))}
           </ul>

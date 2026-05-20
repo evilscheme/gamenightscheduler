@@ -222,6 +222,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               onDownloadIcs={handleDownloadIcs}
               onDownloadAllIcs={handleDownloadAllIcs}
               onRequestCancel={(s) => setCancelFor(s)}
+              onEditDetails={(s) => setEditFor(s)}
             />
 
             <RankedList

@@ -128,6 +128,7 @@ export function useSessions(gameId: string, ready: boolean): UseSessionsReturn {
         notes?: string | null;
       },
     ): Promise<{ success: boolean; error?: string }> => {
+      if (!gameId) return { success: false, error: 'Not authenticated' };
       const { data, error } = await updateSessionQuery(supabase, sessionId, patch);
 
       if (error) {
@@ -147,7 +148,7 @@ export function useSessions(gameId: string, ready: boolean): UseSessionsReturn {
       }
       return { success: true };
     },
-    [fetchAll],
+    [fetchAll, gameId],
   );
 
   const cancelSession = useCallback(

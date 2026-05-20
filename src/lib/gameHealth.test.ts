@@ -12,7 +12,6 @@ const referenceDate = new Date("2025-03-15T12:00:00Z");
 function makeInput(overrides: Partial<GameHealthInput> = {}): GameHealthInput {
   return {
     playerCount: 4,
-    confirmedSessionCount: 3,
     futureSessionCount: 1,
     availabilityFillRate: 60,
     lastActivity: "2025-03-12T10:00:00Z", // 3 days ago
@@ -27,7 +26,6 @@ describe("calculateGameHealth", () => {
       const result = calculateGameHealth(
         makeInput({
           playerCount: 6,
-          confirmedSessionCount: 10,
           futureSessionCount: 3,
           availabilityFillRate: 90,
           lastActivity: "2025-03-14T20:00:00Z", // yesterday
@@ -44,7 +42,6 @@ describe("calculateGameHealth", () => {
       const result = calculateGameHealth(
         makeInput({
           playerCount: 1,
-          confirmedSessionCount: 0,
           futureSessionCount: 0,
           availabilityFillRate: 0,
           lastActivity: null,
@@ -62,7 +59,6 @@ describe("calculateGameHealth", () => {
       const result = calculateGameHealth(
         makeInput({
           playerCount: 1, // solo GM
-          confirmedSessionCount: 0,
           futureSessionCount: 0,
           availabilityFillRate: 0,
           lastActivity: "2025-03-10T00:00:00Z",
@@ -80,7 +76,6 @@ describe("calculateGameHealth", () => {
       const result = calculateGameHealth(
         makeInput({
           playerCount: 1,
-          confirmedSessionCount: 0,
           futureSessionCount: 0,
           availabilityFillRate: 0,
           lastActivity: null,
@@ -103,28 +98,28 @@ describe("calculateGameHealth", () => {
       expect(result.breakdown.playerScore).toBe(0);
     });
 
-    it("gives 30 for 2 players", () => {
+    it("gives 33 for 2 players", () => {
       const result = calculateGameHealth(
         makeInput({ playerCount: 2 }),
         referenceDate
       );
-      expect(result.breakdown.playerScore).toBe(30);
+      expect(result.breakdown.playerScore).toBe(33);
     });
 
-    it("gives 60 for 3 players", () => {
+    it("gives 67 for 3 players", () => {
       const result = calculateGameHealth(
         makeInput({ playerCount: 3 }),
         referenceDate
       );
-      expect(result.breakdown.playerScore).toBe(60);
+      expect(result.breakdown.playerScore).toBe(67);
     });
 
-    it("gives 80 for 4 players", () => {
+    it("gives 100 for 4 players", () => {
       const result = calculateGameHealth(
         makeInput({ playerCount: 4 }),
         referenceDate
       );
-      expect(result.breakdown.playerScore).toBe(80);
+      expect(result.breakdown.playerScore).toBe(100);
     });
 
     it("gives 100 for 5+ players", () => {
@@ -145,46 +140,28 @@ describe("calculateGameHealth", () => {
   describe("session score dimension", () => {
     it("gives 0 for no sessions at all", () => {
       const result = calculateGameHealth(
-        makeInput({ confirmedSessionCount: 0, futureSessionCount: 0 }),
+        makeInput({ futureSessionCount: 0 }),
         referenceDate
       );
       expect(result.breakdown.sessionScore).toBe(0);
     });
 
-    it("gives 50 for future sessions but no past sessions", () => {
+    it("gives 100 for 2+ future sessions even with no past sessions", () => {
       const result = calculateGameHealth(
-        makeInput({ confirmedSessionCount: 0, futureSessionCount: 2 }),
-        referenceDate
-      );
-      // totalSignal = 0, futureSignal = 100, avg = 50
-      expect(result.breakdown.sessionScore).toBe(50);
-    });
-
-    it("gives 50 for past sessions but no future sessions", () => {
-      const result = calculateGameHealth(
-        makeInput({ confirmedSessionCount: 5, futureSessionCount: 0 }),
-        referenceDate
-      );
-      // totalSignal = 100, futureSignal = 0, avg = 50
-      expect(result.breakdown.sessionScore).toBe(50);
-    });
-
-    it("gives 100 for 5+ confirmed sessions with future sessions", () => {
-      const result = calculateGameHealth(
-        makeInput({ confirmedSessionCount: 8, futureSessionCount: 1 }),
+        makeInput({ futureSessionCount: 2 }),
         referenceDate
       );
       expect(result.breakdown.sessionScore).toBe(100);
     });
 
-    it("scales total signal linearly up to 5 sessions", () => {
+    it("gives 50 for 1 future session", () => {
       const result = calculateGameHealth(
-        makeInput({ confirmedSessionCount: 2, futureSessionCount: 1 }),
+        makeInput({ futureSessionCount: 1 }),
         referenceDate
       );
-      // totalSignal = (2/5)*100 = 40, futureSignal = 100, avg = 70
-      expect(result.breakdown.sessionScore).toBe(70);
+      expect(result.breakdown.sessionScore).toBe(50);
     });
+
   });
 
   describe("fill rate score dimension", () => {
@@ -222,36 +199,36 @@ describe("calculateGameHealth", () => {
       expect(result.breakdown.recencyScore).toBe(100);
     });
 
-    it("gives 75 for activity 7-14 days ago", () => {
+    it("gives 100 for activity 7-14 days ago", () => {
       const result = calculateGameHealth(
         makeInput({ lastActivity: "2025-03-05T00:00:00Z" }), // 10 days ago
         referenceDate
       );
-      expect(result.breakdown.recencyScore).toBe(75);
+      expect(result.breakdown.recencyScore).toBe(100);
     });
 
-    it("gives 50 for activity 14-30 days ago", () => {
+    it("decays smoothly after 14 days", () => {
       const result = calculateGameHealth(
         makeInput({ lastActivity: "2025-02-25T00:00:00Z" }), // 18 days ago
         referenceDate
       );
-      expect(result.breakdown.recencyScore).toBe(50);
+      expect(result.breakdown.recencyScore).toBe(91);
     });
 
-    it("gives 25 for activity 30-45 days ago", () => {
+    it("continues smooth decay 30-45 days ago", () => {
       const result = calculateGameHealth(
         makeInput({ lastActivity: "2025-02-08T00:00:00Z" }), // 35 days ago
         referenceDate
       );
-      expect(result.breakdown.recencyScore).toBe(25);
+      expect(result.breakdown.recencyScore).toBe(54);
     });
 
-    it("gives 10 for activity 45-60 days ago", () => {
+    it("continues smooth decay 45-60 days ago", () => {
       const result = calculateGameHealth(
         makeInput({ lastActivity: "2025-01-25T00:00:00Z" }), // 49 days ago
         referenceDate
       );
-      expect(result.breakdown.recencyScore).toBe(10);
+      expect(result.breakdown.recencyScore).toBe(24);
     });
 
     it("gives 0 for activity over 60 days ago", () => {
@@ -297,7 +274,6 @@ describe("calculateGameHealth", () => {
       const low = calculateGameHealth(
         makeInput({
           playerCount: 0,
-          confirmedSessionCount: 0,
           futureSessionCount: 0,
           availabilityFillRate: 0,
           lastActivity: null,
@@ -310,7 +286,6 @@ describe("calculateGameHealth", () => {
       const high = calculateGameHealth(
         makeInput({
           playerCount: 100,
-          confirmedSessionCount: 100,
           futureSessionCount: 50,
           availabilityFillRate: 100,
           lastActivity: "2025-03-15T00:00:00Z",

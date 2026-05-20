@@ -92,6 +92,8 @@ CREATE TABLE sessions (
   end_time TIME,
   status session_status DEFAULT 'confirmed',
   confirmed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  location TEXT CHECK (location IS NULL OR char_length(location) <= 200),
+  notes    TEXT CHECK (notes    IS NULL OR char_length(notes)    <= 500),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(game_id, date)
 );

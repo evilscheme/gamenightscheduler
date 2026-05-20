@@ -505,6 +505,61 @@ describe("generateICS", () => {
     expect(result).toContain("SUMMARY:Mystery Game Night");
     expect(result).toContain("END:VEVENT");
   });
+
+  it("emits a LOCATION line when location is set", () => {
+    const ics = generateICS([
+      { date: "2026-06-14", title: "Game Night", location: "Tom's basement" },
+    ]);
+    expect(ics).toContain("LOCATION:Tom's basement");
+  });
+
+  it("emits a DESCRIPTION line when description is set", () => {
+    const ics = generateICS([
+      { date: "2026-06-14", title: "Game Night", description: "bring dice" },
+    ]);
+    expect(ics).toContain("DESCRIPTION:bring dice");
+  });
+
+  it("emits both LOCATION and DESCRIPTION when both are set", () => {
+    const ics = generateICS([
+      {
+        date: "2026-06-14",
+        title: "Game Night",
+        location: "Tom's basement",
+        description: "bring dice",
+      },
+    ]);
+    expect(ics).toContain("LOCATION:Tom's basement");
+    expect(ics).toContain("DESCRIPTION:bring dice");
+  });
+
+  it("escapes commas, semicolons, and newlines in LOCATION", () => {
+    const ics = generateICS([
+      {
+        date: "2026-06-14",
+        title: "Game Night",
+        location: "123 Main St, Apt 4;\nring buzzer",
+      },
+    ]);
+    expect(ics).toContain("LOCATION:123 Main St\\, Apt 4\\;\\nring buzzer");
+  });
+
+  it("escapes special chars in DESCRIPTION", () => {
+    const ics = generateICS([
+      {
+        date: "2026-06-14",
+        title: "Game Night",
+        description: "line1\nline2; line3, line4",
+      },
+    ]);
+    expect(ics).toContain("DESCRIPTION:line1\\nline2\\; line3\\, line4");
+  });
+
+  it("omits LOCATION and DESCRIPTION lines when fields are absent", () => {
+    const ics = generateICS([{ date: "2026-06-14", title: "Game Night" }]);
+    expect(ics).not.toContain("LOCATION:");
+    expect(ics).not.toContain("DESCRIPTION:");
+  });
 });
 
 describe("composeIcsDescription", () => {

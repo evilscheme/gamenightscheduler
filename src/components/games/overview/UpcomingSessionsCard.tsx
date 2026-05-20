@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { format, parseISO, startOfDay, isBefore, differenceInCalendarDays } from 'date-fns';
-import { Calendar, Link2, Star } from 'lucide-react';
+import { Calendar, Link2, MapPin, Star, StickyNote } from 'lucide-react';
 import { Button, EyebrowLabel } from '@/components/ui';
 import type { GameSession } from '@/types';
 import { formatTime } from '@/lib/formatting';
@@ -22,6 +23,32 @@ function relativeLabel(daysFromNow: number): string {
   if (daysFromNow < 14) return 'next week';
   if (daysFromNow < 30) return `in ${Math.round(daysFromNow / 7)} weeks`;
   return `in ${Math.round(daysFromNow / 30)} months`;
+}
+
+function ClampedNotes({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const showToggle = text.length > 80;
+  return (
+    <div>
+      <p
+        className={`wrap-break-word ${!expanded && showToggle ? 'line-clamp-2 md:line-clamp-none' : ''}`}
+        data-testid="session-notes-text"
+      >
+        {text}
+      </p>
+      {showToggle && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="mt-0.5 py-1 text-[11px] font-semibold text-primary md:hidden"
+          data-testid="session-notes-toggle"
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function UpcomingSessionsCard({
@@ -108,6 +135,22 @@ export function UpcomingSessionsCard({
                   {timeWindow && <span aria-hidden>·</span>}
                   <span>{relativeLabel(daysFromNow)}</span>
                 </p>
+                {(s.location || s.notes) && (
+                  <div className="mt-2 space-y-1 border-t border-dashed border-border pt-2">
+                    {s.location && (
+                      <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <MapPin className="mt-0.5 size-3 shrink-0" />
+                        <span className="wrap-break-word" data-testid="session-location-text">{s.location}</span>
+                      </div>
+                    )}
+                    {s.notes && (
+                      <div className="flex items-start gap-2 text-xs text-card-foreground">
+                        <StickyNote className="mt-0.5 size-3 shrink-0 text-muted-foreground" />
+                        <ClampedNotes text={s.notes} />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <Button
                 size="sm"

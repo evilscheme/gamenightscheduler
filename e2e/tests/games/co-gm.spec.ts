@@ -217,8 +217,8 @@ test.describe('Co-GM Feature', () => {
 
       // Co-GM should be able to confirm a session
       await page.getByRole('button', { name: /schedule game/i }).first().click();
-      await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
-      await page.locator('[data-testid="confirm-session-submit"]').click();
+      await expect(page.locator('[data-testid="session-details-modal"]')).toBeVisible();
+      await page.locator('[data-testid="session-details-submit"]').click();
 
       // Should see confirmed session
       await expect(page.getByText(/upcoming sessions/i)).toBeVisible({

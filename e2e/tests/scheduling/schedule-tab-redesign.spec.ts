@@ -55,8 +55,8 @@ test.describe('Schedule Tab Redesign', () => {
     await scheduleButton.click();
 
     // Confirm the session via the modal
-    await expect(page.locator('[data-testid="schedule-session-modal"]')).toBeVisible();
-    await page.locator('[data-testid="confirm-session-submit"]').click();
+    await expect(page.locator('[data-testid="session-details-modal"]')).toBeVisible();
+    await page.locator('[data-testid="session-details-submit"]').click();
 
     // Toast should appear
     await expect(page.getByRole('status')).toContainText(/scheduled/i, {

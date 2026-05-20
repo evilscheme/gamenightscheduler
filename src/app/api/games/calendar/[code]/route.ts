@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { generateICS } from '@/lib/ics';
+import { generateICS, composeIcsDescription } from '@/lib/ics';
 import type { Game, GameSession } from '@/types';
 
 /**
@@ -46,7 +46,7 @@ export async function GET(
     // Fetch confirmed sessions for this game
     const { data: sessions, error: sessionsError } = await admin
       .from('sessions')
-      .select('id, date, start_time, end_time, status')
+      .select('id, date, start_time, end_time, status, location, notes')
       .eq('game_id', typedGame.id)
       .eq('status', 'confirmed')
       .order('date', { ascending: true });
@@ -56,7 +56,10 @@ export async function GET(
       return new Response('Error fetching sessions', { status: 500 });
     }
 
-    const typedSessions = (sessions || []) as Pick<GameSession, 'id' | 'date' | 'start_time' | 'end_time' | 'status'>[];
+    const typedSessions = (sessions || []) as Pick<
+      GameSession,
+      'id' | 'date' | 'start_time' | 'end_time' | 'status' | 'location' | 'notes'
+    >[];
 
     // Convert sessions to calendar events
     const events = typedSessions.map((session) => ({
@@ -64,7 +67,8 @@ export async function GET(
       startTime: session.start_time || typedGame.default_start_time || undefined,
       endTime: session.end_time || typedGame.default_end_time || undefined,
       title: typedGame.name,
-      description: typedGame.description || undefined,
+      description: composeIcsDescription(typedGame.description, session.notes),
+      location: session.location || undefined,
       timezone: typedGame.timezone || undefined,
     }));
 

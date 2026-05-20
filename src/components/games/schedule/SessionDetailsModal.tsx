@@ -7,7 +7,7 @@ import type { DateSuggestion } from '@/types';
 import { computeDefaultSessionTimes } from '@/lib/scheduleView';
 import { SESSION_DEFAULTS } from '@/lib/constants';
 
-interface ScheduleSessionModalProps {
+interface SessionDetailsModalProps {
   open: boolean;
   date: string | null;
   suggestion: DateSuggestion | undefined;
@@ -17,9 +17,9 @@ interface ScheduleSessionModalProps {
   onConfirm: (date: string, start: string, end: string) => Promise<{ success: boolean; error?: string }>;
 }
 
-export function ScheduleSessionModal({
+export function SessionDetailsModal({
   open, date, suggestion, gameDefaultStart, gameDefaultEnd, onClose, onConfirm,
-}: ScheduleSessionModalProps) {
+}: SessionDetailsModalProps) {
   const [start, setStart] = useState<string>(SESSION_DEFAULTS.START_TIME);
   const [end, setEnd] = useState<string>(SESSION_DEFAULTS.END_TIME);
   const [busy, setBusy] = useState(false);

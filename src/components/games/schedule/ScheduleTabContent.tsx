@@ -9,7 +9,7 @@ import { RankedList } from './RankedList';
 import { MiniCalendar } from './MiniCalendar';
 import { ResponseStatus } from './ResponseStatus';
 import { ScheduledList } from './ScheduledList';
-import { ScheduleSessionModal } from './ScheduleSessionModal';
+import { SessionDetailsModal } from './SessionDetailsModal';
 import { CancelSessionModal } from './CancelSessionModal';
 import { CalendarHoverPopover } from './CalendarHoverPopover';
 import { generateICS, slugifyGameName, triggerICSDownload } from '@/lib/ics';
@@ -231,7 +231,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
           </aside>
         </div>
 
-        <ScheduleSessionModal
+        <SessionDetailsModal
           open={scheduleFor !== null}
           date={scheduleFor}
           suggestion={scheduleFor ? suggestions.find((s) => s.date === scheduleFor) : undefined}

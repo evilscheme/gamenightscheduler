@@ -16,7 +16,6 @@ export function useLocalStoragePref<T>(
 ): [T, (next: T) => void] {
   const [value, setValue] = useState<T>(defaultValue);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(key);
@@ -31,7 +30,6 @@ export function useLocalStoragePref<T>(
     // We intentionally read storage once on mount and don't track key changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const setPersisted = useCallback(
     (next: T) => {

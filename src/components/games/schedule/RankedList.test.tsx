@@ -119,6 +119,14 @@ describe('RankedList', () => {
     expect(screen.queryByTestId('suggestions-sort-toggle')).not.toBeInTheDocument();
   });
 
+  it('exposes "Sort by" as the radiogroup accessible name', () => {
+    renderList([mk({ date: '2026-05-01' })]);
+    // The visible "Sort by" label is wired to the radiogroup via aria-labelledby,
+    // so Testing Library's accessible-name lookup should find it.
+    expect(screen.getByRole('radiogroup', { name: 'Sort by' })).toBeInTheDocument();
+    expect(screen.getByText('Sort by')).toBeInTheDocument();
+  });
+
   it('keeps the below-threshold section open on initial mount when autoExpandDate matches', () => {
     // Regression: the sort-mode reset effect must skip the initial render. If
     // it doesn't, the auto-expand effect that opens the below-threshold section

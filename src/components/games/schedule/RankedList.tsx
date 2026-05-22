@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { DateSuggestion } from '@/types';
 import { EyebrowLabel, EmptyState } from '@/components/ui';
 import { useLocalStoragePref } from '@/hooks/useLocalStoragePref';
@@ -42,6 +42,7 @@ export function RankedList({
     'availability',
     isSortMode
   );
+  const sortLabelId = useId();
 
   const { viable, belowThreshold, chronological } = useMemo(() => {
     if (sortMode === 'chronological') {
@@ -99,12 +100,19 @@ export function RankedList({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <EyebrowLabel className="block">Suggested dates</EyebrowLabel>
-        <div
-          role="radiogroup"
-          aria-label="Sort suggested dates"
-          className="inline-flex rounded-md border border-border bg-card p-0.5 text-[11px] font-mono"
-          data-testid="suggestions-sort-toggle"
-        >
+        <div className="flex items-center gap-2">
+          <span
+            id={sortLabelId}
+            className="font-mono text-[11px] text-muted-foreground"
+          >
+            Sort by
+          </span>
+          <div
+            role="radiogroup"
+            aria-labelledby={sortLabelId}
+            className="inline-flex rounded-md border border-border bg-card p-0.5 text-[11px] font-mono"
+            data-testid="suggestions-sort-toggle"
+          >
           <button
             type="button"
             role="radio"
@@ -133,6 +141,7 @@ export function RankedList({
           >
             Date
           </button>
+          </div>
         </div>
       </div>
 

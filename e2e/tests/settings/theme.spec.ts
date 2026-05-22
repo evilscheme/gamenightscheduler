@@ -179,6 +179,37 @@ test.describe('Theme Switching', () => {
     await expect(systemButton).toBeVisible();
   });
 
+  test('hydrates a legacy bare-string color-theme value (retrofit safety)', async ({ page }) => {
+    // Pre-seed localStorage in the pre-retrofit format: a bare string, not
+    // JSON-quoted. This is what the old ThemeContext wrote before the hook
+    // refactor. The new useLocalStoragePref hook must keep working for users
+    // who upgrade the deployed code with this value already in their browser.
+    await page.addInitScript(() => {
+      localStorage.setItem('color-theme', 'forest');
+    });
+
+    await loginTestUser(page, {
+      email: `theme-legacy-${Date.now()}@e2e.local`,
+      name: 'Theme Legacy User',
+      is_gm: false,
+    });
+
+    await page.goto('/settings');
+
+    // The inline FOUC script in app/layout.tsx reads the raw value on first
+    // paint, and the React-side hook hydrates the same value on mount. Both
+    // paths must agree on `data-theme="forest"`.
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'forest');
+
+    // Theme survives a full navigation away and back — the hook re-reads the
+    // (still-bare) value on the next mount.
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'forest');
+  });
+
   test('theme changes apply across pages', async ({ page }) => {
     await loginTestUser(page, {
       email: `theme-cross-${Date.now()}@e2e.local`,

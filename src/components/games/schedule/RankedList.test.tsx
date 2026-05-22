@@ -94,13 +94,11 @@ describe('RankedList', () => {
     const user = userEvent.setup();
     renderList([mk({ date: '2026-05-01' })]);
     await user.click(screen.getByTestId('sort-by-date'));
-    expect(window.localStorage.getItem('gns:schedule-sort')).toBe(
-      JSON.stringify('chronological')
-    );
+    expect(window.localStorage.getItem('gns:schedule-sort')).toBe('chronological');
   });
 
   it('hydrates from localStorage on mount', () => {
-    window.localStorage.setItem('gns:schedule-sort', JSON.stringify('chronological'));
+    window.localStorage.setItem('gns:schedule-sort', 'chronological');
     const items = [
       mk({ date: '2026-05-02', meetsThreshold: true }),
       mk({ date: '2026-05-01', meetsThreshold: false }),

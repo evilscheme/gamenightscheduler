@@ -67,6 +67,12 @@ export function RankedList({
   }, [autoExpandDate, belowThreshold, sortMode]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setShowBelow(false);
+  }, [sortMode]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   if (suggestions.length === 0) {
     return (
       <EmptyState

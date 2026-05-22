@@ -23,6 +23,8 @@ interface RankedRowProps {
   playDateNote?: string | null;
   onLockIn: (date: string) => void;
   autoScrollTrigger?: string | null;
+  /** When false, the rank ordinal slot is hidden and no row is visually highlighted as "rank #1". */
+  showRank?: boolean;
 }
 
 export function RankedRow({
@@ -38,6 +40,7 @@ export function RankedRow({
   playDateNote,
   onLockIn,
   autoScrollTrigger,
+  showRank = true,
 }: RankedRowProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const rootRef = useRef<HTMLLIElement | null>(null);
@@ -57,7 +60,7 @@ export function RankedRow({
     (suggestion.availableCount / Math.max(1, suggestion.totalPlayers)) * 100
   );
   const windowLabel = formatTimeWindow(suggestion.earliestStartTime, suggestion.latestEndTime, use24h);
-  const highlighted = rank === 1 && !belowThreshold;
+  const highlighted = showRank && rank === 1 && !belowThreshold;
 
   const visibleAvatars: PlayerAvatarItem[] = [
     ...suggestion.availablePlayers.map((p) => ({ state: 'available' as const, user: p.user })),
@@ -83,9 +86,11 @@ export function RankedRow({
         type="button"
         aria-expanded={expanded}
         onClick={() => setExpanded((v) => !v)}
-        className="grid w-full grid-cols-[auto_1fr_auto_auto] items-center gap-3 text-left"
+        className={`grid w-full items-center gap-3 text-left ${
+          showRank ? 'grid-cols-[auto_1fr_auto_auto]' : 'grid-cols-[1fr_auto_auto]'
+        }`}
       >
-        <RankCircle rank={rank} highlighted={highlighted} />
+        {showRank && <RankCircle rank={rank} highlighted={highlighted} />}
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2">
             <span className="text-base font-semibold text-card-foreground">

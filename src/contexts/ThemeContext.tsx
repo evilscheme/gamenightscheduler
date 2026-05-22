@@ -1,10 +1,14 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { useTheme as useNextTheme } from 'next-themes';
 import { DEFAULT_THEME_ID, themes, getThemeById, type Theme } from '@/lib/themes';
+import { useLocalStoragePref } from '@/hooks/useLocalStoragePref';
 
 const THEME_STORAGE_KEY = 'color-theme';
+
+const isValidThemeId = (v: unknown): v is string =>
+  typeof v === 'string' && !!getThemeById(v);
 
 interface ThemeContextValue {
   // Light/dark mode from next-themes
@@ -24,29 +28,33 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeContextProvider({ children }: { children: ReactNode }) {
   const { theme: mode, setTheme: setMode, resolvedTheme: resolvedMode } = useNextTheme();
-  const [colorTheme, setColorThemeState] = useState(DEFAULT_THEME_ID);
+  const [colorTheme, setColorThemeRaw] = useLocalStoragePref<string>(
+    THEME_STORAGE_KEY,
+    DEFAULT_THEME_ID,
+    isValidThemeId
+  );
   const [mounted, setMounted] = useState(false);
 
-  // Load saved theme on mount - this is a valid pattern for hydration from localStorage
+  // Mirror the current colorTheme onto the root `data-theme` attribute so CSS
+  // theme variables apply. The inline script in app/layout.tsx handles the
+  // first paint before React mounts; this effect handles every render after.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', colorTheme);
+  }, [colorTheme]);
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved && getThemeById(saved)) {
-      setColorThemeState(saved);
-      document.documentElement.setAttribute('data-theme', saved);
-    } else {
-      document.documentElement.setAttribute('data-theme', DEFAULT_THEME_ID);
-    }
     setMounted(true);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const setColorTheme = (themeId: string) => {
-    if (!getThemeById(themeId)) return;
-    setColorThemeState(themeId);
-    localStorage.setItem(THEME_STORAGE_KEY, themeId);
-    document.documentElement.setAttribute('data-theme', themeId);
-  };
+  const setColorTheme = useCallback(
+    (themeId: string) => {
+      if (!getThemeById(themeId)) return;
+      setColorThemeRaw(themeId);
+    },
+    [setColorThemeRaw]
+  );
 
   return (
     <ThemeContext.Provider

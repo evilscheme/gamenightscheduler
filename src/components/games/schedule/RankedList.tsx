@@ -174,6 +174,7 @@ export function RankedList({
                 onClick={() => setShowBelow((v) => !v)}
                 className="flex w-full items-center justify-between py-2"
                 title={showBelow ? "Hide dates that don't meet the minimum player threshold" : "Show dates that don't meet the minimum player threshold"}
+                data-testid="below-threshold-toggle"
               >
                 <EyebrowLabel variant="muted">Below threshold · {belowThreshold.length}</EyebrowLabel>
                 <span className="font-mono text-[11px] text-muted-foreground">{showBelow ? 'Hide' : 'Show'}</span>

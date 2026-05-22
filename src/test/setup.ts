@@ -4,8 +4,9 @@ import "@testing-library/jest-dom/vitest";
 // the --localstorage-file flag, which prevents vitest/jsdom from overriding it.
 // Explicitly restore the jsdom-backed Storage objects on globalThis so tests
 // that touch window.localStorage / window.sessionStorage work correctly.
-if (typeof globalThis.jsdom !== "undefined") {
-  const win = (globalThis.jsdom as { window: Window }).window;
+const maybeJsdom = (globalThis as unknown as { jsdom?: { window: Window } }).jsdom;
+if (maybeJsdom) {
+  const win = maybeJsdom.window;
   Object.defineProperty(globalThis, "localStorage", {
     get: () => win.localStorage,
     configurable: true,

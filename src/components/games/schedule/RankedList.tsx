@@ -55,6 +55,12 @@ export function RankedList({
     return { viable, belowThreshold, chronological: [] as typeof suggestions };
   }, [suggestions, sortMode]);
 
+  // Two intentionally-separate effects on `showBelow`:
+  // (1) auto-expand the below-threshold section when a session was just confirmed
+  //     for a below-threshold date (preserves any prior manual "Show" state).
+  // (2) reset to collapsed whenever the user switches sort modes, so chronological
+  //     mode's lack of partition doesn't leak a stale "expanded" state back into
+  //     availability mode on round-trip.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (
@@ -128,6 +134,8 @@ export function RankedList({
           {chronological.map((s) => (
             <RankedRow
               key={s.date}
+              // Sentinel: showRank={false} below suppresses the rank slot entirely,
+              // so this value is never rendered or used.
               rank={0}
               suggestion={s}
               isGm={isGm}

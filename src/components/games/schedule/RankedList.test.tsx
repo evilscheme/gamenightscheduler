@@ -23,7 +23,10 @@ const mk = (overrides: Partial<DateSuggestion>): DateSuggestion => ({
   ...overrides,
 });
 
-const renderList = (suggestions: DateSuggestion[]) =>
+const renderList = (
+  suggestions: DateSuggestion[],
+  opts: { autoExpandDate?: string | null } = {}
+) =>
   render(
     <HoverSyncProvider>
       <RankedList
@@ -34,7 +37,7 @@ const renderList = (suggestions: DateSuggestion[]) =>
         use24h={false}
         minPlayersNeeded={3}
         onLockIn={() => {}}
-        autoExpandDate={null}
+        autoExpandDate={opts.autoExpandDate ?? null}
       />
     </HoverSyncProvider>
   );
@@ -114,5 +117,17 @@ describe('RankedList', () => {
   it('does not render the toggle when there are no suggestions', () => {
     renderList([]);
     expect(screen.queryByTestId('suggestions-sort-toggle')).not.toBeInTheDocument();
+  });
+
+  it('keeps the below-threshold section open on initial mount when autoExpandDate matches', () => {
+    // Regression: the sort-mode reset effect must skip the initial render. If
+    // it doesn't, the auto-expand effect that opens the below-threshold section
+    // for autoExpandDate gets immediately undone in the same commit.
+    const items = [
+      mk({ date: '2026-05-01', meetsThreshold: true }),
+      mk({ date: '2026-05-02', meetsThreshold: false }),
+    ];
+    renderList(items, { autoExpandDate: '2026-05-02' });
+    expect(screen.getByTestId('below-threshold-list')).toBeInTheDocument();
   });
 });

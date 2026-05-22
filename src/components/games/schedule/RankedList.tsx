@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DateSuggestion } from '@/types';
 import { EyebrowLabel, EmptyState } from '@/components/ui';
 import { useLocalStoragePref } from '@/hooks/useLocalStoragePref';
@@ -58,9 +58,11 @@ export function RankedList({
   // Two intentionally-separate effects on `showBelow`:
   // (1) auto-expand the below-threshold section when a session was just confirmed
   //     for a below-threshold date (preserves any prior manual "Show" state).
-  // (2) reset to collapsed whenever the user switches sort modes, so chronological
+  // (2) reset to collapsed on a *subsequent* sort-mode change, so chronological
   //     mode's lack of partition doesn't leak a stale "expanded" state back into
-  //     availability mode on round-trip.
+  //     availability mode on round-trip. Must skip the initial mount: otherwise
+  //     it would immediately undo any auto-expand from effect (1) fired in the
+  //     same commit.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (
@@ -73,8 +75,13 @@ export function RankedList({
   }, [autoExpandDate, belowThreshold, sortMode]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  const sortModeMountedRef = useRef(false);
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    if (!sortModeMountedRef.current) {
+      sortModeMountedRef.current = true;
+      return;
+    }
     setShowBelow(false);
   }, [sortMode]);
   /* eslint-enable react-hooks/set-state-in-effect */

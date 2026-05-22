@@ -1,4 +1,12 @@
 import "@testing-library/jest-dom/vitest";
+import { vi } from "vitest";
+
+// jsdom does not implement Element.prototype.scrollIntoView. Components that
+// call it (e.g., RankedRow's auto-scroll-to-expanded effect) would throw in
+// tests. Stub it as a no-op for the entire test suite.
+if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = vi.fn();
+}
 
 // Node.js 26 exposes a built-in `localStorage` that is `undefined` without
 // the --localstorage-file flag, which prevents vitest/jsdom from overriding it.

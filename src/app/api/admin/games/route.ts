@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
-import { calculatePlayerCompletionPercentages } from '@/lib/availability';
+import { calculateGameFillRate } from '@/lib/availability';
 import { calculateGameHealth, type HealthBreakdown, type HealthGrade } from '@/lib/gameHealth';
 
 interface GameWithEngagement {
@@ -27,7 +27,7 @@ export async function GET(): Promise<Response> {
 
     const { data: games, error: gamesError } = await admin
       .from('games')
-      .select('id, name, created_at, play_days, scheduling_window_months, gm_id, gm:users!games_gm_id_fkey(id, name, email)')
+      .select('id, name, created_at, play_days, scheduling_window_months, campaign_start_date, campaign_end_date, gm_id, gm:users!games_gm_id_fkey(id, name, email)')
       .order('created_at', { ascending: false });
 
     if (gamesError) {
@@ -91,25 +91,24 @@ export async function GET(): Promise<Response> {
       const sessionStats = sessionsByGame.get(game.id) ?? { total: 0, future: 0, lastActivity: null };
       const availabilityStats = availabilityByGame.get(game.id) ?? { records: [], lastActivity: null };
 
-      // Fill rate: average completion percentage across all current players
-      // Each player's rate = (dates they've filled in) / (total play dates in window)
+      // Fill rate: average completion percentage across all current players.
+      // Each player's rate = (dates they've filled in) / (total play dates in
+      // the campaign-bounded scheduling window).
       const currentPlayerIds = [...members, game.gm_id];
       const currentPlayerRecords = availabilityStats.records.filter(
         (r) => currentPlayerIds.includes(r.user_id)
       );
       const allSpecialDates = playDatesByGame.get(game.id) ?? [];
 
-      const completionPercentages = calculatePlayerCompletionPercentages({
+      const fillRate = calculateGameFillRate({
         playerIds: currentPlayerIds,
         playDays: game.play_days ?? [],
         schedulingWindowMonths: game.scheduling_window_months ?? 2,
+        campaignStartDate: game.campaign_start_date ?? null,
+        campaignEndDate: game.campaign_end_date ?? null,
         extraPlayDates: allSpecialDates,
         availabilityRecords: currentPlayerRecords,
       });
-      const percentageValues = Object.values(completionPercentages);
-      const fillRate = percentageValues.length > 0
-        ? Math.round(percentageValues.reduce((sum, p) => sum + p, 0) / percentageValues.length)
-        : 0;
 
       // Last activity: most recent of session or availability activity
       let lastActivity: string | null = null;

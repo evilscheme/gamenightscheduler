@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  calculateGameFillRate,
   calculatePlayerCompletionPercentages,
   getPlayDatesInWindow,
 } from "./availability";
@@ -254,6 +255,99 @@ describe("calculatePlayerCompletionPercentages", () => {
     });
 
     expect(result).toEqual({});
+  });
+});
+
+describe("calculateGameFillRate", () => {
+  // Regression for the admin "fill rate" bug: a game whose campaign ends soon
+  // was scored against the full N-month window instead of the campaign-bounded
+  // window, inflating the denominator and tanking the rate.
+  //
+  // Real scenario ("Mah Jong!"): play_days Mon–Sat, 3-month window, but the
+  // campaign ends 2026-06-06. The only play dates that matter are the 7 between
+  // today (2026-05-30) and the campaign end. All players filled those 7.
+  const referenceDate = new Date("2026-05-30T12:00:00"); // Saturday
+  const monSat = [1, 2, 3, 4, 5, 6];
+  const inWindowDates = [
+    "2026-05-30", // Sat
+    "2026-06-01", // Mon
+    "2026-06-02",
+    "2026-06-03",
+    "2026-06-04",
+    "2026-06-05",
+    "2026-06-06", // Sat (campaign end)
+  ];
+
+  it("bounds the window by campaign_end_date (100%, not 23%)", () => {
+    const players = ["gm", "p1", "p2"];
+    const availabilityRecords = players.flatMap((user_id) =>
+      inWindowDates.map((date) => ({ user_id, date }))
+    );
+
+    const fillRate = calculateGameFillRate({
+      playerIds: players,
+      playDays: monSat,
+      schedulingWindowMonths: 3,
+      campaignStartDate: null,
+      campaignEndDate: "2026-06-06",
+      extraPlayDates: [],
+      availabilityRecords,
+      referenceDate,
+    });
+
+    expect(fillRate).toBe(100);
+  });
+
+  it("does not credit availability filled past the campaign end", () => {
+    // A player who additionally filled dates after the campaign end gains
+    // nothing: those dates are outside the bounded window entirely.
+    const fillRate = calculateGameFillRate({
+      playerIds: ["p1"],
+      playDays: monSat,
+      schedulingWindowMonths: 3,
+      campaignStartDate: null,
+      campaignEndDate: "2026-06-06",
+      extraPlayDates: [],
+      availabilityRecords: [
+        ...inWindowDates.map((date) => ({ user_id: "p1", date })),
+        { user_id: "p1", date: "2026-07-15" },
+        { user_id: "p1", date: "2026-08-20" },
+      ],
+      referenceDate,
+    });
+
+    expect(fillRate).toBe(100);
+  });
+
+  it("averages per-player completion across all players", () => {
+    const fillRate = calculateGameFillRate({
+      playerIds: ["full", "empty"],
+      playDays: monSat,
+      schedulingWindowMonths: 3,
+      campaignStartDate: null,
+      campaignEndDate: "2026-06-06",
+      extraPlayDates: [],
+      availabilityRecords: inWindowDates.map((date) => ({ user_id: "full", date })),
+      referenceDate,
+    });
+
+    // full = 100%, empty = 0% -> average 50%
+    expect(fillRate).toBe(50);
+  });
+
+  it("returns 0 when there are no play dates in the window", () => {
+    const fillRate = calculateGameFillRate({
+      playerIds: ["p1"],
+      playDays: [], // ad-hoc with no extra dates
+      schedulingWindowMonths: 3,
+      campaignStartDate: null,
+      campaignEndDate: null,
+      extraPlayDates: [],
+      availabilityRecords: [],
+      referenceDate,
+    });
+
+    expect(fillRate).toBe(0);
   });
 });
 

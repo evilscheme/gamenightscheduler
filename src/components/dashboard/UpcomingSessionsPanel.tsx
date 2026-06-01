@@ -85,7 +85,7 @@ export function UpcomingSessionsPanel({
                     <Link
                       href={`/games/${row.gameId}`}
                       data-testid="upcoming-session"
-                      className={`group block py-3 transition-colors first:pt-2 last:pb-0 ${
+                      className={`group block py-3.5 transition-colors ${
                         highlighted ? 'border-l-2 border-primary pl-3' : ''
                       }`}
                     >

@@ -77,7 +77,7 @@ export function UpcomingSessionsPanel({
           <p className="text-sm text-muted-foreground">No upcoming sessions.</p>
         ) : (
           <>
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-muted-foreground/20">
               {visible.map((row) => {
                 const highlighted = row.dayHighlight !== null;
                 return (

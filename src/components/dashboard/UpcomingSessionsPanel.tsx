@@ -70,80 +70,82 @@ export function UpcomingSessionsPanel({
 
   return (
     <aside data-testid="upcoming-sessions-panel" className="lg:sticky lg:top-20">
-      <h2 className="mb-3 text-sm font-semibold text-foreground">Upcoming Sessions</h2>
+      <div className="rounded-xl bg-muted p-4">
+        <h2 className="mb-2 text-sm font-semibold text-foreground">Upcoming Sessions</h2>
 
-      {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No upcoming sessions.</p>
-      ) : (
-        <>
-          <ul className="space-y-2">
-            {visible.map((row) => {
-              const highlighted = row.dayHighlight !== null;
-              return (
-                <li key={row.session.id}>
-                  <Link
-                    href={`/games/${row.gameId}`}
-                    data-testid="upcoming-session"
-                    className={`block rounded-lg border p-3 transition-colors hover:ring-2 hover:ring-primary/30 ${
-                      highlighted ? 'border-primary/30 bg-primary/10' : 'border-border bg-card'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="truncate text-sm font-medium text-card-foreground">
-                        {row.gameName}
-                      </span>
-                      {row.dayHighlight && (
-                        <span className="shrink-0 rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
-                          {row.dayHighlight === 'today' ? 'Today' : 'Tomorrow'}
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No upcoming sessions.</p>
+        ) : (
+          <>
+            <ul className="divide-y divide-border">
+              {visible.map((row) => {
+                const highlighted = row.dayHighlight !== null;
+                return (
+                  <li key={row.session.id}>
+                    <Link
+                      href={`/games/${row.gameId}`}
+                      data-testid="upcoming-session"
+                      className={`group block py-3 transition-colors first:pt-2 last:pb-0 ${
+                        highlighted ? 'border-l-2 border-primary pl-3' : ''
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">
+                          {row.gameName}
                         </span>
-                      )}
-                    </div>
-
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <CalendarClock className="size-3 shrink-0" />
-                      <span>
-                        {formatSessionDate(row.session.date)} ·{' '}
-                        {formatTimeRange(
-                          row.session.date,
-                          row.session.start_time,
-                          row.session.end_time,
-                          row.gameTimezone,
-                          userTimezone,
-                          use24h
+                        {row.dayHighlight && (
+                          <span className="shrink-0 rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                            {row.dayHighlight === 'today' ? 'Today' : 'Tomorrow'}
+                          </span>
                         )}
-                      </span>
-                    </div>
+                      </div>
 
-                    {row.session.location && (
                       <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <MapPin className="size-3 shrink-0" />
-                        <span className="truncate">{row.session.location}</span>
+                        <CalendarClock className="size-3 shrink-0" />
+                        <span>
+                          {formatSessionDate(row.session.date)} ·{' '}
+                          {formatTimeRange(
+                            row.session.date,
+                            row.session.start_time,
+                            row.session.end_time,
+                            row.gameTimezone,
+                            userTimezone,
+                            use24h
+                          )}
+                        </span>
                       </div>
-                    )}
 
-                    {row.session.notes && (
-                      <div className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
-                        <StickyNote className="mt-0.5 size-3 shrink-0" />
-                        <span className="line-clamp-2">{row.session.notes}</span>
-                      </div>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                      {row.session.location && (
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <MapPin className="size-3 shrink-0" />
+                          <span className="truncate">{row.session.location}</span>
+                        </div>
+                      )}
 
-          {rows.length > SOFT_CAP && (
-            <button
-              type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="mt-3 text-xs font-medium text-primary hover:underline"
-            >
-              {showAll ? 'Show less' : `Show more (${rows.length - SOFT_CAP})`}
-            </button>
-          )}
-        </>
-      )}
+                      {row.session.notes && (
+                        <div className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
+                          <StickyNote className="mt-0.5 size-3 shrink-0" />
+                          <span className="line-clamp-2">{row.session.notes}</span>
+                        </div>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {rows.length > SOFT_CAP && (
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="mt-3 text-xs font-medium text-primary hover:underline"
+              >
+                {showAll ? 'Show less' : `Show more (${rows.length - SOFT_CAP})`}
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </aside>
   );
 }

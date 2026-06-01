@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { parseISO } from 'date-fns';
 import { CalendarClock, MapPin, StickyNote } from 'lucide-react';
 import { formatTimeShort } from '@/lib/formatting';
+import { convertTimeForDisplay } from '@/lib/timezone';
 import type { UpcomingSessionRow } from '@/lib/upcomingSessions';
 
 const SOFT_CAP = 5;
@@ -17,22 +18,53 @@ function formatSessionDate(dateStr: string): string {
   });
 }
 
+/**
+ * Build the time label for a session row, mirroring the game schedule view:
+ * a compact game-local time, labelled with the game's timezone abbreviation
+ * and a "(… for you)" conversion when the viewer is in a different timezone.
+ */
 function formatTimeRange(
+  date: string,
   start: string | null,
   end: string | null,
+  gameTimezone: string | null,
+  userTimezone: string | null,
   use24h: boolean
 ): string {
   if (!start) return 'time TBD';
-  const startLabel = formatTimeShort(start, use24h);
-  return end ? `${startLabel}–${formatTimeShort(end, use24h)}` : startLabel;
+  const base = end
+    ? `${formatTimeShort(start, use24h)}–${formatTimeShort(end, use24h)}`
+    : formatTimeShort(start, use24h);
+
+  // No game timezone recorded: nothing to convert against.
+  if (!gameTimezone) return base;
+
+  const startConv = convertTimeForDisplay(date, start, gameTimezone, userTimezone, use24h);
+  // Same (or equivalent) timezone: the compact local time is already "for you".
+  if (!startConv.isDifferentTz) return base;
+
+  const gameLabel = `${base} ${startConv.gameTzAbbrev}`;
+  const endConv = end
+    ? convertTimeForDisplay(date, end, gameTimezone, userTimezone, use24h)
+    : null;
+  const forYou =
+    endConv?.userTime != null
+      ? `${startConv.userTime} – ${endConv.userTime} ${startConv.userTzAbbrev}`
+      : `${startConv.userTime} ${startConv.userTzAbbrev}`;
+  return `${gameLabel} (${forYou} for you)`;
 }
 
 interface UpcomingSessionsPanelProps {
   rows: UpcomingSessionRow[];
   use24h: boolean;
+  userTimezone?: string | null;
 }
 
-export function UpcomingSessionsPanel({ rows, use24h }: UpcomingSessionsPanelProps) {
+export function UpcomingSessionsPanel({
+  rows,
+  use24h,
+  userTimezone = null,
+}: UpcomingSessionsPanelProps) {
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? rows : rows.slice(0, SOFT_CAP);
 
@@ -71,7 +103,14 @@ export function UpcomingSessionsPanel({ rows, use24h }: UpcomingSessionsPanelPro
                       <CalendarClock className="size-3 shrink-0" />
                       <span>
                         {formatSessionDate(row.session.date)} ·{' '}
-                        {formatTimeRange(row.session.start_time, row.session.end_time, use24h)}
+                        {formatTimeRange(
+                          row.session.date,
+                          row.session.start_time,
+                          row.session.end_time,
+                          row.gameTimezone,
+                          userTimezone,
+                          use24h
+                        )}
                       </span>
                     </div>
 

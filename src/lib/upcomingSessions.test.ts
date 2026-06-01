@@ -19,9 +19,9 @@ const mkSession = (overrides: Partial<GameSession>): GameSession => ({
   ...overrides,
 });
 
-const names = new Map<string, string>([
-  ['g1', 'Curse of Strahd'],
-  ['g2', 'Heist Crew'],
+const names = new Map<string, { name: string; timezone: string | null }>([
+  ['g1', { name: 'Curse of Strahd', timezone: 'America/Los_Angeles' }],
+  ['g2', { name: 'Heist Crew', timezone: 'America/New_York' }],
 ]);
 
 describe('toLocalDateString', () => {
@@ -46,13 +46,27 @@ describe('buildUpcomingSessionRows', () => {
     expect(rows[1].gameName).toBe('Heist Crew');
   });
 
-  it('falls back to "Unknown game" when a name is missing', () => {
+  it('falls back to "Unknown game" with null timezone when the game is missing', () => {
     const rows = buildUpcomingSessionRows(
       [mkSession({ game_id: 'gX', date: '2026-06-10' })],
       names,
       '2026-06-01'
     );
     expect(rows[0].gameName).toBe('Unknown game');
+    expect(rows[0].gameTimezone).toBeNull();
+  });
+
+  it('carries the game timezone onto each row', () => {
+    const rows = buildUpcomingSessionRows(
+      [
+        mkSession({ id: 'a', game_id: 'g1', date: '2026-06-10' }),
+        mkSession({ id: 'b', game_id: 'g2', date: '2026-06-11' }),
+      ],
+      names,
+      '2026-06-01'
+    );
+    expect(rows[0].gameTimezone).toBe('America/Los_Angeles');
+    expect(rows[1].gameTimezone).toBe('America/New_York');
   });
 
   it('tags today and tomorrow, leaving other dates null', () => {

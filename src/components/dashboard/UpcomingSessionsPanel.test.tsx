@@ -24,6 +24,7 @@ const mkRow = (overrides: Partial<UpcomingSessionRow> & { id: string }): Upcomin
     session,
     gameId: overrides.gameId ?? 'g1',
     gameName: overrides.gameName ?? 'Curse of Strahd',
+    gameTimezone: overrides.gameTimezone ?? null,
     dayHighlight: overrides.dayHighlight ?? null,
   };
 };
@@ -70,6 +71,41 @@ describe('UpcomingSessionsPanel', () => {
     );
     expect(screen.getByText("Tom's")).toBeInTheDocument();
     expect(screen.getByText('bring dice')).toBeInTheDocument();
+  });
+
+  it('shows the game timezone and a "for you" conversion when the user is in a different timezone', () => {
+    render(
+      <UpcomingSessionsPanel
+        rows={[
+          mkRow({
+            id: 's1',
+            gameTimezone: 'America/Los_Angeles',
+            session: { date: '2026-06-10', start_time: '19:00:00', end_time: '22:00:00' } as GameSession,
+          }),
+        ]}
+        use24h={false}
+        userTimezone="America/New_York"
+      />
+    );
+    const link = screen.getByTestId('upcoming-session');
+    // Game-local time labelled with the game's tz abbreviation...
+    expect(within(link).getByText(/PDT/)).toBeInTheDocument();
+    // ...plus the viewer's own time.
+    expect(within(link).getByText(/for you/i)).toBeInTheDocument();
+    expect(within(link).getByText(/EDT/)).toBeInTheDocument();
+  });
+
+  it('stays compact (no tz abbreviation) when the user shares the game timezone', () => {
+    render(
+      <UpcomingSessionsPanel
+        rows={[mkRow({ id: 's1', gameTimezone: 'America/Los_Angeles' })]}
+        use24h={false}
+        userTimezone="America/Los_Angeles"
+      />
+    );
+    const link = screen.getByTestId('upcoming-session');
+    expect(within(link).getByText(/7pm/i)).toBeInTheDocument();
+    expect(within(link).queryByText(/for you/i)).not.toBeInTheDocument();
   });
 
   it('renders a Today badge for today-highlighted rows', () => {

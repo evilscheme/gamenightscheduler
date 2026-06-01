@@ -30,7 +30,7 @@ interface GameWithGMAndCount extends GameWithGM {
 
 export function DashboardContent() {
   const { profile, authStatus } = useAuth();
-  const { use24h } = useUserPreferences();
+  const { use24h, timezone: userTimezone } = useUserPreferences();
   const [games, setGames] = useState<GameWithGMAndCount[]>([]);
   const [sessionRows, setSessionRows] = useState<UpcomingSessionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,8 +88,8 @@ export function DashboardContent() {
 
       const today = getTodayLocalDate();
       const gameIds = uniqueGames.map((g) => g.id);
-      const gameNames = new Map<string, string>(
-        uniqueGames.map((g) => [g.id, g.name])
+      const gameInfo = new Map<string, { name: string; timezone: string | null }>(
+        uniqueGames.map((g) => [g.id, { name: g.name, timezone: g.timezone }])
       );
       const { data: upcoming } = await fetchUpcomingSessionsForGames(
         supabase,
@@ -99,7 +99,7 @@ export function DashboardContent() {
       setSessionRows(
         buildUpcomingSessionRows(
           (upcoming ?? []) as GameSession[],
-          gameNames,
+          gameInfo,
           today
         )
       );
@@ -207,7 +207,11 @@ export function DashboardContent() {
           </div>
 
           <div className="order-first lg:order-last lg:w-80 lg:shrink-0">
-            <UpcomingSessionsPanel rows={sessionRows} use24h={use24h} />
+            <UpcomingSessionsPanel
+              rows={sessionRows}
+              use24h={use24h}
+              userTimezone={userTimezone}
+            />
           </div>
         </div>
       )}

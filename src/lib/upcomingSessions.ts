@@ -2,10 +2,16 @@ import type { GameSession } from '@/types';
 
 export type DayHighlight = 'today' | 'tomorrow' | null;
 
+export interface GameDisplayInfo {
+  name: string;
+  timezone: string | null;
+}
+
 export interface UpcomingSessionRow {
   session: GameSession;
   gameId: string;
   gameName: string;
+  gameTimezone: string | null;
   dayHighlight: DayHighlight;
 }
 
@@ -33,13 +39,13 @@ function addOneDay(dateStr: string): string {
 /**
  * Build sorted, game-named rows from raw sessions.
  *
- * @param sessions  Raw session rows (assumed already filtered to date >= today).
- * @param gameNames Map of game_id -> game name.
- * @param today     YYYY-MM-DD reference for "today" (local). Drives the today/tomorrow highlight.
+ * @param sessions Raw session rows (assumed already filtered to date >= today).
+ * @param games    Map of game_id -> { name, timezone }.
+ * @param today    YYYY-MM-DD reference for "today" (local). Drives the today/tomorrow highlight.
  */
 export function buildUpcomingSessionRows(
   sessions: GameSession[],
-  gameNames: Map<string, string>,
+  games: Map<string, GameDisplayInfo>,
   today: string
 ): UpcomingSessionRow[] {
   const tomorrow = addOneDay(today);
@@ -51,12 +57,13 @@ export function buildUpcomingSessionRows(
       const at = a.start_time ?? '99:99';
       const bt = b.start_time ?? '99:99';
       if (at !== bt) return at.localeCompare(bt);
-      return (gameNames.get(a.game_id) ?? '').localeCompare(gameNames.get(b.game_id) ?? '');
+      return (games.get(a.game_id)?.name ?? '').localeCompare(games.get(b.game_id)?.name ?? '');
     })
     .map((session) => ({
       session,
       gameId: session.game_id,
-      gameName: gameNames.get(session.game_id) ?? 'Unknown game',
+      gameName: games.get(session.game_id)?.name ?? 'Unknown game',
+      gameTimezone: games.get(session.game_id)?.timezone ?? null,
       dayHighlight:
         session.date === today ? 'today' : session.date === tomorrow ? 'tomorrow' : null,
     }));

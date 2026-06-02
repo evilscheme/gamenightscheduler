@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Test coverage output:
     "coverage/**",
+    // Nested git worktrees (e.g. Conductor workspaces) are ephemeral copies of
+    // the repo; linting them re-lints the whole project and floods output.
+    ".claude/**",
   ]),
   // Tailwind CSS linting (canonical classes, shorthands, duplicates, etc.)
   {

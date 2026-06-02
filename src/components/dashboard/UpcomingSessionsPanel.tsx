@@ -47,6 +47,10 @@ function formatTimeRange(
   const endConv = end
     ? convertTimeForDisplay(date, end, gameTimezone, userTimezone, use24h)
     : null;
+  // Intentional divergence from ScheduledRow (the game-page view), which only shows the
+  // "for you" conversion when both start and end times exist. Here we also show it for a
+  // start-only session, since this aggregate view is the one place a player sees the start
+  // time in their own zone. startConv.userTime is non-null whenever isDifferentTz is true.
   const forYou =
     endConv?.userTime != null
       ? `${startConv.userTime} – ${endConv.userTime} ${startConv.userTzAbbrev}`

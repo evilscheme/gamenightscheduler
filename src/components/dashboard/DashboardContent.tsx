@@ -91,11 +91,16 @@ export function DashboardContent() {
       const gameInfo = new Map<string, { name: string; timezone: string | null }>(
         uniqueGames.map((g) => [g.id, { name: g.name, timezone: g.timezone }])
       );
-      const { data: upcoming } = await fetchUpcomingSessionsForGames(
+      const { data: upcoming, error: sessionsError } = await fetchUpcomingSessionsForGames(
         supabase,
         gameIds,
         today
       );
+      if (sessionsError) {
+        // Games already rendered above; surface the failure rather than showing
+        // a silently-empty panel that looks like "no upcoming sessions".
+        console.error('[UpcomingSessions] failed to fetch upcoming sessions:', sessionsError);
+      }
       setSessionRows(
         buildUpcomingSessionRows(
           (upcoming ?? []) as GameSession[],

@@ -29,6 +29,24 @@ export function getTodayLocalDate(): string {
   return toLocalDateString(new Date());
 }
 
+/**
+ * DB fetch floor for upcoming sessions: two calendar days before the viewer's
+ * local date.
+ *
+ * The widest IANA timezone span is UTC-12..UTC+14 (26 hours), so a game's local
+ * date can trail the viewer's by up to two calendar days (26h < 48h can never
+ * cross three midnights). A two-day buffer therefore guarantees we fetch every
+ * still-upcoming session regardless of the viewer's timezone;
+ * buildUpcomingSessionRows then filters precisely against each game's own date.
+ *
+ * @param nowMs Current instant (epoch ms).
+ */
+export function getUpcomingQueryFloor(nowMs: number): string {
+  const d = new Date(nowMs);
+  d.setDate(d.getDate() - 2);
+  return toLocalDateString(d);
+}
+
 /** Add one calendar day to a YYYY-MM-DD string, handling month/year rollover. */
 function addOneDay(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);

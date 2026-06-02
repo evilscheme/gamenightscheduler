@@ -18,7 +18,7 @@ import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
   buildUpcomingSessionRows,
   getTodayLocalDate,
-  toLocalDateString,
+  getUpcomingQueryFloor,
   type UpcomingSessionRow,
 } from "@/lib/upcomingSessions";
 import { WelcomeEmptyState } from "./WelcomeEmptyState";
@@ -89,11 +89,9 @@ export function DashboardContent() {
 
       const nowMs = Date.now();
       const today = getTodayLocalDate();
-      // Fetch from one day before the viewer's "today": a game in a far-eastern
-      // timezone may already be on the next date, and the timezone gap between
-      // any two zones is under 26h, so a one-day buffer can't miss an upcoming
-      // session. buildUpcomingSessionRows then filters by each game's own date.
-      const queryFloor = toLocalDateString(new Date(nowMs - 24 * 60 * 60 * 1000));
+      // Two-day buffer covers the full UTC-12..UTC+14 span; the per-game-timezone
+      // filter in buildUpcomingSessionRows then trims it precisely.
+      const queryFloor = getUpcomingQueryFloor(nowMs);
       const gameIds = uniqueGames.map((g) => g.id);
       const gameInfo = new Map<string, { name: string; timezone: string | null }>(
         uniqueGames.map((g) => [g.id, { name: g.name, timezone: g.timezone }])

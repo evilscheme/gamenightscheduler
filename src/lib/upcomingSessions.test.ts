@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildUpcomingSessionRows,
   toLocalDateString,
+  getUpcomingQueryFloor,
 } from './upcomingSessions';
 import type { GameSession } from '@/types';
 
@@ -33,6 +34,19 @@ describe('toLocalDateString', () => {
   it('formats a Date as YYYY-MM-DD in local time', () => {
     // Month is 0-indexed: 5 => June
     expect(toLocalDateString(new Date(2026, 5, 3))).toBe('2026-06-03');
+  });
+});
+
+describe('getUpcomingQueryFloor', () => {
+  it('returns a date two calendar days before the viewer-local date', () => {
+    // Two days covers the widest timezone span (UTC-12..UTC+14 = 26h), which can
+    // put a game's local date up to two calendar days behind the viewer's.
+    const now = Date.UTC(2026, 5, 3, 12, 0, 0);
+    const today = toLocalDateString(new Date(now));
+    const floor = getUpcomingQueryFloor(now);
+    // Parsed as UTC midnight on both sides, so the diff is exact and tz-independent.
+    const diffDays = (Date.parse(today) - Date.parse(floor)) / 86_400_000;
+    expect(diffDays).toBe(2);
   });
 });
 

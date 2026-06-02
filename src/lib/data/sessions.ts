@@ -51,6 +51,22 @@ export async function fetchFutureSessions(
     .gte('date', fromDate);
 }
 
+export async function fetchUpcomingSessionsForGames(
+  supabase: SupabaseClient,
+  gameIds: string[],
+  fromDate: string
+) {
+  if (gameIds.length === 0) {
+    return { data: [] as GameSession[], error: null };
+  }
+  return supabase
+    .from('sessions')
+    .select('*')
+    .in('game_id', gameIds)
+    .gte('date', fromDate)
+    .order('date', { ascending: true });
+}
+
 export async function updateSession(
   supabase: SupabaseClient,
   sessionId: string,

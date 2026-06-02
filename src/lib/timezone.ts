@@ -155,6 +155,54 @@ export function convertTimeForDisplay(
 }
 
 /**
+ * Resolve the absolute UTC instant (epoch ms) of a session given its local
+ * date/time in a game's timezone. Used to order sessions chronologically across
+ * games in different timezones, where raw HH:MM comparison would be wrong.
+ *
+ * @param dateStr  Session date in YYYY-MM-DD (interpreted in `timezone`)
+ * @param timeStr  Time in HH:MM[:SS] (interpreted in `timezone`); null → 00:00
+ * @param timezone IANA timezone, or null to interpret the local time as UTC
+ * @returns UTC epoch milliseconds
+ */
+export function getSessionInstantMs(
+  dateStr: string,
+  timeStr: string | null,
+  timezone: string | null
+): number {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const [h, m] = (timeStr ?? '00:00').split(':').map(Number);
+  const probeUtc = new Date(Date.UTC(y, mo - 1, d, h, m || 0, 0));
+  if (!timezone) return probeUtc.getTime();
+  const offset = getTimezoneOffsetMinutes(probeUtc, timezone);
+  return probeUtc.getTime() - offset * 60000;
+}
+
+/**
+ * Get the calendar date (YYYY-MM-DD) at a given instant, as observed in a
+ * specific timezone. Used to decide whether a session is still "upcoming" in
+ * its own game's timezone rather than the viewer's.
+ *
+ * @param ms       UTC epoch milliseconds
+ * @param timezone IANA timezone, or null to use the runtime's local date
+ */
+export function getDateInTimezone(ms: number, timezone: string | null): string {
+  const date = new Date(ms);
+  if (!timezone) {
+    const y = date.getFullYear();
+    const mo = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${mo}-${d}`;
+  }
+  // en-CA formats as YYYY-MM-DD, which sorts lexicographically.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+/**
  * Get the UTC offset in minutes for a timezone at a given moment.
  * Positive = ahead of UTC, negative = behind.
  */

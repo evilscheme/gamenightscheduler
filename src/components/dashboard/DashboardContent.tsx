@@ -6,10 +6,23 @@ import Link from "next/link";
 import { Users, Calendar } from "lucide-react";
 import { Button, LoadingSpinner } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
-import { GameWithGM } from "@/types";
+import { GameWithGM, GameSession } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
-import { fetchUserMemberships, fetchUserGmGames, fetchMembershipCount } from "@/lib/data";
+import {
+  fetchUserMemberships,
+  fetchUserGmGames,
+  fetchMembershipCount,
+  fetchUpcomingSessionsForGames,
+} from "@/lib/data";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
+import {
+  buildUpcomingSessionRows,
+  getTodayLocalDate,
+  getUpcomingQueryFloor,
+  type UpcomingSessionRow,
+} from "@/lib/upcomingSessions";
 import { WelcomeEmptyState } from "./WelcomeEmptyState";
+import { UpcomingSessionsPanel } from "./UpcomingSessionsPanel";
 
 interface GameWithGMAndCount extends GameWithGM {
   member_count: number;
@@ -18,7 +31,9 @@ interface GameWithGMAndCount extends GameWithGM {
 
 export function DashboardContent() {
   const { profile, authStatus } = useAuth();
+  const { use24h, timezone: userTimezone } = useUserPreferences();
   const [games, setGames] = useState<GameWithGMAndCount[]>([]);
+  const [sessionRows, setSessionRows] = useState<UpcomingSessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -71,6 +86,35 @@ export function DashboardContent() {
       );
 
       setGames(gamesWithCounts as GameWithGMAndCount[]);
+
+      const nowMs = Date.now();
+      const today = getTodayLocalDate();
+      // Two-day buffer covers the full UTC-12..UTC+14 span; the per-game-timezone
+      // filter in buildUpcomingSessionRows then trims it precisely.
+      const queryFloor = getUpcomingQueryFloor(nowMs);
+      const gameIds = uniqueGames.map((g) => g.id);
+      const gameInfo = new Map<string, { name: string; timezone: string | null }>(
+        uniqueGames.map((g) => [g.id, { name: g.name, timezone: g.timezone }])
+      );
+      const { data: upcoming, error: sessionsError } = await fetchUpcomingSessionsForGames(
+        supabase,
+        gameIds,
+        queryFloor
+      );
+      if (sessionsError) {
+        // Games already rendered above; surface the failure rather than showing
+        // a silently-empty panel that looks like "no upcoming sessions".
+        console.error('[UpcomingSessions] failed to fetch upcoming sessions:', sessionsError);
+      }
+      setSessionRows(
+        buildUpcomingSessionRows(
+          (upcoming ?? []) as GameSession[],
+          gameInfo,
+          today,
+          nowMs
+        )
+      );
+
       setLoading(false);
     }
 
@@ -113,8 +157,10 @@ export function DashboardContent() {
       {games.length === 0 ? (
         <WelcomeEmptyState />
       ) : (
-        <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {games.map((game) => {
+        <div className="flex flex-col gap-8 lg:flex-row">
+          <div className="order-last lg:order-first lg:flex-1">
+            <ul className="grid gap-5 md:grid-cols-2">
+              {games.map((game) => {
             const isOwner = game.gm_id === profile?.id;
             const cadence = game.ad_hoc_only
               ? 'Ad-hoc'
@@ -166,9 +212,19 @@ export function DashboardContent() {
                   </div>
                 </Link>
               </li>
-            );
-          })}
-        </ul>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div className="order-first lg:order-last lg:w-80 lg:shrink-0">
+            <UpcomingSessionsPanel
+              rows={sessionRows}
+              use24h={use24h}
+              userTimezone={userTimezone}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

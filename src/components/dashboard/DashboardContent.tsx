@@ -18,6 +18,7 @@ import { useUserPreferences } from "@/hooks/useUserPreferences";
 import {
   buildUpcomingSessionRows,
   getTodayLocalDate,
+  toLocalDateString,
   type UpcomingSessionRow,
 } from "@/lib/upcomingSessions";
 import { WelcomeEmptyState } from "./WelcomeEmptyState";
@@ -86,7 +87,13 @@ export function DashboardContent() {
 
       setGames(gamesWithCounts as GameWithGMAndCount[]);
 
+      const nowMs = Date.now();
       const today = getTodayLocalDate();
+      // Fetch from one day before the viewer's "today": a game in a far-eastern
+      // timezone may already be on the next date, and the timezone gap between
+      // any two zones is under 26h, so a one-day buffer can't miss an upcoming
+      // session. buildUpcomingSessionRows then filters by each game's own date.
+      const queryFloor = toLocalDateString(new Date(nowMs - 24 * 60 * 60 * 1000));
       const gameIds = uniqueGames.map((g) => g.id);
       const gameInfo = new Map<string, { name: string; timezone: string | null }>(
         uniqueGames.map((g) => [g.id, { name: g.name, timezone: g.timezone }])
@@ -94,7 +101,7 @@ export function DashboardContent() {
       const { data: upcoming, error: sessionsError } = await fetchUpcomingSessionsForGames(
         supabase,
         gameIds,
-        today
+        queryFloor
       );
       if (sessionsError) {
         // Games already rendered above; surface the failure rather than showing
@@ -105,7 +112,8 @@ export function DashboardContent() {
         buildUpcomingSessionRows(
           (upcoming ?? []) as GameSession[],
           gameInfo,
-          today
+          today,
+          nowMs
         )
       );
 

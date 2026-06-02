@@ -5,7 +5,6 @@ import {
   addPlayerToGame,
   createTestSession,
   getPlayDates,
-  getPastPlayDates,
 } from '../../helpers/seed';
 import { TEST_TIMEOUTS } from '../../constants';
 
@@ -55,9 +54,9 @@ test.describe('Dashboard upcoming sessions', () => {
         confirmed_by: user.id,
       });
     }
-    // One past session in game A — must NOT appear.
-    const past = getPastPlayDates([0, 1, 2, 3, 4, 5, 6], 1)[0];
-    await createTestSession({ game_id: gameA.id, date: past, confirmed_by: user.id });
+    // One clearly-past session in game A — must NOT appear. Use 5 days ago so it
+    // stays below the one-day fetch buffer regardless of the runner's timezone.
+    await createTestSession({ game_id: gameA.id, date: localDateString(-5), confirmed_by: user.id });
 
     await loginTestUser(page, { email: user.email, name: user.name, is_gm: true });
     await page.goto('/dashboard');
@@ -116,14 +115,13 @@ test.describe('Dashboard upcoming sessions', () => {
       name: 'No Upcoming User',
       is_gm: true,
     });
-    // A game with only a past session.
+    // A game with only a clearly-past session (5 days ago).
     const game = await createTestGame({
       gm_id: user.id,
       name: 'Quiet Campaign',
       play_days: [0, 1, 2, 3, 4, 5, 6],
     });
-    const past = getPastPlayDates([0, 1, 2, 3, 4, 5, 6], 1)[0];
-    await createTestSession({ game_id: game.id, date: past, confirmed_by: user.id });
+    await createTestSession({ game_id: game.id, date: localDateString(-5), confirmed_by: user.id });
 
     await loginTestUser(page, { email: user.email, name: user.name, is_gm: true });
     await page.goto('/dashboard');

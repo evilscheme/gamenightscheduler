@@ -4,6 +4,8 @@ import {
   formatTimezoneDisplay,
   getTimezoneAbbreviation,
   convertTimeForDisplay,
+  getSessionInstantMs,
+  getDateInTimezone,
 } from "./timezone";
 
 describe("isValidTimezone", () => {
@@ -221,5 +223,41 @@ describe("convertTimeForDisplay", () => {
     expect(result.gameTime).toBe("10:00 AM");
     expect(result.gameTzAbbrev).toBe("UTC");
     expect(result.userTime).toBe("3:30 PM");
+  });
+});
+
+describe("getSessionInstantMs", () => {
+  it("resolves a Los Angeles evening to the correct UTC instant (PDT = UTC-7)", () => {
+    // 2026-06-01 19:00 PDT == 2026-06-02 02:00 UTC
+    const ms = getSessionInstantMs("2026-06-01", "19:00", "America/Los_Angeles");
+    expect(new Date(ms).toISOString()).toBe("2026-06-02T02:00:00.000Z");
+  });
+
+  it("orders cross-timezone sessions by true instant, not by local clock time", () => {
+    // New York 20:00 EDT (00:00 UTC) is earlier than LA 19:00 PDT (02:00 UTC),
+    // even though 19:00 < 20:00 as raw strings.
+    const ny = getSessionInstantMs("2026-06-01", "20:00", "America/New_York");
+    const la = getSessionInstantMs("2026-06-01", "19:00", "America/Los_Angeles");
+    expect(ny).toBeLessThan(la);
+  });
+
+  it("defaults a missing time to start-of-day", () => {
+    const ms = getSessionInstantMs("2026-06-01", null, "America/Los_Angeles");
+    // 2026-06-01 00:00 PDT == 2026-06-01 07:00 UTC
+    expect(new Date(ms).toISOString()).toBe("2026-06-01T07:00:00.000Z");
+  });
+
+  it("treats the local time as UTC when no timezone is given", () => {
+    const ms = getSessionInstantMs("2026-06-01", "12:00", null);
+    expect(new Date(ms).toISOString()).toBe("2026-06-01T12:00:00.000Z");
+  });
+});
+
+describe("getDateInTimezone", () => {
+  it("returns the previous calendar date in a western timezone before its midnight", () => {
+    // 2026-06-02 03:00 UTC is still 2026-06-01 20:00 in Los Angeles
+    const ms = Date.UTC(2026, 5, 2, 3, 0, 0);
+    expect(getDateInTimezone(ms, "America/Los_Angeles")).toBe("2026-06-01");
+    expect(getDateInTimezone(ms, "Asia/Tokyo")).toBe("2026-06-02");
   });
 });

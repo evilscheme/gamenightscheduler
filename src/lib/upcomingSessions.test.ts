@@ -22,7 +22,12 @@ const mkSession = (overrides: Partial<GameSession>): GameSession => ({
 const names = new Map<string, { name: string; timezone: string | null }>([
   ['g1', { name: 'Curse of Strahd', timezone: 'America/Los_Angeles' }],
   ['g2', { name: 'Heist Crew', timezone: 'America/New_York' }],
+  ['g3', { name: 'Avalon', timezone: 'America/Los_Angeles' }],
 ]);
+
+// A "now" of noon UTC on the given date keeps US-timezone "today" equal to that
+// date, so the upcoming-cutoff filter doesn't drop the test's sessions.
+const noonUtc = (dateStr: string): number => Date.parse(`${dateStr}T12:00:00Z`);
 
 describe('toLocalDateString', () => {
   it('formats a Date as YYYY-MM-DD in local time', () => {
@@ -39,7 +44,8 @@ describe('buildUpcomingSessionRows', () => {
         mkSession({ id: 'b', game_id: 'g1', date: '2026-06-10' }),
       ],
       names,
-      '2026-06-01'
+      '2026-06-01',
+      noonUtc('2026-06-01')
     );
     expect(rows.map((r) => r.session.id)).toEqual(['b', 'a']);
     expect(rows[0].gameName).toBe('Curse of Strahd');
@@ -50,7 +56,8 @@ describe('buildUpcomingSessionRows', () => {
     const rows = buildUpcomingSessionRows(
       [mkSession({ game_id: 'gX', date: '2026-06-10' })],
       names,
-      '2026-06-01'
+      '2026-06-01',
+      noonUtc('2026-06-01')
     );
     expect(rows[0].gameName).toBe('Unknown game');
     expect(rows[0].gameTimezone).toBeNull();
@@ -63,7 +70,8 @@ describe('buildUpcomingSessionRows', () => {
         mkSession({ id: 'b', game_id: 'g2', date: '2026-06-11' }),
       ],
       names,
-      '2026-06-01'
+      '2026-06-01',
+      noonUtc('2026-06-01')
     );
     expect(rows[0].gameTimezone).toBe('America/Los_Angeles');
     expect(rows[1].gameTimezone).toBe('America/New_York');
@@ -77,7 +85,8 @@ describe('buildUpcomingSessionRows', () => {
         mkSession({ id: 'later', date: '2026-06-12' }),
       ],
       names,
-      '2026-06-10'
+      '2026-06-10',
+      noonUtc('2026-06-10')
     );
     const byId = Object.fromEntries(rows.map((r) => [r.session.id, r.dayHighlight]));
     expect(byId.today).toBe('today');
@@ -89,21 +98,75 @@ describe('buildUpcomingSessionRows', () => {
     const rows = buildUpcomingSessionRows(
       [mkSession({ id: 'ny', date: '2027-01-01' })],
       names,
-      '2026-12-31'
+      '2026-12-31',
+      noonUtc('2026-12-31')
     );
     expect(rows[0].dayHighlight).toBe('tomorrow');
   });
 
-  it('breaks date ties by start_time (nulls last) then game name', () => {
+  it('orders sessions by their true instant across timezones, not raw local time', () => {
+    // Same calendar date. NY 20:00 EDT (00:00 UTC) precedes LA 19:00 PDT (02:00 UTC),
+    // even though "19:00" < "20:00" as strings.
+    const rows = buildUpcomingSessionRows(
+      [
+        mkSession({ id: 'la', game_id: 'g1', date: '2026-06-10', start_time: '19:00:00' }),
+        mkSession({ id: 'ny', game_id: 'g2', date: '2026-06-10', start_time: '20:00:00' }),
+      ],
+      names,
+      '2026-06-01',
+      noonUtc('2026-06-01')
+    );
+    expect(rows.map((r) => r.session.id)).toEqual(['ny', 'la']);
+  });
+
+  it('places start-less sessions after timed ones on the same date', () => {
     const rows = buildUpcomingSessionRows(
       [
         mkSession({ id: 'noTime', game_id: 'g1', date: '2026-06-10', start_time: null }),
-        mkSession({ id: 'late', game_id: 'g2', date: '2026-06-10', start_time: '20:00:00' }),
-        mkSession({ id: 'early', game_id: 'g1', date: '2026-06-10', start_time: '18:00:00' }),
+        mkSession({ id: 'timed', game_id: 'g1', date: '2026-06-10', start_time: '18:00:00' }),
       ],
       names,
-      '2026-06-01'
+      '2026-06-01',
+      noonUtc('2026-06-01')
     );
-    expect(rows.map((r) => r.session.id)).toEqual(['early', 'late', 'noTime']);
+    expect(rows.map((r) => r.session.id)).toEqual(['timed', 'noTime']);
+  });
+
+  it('breaks exact-instant ties by game name', () => {
+    // Same timezone, date, and start time → identical instant → name decides.
+    const rows = buildUpcomingSessionRows(
+      [
+        mkSession({ id: 'curse', game_id: 'g1', date: '2026-06-10', start_time: '19:00:00' }),
+        mkSession({ id: 'avalon', game_id: 'g3', date: '2026-06-10', start_time: '19:00:00' }),
+      ],
+      names,
+      '2026-06-01',
+      noonUtc('2026-06-01')
+    );
+    expect(rows.map((r) => r.session.id)).toEqual(['avalon', 'curse']);
+  });
+
+  it("keeps a session still upcoming in the game's timezone after the viewer's date rolls over", () => {
+    // Viewer is on 2026-06-02, but in Los Angeles it is still 2026-06-01 20:00.
+    // An LA session dated 2026-06-01 is still upcoming and must not be dropped.
+    const nowMs = Date.UTC(2026, 5, 2, 3, 0, 0);
+    const rows = buildUpcomingSessionRows(
+      [mkSession({ id: 'laEvening', game_id: 'g1', date: '2026-06-01' })],
+      names,
+      '2026-06-02',
+      nowMs
+    );
+    expect(rows.map((r) => r.session.id)).toEqual(['laEvening']);
+  });
+
+  it("drops sessions already past in the game's own timezone", () => {
+    const nowMs = Date.UTC(2026, 5, 2, 3, 0, 0); // LA: 2026-06-01 20:00
+    const rows = buildUpcomingSessionRows(
+      [mkSession({ id: 'old', game_id: 'g1', date: '2026-05-31' })],
+      names,
+      '2026-06-02',
+      nowMs
+    );
+    expect(rows).toHaveLength(0);
   });
 });

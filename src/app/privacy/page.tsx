@@ -21,7 +21,7 @@ export default function PrivacyPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground">Privacy Policy</h1>
         <p className="mt-2 text-muted-foreground">
-          Effective February 2026
+          Effective June 2026
         </p>
       </div>
 
@@ -56,6 +56,21 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
+        <Section title="Analytics & Performance">
+          <p>
+            We use Vercel&apos;s privacy-friendly Web Analytics and{' '}
+            Speed Insights to understand how the app is
+            used and to monitor performance. These collect aggregated, anonymous information &mdash;
+            such as page views, the site that referred you, and general device, browser, and country
+            data &mdash; along with page load and responsiveness metrics measured during your visit.
+          </p>
+          <p>
+            This collection is cookieless. It is not
+            linked to your account, is not used to track you across other websites, and is never used
+            to build an advertising profile.
+          </p>
+        </Section>
+
         <Section title="Third-Party Services">
           <p>
             Can We Play? relies on the following third-party services:
@@ -84,7 +99,8 @@ export default function PrivacyPage() {
               </a>.
             </li>
             <li>
-              <strong className="text-foreground">Vercel</strong> &mdash; hosts the application.
+              <strong className="text-foreground">Vercel</strong> &mdash; hosts the application and
+              provides the cookieless analytics and performance monitoring described above.
               See{' '}
               <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                 Vercel&apos;s Privacy Policy
@@ -95,9 +111,11 @@ export default function PrivacyPage() {
 
         <Section title="Cookies & Local Storage">
           <p>
-            We use a session cookie provided by Supabase to keep you signed in. We do not use
-            tracking cookies, analytics cookies, or any third-party cookies. Your theme preference
-            is stored in your browser&apos;s local storage.
+            We use a session cookie provided by Supabase to keep you signed in. Our analytics and
+            performance monitoring are cookieless (see
+            Analytics &amp; Performance above), and we do not use advertising cookies, cross-site
+            tracking cookies, or any third-party cookies. Your theme preference is stored in your
+            browser&apos;s local storage.
           </p>
         </Section>
 

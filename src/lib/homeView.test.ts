@@ -17,4 +17,8 @@ describe('chooseHomeView', () => {
   it("returns 'splash' when data is present but has no claims and no error", () => {
     expect(chooseHomeView({ data: {}, error: null })).toBe('splash');
   });
+
+  it("returns 'splash' when data.claims is null and there is no error", () => {
+    expect(chooseHomeView({ data: { claims: null }, error: null })).toBe('splash');
+  });
 });

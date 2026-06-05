@@ -26,12 +26,13 @@ test.describe('Landing page SEO', () => {
   test('renders the dashboard inline at / for an authenticated user', async ({ gmPage }) => {
     await gmPage.goto('/');
 
-    // URL stays at root — no redirect to /dashboard.
-    await expect(gmPage).toHaveURL('/');
-
     // "Your Games" is rendered by DashboardContent and never by the splash.
+    // Assert it first so the LONG timeout covers client-side auth resolution.
     await expect(gmPage.getByRole('heading', { name: /your games/i })).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
+
+    // URL stays at root — no redirect to /dashboard.
+    await expect(gmPage).toHaveURL('/');
   });
 });

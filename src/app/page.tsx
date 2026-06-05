@@ -1,27 +1,34 @@
-'use client';
-
-import { LoadingSpinner } from '@/components/ui';
-import { useAuth } from '@/contexts/AuthContext';
-import { DashboardContent } from '@/components/dashboard/DashboardContent';
+import { createClient } from '@/lib/supabase/server';
+import { chooseHomeView, type HomeView } from '@/lib/homeView';
 import { SplashPage } from '@/components/splash/SplashPage';
+import { HomeApp } from '@/components/home/HomeApp';
 
-export default function Home() {
-  const { profile, authStatus } = useAuth();
+// This route reads auth cookies and renders differently per request, so it is
+// always dynamically rendered. Declaring it explicitly also prevents Next.js's
+// build-time prerender attempt from tripping the page's getClaims try/catch.
+export const dynamic = 'force-dynamic';
 
-  // Show dashboard for authenticated users
-  if (profile) {
-    return <DashboardContent />;
+export default async function Home() {
+  // Fail safe toward the authenticated path: if reading the session throws
+  // unexpectedly, render the client gate (which resolves auth) rather than
+  // exposing a logged-in user to the public splash. `view` stays 'app' on error.
+  let view: HomeView = 'app';
+  try {
+    const supabase = await createClient();
+    const result = await supabase.auth.getClaims();
+    view = chooseHomeView(result);
+  } catch (err) {
+    // Surface unexpected failures in server logs so a consistently broken
+    // getClaims() path (e.g. missing env, library regression) is observable
+    // rather than silently degrading the logged-out/SEO render to HomeApp.
+    console.error('[home] getClaims threw unexpectedly; falling back to HomeApp:', err);
   }
 
-  // Show loading state while checking auth
-  if (authStatus === 'loading') {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+  if (view === 'splash') {
+    // Logged-out visitors and crawlers (no auth cookie) get fully
+    // server-rendered marketing HTML.
+    return <SplashPage />;
   }
 
-  // Show splash page for unauthenticated users
-  return <SplashPage />;
+  return <HomeApp />;
 }

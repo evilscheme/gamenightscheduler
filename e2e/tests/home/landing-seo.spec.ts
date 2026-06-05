@@ -11,6 +11,11 @@ test.describe('Landing page SEO', () => {
 
     const html = await res.text();
 
+    // Log the raw response size up front so it's visible on every run (including
+    // failures). It was ~500KB+ when the ~142 decorative dice were server-rendered.
+    const bytes = Buffer.byteLength(html);
+    console.log(`[landing-seo] raw / response size: ${bytes} bytes`);
+
     // Strings unique to the SplashPage body. Their presence in the RAW response
     // (no browser, no hydration) proves the marketing page was server-rendered,
     // not the loading spinner shell.
@@ -21,6 +26,31 @@ test.describe('Landing page SEO', () => {
     expect(html).toContain('>Invite your party<');
     expect(html).toContain('>Mark availability<');
     expect(html).toContain('>Co-GM Support<');
+
+    // Decorative dice are client-only (rendered after mount), so they must NOT
+    // appear in the server response. `lucide-dice` is the rendered-SVG marker
+    // (e.g. class "lucide lucide-dice-1") and is absent from globals.css, so it
+    // won't false-positive on inlined CSS the way the `dice-filled` class would.
+    expect(html).not.toContain('lucide-dice');
+
+    // Size backstop against mass-element bloat (the dice were ~518KB of the old
+    // ~598KB dev response). This runs against `next dev`, which is far heavier than
+    // production (unminified + HMR + verbose RSC payload): post-fix dev is ~80KB
+    // while production is ~31KB. The 150KB cap is a loose regression guard — it
+    // passes comfortably now but trips immediately if the dice (or similar) return
+    // to the server render. The precise dice guard is `not.toContain('lucide-dice')`
+    // above.
+    expect(bytes).toBeLessThan(150_000);
+  });
+
+  test('renders the decorative dice in the browser after hydration', async ({ page }) => {
+    await page.goto('/');
+
+    // Dice are client-only and fade in after mount. `.dice-filled` is the class
+    // on each die's <svg>; its presence proves the client renders them post-mount.
+    await expect(page.locator('.dice-filled').first()).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
   });
 
   test('renders the dashboard inline at / for an authenticated user', async ({ gmPage }) => {

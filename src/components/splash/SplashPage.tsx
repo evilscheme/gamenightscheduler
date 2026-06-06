@@ -44,8 +44,8 @@ function HeroSection() {
           Track availability. Find the best night. Play more games.
         </p>
         <p className="text-sm sm:text-base text-muted-foreground mb-8 max-w-xl mx-auto">
-          A free tool for organizing recurring get-togethers &mdash; game nights, TTRPG
-          campaigns (D&amp;D, Pathfinder, and more), board game meetups, or any group that
+          A free tool for organizing recurring get-togethers, such as game nights, TTRPG
+          campaigns (D&amp;D, Daggerheart, etc.), board game nights, or any group that
           needs to find a date that works for everyone.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -70,15 +70,15 @@ function WhySection() {
     <div className="py-16 sm:py-24 bg-background">
       <div className="max-w-3xl mx-auto px-4 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">
-          Scheduling, without the group-chat chaos
+          Scheduling, without the endless back-and-forth
         </h2>
         <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           Finding a night when everyone&apos;s free is the hardest part of keeping a regular game
-          going. Can We Play? replaces the endless &ldquo;what about Thursday?&rdquo; messages:
-          each person marks the dates they can make, and the app highlights the nights that work
-          for the whole group. Whether you&apos;re running a long D&amp;D or Pathfinder campaign,
+          going. Can We Play? replaces lengthy message threads with a simple interface:
+          each person marks the dates they can make, and the app highlights the days that work
+          for the most people. Whether you&apos;re running a long D&amp;D or Pathfinder campaign,
           hosting a board game night, or organizing any recurring meetup, you can confirm a date
-          and export it straight to your calendar &mdash; free, no sign-up friction.
+          and export it straight to everyone&apos;s calendar. It&apos;s easy, ad-free, and costs nothing. Get playing!
         </p>
       </div>
     </div>
@@ -110,8 +110,8 @@ function HowItWorksSection() {
           <Step
             num={3}
             icon={<CalendarSearch className="size-6" />}
-            title="Book game nights"
-            desc="See which dates work best for the whole group and confirm sessions."
+            title="Book sessions"
+            desc="See which dates work best for the whole group and schedule in the shared calendar."
           />
         </div>
       </div>

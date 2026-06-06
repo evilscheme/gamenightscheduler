@@ -27,6 +27,14 @@ test.describe('Landing page SEO', () => {
     expect(html).toContain('>Mark availability<');
     expect(html).toContain('>Co-GM Support<');
 
+    // Discoverability copy must be server-rendered: these domain keywords let
+    // search/AI engines understand what the app is for. Use terms that are new to
+    // the page (not "calendar", which already appears via "Calendar Sync") and
+    // free of HTML-escaping ambiguity (avoid "D&D" → "D&amp;D").
+    expect(html).toContain('TTRPG');
+    expect(html).toContain('Pathfinder');
+    expect(html).toContain('board game');
+
     // Decorative dice are client-only (rendered after mount), so they must NOT
     // appear in the server response. `lucide-dice` is the rendered-SVG marker
     // (e.g. class "lucide lucide-dice-1") and is absent from globals.css, so it

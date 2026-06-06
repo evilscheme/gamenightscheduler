@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -9,66 +7,9 @@ import {
   Users,
   Layers,
   Shield,
-  Dice1,
-  Dice2,
-  Dice3,
-  Dice4,
-  Dice5,
-  Dice6,
 } from 'lucide-react';
 import { Button, EyebrowLabel } from '@/components/ui';
-
-// ─── Dice configuration ─────────────────────────────────────────────────────
-
-const DICE_ICONS = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
-
-const DICE_COUNT_DESKTOP = 100;
-const DICE_COUNT_MOBILE = 42;
-
-// Seeded PRNG for deterministic layout across renders
-function mulberry32(seed: number) {
-  return () => {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-interface GeneratedDie {
-  face: number;
-  size: number;
-  opacity: number;
-  duration: number;
-  delay: number;
-  rotate: number;
-  x: number; // 0-100 percentage
-  y: number; // 0-100 percentage
-}
-
-function generateDice(count: number, seed: number): GeneratedDie[] {
-  const rand = mulberry32(seed);
-  const dice: GeneratedDie[] = [];
-
-  for (let i = 0; i < count; i++) {
-    dice.push({
-      face: Math.floor(rand() * 6),
-      size: Math.round(16 + rand() * 24), // 16-40px
-      opacity: 0.04 + rand() * 0.1, // 0.04-0.14
-      duration: 5 + rand() * 5, // 5-10s
-      delay: rand() * 8, // 0-8s
-      rotate: Math.round(-45 + rand() * 90), // -45 to 45 degrees
-      x: rand() * 100, // 0-100%
-      y: rand() * 100, // 0-100%
-    });
-  }
-
-  return dice;
-}
-
-const DICE_DESKTOP = generateDice(DICE_COUNT_DESKTOP, 42);
-const DICE_MOBILE = generateDice(DICE_COUNT_MOBILE, 9);
+import { FloatingDice } from './FloatingDice';
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
@@ -76,6 +17,7 @@ export function SplashPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)]">
       <HeroSection />
+      <WhySection />
       <HowItWorksSection />
       <FeaturesSection />
     </div>
@@ -98,8 +40,13 @@ function HeroSection() {
           priority
         />
         <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">Can We Play?</h1>
-        <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-lg mx-auto">
+        <p className="text-lg sm:text-xl text-muted-foreground mb-4 max-w-lg mx-auto">
           Track availability. Find the best night. Play more games.
+        </p>
+        <p className="text-sm sm:text-base text-muted-foreground mb-8 max-w-xl mx-auto">
+          A free tool for organizing recurring get-togethers, such as game nights, TTRPG
+          campaigns (D&amp;D, Daggerheart, etc.), board game nights, or any group that
+          needs to find a date that works for everyone.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/login">
@@ -116,43 +63,25 @@ function HeroSection() {
   );
 }
 
-function DiceField({ dice, className }: { dice: GeneratedDie[]; className?: string }) {
-  return (
-    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className ?? ''}`}>
-      {dice.map((die, i) => {
-        const Icon = DICE_ICONS[die.face];
-        return (
-          <div
-            key={i}
-            className="absolute"
-            style={{
-              left: `${die.x}%`,
-              top: `${die.y}%`,
-              transform: `rotate(${die.rotate}deg)`,
-            }}
-          >
-            <Icon
-              className="dice-filled animate-[float_6s_ease-in-out_infinite]"
-              style={{
-                color: `color-mix(in srgb, var(--primary) ${Math.round(die.opacity * 100)}%, transparent)`,
-                animationDuration: `${die.duration}s`,
-                animationDelay: `${die.delay}s`,
-              }}
-              size={die.size}
-            />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+// ─── Why ────────────────────────────────────────────────────────────────────
 
-function FloatingDice() {
+function WhySection() {
   return (
-    <>
-      <DiceField dice={DICE_DESKTOP} className="hidden sm:block" />
-      <DiceField dice={DICE_MOBILE} className="sm:hidden" />
-    </>
+    <div className="py-16 sm:py-24 bg-background">
+      <div className="max-w-3xl mx-auto px-4 text-center">
+        <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">
+          Scheduling, without the endless back-and-forth
+        </h2>
+        <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          Finding a night when everyone&apos;s free is the hardest part of keeping a regular game
+          going. Can We Play? replaces lengthy message threads with a simple interface:
+          each person marks the dates they can make, and the app highlights the days that work
+          for the most people. Whether you&apos;re running a long D&amp;D or Pathfinder campaign,
+          hosting a board game night, or organizing any recurring meetup, you can confirm a date
+          and export it straight to everyone&apos;s calendar. It&apos;s easy, ad-free, and costs nothing. Get playing!
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -181,8 +110,8 @@ function HowItWorksSection() {
           <Step
             num={3}
             icon={<CalendarSearch className="size-6" />}
-            title="Book game nights"
-            desc="See which dates work best for the whole group and confirm sessions."
+            title="Book sessions"
+            desc="See which dates work best for the whole group and schedule in the shared calendar."
           />
         </div>
       </div>

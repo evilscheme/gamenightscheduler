@@ -23,7 +23,7 @@ test.describe('Landing Page', () => {
     // Steps should be present
     await expect(page.getByRole('heading', { name: 'Invite your party' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Mark availability' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Book game nights' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Book sessions' })).toBeVisible();
 
     // Features should be present
     await expect(page.getByRole('heading', { name: 'Multi-Game' })).toBeVisible();

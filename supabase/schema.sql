@@ -521,3 +521,21 @@ CREATE POLICY "GMs and co-GMs can update play dates" ON game_play_dates
   FOR UPDATE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
 CREATE POLICY "GMs and co-GMs can delete play dates" ON game_play_dates
   FOR DELETE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
+
+-- ============================================================
+-- Data API role grants
+-- ============================================================
+-- Supabase CLI v2.106.0+ defaults [api].auto_expose_new_tables to false and
+-- revokes the legacy default privileges on new public-schema objects. These
+-- explicit grants restore the long-standing behavior this schema was built
+-- against; row-level access is still enforced by the RLS policies above.
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;

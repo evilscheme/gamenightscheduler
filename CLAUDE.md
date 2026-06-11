@@ -139,6 +139,12 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - `src/lib/bulkAvailability.ts` - Bulk availability marking logic
 - `src/lib/copyAvailability.ts` - Copy/filter availability entries between games
 - `src/lib/timezone.ts` - Timezone detection, display formatting, and conversion
+- `src/lib/quat.ts` - Dependency-free quaternion/vector math for the 3D dice
+- `src/lib/d20Geometry.ts` - Icosahedron vertices/faces/numbers shared by dice physics and rendering
+- `src/lib/diceConfig.ts` - Die/tray sizing shared by physics and renderer
+- `src/lib/dieRenderer.ts` - Canvas-2D d20 renderer (`D20Renderer`) driven by quaternion poses
+- `src/lib/dicePhysics.ts` - Headless cannon-es d20 roll simulation + playback (lazy-loaded; only the 404 roll needs the physics engine)
+- `src/lib/diceTumble.ts` - Perpetual tumble motion for the loading spinner (no physics engine)
 - `src/lib/themes.ts` - Theme configuration and utilities
 - `src/lib/url.ts` - URL validation (`safeCallbackUrl`) for open-redirect prevention
 - `src/contexts/ThemeContext.tsx` - Theme context (uses next-themes)

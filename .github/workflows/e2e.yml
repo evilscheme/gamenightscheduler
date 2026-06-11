@@ -25,7 +25,9 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: "latest" both drifts (v2.106.0 changed default grants under
+          # us) and flakes (GitHub API rate limit while resolving the tag)
+          version: 2.106.0
 
       - name: Start Supabase (background)
         run: |

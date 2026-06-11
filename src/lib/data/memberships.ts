@@ -61,8 +61,15 @@ export async function fetchUserOtherGames(
   return Array.from(gameMap.entries()).map(([id, name]) => ({ id, name }));
 }
 
-export async function joinGame(supabase: SupabaseClient, gameId: string, userId: string) {
-  return supabase.from('game_memberships').insert({ game_id: gameId, user_id: userId });
+/**
+ * Join a game via its invite code. Goes through the join_game_by_invite RPC
+ * (SECURITY DEFINER) rather than a direct game_memberships insert: the database
+ * has no direct INSERT policy, so this is the only sanctioned join path. The RPC
+ * verifies the invite code, enforces the player cap, and always joins as a
+ * regular player (never co-GM). Returns the joined game's id in `data`.
+ */
+export async function joinGame(supabase: SupabaseClient, inviteCode: string) {
+  return supabase.rpc('join_game_by_invite', { invite_code_param: inviteCode });
 }
 
 export async function leaveGame(supabase: SupabaseClient, gameId: string, userId: string) {

@@ -79,12 +79,16 @@ export default function JoinGamePage() {
 
     setJoining(true);
 
-    const { error: joinError } = await joinGame(supabase, game.id, profile.id);
+    // Join via the invite code (RPC enforces the code, the player cap, and
+    // always joins as a regular player — never co-GM).
+    const { error: joinError } = await joinGame(supabase, code);
 
     if (joinError) {
-      // Check if it's a policy violation (likely player limit exceeded)
-      if (joinError.code === '42501') {
+      // P0001 = game full, P0002 = invalid invite code (see join_game_by_invite).
+      if (joinError.code === 'P0001') {
         setError(`This game is full (${USAGE_LIMITS.MAX_PLAYERS_PER_GAME} players maximum).`);
+      } else if (joinError.code === 'P0002') {
+        setError('This invite link is no longer valid.');
       } else {
         setError('Failed to join game. Please try again.');
       }

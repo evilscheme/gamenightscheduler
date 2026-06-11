@@ -326,6 +326,61 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- Join a game using its invite code (the ONLY path for a player to join).
+-- This is the authorization boundary for joining: it verifies the invite code,
+-- enforces the player cap, and always inserts as a regular player (is_co_gm = FALSE).
+-- Routing joins through this function lets us close two critical holes that a direct
+-- INSERT policy could not:
+--   1. The invite code is a column on `games`, not `game_memberships`, so a row-level
+--      INSERT policy can't require it. Here we look the game up BY the code.
+--   2. A direct INSERT lets the client choose `is_co_gm`; here it is hard-coded false.
+-- SECURITY DEFINER (runs as owner, bypassing RLS) because there is no direct INSERT
+-- policy on game_memberships — this function is the only sanctioned insert path.
+CREATE OR REPLACE FUNCTION public.join_game_by_invite(invite_code_param TEXT)
+RETURNS UUID AS $$
+DECLARE
+  v_uid     UUID := (SELECT auth.uid());
+  v_game_id UUID;
+  v_gm_id   UUID;
+BEGIN
+  -- Must be authenticated.
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '28000';
+  END IF;
+
+  -- Resolve the game by its invite code (the secret), not by a guessable id.
+  SELECT id, gm_id INTO v_game_id, v_gm_id
+  FROM public.games
+  WHERE invite_code = invite_code_param;
+
+  IF v_game_id IS NULL THEN
+    RAISE EXCEPTION 'Invalid invite code' USING ERRCODE = 'P0002';
+  END IF;
+
+  -- The GM already owns the game; nothing to do (avoids a phantom membership row).
+  IF v_gm_id = v_uid THEN
+    RETURN v_game_id;
+  END IF;
+
+  -- Enforce the same player cap the old INSERT policy did (members + GM).
+  IF public.count_game_players(v_game_id) >= 50 THEN
+    RAISE EXCEPTION 'Game is full' USING ERRCODE = 'P0001';
+  END IF;
+
+  -- Always join as a regular player. Co-GM is granted later by the GM via UPDATE.
+  INSERT INTO public.game_memberships (game_id, user_id, is_co_gm)
+  VALUES (v_game_id, v_uid, FALSE)
+  ON CONFLICT (game_id, user_id) DO NOTHING;
+
+  RETURN v_game_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+-- Lock down execution: only signed-in users may call it (anon is rejected anyway,
+-- but don't expose the endpoint). Revoke the default PUBLIC grant first.
+REVOKE EXECUTE ON FUNCTION public.join_game_by_invite(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.join_game_by_invite(TEXT) TO authenticated;
+
 -- ============================================
 -- 5. Triggers
 -- ============================================
@@ -398,11 +453,12 @@ CREATE POLICY "GMs can delete own games" ON games
 -- Game memberships policies (uses helper function to avoid recursion)
 CREATE POLICY "Members can view memberships" ON game_memberships
   FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
-CREATE POLICY "Users can join games" ON game_memberships
-  FOR INSERT WITH CHECK (
-    (select auth.uid()) = user_id
-    AND public.count_game_players(game_id) < 50
-  );
+-- NOTE: There is deliberately NO direct INSERT policy for authenticated users.
+-- A row-level INSERT policy cannot verify the invite code (it lives on `games`,
+-- not `game_memberships`) and cannot stop a client from self-assigning
+-- is_co_gm = TRUE. Both holes are closed by funneling all joins through the
+-- SECURITY DEFINER function public.join_game_by_invite(), which is the only
+-- sanctioned insert path. Service-role/admin operations bypass RLS as usual.
 CREATE POLICY "Users, GMs, or co-GMs can delete memberships" ON game_memberships
   FOR DELETE USING (
     -- User can always remove themselves

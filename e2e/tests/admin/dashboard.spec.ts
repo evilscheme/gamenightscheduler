@@ -239,6 +239,16 @@ test.describe('Admin Dashboard', () => {
     const playersTable = page.getByTestId('top-players-table');
     await expect(playersTable).toBeVisible();
     await expect(playersTable.getByText('Top Player One')).toBeVisible();
+
+    // Expanding a player row reveals their games as links to the peek view
+    await playersTable.getByText('Top Player One').click();
+    const gameLink = playersTable.getByRole('link', { name: /top users game/i });
+    await expect(gameLink).toBeVisible();
+    await gameLink.click();
+    await expect(page).toHaveURL(`/admin/games/${game.id}`, { timeout: TEST_TIMEOUTS.LONG });
+    await expect(page.getByTestId('admin-peek-banner')).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
   });
 
   test('activity tab shows recent users and games', async ({ page, request }) => {

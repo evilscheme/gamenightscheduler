@@ -10,7 +10,7 @@ export async function GET(): Promise<Response> {
 
     const [users, games, memberships, sessions, availability] = await Promise.all([
       paginate<TopUserProfile>(admin, 'users', 'id, name, email, avatar_url'),
-      paginate<{ id: string; gm_id: string }>(admin, 'games', 'id, gm_id'),
+      paginate<{ id: string; gm_id: string; name: string }>(admin, 'games', 'id, gm_id, name'),
       paginate<{ game_id: string; user_id: string }>(admin, 'game_memberships', 'game_id, user_id'),
       paginate<{ game_id: string; date: string }>(admin, 'sessions', 'game_id, date'),
       paginate<{ user_id: string }>(admin, 'availability', 'user_id'),

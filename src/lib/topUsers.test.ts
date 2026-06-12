@@ -22,8 +22,8 @@ describe("computeTopUsers", () => {
       {
         users: [user("gm1"), user("p1"), user("p2")],
         games: [
-          { id: "g1", gm_id: "gm1" },
-          { id: "g2", gm_id: "gm1" },
+          { id: "g1", gm_id: "gm1", name: "Game g1" },
+          { id: "g2", gm_id: "gm1", name: "Game g2" },
         ],
         memberships: [
           { game_id: "g1", user_id: "p1" },
@@ -48,13 +48,17 @@ describe("computeTopUsers", () => {
       playersHosted: 2,
     });
     expect(result.topGms[0].user.id).toBe("gm1");
+    expect(result.topGms[0].games).toEqual([
+      { id: "g1", name: "Game g1" },
+      { id: "g2", name: "Game g2" },
+    ]);
   });
 
   it("aggregates player metrics from memberships, sessions, and availability", () => {
     const result = computeTopUsers(
       {
         users: [user("gm1"), user("p1")],
-        games: [{ id: "g1", gm_id: "gm1" }],
+        games: [{ id: "g1", gm_id: "gm1", name: "Game g1" }],
         memberships: [{ game_id: "g1", user_id: "p1" }],
         sessions: [
           { game_id: "g1", date: "2026-01-10" },
@@ -72,13 +76,14 @@ describe("computeTopUsers", () => {
       datesMarked: 2,
     });
     expect(result.topPlayers[0].user.id).toBe("p1");
+    expect(result.topPlayers[0].games).toEqual([{ id: "g1", name: "Game g1" }]);
   });
 
   it("excludes users with no owned games from GMs and no memberships from players", () => {
     const result = computeTopUsers(
       {
         users: [user("gm1"), user("p1"), user("bystander")],
-        games: [{ id: "g1", gm_id: "gm1" }],
+        games: [{ id: "g1", gm_id: "gm1", name: "Game g1" }],
         memberships: [{ game_id: "g1", user_id: "p1" }],
         sessions: [],
         availability: [{ user_id: "bystander" }],
@@ -95,10 +100,10 @@ describe("computeTopUsers", () => {
       {
         users: [user("a", "Alice"), user("b", "Bob"), user("c", "Carol")],
         games: [
-          { id: "g1", gm_id: "a" },
-          { id: "g2", gm_id: "b" },
-          { id: "g3", gm_id: "b" },
-          { id: "g4", gm_id: "c" },
+          { id: "g1", gm_id: "a", name: "Game g1" },
+          { id: "g2", gm_id: "b", name: "Game g2" },
+          { id: "g3", gm_id: "b", name: "Game g3" },
+          { id: "g4", gm_id: "c", name: "Game g4" },
         ],
         memberships: [],
         sessions: [
@@ -120,8 +125,8 @@ describe("computeTopUsers", () => {
       {
         users: [user("gm"), user("p1"), user("p2")],
         games: [
-          { id: "g1", gm_id: "gm" },
-          { id: "g2", gm_id: "gm" },
+          { id: "g1", gm_id: "gm", name: "Game g1" },
+          { id: "g2", gm_id: "gm", name: "Game g2" },
         ],
         memberships: [
           { game_id: "g1", user_id: "p1" },
@@ -140,7 +145,7 @@ describe("computeTopUsers", () => {
 
   it("caps each list at the limit", () => {
     const users = Array.from({ length: 15 }, (_, i) => user(`u${i}`));
-    const games = users.map((u, i) => ({ id: `g${i}`, gm_id: u.id }));
+    const games = users.map((u, i) => ({ id: `g${i}`, gm_id: u.id, name: `Game g${i}` }));
     const result = computeTopUsers(
       { users, games, memberships: [], sessions: [], availability: [] },
       { today, limit: 10 }
@@ -153,8 +158,8 @@ describe("computeTopUsers", () => {
       {
         users: [user("gm1")],
         games: [
-          { id: "g1", gm_id: "gm1" },
-          { id: "g2", gm_id: "ghost-gm" },
+          { id: "g1", gm_id: "gm1", name: "Game g1" },
+          { id: "g2", gm_id: "ghost-gm", name: "Game g2" },
         ],
         memberships: [
           { game_id: "g1", user_id: "ghost-player" },

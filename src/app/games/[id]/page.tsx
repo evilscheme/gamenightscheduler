@@ -2,35 +2,19 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { Button, LoadingSpinner, Modal, useToast } from "@/components/ui";
 import { OverviewTabContent } from "@/components/games/overview/OverviewTabContent";
-import {
-  User,
-  DateSuggestion,
-} from "@/types";
+import { User } from "@/types";
 import { AvailabilityTabContent } from "@/components/games/availability/AvailabilityTabContent";
 import { ScheduleTabContent } from "@/components/games/schedule/ScheduleTabContent";
-import {
-  addMonths,
-  endOfMonth,
-  eachDayOfInterval,
-  getDay,
-  format,
-  isAfter,
-  isBefore,
-  startOfDay,
-  parseISO,
-} from "date-fns";
-import { getPlayDatesInWindow } from "@/lib/availability";
-import { calculateDateSuggestions } from "@/lib/suggestions";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useGameMeta } from "@/hooks/useGameMeta";
 import { useAvailability } from "@/hooks/useAvailability";
 import { useSessions } from "@/hooks/useSessions";
 import { usePlayDates } from "@/hooks/usePlayDates";
-import { getSchedulingWindow } from "@/lib/scheduling";
+import { useGameDerivedState } from "@/hooks/useGameDerivedState";
 
 type Tab = "overview" | "availability" | "schedule";
 
@@ -76,7 +60,6 @@ export default function GameDetailPage() {
 
   // UI state
   const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [suggestions, setSuggestions] = useState<DateSuggestion[]>([]);
   const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -87,69 +70,20 @@ export default function GameDetailPage() {
   const canDoGmActions = !!(isGm || isCoGm);
   const isMember = game?.members.some((m) => m.id === profile?.id);
 
-  const playDateEntries = useMemo(() => {
-    return gamePlayDates
-      .map((r) => ({ date: r.date, note: r.note }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [gamePlayDates]);
-
-  // Only dates that are true extra dates (not regular play days with notes)
-  const extraDateStrings = useMemo(() => {
-    const regularDays = new Set(game?.play_days ?? []);
-    return playDateEntries
-      .filter((d) => !regularDays.has(getDay(parseISO(d.date))))
-      .map((d) => d.date);
-  }, [playDateEntries, game?.play_days]);
-
-  const playDateNotes = useMemo(
-    () =>
-      new Map(
-        playDateEntries
-          .filter((d) => d.note)
-          .map((d) => [d.date, d.note!])
-      ),
-    [playDateEntries]
-  );
-
-  const { start: windowStart, end: windowEnd } = useMemo(
-    () =>
-      game
-        ? getSchedulingWindow(game)
-        : { start: startOfDay(new Date()), end: endOfMonth(addMonths(new Date(), 2)) },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally depends on specific fields, not the full game object, to prevent re-render loops
-    [game?.scheduling_window_months, game?.campaign_start_date, game?.campaign_end_date]
-  );
-
-  const specialPlayDatesSet = useMemo(
-    () => new Set(extraDateStrings),
-    [extraDateStrings]
-  );
-
-  const completionByUserId = useMemo(() => {
-    const map = new Map<string, { answered: number; total: number }>();
-    if (!game) return map;
-    const playDates = getPlayDatesInWindow({
-      playDays: game.play_days,
-      schedulingWindowMonths: game.scheduling_window_months,
-      extraPlayDates: extraDateStrings,
-      windowStart,
-      windowEnd,
-    });
-    const total = playDates.length;
-    const playDateSet = new Set(playDates);
-    const allPlayers = [game.gm, ...game.members];
-    for (const p of allPlayers) {
-      const answered = allAvailability.filter(
-        (a) => a.user_id === p.id && playDateSet.has(a.date)
-      ).length;
-      map.set(p.id, { answered, total });
-    }
-    return map;
-  }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
+  const {
+    extraDateStrings,
+    playDateNotes,
+    specialPlayDatesSet,
+    windowStart,
+    windowEnd,
+    completionByUserId,
+    suggestions,
+  } = useGameDerivedState(game, allAvailability, gamePlayDates);
 
   const [subscribeUrl, setSubscribeUrl] = useState('');
   useEffect(() => {
     if (typeof window !== 'undefined' && game?.invite_code) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- window.location is only known client-side
       setSubscribeUrl(`webcal://${window.location.host}/api/games/calendar/${game.invite_code}`);
     }
   }, [game?.invite_code]);
@@ -162,40 +96,6 @@ export default function GameDetailPage() {
       router.push("/dashboard");
     }
   }, [loading, game, profile?.id, router]);
-
-  // Calculate suggestions when availability changes
-  useEffect(() => {
-    if (!game) return;
-
-    const allPlayers = [game.gm, ...game.members];
-    const today = startOfDay(new Date());
-
-    // Get play dates within the scheduling window
-    const playDates = isBefore(windowEnd, windowStart)
-      ? []
-      : eachDayOfInterval({ start: windowStart, end: windowEnd })
-          .filter((date) => {
-            const dateStr = format(date, "yyyy-MM-dd");
-            return game.play_days.includes(getDay(date)) || extraDateStrings.includes(dateStr);
-          })
-          .filter(
-            (date) =>
-              isAfter(date, today) ||
-              format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
-          );
-
-    // Use the shared utility function to calculate suggestions
-    const suggestionList = calculateDateSuggestions({
-      playDates,
-      players: allPlayers,
-      availability: allAvailability,
-      getDayOfWeek: getDay,
-      formatDate: (date) => format(date, "yyyy-MM-dd"),
-      minPlayersNeeded: game.min_players_needed || 0,
-    });
-
-    setSuggestions(suggestionList);
-  }, [game, allAvailability, extraDateStrings, windowStart, windowEnd]);
 
   const toast = useToast();
 

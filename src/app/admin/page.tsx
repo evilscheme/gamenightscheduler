@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { ChevronRight, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Avatar, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 import EngagementCharts from '@/components/admin/EngagementCharts';
 import type { HealthBreakdown, HealthGrade } from '@/lib/gameHealth';
+import type { TopUsersResult, TopGmEntry, TopPlayerEntry } from '@/lib/topUsers';
 
-type Tab = 'overview' | 'games' | 'activity';
+type Tab = 'overview' | 'games' | 'topUsers' | 'activity';
 
 interface AdminStats {
   totalUsers: number;
@@ -53,6 +56,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [games, setGames] = useState<GameWithEngagement[]>([]);
+  const [topUsers, setTopUsers] = useState<TopUsersResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,20 +70,23 @@ export default function AdminPage() {
       setError(null);
 
       try {
-        const [statsRes, gamesRes] = await Promise.all([
+        const [statsRes, gamesRes, topUsersRes] = await Promise.all([
           fetch('/api/admin/stats'),
           fetch('/api/admin/games'),
+          fetch('/api/admin/top-users'),
         ]);
 
-        if (!statsRes.ok || !gamesRes.ok) {
+        if (!statsRes.ok || !gamesRes.ok || !topUsersRes.ok) {
           throw new Error('Failed to fetch admin data');
         }
 
         const statsData = await statsRes.json();
         const gamesData = await gamesRes.json();
+        const topUsersData = await topUsersRes.json();
 
         setStats(statsData);
         setGames(gamesData.games);
+        setTopUsers(topUsersData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -110,6 +117,7 @@ export default function AdminPage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'games', label: 'Games' },
+    { id: 'topUsers', label: 'Top Users' },
     { id: 'activity', label: 'Activity' },
   ];
 
@@ -146,6 +154,7 @@ export default function AdminPage() {
         <>
           {activeTab === 'overview' && stats && <OverviewTab stats={stats} games={games} />}
           {activeTab === 'games' && <GamesTab games={games} />}
+          {activeTab === 'topUsers' && topUsers && <TopUsersTab topUsers={topUsers} />}
           {activeTab === 'activity' && stats && <ActivityTab stats={stats} />}
         </>
       )}
@@ -296,7 +305,15 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
                       {game.healthGrade} {game.healthScore}
                     </span>
                   </td>
-                  <td className="py-3 px-2 font-medium text-foreground">{game.name}</td>
+                  <td className="py-3 px-2 font-medium text-foreground">
+                    <Link
+                      href={`/admin/games/${game.id}`}
+                      className="hover:text-primary hover:underline"
+                      title="Open read-only admin view"
+                    >
+                      {game.name}
+                    </Link>
+                  </td>
                   <td className="py-3 px-2 text-muted-foreground">{game.gm?.name ?? 'Unknown'}</td>
                   <td className="py-3 px-2 text-center text-foreground">{game.playerCount}</td>
                   <td className="py-3 px-2 text-center text-foreground">{game.sessionCount}</td>
@@ -363,6 +380,169 @@ function SortableHeader({
         )}
       </button>
     </th>
+  );
+}
+
+function UserCell({ user, expanded }: { user: TopGmEntry['user']; expanded: boolean }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <ChevronRight
+        className={`size-4 shrink-0 text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`}
+      />
+      <Avatar userId={user.id} name={user.name} avatarUrl={user.avatar_url} size={30} />
+      <div className="min-w-0">
+        <p className="font-medium text-foreground truncate">{user.name}</p>
+        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Expanded sub-row listing a user's games as links to the admin peek view. */
+function UserGamesRow({ games, colSpan }: { games: TopGmEntry['games']; colSpan: number }) {
+  return (
+    <tr className="border-b border-border/50 bg-muted/30" data-testid="user-games-row">
+      <td colSpan={colSpan} className="p-2">
+        <div className="flex flex-wrap gap-2 pl-8">
+          {games.map((g) => (
+            <Link
+              key={g.id}
+              href={`/admin/games/${g.id}`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+              title="Open read-only admin view"
+            >
+              <Eye className="size-3" />
+              {g.name}
+            </Link>
+          ))}
+          {games.length === 0 && (
+            <span className="text-xs text-muted-foreground">No games</span>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function TopUsersTab({ topUsers }: { topUsers: TopUsersResult }) {
+  const [expandedGm, setExpandedGm] = useState<string | null>(null);
+  const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
+
+  const toggle = (setter: typeof setExpandedGm) => (userId: string) =>
+    setter((prev) => (prev === userId ? null : userId));
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Top GMs */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-card-foreground">Top GMs</h2>
+          <p className="text-sm text-muted-foreground">
+            Ranked by sessions booked across owned games · click a row to see their games
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="top-gms-table">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">#</th>
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">GM</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Games</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Sessions</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Upcoming</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Players</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topUsers.topGms.map((entry: TopGmEntry, i: number) => (
+                  <Fragment key={entry.user.id}>
+                    <tr
+                      className="border-b border-border/50 hover:bg-muted/50 cursor-pointer select-none"
+                      onClick={() => toggle(setExpandedGm)(entry.user.id)}
+                      aria-expanded={expandedGm === entry.user.id}
+                    >
+                      <td className="py-3 px-2 text-muted-foreground">{i + 1}</td>
+                      <td className="py-3 px-2">
+                        <UserCell user={entry.user} expanded={expandedGm === entry.user.id} />
+                      </td>
+                      <td className="py-3 px-2 text-center text-foreground">{entry.gamesOwned}</td>
+                      <td className="py-3 px-2 text-center text-foreground">{entry.sessionsBooked}</td>
+                      <td className="py-3 px-2 text-center text-foreground">{entry.upcomingSessions}</td>
+                      <td className="py-3 px-2 text-center text-foreground">{entry.playersHosted}</td>
+                    </tr>
+                    {expandedGm === entry.user.id && (
+                      <UserGamesRow games={entry.games} colSpan={6} />
+                    )}
+                  </Fragment>
+                ))}
+                {topUsers.topGms.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                      No GMs with games yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Top Players */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-card-foreground">Top Players</h2>
+          <p className="text-sm text-muted-foreground">
+            Ranked by sessions scheduled in games they joined · click a row to see their games
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="top-players-table">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">#</th>
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Player</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Games</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Sessions</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Dates Marked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topUsers.topPlayers.map((entry: TopPlayerEntry, i: number) => (
+                  <Fragment key={entry.user.id}>
+                    <tr
+                      className="border-b border-border/50 hover:bg-muted/50 cursor-pointer select-none"
+                      onClick={() => toggle(setExpandedPlayer)(entry.user.id)}
+                      aria-expanded={expandedPlayer === entry.user.id}
+                    >
+                      <td className="py-3 px-2 text-muted-foreground">{i + 1}</td>
+                      <td className="py-3 px-2">
+                        <UserCell user={entry.user} expanded={expandedPlayer === entry.user.id} />
+                      </td>
+                      <td className="py-3 px-2 text-center text-foreground">{entry.gamesJoined}</td>
+                      <td className="py-3 px-2 text-center text-foreground">{entry.sessionsScheduled}</td>
+                      <td className="py-3 px-2 text-center text-foreground">{entry.datesMarked}</td>
+                    </tr>
+                    {expandedPlayer === entry.user.id && (
+                      <UserGamesRow games={entry.games} colSpan={5} />
+                    )}
+                  </Fragment>
+                ))}
+                {topUsers.topPlayers.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                      No players have joined games yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

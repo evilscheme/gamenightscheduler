@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
-import { createTestGame, addPlayerToGame, createTestSession } from '../../helpers/seed';
+import { createTestGame, addPlayerToGame, createTestSession, getPlayDates } from '../../helpers/seed';
 import { TEST_TIMEOUTS } from '../../constants';
 
 test.describe('Admin Dashboard', () => {
@@ -193,6 +193,52 @@ test.describe('Admin Dashboard', () => {
     // Should see metric columns
     await expect(page.getByText(/players/i)).toBeVisible();
     await expect(page.getByText(/fill rate/i)).toBeVisible();
+  });
+
+  test('top users tab shows GM and player leaderboards', async ({ page, request }) => {
+    const ts = Date.now();
+    const admin = await createTestUser(request, {
+      email: `admin-top-${ts}@e2e.local`,
+      name: 'Admin Top User',
+      is_gm: true,
+      is_admin: true,
+    });
+    const player = await createTestUser(request, {
+      email: `player-top-${ts}@e2e.local`,
+      name: 'Top Player One',
+      is_gm: false,
+      is_admin: false,
+    });
+
+    const game = await createTestGame({
+      gm_id: admin.id,
+      name: 'Top Users Game',
+      play_days: [5, 6],
+    });
+    await addPlayerToGame(game.id, player.id);
+    await createTestSession({
+      game_id: game.id,
+      date: getPlayDates([5, 6], 2)[0],
+      confirmed_by: admin.id,
+    });
+
+    await loginTestUser(page, {
+      email: admin.email,
+      name: admin.name,
+      is_gm: true,
+      is_admin: true,
+    });
+
+    await page.goto('/admin');
+    await page.getByRole('button', { name: /top users/i }).click();
+
+    const gmsTable = page.getByTestId('top-gms-table');
+    await expect(gmsTable).toBeVisible({ timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(gmsTable.getByText('Admin Top User')).toBeVisible();
+
+    const playersTable = page.getByTestId('top-players-table');
+    await expect(playersTable).toBeVisible();
+    await expect(playersTable.getByText('Top Player One')).toBeVisible();
   });
 
   test('activity tab shows recent users and games', async ({ page, request }) => {

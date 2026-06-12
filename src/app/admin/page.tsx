@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Avatar, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 import EngagementCharts from '@/components/admin/EngagementCharts';
 import type { HealthBreakdown, HealthGrade } from '@/lib/gameHealth';
+import type { TopUsersResult, TopGmEntry, TopPlayerEntry } from '@/lib/topUsers';
 
-type Tab = 'overview' | 'games' | 'activity';
+type Tab = 'overview' | 'games' | 'topUsers' | 'activity';
 
 interface AdminStats {
   totalUsers: number;
@@ -53,6 +55,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [games, setGames] = useState<GameWithEngagement[]>([]);
+  const [topUsers, setTopUsers] = useState<TopUsersResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,20 +69,23 @@ export default function AdminPage() {
       setError(null);
 
       try {
-        const [statsRes, gamesRes] = await Promise.all([
+        const [statsRes, gamesRes, topUsersRes] = await Promise.all([
           fetch('/api/admin/stats'),
           fetch('/api/admin/games'),
+          fetch('/api/admin/top-users'),
         ]);
 
-        if (!statsRes.ok || !gamesRes.ok) {
+        if (!statsRes.ok || !gamesRes.ok || !topUsersRes.ok) {
           throw new Error('Failed to fetch admin data');
         }
 
         const statsData = await statsRes.json();
         const gamesData = await gamesRes.json();
+        const topUsersData = await topUsersRes.json();
 
         setStats(statsData);
         setGames(gamesData.games);
+        setTopUsers(topUsersData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -110,6 +116,7 @@ export default function AdminPage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'games', label: 'Games' },
+    { id: 'topUsers', label: 'Top Users' },
     { id: 'activity', label: 'Activity' },
   ];
 
@@ -146,6 +153,7 @@ export default function AdminPage() {
         <>
           {activeTab === 'overview' && stats && <OverviewTab stats={stats} games={games} />}
           {activeTab === 'games' && <GamesTab games={games} />}
+          {activeTab === 'topUsers' && topUsers && <TopUsersTab topUsers={topUsers} />}
           {activeTab === 'activity' && stats && <ActivityTab stats={stats} />}
         </>
       )}
@@ -296,7 +304,15 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
                       {game.healthGrade} {game.healthScore}
                     </span>
                   </td>
-                  <td className="py-3 px-2 font-medium text-foreground">{game.name}</td>
+                  <td className="py-3 px-2 font-medium text-foreground">
+                    <Link
+                      href={`/admin/games/${game.id}`}
+                      className="hover:text-primary hover:underline"
+                      title="Open read-only admin view"
+                    >
+                      {game.name}
+                    </Link>
+                  </td>
                   <td className="py-3 px-2 text-muted-foreground">{game.gm?.name ?? 'Unknown'}</td>
                   <td className="py-3 px-2 text-center text-foreground">{game.playerCount}</td>
                   <td className="py-3 px-2 text-center text-foreground">{game.sessionCount}</td>
@@ -363,6 +379,108 @@ function SortableHeader({
         )}
       </button>
     </th>
+  );
+}
+
+function UserCell({ user }: { user: TopGmEntry['user'] }) {
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <Avatar userId={user.id} name={user.name} avatarUrl={user.avatar_url} size={30} />
+      <div className="min-w-0">
+        <p className="font-medium text-foreground truncate">{user.name}</p>
+        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+      </div>
+    </div>
+  );
+}
+
+function TopUsersTab({ topUsers }: { topUsers: TopUsersResult }) {
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Top GMs */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-card-foreground">Top GMs</h2>
+          <p className="text-sm text-muted-foreground">Ranked by sessions booked across owned games</p>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="top-gms-table">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">#</th>
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">GM</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Games</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Sessions</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Upcoming</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Players</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topUsers.topGms.map((entry: TopGmEntry, i: number) => (
+                  <tr key={entry.user.id} className="border-b border-border/50 hover:bg-muted/50">
+                    <td className="py-3 px-2 text-muted-foreground">{i + 1}</td>
+                    <td className="py-3 px-2"><UserCell user={entry.user} /></td>
+                    <td className="py-3 px-2 text-center text-foreground">{entry.gamesOwned}</td>
+                    <td className="py-3 px-2 text-center text-foreground">{entry.sessionsBooked}</td>
+                    <td className="py-3 px-2 text-center text-foreground">{entry.upcomingSessions}</td>
+                    <td className="py-3 px-2 text-center text-foreground">{entry.playersHosted}</td>
+                  </tr>
+                ))}
+                {topUsers.topGms.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                      No GMs with games yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Top Players */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-card-foreground">Top Players</h2>
+          <p className="text-sm text-muted-foreground">Ranked by sessions scheduled in games they joined</p>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="top-players-table">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">#</th>
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Player</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Games</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Sessions</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Dates Marked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topUsers.topPlayers.map((entry: TopPlayerEntry, i: number) => (
+                  <tr key={entry.user.id} className="border-b border-border/50 hover:bg-muted/50">
+                    <td className="py-3 px-2 text-muted-foreground">{i + 1}</td>
+                    <td className="py-3 px-2"><UserCell user={entry.user} /></td>
+                    <td className="py-3 px-2 text-center text-foreground">{entry.gamesJoined}</td>
+                    <td className="py-3 px-2 text-center text-foreground">{entry.sessionsScheduled}</td>
+                    <td className="py-3 px-2 text-center text-foreground">{entry.datesMarked}</td>
+                  </tr>
+                ))}
+                {topUsers.topPlayers.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                      No players have joined games yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

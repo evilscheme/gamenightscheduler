@@ -37,6 +37,9 @@ export interface AvailabilityTabContentProps {
 
   // Empty-state banners
   adHocOnly: boolean;
+
+  /** Renders the calendar non-interactive (admin peek view). */
+  readOnly?: boolean;
 }
 
 export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
@@ -45,13 +48,13 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
     playDays, availability, onToggle, confirmedSessions, extraPlayDates,
     isGmOrCoGm, onToggleExtraDate, weekStartDay, use24h, otherGames,
     onCopyFromGame, playDateNotes, onUpdatePlayDateNote, hasCampaignDates,
-    adHocOnly,
+    adHocOnly, readOnly = false,
   } = props;
 
   const monthRange = `${format(windowStart, 'MMM')} – ${format(windowEnd, 'MMM yyyy')}`;
   const myProgress = completionByUserId.get(currentUserId) ?? { answered: 0, total: 0 };
-  const showEmptyAdHocPlayer = adHocOnly && extraPlayDates.length === 0 && !isGmOrCoGm;
-  const showEmptyAdHocGm = adHocOnly && extraPlayDates.length === 0 && isGmOrCoGm;
+  const showEmptyAdHocPlayer = adHocOnly && extraPlayDates.length === 0 && !isGmOrCoGm && !readOnly;
+  const showEmptyAdHocGm = adHocOnly && extraPlayDates.length === 0 && isGmOrCoGm && !readOnly;
 
   return (
     <div className="space-y-5" data-testid="availability-tab-content">
@@ -59,6 +62,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         monthRange={monthRange}
         answered={myProgress.answered}
         total={myProgress.total}
+        readOnly={readOnly}
       />
 
       {showEmptyAdHocPlayer && (
@@ -95,6 +99,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         playDateNotes={playDateNotes}
         onUpdatePlayDateNote={onUpdatePlayDateNote}
         hasCampaignDates={hasCampaignDates}
+        readOnly={readOnly}
       />
     </div>
   );

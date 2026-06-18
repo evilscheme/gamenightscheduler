@@ -49,6 +49,8 @@ interface AvailabilityCalendarProps {
   playDateNotes?: Map<string, string>;
   onUpdatePlayDateNote?: (date: string, note: string | null) => void;
   hasCampaignDates?: boolean;
+  /** Disables all interaction (day clicks, long-press editing, bulk actions). Used by the admin peek view. */
+  readOnly?: boolean;
 }
 
 export function AvailabilityCalendar({
@@ -68,6 +70,7 @@ export function AvailabilityCalendar({
   playDateNotes = new Map(),
   onUpdatePlayDateNote,
   hasCampaignDates = false,
+  readOnly = false,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = windowEnd;
@@ -126,6 +129,7 @@ export function AvailabilityCalendar({
   );
 
   const handleDayClick = (date: Date) => {
+    if (readOnly) return;
     const dateStr = format(date, "yyyy-MM-dd");
     const dayOfWeek = getDay(date);
     const isExtraPlayDate = extraPlayDates.includes(dateStr);
@@ -148,6 +152,7 @@ export function AvailabilityCalendar({
   };
 
   const handleEditComment = (dateStr: string) => {
+    if (readOnly) return;
     setCommentingDate(dateStr);
     setCommentText(availability[dateStr]?.comment || "");
     // Load time fields, converting HH:MM:SS to HH:MM for input
@@ -279,6 +284,7 @@ export function AvailabilityCalendar({
   return (
     <div className="space-y-4">
       {/* Bulk actions */}
+      {!readOnly && (
       <div className="bg-secondary rounded-lg p-3">
         <div className="space-y-2 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-2 text-sm">
           {/* Mark all section — stacked on mobile, inline on desktop */}
@@ -359,6 +365,7 @@ export function AvailabilityCalendar({
           )}
         </div>
       </div>
+      )}
 
       {/* Multi-month calendar grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -384,6 +391,7 @@ export function AvailabilityCalendar({
             windowStart={windowStart}
             windowEnd={windowEnd}
             onOutOfRangeTap={showOutOfRangeToast}
+            readOnly={readOnly}
           />
         ))}
       </div>
@@ -553,6 +561,7 @@ interface MonthCalendarProps {
   windowStart: Date;
   windowEnd: Date;
   onOutOfRangeTap?: (message: string) => void;
+  readOnly?: boolean;
 }
 
 function MonthCalendar({
@@ -575,6 +584,7 @@ function MonthCalendar({
   windowStart,
   windowEnd,
   onOutOfRangeTap,
+  readOnly = false,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),
@@ -928,8 +938,8 @@ function MonthCalendar({
                   )}
                 </span>
               )}
-              {/* Bottom-right edit icon — opens editor popover */}
-              {isPlayDay && !isPast && (hasAvailability || isGmOrCoGm) && (
+              {/* Bottom-right edit icon — opens editor popover (read-only: only show existing notes) */}
+              {isPlayDay && !isPast && (hasComment || (!readOnly && (hasAvailability || isGmOrCoGm))) && (
                 <span
                   className={`absolute bottom-0.5 right-1 leading-none cursor-pointer hover:scale-125 transition-all ${
                     hasComment
@@ -945,7 +955,13 @@ function MonthCalendar({
                     }
                     onEditComment(dateStr);
                   }}
-                  title={hasComment ? `Edit note: ${avail!.comment}` : "Add note"}
+                  title={
+                    hasComment
+                      ? readOnly
+                        ? `Note: ${avail!.comment}`
+                        : `Edit note: ${avail!.comment}`
+                      : "Add note"
+                  }
                 >
                   {hasComment ? <MessageSquare className="size-2.5" /> : <Pencil className="size-2.5" />}
                 </span>

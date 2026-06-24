@@ -5,6 +5,8 @@ import {
   parseISO,
   isAfter,
   isBefore,
+  eachDayOfInterval,
+  format,
 } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import type {
@@ -18,11 +20,20 @@ import {
   fetchAllAvailability,
   upsertAvailability,
   batchUpsertAvailability,
+  fetchUserDefaults,
 } from '@/lib/data';
 import { filterAvailabilityForCopy } from '@/lib/copyAvailability';
+import { computeDefaultEntries, type WeekdayDefault } from '@/lib/defaultAvailability';
 import { getSchedulingWindow } from '@/lib/scheduling';
 
 const supabase = createClient();
+
+export interface ApplyDefaultsResult {
+  /** False when the user has not configured any default availability yet. */
+  hadDefaults: boolean;
+  /** Number of dates filled (0 when everything eligible was already set). */
+  filled: number;
+}
 
 export interface UseAvailabilityReturn {
   availability: Record<string, AvailabilityEntry>;
@@ -36,6 +47,7 @@ export interface UseAvailabilityReturn {
     availableUntil: string | null,
   ) => Promise<void>;
   copyFromGame: (sourceGameId: string, extraDateStrings: string[]) => Promise<number>;
+  applyDefaults: (extraDateStrings: string[]) => Promise<ApplyDefaultsResult>;
   removePlayerData: (playerId: string) => void;
   refresh: () => Promise<void>;
 }
@@ -234,6 +246,100 @@ export function useAvailability(
     [userId, gameId, game, availability],
   );
 
+  const applyDefaults = useCallback(
+    async (extraDateStrings: string[]): Promise<ApplyDefaultsResult> => {
+      if (!userId || !gameId || !game) return { hadDefaults: false, filled: 0 };
+
+      const { data: defaultRows } = await fetchUserDefaults(supabase, userId);
+      if (!defaultRows || defaultRows.length === 0) {
+        return { hadDefaults: false, filled: 0 };
+      }
+
+      const defaults: Record<number, WeekdayDefault> = {};
+      defaultRows.forEach((d) => {
+        defaults[d.day_of_week] = {
+          status: d.status,
+          comment: d.comment,
+          available_after: d.available_after,
+          available_until: d.available_until,
+        };
+      });
+
+      const today = startOfDay(new Date());
+      const { start, end } = getSchedulingWindow(game, today);
+      // getSchedulingWindow can return start > end (empty window); eachDayOfInterval would throw.
+      const dates = isAfter(start, end) ? [] : eachDayOfInterval({ start, end });
+
+      const entries = computeDefaultEntries({
+        defaults,
+        dates,
+        playDays: game.play_days,
+        extraPlayDates: extraDateStrings,
+        existingAvailability: availability,
+        today,
+        formatDate: (d) => format(d, 'yyyy-MM-dd'),
+        getDayOfWeek: getDay,
+        isBefore,
+      });
+
+      if (entries.length === 0) return { hadDefaults: true, filled: 0 };
+
+      // Optimistic local update.
+      setAvailability((prev) => {
+        const next = { ...prev };
+        for (const e of entries) {
+          next[e.date] = {
+            status: e.status,
+            comment: e.comment,
+            available_after: e.available_after,
+            available_until: e.available_until,
+          };
+        }
+        return next;
+      });
+
+      const rows = entries.map((e) => ({
+        user_id: userId,
+        game_id: gameId,
+        date: e.date,
+        status: e.status,
+        comment: e.comment,
+        available_after: e.available_after,
+        available_until: e.available_until,
+      }));
+
+      const { error } = await batchUpsertAvailability(supabase, rows);
+      if (error) {
+        setAvailability((prev) => {
+          const next = { ...prev };
+          for (const e of entries) delete next[e.date];
+          return next;
+        });
+        throw error;
+      }
+
+      const now = new Date().toISOString();
+      setAllAvailability((prev) => [
+        ...prev,
+        ...entries.map((e) => ({
+          id: 'temp',
+          user_id: userId,
+          game_id: gameId,
+          date: e.date,
+          status: e.status,
+          comment: e.comment,
+          available_after: e.available_after,
+          available_until: e.available_until,
+          created_at: now,
+          updated_at: now,
+        })),
+      ]);
+
+      return { hadDefaults: true, filled: entries.length };
+    },
+    [userId, gameId, game, availability],
+  );
+
   const removePlayerData = useCallback((playerId: string) => {
     setAllAvailability((prev) => prev.filter((a) => a.user_id !== playerId));
   }, []);
@@ -244,6 +350,7 @@ export function useAvailability(
     loading,
     changeAvailability,
     copyFromGame,
+    applyDefaults,
     removePlayerData,
     refresh,
   };

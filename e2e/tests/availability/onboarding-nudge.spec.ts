@@ -44,4 +44,25 @@ test.describe('Availability onboarding nudge', () => {
     await page.goto(`/games/${game.id}`);
     await expect(page.getByRole('button', { name: /add availability/i })).toBeHidden();
   });
+
+  test('shows for the GM when they have no availability', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-nudge-gm-${Date.now()}@e2e.local`,
+      name: 'Nudge GM Self',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Nudge GM Campaign',
+      play_days: [5, 6],
+    });
+
+    // GM has no availability yet -> banner should show for them too.
+    await loginTestUser(page, gm);
+    await page.goto(`/games/${game.id}`);
+
+    const cta = page.getByRole('button', { name: /add availability/i });
+    await expect(cta).toBeVisible();
+  });
 });

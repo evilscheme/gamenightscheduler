@@ -66,7 +66,7 @@ test.describe('Default availability', () => {
     const game = await createTestGame({ gm_id: user.id, name: 'Non Destructive Game', play_days: [5] });
 
     // Pre-set one Friday to 'maybe' via seed.
-    const fridays = getPlayDates([5], 1);
+    const fridays = getPlayDates([5], 2);
     const manualDate = fridays[0];
     await setAvailability(user.id, game.id, [{ date: manualDate, status: 'maybe' }]);
     const rowsBefore = await availabilityRowsInGame(game.id, user.id);

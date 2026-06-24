@@ -33,7 +33,7 @@ export interface AvailabilityTabContentProps {
   use24h: boolean;
   otherGames: { id: string; name: string }[];
   onCopyFromGame: (sourceGameId: string) => Promise<number>;
-  onApplyDefaults: () => Promise<ApplyDefaultsResult>;
+  onApplyDefaults?: () => Promise<ApplyDefaultsResult>;
   playDateNotes: Map<string, string>;
   onUpdatePlayDateNote: (date: string, note: string | null) => void;
   hasCampaignDates: boolean;
@@ -68,7 +68,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         readOnly={readOnly}
       />
 
-      {!readOnly && (
+      {!readOnly && onApplyDefaults && (
         <div className="mt-3">
           <ApplyDefaultsButton onApplyDefaults={onApplyDefaults} />
         </div>

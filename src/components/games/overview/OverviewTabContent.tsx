@@ -80,14 +80,21 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
     triggerICSDownload(ics, `${slug}-sessions.ics`);
   };
 
-  const handleCopySubscribe = async () => {
-    try {
-      await navigator.clipboard.writeText(props.subscribeUrl);
-      toast.show('Subscribe URL copied to clipboard.');
-    } catch {
-      toast.show('Could not copy. Select the URL manually.', 'danger');
-    }
-  };
+  const detailsPanel = (
+    <GameDetailsPanel
+      playDays={props.playDays}
+      schedulingWindowMonths={props.schedulingWindowMonths}
+      defaultStartTime={props.defaultStartTime}
+      defaultEndTime={props.defaultEndTime}
+      timezone={props.timezone}
+      minPlayersNeeded={props.minPlayersNeeded}
+      subscribeUrl={props.subscribeUrl}
+      use24h={props.use24h}
+      adHocOnly={props.adHocOnly}
+      campaignStartDate={props.campaignStartDate}
+      campaignEndDate={props.campaignEndDate}
+    />
+  );
 
   return (
     <div className="space-y-5" data-testid="overview-tab-content">
@@ -105,8 +112,13 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
             subscribeUrl={props.subscribeUrl}
             onDownloadIcs={handleDownloadIcs}
             onDownloadAllIcs={handleDownloadAllIcs}
-            onCopySubscribe={handleCopySubscribe}
           />
+
+          {/* Mobile: game details + subscribe, visible above the long player list */}
+          <div className="lg:hidden" data-testid="mobile-game-details">
+            {detailsPanel}
+          </div>
+
           <PartyPanel
             allPlayers={props.allPlayers}
             gmId={props.gmId}
@@ -120,20 +132,8 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
           />
         </div>
 
-        <aside className="lg:sticky lg:top-20 lg:self-start">
-          <GameDetailsPanel
-            playDays={props.playDays}
-            schedulingWindowMonths={props.schedulingWindowMonths}
-            defaultStartTime={props.defaultStartTime}
-            defaultEndTime={props.defaultEndTime}
-            timezone={props.timezone}
-            minPlayersNeeded={props.minPlayersNeeded}
-            inviteCode={props.inviteCode}
-            use24h={props.use24h}
-            adHocOnly={props.adHocOnly}
-            campaignStartDate={props.campaignStartDate}
-            campaignEndDate={props.campaignEndDate}
-          />
+        <aside className="hidden lg:block lg:sticky lg:top-20 lg:self-start">
+          {detailsPanel}
         </aside>
       </div>
     </div>

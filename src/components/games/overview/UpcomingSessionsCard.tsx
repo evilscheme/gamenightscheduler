@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { format, parseISO, startOfDay, isBefore, differenceInCalendarDays } from 'date-fns';
-import { Calendar, Link2, MapPin, Star, StickyNote } from 'lucide-react';
+import { Calendar, MapPin, Star, StickyNote } from 'lucide-react';
 import { Button, EyebrowLabel } from '@/components/ui';
 import type { GameSession } from '@/types';
 import { formatTime } from '@/lib/formatting';
+import { CalendarSubscribeButton } from '@/components/games/CalendarSubscribeButton';
 
 interface UpcomingSessionsCardProps {
   sessions: GameSession[];
@@ -13,7 +14,6 @@ interface UpcomingSessionsCardProps {
   subscribeUrl: string;
   onDownloadIcs: (session: GameSession) => void;
   onDownloadAllIcs: () => void;
-  onCopySubscribe: () => void;
 }
 
 function relativeLabel(daysFromNow: number): string {
@@ -60,7 +60,6 @@ export function UpcomingSessionsCard({
   subscribeUrl,
   onDownloadIcs,
   onDownloadAllIcs,
-  onCopySubscribe,
 }: UpcomingSessionsCardProps) {
   const today = startOfDay(new Date());
   const upcoming = sessions
@@ -89,18 +88,7 @@ export function UpcomingSessionsCard({
               <span className="hidden sm:inline">Add all to calendar</span>
             </Button>
           )}
-          {subscribeUrl && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onCopySubscribe}
-              title="Copy a webcal:// URL that auto-syncs scheduled sessions to Google Calendar, Apple Calendar, or Outlook"
-              aria-label="Copy calendar subscription URL"
-            >
-              <Link2 className="size-3 sm:mr-1" />
-              <span className="hidden sm:inline">Subscribe</span>
-            </Button>
-          )}
+          <CalendarSubscribeButton webcalUrl={subscribeUrl} />
         </div>
       </div>
 

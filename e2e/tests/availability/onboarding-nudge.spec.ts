@@ -31,7 +31,7 @@ test.describe('Availability onboarding nudge', () => {
     await loginTestUser(page, player);
     await page.goto(`/games/${game.id}`);
 
-    const cta = page.getByRole('button', { name: /add availability/i });
+    const cta = page.getByRole('button', { name: /mark your dates/i });
     await expect(cta).toBeVisible();
 
     // Pulsing dot on the Availability tab button is visible while nudge is active.
@@ -50,7 +50,7 @@ test.describe('Availability onboarding nudge', () => {
     const playDates = getPlayDates([5, 6], 4);
     await setAvailability(player.id, game.id, [{ date: playDates[0], is_available: true }]);
     await page.goto(`/games/${game.id}`);
-    await expect(page.getByRole('button', { name: /add availability/i })).toBeHidden();
+    await expect(page.getByRole('button', { name: /mark your dates/i })).toBeHidden();
 
     // Pulsing dot is also gone after availability is marked.
     await expect(page.getByTestId('availability-nudge-dot')).toBeHidden();
@@ -73,7 +73,7 @@ test.describe('Availability onboarding nudge', () => {
     await loginTestUser(page, gm);
     await page.goto(`/games/${game.id}`);
 
-    const cta = page.getByRole('button', { name: /add availability/i });
+    const cta = page.getByRole('button', { name: /mark your dates/i });
     await expect(cta).toBeVisible();
   });
 });

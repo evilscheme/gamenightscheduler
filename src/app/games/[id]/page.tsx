@@ -233,7 +233,7 @@ export default function GameDetailPage() {
         <OnboardingBanner
           title="You're in the party! 🎉"
           description="Add your availability so the GM can find a night that works for everyone."
-          ctaLabel="Add availability"
+          ctaLabel="Mark your dates"
           onCta={() => setActiveTab("availability")}
         />
       )}

@@ -88,3 +88,19 @@ export async function availabilityRowsInGame(gameId: string, userId: string): Pr
     .eq('user_id', userId);
   return count ?? 0;
 }
+
+export async function availabilityStatusForDate(
+  gameId: string,
+  userId: string,
+  date: string
+): Promise<string | null> {
+  const admin = getAdminClient();
+  const { data } = await admin
+    .from('availability')
+    .select('status')
+    .eq('game_id', gameId)
+    .eq('user_id', userId)
+    .eq('date', date)
+    .maybeSingle();
+  return data?.status ?? null;
+}

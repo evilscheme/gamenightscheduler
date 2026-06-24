@@ -5,6 +5,8 @@ import type { GameSession, AvailabilityStatus } from '@/types';
 import type { AvailabilityEntry } from '@/components/calendar/AvailabilityCalendar';
 import { AvailabilityCalendar } from '@/components/calendar/AvailabilityCalendar';
 import { AvailabilityHeader } from './AvailabilityHeader';
+import { ApplyDefaultsButton } from './ApplyDefaultsButton';
+import type { ApplyDefaultsResult } from '@/hooks/useAvailability';
 
 export interface AvailabilityTabContentProps {
   // Header
@@ -31,6 +33,7 @@ export interface AvailabilityTabContentProps {
   use24h: boolean;
   otherGames: { id: string; name: string }[];
   onCopyFromGame: (sourceGameId: string) => Promise<number>;
+  onApplyDefaults: () => Promise<ApplyDefaultsResult>;
   playDateNotes: Map<string, string>;
   onUpdatePlayDateNote: (date: string, note: string | null) => void;
   hasCampaignDates: boolean;
@@ -47,7 +50,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
     windowStart, windowEnd, currentUserId, completionByUserId,
     playDays, availability, onToggle, confirmedSessions, extraPlayDates,
     isGmOrCoGm, onToggleExtraDate, weekStartDay, use24h, otherGames,
-    onCopyFromGame, playDateNotes, onUpdatePlayDateNote, hasCampaignDates,
+    onCopyFromGame, onApplyDefaults, playDateNotes, onUpdatePlayDateNote, hasCampaignDates,
     adHocOnly, readOnly = false,
   } = props;
 
@@ -64,6 +67,12 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         total={myProgress.total}
         readOnly={readOnly}
       />
+
+      {!readOnly && (
+        <div className="mt-3">
+          <ApplyDefaultsButton onApplyDefaults={onApplyDefaults} />
+        </div>
+      )}
 
       {showEmptyAdHocPlayer && (
         <div className="rounded-lg border border-primary/30 bg-primary/10 p-3">

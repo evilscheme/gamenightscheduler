@@ -507,7 +507,8 @@ CREATE POLICY "Users can view own availability defaults" ON user_availability_de
 CREATE POLICY "Users can insert own availability defaults" ON user_availability_defaults
   FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
 CREATE POLICY "Users can update own availability defaults" ON user_availability_defaults
-  FOR UPDATE USING ((select auth.uid()) = user_id);
+  FOR UPDATE USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 CREATE POLICY "Users can delete own availability defaults" ON user_availability_defaults
   FOR DELETE USING ((select auth.uid()) = user_id);
 

@@ -72,10 +72,13 @@ export default function GameDetailPage() {
   const isMember = game?.members.some((m) => m.id === profile?.id);
 
   const hasAnyAvailability = Object.keys(availability).length > 0;
+  // The host GM owns the game via gm_id and is intentionally not a
+  // game_memberships row (see schema.sql), so isMember is false for them.
+  // They still mark availability, so treat them as a participant too.
   const showAvailabilityNudge = shouldShowAvailabilityNudge({
     hasAnyAvailability,
     activeTab,
-    isParticipant: !!isMember,
+    isParticipant: !!isMember || isGm,
   });
 
   const {

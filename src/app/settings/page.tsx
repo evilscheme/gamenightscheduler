@@ -232,6 +232,22 @@ export default function SettingsPage() {
           </Button>
         </div>
 
+        {/* ── Default availability ─────────────────────────────────────── */}
+        <Panel as="section" padded="md">
+          <EyebrowLabel className="mb-4 block">Default availability</EyebrowLabel>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="sm:max-w-md">
+              <p className="text-sm font-medium text-foreground">Your usual weekly availability</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Define a recurring pattern once, then apply it to fill in any game&apos;s calendar.
+              </p>
+            </div>
+            <Link href="/settings/default-availability" className="shrink-0">
+              <Button variant="secondary">Set default availability</Button>
+            </Link>
+          </div>
+        </Panel>
+
         {/* ── Danger Zone ──────────────────────────────────────────────── */}
         <section className="mt-2 rounded-xl border border-destructive/40 bg-card p-4 sm:p-6">
           <EyebrowLabel variant="danger" className="mb-4 block">Danger Zone</EyebrowLabel>

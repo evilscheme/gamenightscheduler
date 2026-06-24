@@ -206,10 +206,9 @@ test.describe('Schedule Tab Redesign', () => {
   });
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Test 4: Mobile viewport collapses sidebar into <details> cards
+  // Test 4: Mobile viewport shows calendar + subscribe inline, above ranked list
   // ────────────────────────────────────────────────────────────────────────────
-  test('mobile viewport shows collapsible calendar and response-status cards', async ({ page, request }) => {
-    // Set mobile viewport BEFORE navigating
+  test('mobile viewport shows the calendar + subscribe inline, above the ranked list', async ({ page, request }) => {
     await page.setViewportSize({ width: 380, height: 800 });
 
     const gm = await createTestUser(request, {
@@ -224,16 +223,10 @@ test.describe('Schedule Tab Redesign', () => {
       play_days: [5, 6],
     });
 
-    // Seed one date so the schedule tab has content to render
     const playDates = getPlayDates([5, 6], 4);
     await setAvailability(gm.id, game.id, [{ date: playDates[0], is_available: true }]);
 
-    await loginTestUser(page, {
-      email: gm.email,
-      name: gm.name,
-      is_gm: true,
-    });
-
+    await loginTestUser(page, { email: gm.email, name: gm.name, is_gm: true });
     await page.goto(`/games/${game.id}`);
 
     await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({
@@ -245,8 +238,23 @@ test.describe('Schedule Tab Redesign', () => {
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // Mobile: sidebar elements are collapsed into <details> cards
-    await expect(page.locator('[data-testid="mobile-calendar-collapsible"]')).toBeVisible();
-    await expect(page.locator('[data-testid="mobile-response-collapsible"]')).toBeVisible();
+    // Calendar + response panels are visible inline — no tap-to-expand gate.
+    const panels = page.locator('[data-testid="mobile-sidebar-panels"]');
+    await expect(panels).toBeVisible();
+
+    // Subscribe is a discoverable webcal:// link, no expansion needed.
+    const subscribe = panels.locator('[data-testid="calendar-subscribe-link"]').first();
+    await expect(subscribe).toBeVisible();
+    await expect(subscribe).toHaveAttribute('href', /^webcal:\/\//);
+
+    // The panels sit ABOVE the long ranked list.
+    const panelsBox = await panels.boundingBox();
+    const rankedBox = await page.locator('[data-testid="ranked-list"]').first().boundingBox();
+    expect(panelsBox).not.toBeNull();
+    expect(rankedBox).not.toBeNull();
+    expect(panelsBox!.y).toBeLessThan(rankedBox!.y);
+
+    // The old collapsible is gone.
+    await expect(page.locator('[data-testid="mobile-calendar-collapsible"]')).toHaveCount(0);
   });
 });

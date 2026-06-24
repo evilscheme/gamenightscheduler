@@ -27,15 +27,23 @@ test.describe('Availability onboarding nudge', () => {
     });
     await addPlayerToGame(game.id, player.id);
 
-    // Player has no availability yet -> banner should show.
+    // Player has no availability yet -> banner and pulsing dot should show.
     await loginTestUser(page, player);
     await page.goto(`/games/${game.id}`);
 
     const cta = page.getByRole('button', { name: /add availability/i });
     await expect(cta).toBeVisible();
 
-    // Clicking the CTA switches to the Availability tab; the banner disappears.
+    // Pulsing dot on the Availability tab button is visible while nudge is active.
+    await expect(page.getByTestId('availability-nudge-dot')).toBeVisible();
+
+    // Clicking the CTA switches to the Availability tab.
     await cta.click();
+
+    // Positive assertion: the Availability tab content container is now visible.
+    await expect(page.getByTestId('availability-tab-content')).toBeVisible();
+
+    // Banner is gone once the Availability tab is active.
     await expect(cta).toBeHidden();
 
     // After the player has availability, the banner stays gone on reload (overview tab).
@@ -43,6 +51,9 @@ test.describe('Availability onboarding nudge', () => {
     await setAvailability(player.id, game.id, [{ date: playDates[0], is_available: true }]);
     await page.goto(`/games/${game.id}`);
     await expect(page.getByRole('button', { name: /add availability/i })).toBeHidden();
+
+    // Pulsing dot is also gone after availability is marked.
+    await expect(page.getByTestId('availability-nudge-dot')).toBeHidden();
   });
 
   test('shows for the GM when they have no availability', async ({ page, request }) => {

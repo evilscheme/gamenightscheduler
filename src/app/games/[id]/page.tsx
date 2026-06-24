@@ -253,6 +253,7 @@ export default function GameDetailPage() {
                 {tab === "availability" && showAvailabilityNudge && (
                   <span
                     aria-hidden
+                    data-testid="availability-nudge-dot"
                     className="absolute -right-2.5 -top-1 size-1.5 rounded-full bg-primary motion-safe:animate-ping"
                   />
                 )}

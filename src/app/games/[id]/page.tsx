@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
-import { Button, LoadingSpinner, Modal, useToast } from "@/components/ui";
+import { Button, LoadingSpinner, Modal, OnboardingBanner, useToast } from "@/components/ui";
+import { shouldShowAvailabilityNudge } from "@/lib/onboarding";
 import { OverviewTabContent } from "@/components/games/overview/OverviewTabContent";
 import { User } from "@/types";
 import { AvailabilityTabContent } from "@/components/games/availability/AvailabilityTabContent";
@@ -69,6 +70,16 @@ export default function GameDetailPage() {
     game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;
   const canDoGmActions = !!(isGm || isCoGm);
   const isMember = game?.members.some((m) => m.id === profile?.id);
+
+  const hasAnyAvailability = Object.keys(availability).length > 0;
+  // The host GM owns the game via gm_id and is intentionally not a
+  // game_memberships row (see schema.sql), so isMember is false for them.
+  // They still mark availability, so treat them as a participant too.
+  const showAvailabilityNudge = shouldShowAvailabilityNudge({
+    hasAnyAvailability,
+    activeTab,
+    isParticipant: !!isMember || isGm,
+  });
 
   const {
     extraDateStrings,
@@ -218,6 +229,15 @@ export default function GameDetailPage() {
         )}
       </div>
 
+      {showAvailabilityNudge && (
+        <OnboardingBanner
+          title="You're in the party! 🎉"
+          description="Add your availability so the GM can find a night that works for everyone."
+          ctaLabel="Mark your dates"
+          onCta={() => setActiveTab("availability")}
+        />
+      )}
+
       {/* Tabs */}
       <div className="border-b border-border mb-6">
         <nav className="-mb-px flex gap-4 sm:gap-6">
@@ -231,7 +251,16 @@ export default function GameDetailPage() {
                   : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
-              {tab}
+              <span className="relative inline-flex items-center">
+                {tab}
+                {tab === "availability" && showAvailabilityNudge && (
+                  <span
+                    aria-hidden
+                    data-testid="availability-nudge-dot"
+                    className="absolute -right-2.5 -top-1 size-1.5 rounded-full bg-primary motion-safe:animate-ping"
+                  />
+                )}
+              </span>
             </button>
           ))}
         </nav>

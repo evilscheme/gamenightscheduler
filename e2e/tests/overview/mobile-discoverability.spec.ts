@@ -27,7 +27,7 @@ test.describe('Overview tab mobile discoverability', () => {
     });
 
     // Game details (with subscribe) is visible inline on mobile.
-    const details = page.locator('[data-testid="mobile-game-details"]');
+    const details = page.locator('[data-testid="game-details"]');
     await expect(details).toBeVisible();
 
     // Subscribe is a webcal:// link.

@@ -68,12 +68,6 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         readOnly={readOnly}
       />
 
-      {!readOnly && onApplyDefaults && (
-        <div className="mt-3">
-          <ApplyDefaultsButton onApplyDefaults={onApplyDefaults} />
-        </div>
-      )}
-
       {showEmptyAdHocPlayer && (
         <div className="rounded-lg border border-primary/30 bg-primary/10 p-3">
           <p className="text-sm text-primary">
@@ -105,6 +99,9 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         use24h={use24h}
         otherGames={otherGames}
         onCopyFromGame={onCopyFromGame}
+        bulkActionsLead={
+          onApplyDefaults ? <ApplyDefaultsButton onApplyDefaults={onApplyDefaults} /> : undefined
+        }
         playDateNotes={playDateNotes}
         onUpdatePlayDateNote={onUpdatePlayDateNote}
         hasCampaignDates={hasCampaignDates}

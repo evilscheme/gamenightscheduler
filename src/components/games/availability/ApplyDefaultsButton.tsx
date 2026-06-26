@@ -42,8 +42,8 @@ export function ApplyDefaultsButton({ onApplyDefaults }: ApplyDefaultsButtonProp
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <Button size="sm" variant="secondary" onClick={handleClick} disabled={busy}>
+    <div className="flex items-center gap-2">
+      <Button size="sm" className="h-8" onClick={handleClick} disabled={busy}>
         {busy ? 'Applying…' : 'Apply my default availability'}
       </Button>
       <Link

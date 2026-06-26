@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef, useCallback, useEffect } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect, type ReactNode } from "react";
 import {
   format,
   startOfMonth,
@@ -50,6 +50,9 @@ interface AvailabilityCalendarProps {
   playDateNotes?: Map<string, string>;
   onUpdatePlayDateNote?: (date: string, note: string | null) => void;
   hasCampaignDates?: boolean;
+  /** Optional content rendered as the first section of the bulk-actions bar
+   *  (e.g. "Apply my default availability"), so related fill shortcuts share one element. */
+  bulkActionsLead?: ReactNode;
   /** Disables all interaction (day clicks, long-press editing, bulk actions). Used by the admin peek view. */
   readOnly?: boolean;
 }
@@ -71,6 +74,7 @@ export function AvailabilityCalendar({
   playDateNotes = new Map(),
   onUpdatePlayDateNote,
   hasCampaignDates = false,
+  bulkActionsLead,
   readOnly = false,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
@@ -288,6 +292,14 @@ export function AvailabilityCalendar({
       {!readOnly && (
       <div className="bg-secondary rounded-lg p-3">
         <div className="space-y-2 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-2 text-sm">
+          {/* Lead slot — e.g. "Apply my default availability" — sits alongside the bulk tools */}
+          {bulkActionsLead && (
+            <>
+              {bulkActionsLead}
+              <span className="hidden lg:inline text-muted-foreground/50">|</span>
+              <div className="border-t border-muted-foreground/25 lg:hidden" />
+            </>
+          )}
           {/* Mark all section — stacked on mobile, inline on desktop */}
           <div className="lg:contents">
             <p className="text-xs text-muted-foreground mb-1 lg:hidden">Mark all</p>

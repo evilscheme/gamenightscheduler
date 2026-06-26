@@ -2,16 +2,14 @@
 
 import { useState } from 'react';
 import { format, parseISO, startOfDay, isBefore, differenceInCalendarDays } from 'date-fns';
-import { Calendar, MapPin, Star, StickyNote } from 'lucide-react';
+import { CalendarArrowDown, MapPin, Star, StickyNote } from 'lucide-react';
 import { Button, EyebrowLabel } from '@/components/ui';
 import type { GameSession } from '@/types';
 import { formatTime } from '@/lib/formatting';
-import { CalendarSubscribeButton } from '@/components/games/CalendarSubscribeButton';
 
 interface UpcomingSessionsCardProps {
   sessions: GameSession[];
   use24h: boolean;
-  subscribeUrl: string;
   onDownloadIcs: (session: GameSession) => void;
   onDownloadAllIcs: () => void;
 }
@@ -57,7 +55,6 @@ function ClampedNotes({ text }: { text: string }) {
 export function UpcomingSessionsCard({
   sessions,
   use24h,
-  subscribeUrl,
   onDownloadIcs,
   onDownloadAllIcs,
 }: UpcomingSessionsCardProps) {
@@ -81,14 +78,13 @@ export function UpcomingSessionsCard({
               size="sm"
               variant="ghost"
               onClick={onDownloadAllIcs}
-              title="Download a single calendar file containing all upcoming sessions"
-              aria-label="Add all to calendar"
+              title="Download a single calendar file (.ics) containing all upcoming sessions"
+              aria-label="Download all upcoming sessions as a calendar file"
             >
-              <Calendar className="size-3 sm:mr-1" />
-              <span className="hidden sm:inline">Add all to calendar</span>
+              <CalendarArrowDown className="size-3 mr-1" />
+              Download all
             </Button>
           )}
-          <CalendarSubscribeButton webcalUrl={subscribeUrl} />
         </div>
       </div>
 
@@ -151,7 +147,7 @@ export function UpcomingSessionsCard({
                 aria-label="Add to calendar"
                 className="shrink-0"
               >
-                <Calendar className="size-3 sm:mr-1" />
+                <CalendarArrowDown className="size-3 sm:mr-1" />
                 <span className="hidden sm:inline">Add to calendar</span>
               </Button>
             </li>

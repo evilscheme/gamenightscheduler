@@ -109,7 +109,6 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
           <UpcomingSessionsCard
             sessions={props.confirmedSessions}
             use24h={props.use24h}
-            subscribeUrl={props.subscribeUrl}
             onDownloadIcs={handleDownloadIcs}
             onDownloadAllIcs={handleDownloadAllIcs}
           />

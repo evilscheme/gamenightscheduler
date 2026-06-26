@@ -4,20 +4,19 @@ import { createTestGame, getPlayDates, setAvailability } from '../../helpers/see
 import { availabilityRowsInGame, availabilityStatusForDate } from '../../helpers/db-assertions';
 import { TEST_TIMEOUTS } from '../../constants';
 
-/**
- * Click a weekday default status and wait for the auto-save to settle.
- *
- * The editor saves asynchronously on click; navigating or reloading before the
- * POST completes cancels the request and the default never persists. We assert
- * the optimistic UI update, then wait for the transient "Saving…" indicator to
- * clear, guaranteeing the row is written before the next step.
- */
-async function setDefaultAndWait(page: Page, day: string, value: string) {
+/** Select a weekday default status (local state only; persisted on Save). */
+async function setDefault(page: Page, day: string, value: string) {
   const button = page.locator(`[data-testid="status-${day}-${value}"]:visible`);
   await button.click();
   await expect(button).toHaveAttribute('aria-checked', 'true', { timeout: TEST_TIMEOUTS.DEFAULT });
-  // The save indicator reads "Saving…" while in flight; wait for it to clear.
-  await expect(page.getByText(/saving…/i)).toHaveCount(0, { timeout: TEST_TIMEOUTS.DEFAULT });
+}
+
+/** Click the editor's Save button and wait for the success confirmation. */
+async function saveDefaults(page: Page) {
+  await page.getByRole('button', { name: 'Save Changes' }).click();
+  await expect(page.getByText('Default availability saved!')).toBeVisible({
+    timeout: TEST_TIMEOUTS.DEFAULT,
+  });
 }
 
 test.describe('Default availability', () => {
@@ -30,11 +29,12 @@ test.describe('Default availability', () => {
 
     const game = await createTestGame({ gm_id: user.id, name: 'Defaults Game', play_days: [3, 5] });
 
-    // Configure defaults in the editor.
+    // Configure defaults in the editor, then save.
     await page.goto('/settings/default-availability');
     await expect(page.getByRole('heading', { name: /default availability/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
-    await setDefaultAndWait(page, 'friday', 'available');
-    await setDefaultAndWait(page, 'wednesday', 'unavailable');
+    await setDefault(page, 'friday', 'available');
+    await setDefault(page, 'wednesday', 'unavailable');
+    await saveDefaults(page);
 
     // Reload and confirm persistence.
     await page.reload();
@@ -71,10 +71,11 @@ test.describe('Default availability', () => {
     await setAvailability(user.id, game.id, [{ date: manualDate, status: 'maybe' }]);
     const rowsBefore = await availabilityRowsInGame(game.id, user.id);
 
-    // Default: Friday = Available.
+    // Default: Friday = Available, then save.
     await page.goto('/settings/default-availability');
     await expect(page.getByRole('heading', { name: /default availability/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
-    await setDefaultAndWait(page, 'friday', 'available');
+    await setDefault(page, 'friday', 'available');
+    await saveDefaults(page);
 
     // Apply.
     await page.goto(`/games/${game.id}`);
@@ -88,5 +89,33 @@ test.describe('Default availability', () => {
     expect(await availabilityStatusForDate(game.id, user.id, manualDate)).toBe('maybe');
     // And new future Fridays were filled, so the row count grew.
     expect(await availabilityRowsInGame(game.id, user.id)).toBeGreaterThan(rowsBefore);
+  });
+
+  test('editor back link returns to the game when opened from a game', async ({ page }) => {
+    const user = await loginTestUser(page, {
+      email: `default-back-${Date.now()}@e2e.local`,
+      name: 'Back Link User',
+      is_gm: true,
+    });
+    const game = await createTestGame({ gm_id: user.id, name: 'Back Link Game', play_days: [5] });
+
+    await page.goto(`/games/${game.id}`);
+    await expect(page.getByRole('button', { name: /^availability$/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
+    await page.getByRole('button', { name: /^availability$/i }).click();
+
+    // Open the editor via the "Edit defaults" link on the Availability tab.
+    await page.getByRole('link', { name: /edit defaults/i }).click();
+    await expect(page).toHaveURL(/\/settings\/default-availability\?returnTo=/, { timeout: TEST_TIMEOUTS.DEFAULT });
+
+    // The back link returns to the game's Availability tab (not Settings, and
+    // not the Overview tab).
+    const backLink = page.getByRole('link', { name: /back to game/i });
+    await expect(backLink).toBeVisible();
+    await expect(backLink).toHaveAttribute('href', `/games/${game.id}?tab=availability`);
+    await backLink.click();
+    // Landing back on the Availability tab: the apply button only renders there.
+    await expect(page.getByRole('button', { name: /apply my default availability/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
   });
 });

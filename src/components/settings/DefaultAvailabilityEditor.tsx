@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { createClient } from '@/lib/supabase/client';
-import { useToast } from '@/components/ui/Toast';
+import { Button } from '@/components/ui';
 import { DAY_LABELS } from '@/lib/constants';
 import type { WeekdayDefault } from '@/lib/defaultAvailability';
 import { fetchUserDefaults, upsertUserDefault, deleteUserDefault } from '@/lib/data';
@@ -12,15 +12,29 @@ import { DefaultDayRow } from './DefaultDayRow';
 
 const supabase = createClient();
 
+const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6];
+
 type DefaultsMap = Record<number, WeekdayDefault | undefined>;
+
+function sameDefault(a: WeekdayDefault | undefined, b: WeekdayDefault | undefined): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return (
+    a.status === b.status &&
+    a.comment === b.comment &&
+    a.available_after === b.available_after &&
+    a.available_until === b.available_until
+  );
+}
 
 export function DefaultAvailabilityEditor() {
   const { profile } = useAuth();
   const { weekStartDay, use24h } = useUserPreferences();
-  const toast = useToast();
   const [defaults, setDefaults] = useState<DefaultsMap>({});
+  const [saved, setSaved] = useState<DefaultsMap>({});
   const [loading, setLoading] = useState(true);
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
 
   const userId = profile?.id;
 
@@ -40,6 +54,7 @@ export function DefaultAvailabilityEditor() {
         };
       });
       setDefaults(map);
+      setSaved(map);
       setLoading(false);
     })();
     return () => {
@@ -47,30 +62,44 @@ export function DefaultAvailabilityEditor() {
     };
   }, [userId]);
 
-  const handleChange = async (dayOfWeek: number, next: WeekdayDefault | undefined) => {
-    if (!userId) return;
-    const prev = defaults[dayOfWeek];
+  // Edits only update local state; changes are persisted on Save.
+  const handleChange = (dayOfWeek: number, next: WeekdayDefault | undefined) => {
     setDefaults((d) => ({ ...d, [dayOfWeek]: next }));
-    setSaveState('saving');
+    setMessage('');
+  };
 
-    const { error } = next
-      ? await upsertUserDefault(supabase, {
-          user_id: userId,
-          day_of_week: dayOfWeek,
-          status: next.status,
-          comment: next.comment,
-          available_after: next.available_after,
-          available_until: next.available_until,
-        })
-      : await deleteUserDefault(supabase, userId, dayOfWeek);
+  const handleSave = async () => {
+    if (!userId) return;
+    setSaving(true);
+    setMessage('');
 
-    if (error) {
-      setDefaults((d) => ({ ...d, [dayOfWeek]: prev })); // rollback
-      setSaveState('error');
-      toast.show('Could not save your default. Please try again.', 'danger');
-      return;
+    let failed = false;
+    for (const dow of WEEKDAYS) {
+      if (sameDefault(defaults[dow], saved[dow])) continue;
+      const next = defaults[dow];
+      const { error } = next
+        ? await upsertUserDefault(supabase, {
+            user_id: userId,
+            day_of_week: dow,
+            status: next.status,
+            comment: next.comment,
+            available_after: next.available_after,
+            available_until: next.available_until,
+          })
+        : await deleteUserDefault(supabase, userId, dow);
+      if (error) {
+        failed = true;
+        break;
+      }
     }
-    setSaveState('saved');
+
+    if (failed) {
+      setMessage('Error saving default availability. Please try again.');
+    } else {
+      setSaved(defaults);
+      setMessage('Default availability saved!');
+    }
+    setSaving(false);
   };
 
   // Order the week per the user's preference (Sunday- or Monday-first).
@@ -93,13 +122,16 @@ export function DefaultAvailabilityEditor() {
           />
         ))}
       </div>
-      <p className="mt-3 text-xs text-muted-foreground" aria-live="polite">
-        {saveState === 'saving'
-          ? 'Saving…'
-          : saveState === 'error'
-            ? 'Last change failed to save.'
-            : 'Changes are saved automatically.'}
-      </p>
+      <div className="mt-4 flex items-center gap-3">
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving...' : 'Save Changes'}
+        </Button>
+        {message && (
+          <p className={`text-sm ${message.includes('Error') ? 'text-danger' : 'text-success'}`}>
+            {message}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

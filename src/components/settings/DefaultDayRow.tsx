@@ -87,14 +87,16 @@ export function DefaultDayRow({ dayLabel, value, use24h, onChange }: DefaultDayR
       {showTimes && (
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Available after</label>
+            <label className="mb-1 block text-xs text-muted-foreground">
+              Available after <span className="text-muted-foreground/70">(optional)</span>
+            </label>
             <select
               value={value?.available_after ? value.available_after.slice(0, 5) : ''}
               onChange={(e) => setTime('available_after', e.target.value)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               aria-label={`${dayLabel} available after`}
             >
-              <option value="">—</option>
+              <option value="">Any time</option>
               {timeOptions.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
@@ -103,14 +105,16 @@ export function DefaultDayRow({ dayLabel, value, use24h, onChange }: DefaultDayR
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Until</label>
+            <label className="mb-1 block text-xs text-muted-foreground">
+              Until <span className="text-muted-foreground/70">(optional)</span>
+            </label>
             <select
               value={value?.available_until ? value.available_until.slice(0, 5) : ''}
               onChange={(e) => setTime('available_until', e.target.value)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               aria-label={`${dayLabel} available until`}
             >
-              <option value="">—</option>
+              <option value="">Any time</option>
               {timeOptions.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}

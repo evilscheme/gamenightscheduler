@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui';
 import { useToast } from '@/components/ui/Toast';
 import type { ApplyDefaultsResult } from '@/hooks/useAvailability';
@@ -12,7 +13,13 @@ interface ApplyDefaultsButtonProps {
 
 export function ApplyDefaultsButton({ onApplyDefaults }: ApplyDefaultsButtonProps) {
   const toast = useToast();
+  const pathname = usePathname();
   const [busy, setBusy] = useState(false);
+  // Send the editor's back link here, so "← Back" returns to this game's
+  // Availability tab (this button only renders on that tab).
+  const editHref = `/settings/default-availability?returnTo=${encodeURIComponent(
+    `${pathname}?tab=availability`,
+  )}`;
 
   const handleClick = async () => {
     setBusy(true);
@@ -40,7 +47,7 @@ export function ApplyDefaultsButton({ onApplyDefaults }: ApplyDefaultsButtonProp
         {busy ? 'Applying…' : 'Apply my default availability'}
       </Button>
       <Link
-        href="/settings/default-availability"
+        href={editHref}
         className="text-xs text-muted-foreground hover:text-foreground"
       >
         Edit defaults

@@ -64,6 +64,17 @@ export default function GameDetailPage() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
+  // Honor a `?tab=` hint so deep links land on the right tab — e.g. returning
+  // from the default-availability editor sends you back to the Availability tab
+  // you came from, not Overview. The loading spinner masks this initial set.
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "availability" || tab === "schedule") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep-link tab hint
+      setActiveTab(tab);
+    }
+  }, []);
+
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
     game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;

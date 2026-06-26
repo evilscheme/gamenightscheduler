@@ -1,8 +1,8 @@
 'use client';
 
-import { Link2 } from 'lucide-react';
 import { parseISO } from 'date-fns';
-import { Button, EyebrowLabel, Panel, useToast } from '@/components/ui';
+import { EyebrowLabel, Panel } from '@/components/ui';
+import { CalendarSubscribeButton } from '@/components/games/CalendarSubscribeButton';
 import { DAY_LABELS } from '@/lib/constants';
 import { formatTime } from '@/lib/formatting';
 import { formatTimezoneDisplay } from '@/lib/timezone';
@@ -22,7 +22,7 @@ interface GameDetailsPanelProps {
   defaultEndTime: string | null;
   timezone: string | null;
   minPlayersNeeded?: number;
-  inviteCode: string;
+  subscribeUrl: string;
   use24h?: boolean;
   adHocOnly?: boolean;
   campaignStartDate: string | null;
@@ -45,24 +45,12 @@ export function GameDetailsPanel({
   defaultEndTime,
   timezone,
   minPlayersNeeded = 0,
-  inviteCode,
+  subscribeUrl,
   use24h = false,
   adHocOnly = false,
   campaignStartDate,
   campaignEndDate,
 }: GameDetailsPanelProps) {
-  const toast = useToast();
-
-  const copyCalendarUrl = async () => {
-    const webcalUrl = `webcal://${window.location.host}/api/games/calendar/${inviteCode}`;
-    try {
-      await navigator.clipboard.writeText(webcalUrl);
-      toast.show('Calendar URL copied to clipboard.');
-    } catch {
-      toast.show('Could not copy. Select the URL manually.', 'danger');
-    }
-  };
-
   return (
     <Panel>
       <EyebrowLabel>Game details</EyebrowLabel>
@@ -106,12 +94,9 @@ export function GameDetailsPanel({
         <div>
           <EyebrowLabel variant="muted">Calendar subscription</EyebrowLabel>
           <p className="mb-2 mt-1 text-[11px] text-muted-foreground">
-            Add this URL to your calendar app to auto-sync confirmed sessions.
+            Subscribe to auto-sync confirmed sessions to your calendar app.
           </p>
-          <Button onClick={copyCalendarUrl} variant="secondary" size="sm">
-            <Link2 className="size-3 mr-1" />
-            Copy Calendar URL
-          </Button>
+          <CalendarSubscribeButton webcalUrl={subscribeUrl} />
         </div>
       </div>
     </Panel>

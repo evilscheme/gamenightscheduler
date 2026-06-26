@@ -1,6 +1,6 @@
 'use client';
 
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfDay, isBefore } from 'date-fns';
 import type { User, MemberWithRole, GameSession } from '@/types';
 import { useToast } from '@/components/ui';
 import { generateICS, slugifyGameName, triggerICSDownload } from '@/lib/ics';
@@ -49,6 +49,14 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
   const scheduledCount = props.confirmedSessions.length;
   const toast = useToast();
 
+  // Mirrors UpcomingSessionsCard's own visibility rule (it returns null when no
+  // upcoming sessions). We need it here so the card's grid cell isn't reserved
+  // when the card renders nothing.
+  const overviewToday = startOfDay(new Date());
+  const hasUpcoming = props.confirmedSessions.some(
+    (s) => !isBefore(parseISO(s.date), overviewToday)
+  );
+
   const handleDownloadIcs = (session: GameSession) => {
     const ics = generateICS([
       {
@@ -80,14 +88,21 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
     triggerICSDownload(ics, `${slug}-sessions.ics`);
   };
 
-  const handleCopySubscribe = async () => {
-    try {
-      await navigator.clipboard.writeText(props.subscribeUrl);
-      toast.show('Subscribe URL copied to clipboard.');
-    } catch {
-      toast.show('Could not copy. Select the URL manually.', 'danger');
-    }
-  };
+  const detailsPanel = (
+    <GameDetailsPanel
+      playDays={props.playDays}
+      schedulingWindowMonths={props.schedulingWindowMonths}
+      defaultStartTime={props.defaultStartTime}
+      defaultEndTime={props.defaultEndTime}
+      timezone={props.timezone}
+      minPlayersNeeded={props.minPlayersNeeded}
+      subscribeUrl={props.subscribeUrl}
+      use24h={props.use24h}
+      adHocOnly={props.adHocOnly}
+      campaignStartDate={props.campaignStartDate}
+      campaignEndDate={props.campaignEndDate}
+    />
+  );
 
   return (
     <div className="space-y-5" data-testid="overview-tab-content">
@@ -97,16 +112,40 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
         scheduledCount={scheduledCount}
       />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="space-y-5 min-w-0">
-          <UpcomingSessionsCard
-            sessions={props.confirmedSessions}
-            use24h={props.use24h}
-            subscribeUrl={props.subscribeUrl}
-            onDownloadIcs={handleDownloadIcs}
-            onDownloadAllIcs={handleDownloadAllIcs}
-            onCopySubscribe={handleCopySubscribe}
-          />
+      {/*
+        Flat grid so the three panels can be ordered independently per breakpoint.
+        Mobile (single column): upcoming sessions → game details → players, so the
+        info-dense details panel sits above the long player list.
+        Desktop (2 columns): upcoming + players stack in column 1; game details is a
+        sticky panel in column 2. Rendered ONCE — duplicating it broke unscoped
+        getByText() assertions (two DOM matches) and read the content twice to AT.
+      */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
+        {hasUpcoming && (
+          <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+            <UpcomingSessionsCard
+              sessions={props.confirmedSessions}
+              use24h={props.use24h}
+              onDownloadIcs={handleDownloadIcs}
+              onDownloadAllIcs={handleDownloadAllIcs}
+            />
+          </div>
+        )}
+
+        <div
+          data-testid="game-details"
+          className={`lg:col-start-2 lg:row-start-1 lg:sticky lg:top-20 ${
+            hasUpcoming ? 'lg:row-span-2' : ''
+          }`}
+        >
+          {detailsPanel}
+        </div>
+
+        <div
+          className={`min-w-0 lg:col-start-1 ${
+            hasUpcoming ? 'lg:row-start-2' : 'lg:row-start-1'
+          }`}
+        >
           <PartyPanel
             allPlayers={props.allPlayers}
             gmId={props.gmId}
@@ -119,22 +158,6 @@ export function OverviewTabContent(props: OverviewTabContentProps) {
             onRemovePlayer={props.onRemovePlayer}
           />
         </div>
-
-        <aside className="lg:sticky lg:top-20 lg:self-start">
-          <GameDetailsPanel
-            playDays={props.playDays}
-            schedulingWindowMonths={props.schedulingWindowMonths}
-            defaultStartTime={props.defaultStartTime}
-            defaultEndTime={props.defaultEndTime}
-            timezone={props.timezone}
-            minPlayersNeeded={props.minPlayersNeeded}
-            inviteCode={props.inviteCode}
-            use24h={props.use24h}
-            adHocOnly={props.adHocOnly}
-            campaignStartDate={props.campaignStartDate}
-            campaignEndDate={props.campaignEndDate}
-          />
-        </aside>
       </div>
     </div>
   );

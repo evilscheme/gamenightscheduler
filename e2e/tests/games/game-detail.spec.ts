@@ -252,7 +252,12 @@ test.describe('Game Detail Page', () => {
 
     // Should see calendar subscription section in Game Details
     await expect(page.getByText(/calendar subscription/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /copy calendar url/i })).toBeVisible();
+
+    // Subscribe is a webcal:// link with a copy-URL fallback button.
+    const subscribe = page.locator('[data-testid="calendar-subscribe-link"]');
+    await expect(subscribe).toBeVisible();
+    await expect(subscribe).toHaveAttribute('href', /^webcal:\/\//);
+    await expect(page.locator('[data-testid="calendar-subscribe-copy"]')).toBeVisible();
   });
 });
 

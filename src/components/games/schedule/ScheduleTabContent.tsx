@@ -15,8 +15,7 @@ import { CalendarHoverPopover } from './CalendarHoverPopover';
 import { generateICS, slugifyGameName, triggerICSDownload, composeIcsDescription } from '@/lib/ics';
 import { splitUpcomingPast } from '@/lib/scheduleView';
 import { useToast } from '@/components/ui/Toast';
-import { Button, EyebrowLabel, Panel } from '@/components/ui';
-import { Link2 } from 'lucide-react';
+import { CalendarSubscribeButton } from '@/components/games/CalendarSubscribeButton';
 
 export interface ScheduleTabContentProps {
   suggestions: DateSuggestion[];
@@ -166,15 +165,6 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     triggerICSDownload(ics, `${slugifyGameName(gameName)}-sessions.ics`);
   };
 
-  const handleCopySubscribe = async () => {
-    try {
-      await navigator.clipboard.writeText(subscribeUrl);
-      toast.show('Subscribe URL copied to clipboard.');
-    } catch {
-      toast.show('Could not copy. Select the URL manually.', 'danger');
-    }
-  };
-
   const miniCalendarProps = {
     windowStart,
     windowEnd,
@@ -186,18 +176,12 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     onCellActivate: handleCellActivate,
   };
 
-  const subscribeLink = subscribeUrl ? (
-    <Button
-      size="sm"
-      variant="ghost"
-      onClick={handleCopySubscribe}
-      data-testid="calendar-subscribe-copy"
-      title="Copy a webcal:// URL that auto-syncs scheduled sessions to Google Calendar, Apple Calendar, or Outlook"
-    >
-      <Link2 className="size-3 mr-1" />
-      Subscribe
-    </Button>
-  ) : null;
+  const subscribeLink = <CalendarSubscribeButton webcalUrl={subscribeUrl} />;
+
+  const calendarPanel = <MiniCalendar {...miniCalendarProps} subscribeLink={subscribeLink} />;
+  const responsePanel = (
+    <ResponseStatus members={members} completionByUserId={completionByUserId} />
+  );
 
   return (
     <HoverSyncProvider>
@@ -225,6 +209,12 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               onEditDetails={(s) => setEditFor(s)}
             />
 
+            {/* Mobile: calendar + response status, visible above the long ranked list */}
+            <div className="space-y-5 lg:hidden" data-testid="mobile-sidebar-panels">
+              {calendarPanel}
+              {responsePanel}
+            </div>
+
             <RankedList
               suggestions={unscheduledSuggestions}
               isGm={isGm}
@@ -236,36 +226,12 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               onLockIn={(d) => setScheduleFor(d)}
               autoExpandDate={autoExpandDate}
             />
-
-            {/* Mobile: collapsible cards below the list */}
-            <div className="space-y-3 lg:hidden">
-              <Panel as="details" className="group" data-testid="mobile-calendar-collapsible">
-                <summary className="cursor-pointer list-none flex items-center justify-between">
-                  <EyebrowLabel>Calendar</EyebrowLabel>
-                  <span className="font-mono text-[11px] text-muted-foreground group-open:hidden">tap to expand</span>
-                  <span className="font-mono text-[11px] text-muted-foreground hidden group-open:inline">tap to collapse</span>
-                </summary>
-                <div className="mt-3">
-                  <MiniCalendar {...miniCalendarProps} subscribeLink={subscribeLink} embedded />
-                </div>
-              </Panel>
-              <Panel as="details" className="group" data-testid="mobile-response-collapsible">
-                <summary className="cursor-pointer list-none flex items-center justify-between">
-                  <EyebrowLabel>Response status</EyebrowLabel>
-                  <span className="font-mono text-[11px] text-muted-foreground group-open:hidden">tap to expand</span>
-                  <span className="font-mono text-[11px] text-muted-foreground hidden group-open:inline">tap to collapse</span>
-                </summary>
-                <div className="mt-3">
-                  <ResponseStatus members={members} completionByUserId={completionByUserId} embedded />
-                </div>
-              </Panel>
-            </div>
           </div>
 
-          {/* Desktop sidebar */}
+          {/* Desktop sidebar (unchanged behavior) */}
           <aside className="hidden lg:block space-y-5 lg:sticky lg:top-20 lg:self-start">
-            <MiniCalendar {...miniCalendarProps} subscribeLink={subscribeLink} />
-            <ResponseStatus members={members} completionByUserId={completionByUserId} />
+            {calendarPanel}
+            {responsePanel}
           </aside>
         </div>
 

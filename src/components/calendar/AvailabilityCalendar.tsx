@@ -290,93 +290,77 @@ export function AvailabilityCalendar({
     <div className="space-y-4">
       {/* Bulk actions */}
       {!readOnly && (
-      <div className="bg-secondary rounded-lg p-3">
-        <div className="space-y-2 lg:space-y-0 lg:flex lg:flex-wrap lg:items-center lg:gap-2 text-sm">
-          {/* Lead slot — e.g. "Apply my default availability" — sits alongside the bulk tools */}
-          {bulkActionsLead && (
-            <>
-              {bulkActionsLead}
-              <span className="hidden lg:inline text-muted-foreground/50">|</span>
-              <div className="border-t border-muted-foreground/25 lg:hidden" />
-            </>
-          )}
-          {/* Mark all section — stacked on mobile, inline on desktop */}
-          <div className="lg:contents">
-            <p className="text-xs text-muted-foreground mb-1 lg:hidden">Mark all</p>
-            <span className="text-muted-foreground hidden lg:inline">Mark all</span>
-            <div className="flex flex-wrap items-center gap-2 lg:contents">
-              <select
-                value={bulkDayFilter}
-                onChange={(e) => setBulkDayFilter(e.target.value)}
-                className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
-                aria-label="Day of week"
-              >
-                <option value="remaining">remaining days</option>
-                {playDays.map((day) => (
-                  <option key={day} value={day}>
-                    {DAY_LABELS.full[day]}s
-                  </option>
-                ))}
-              </select>
-              <span className="text-muted-foreground hidden sm:inline">as</span>
-              <select
-                value={bulkStatus}
-                onChange={(e) =>
-                  setBulkStatus(e.target.value as AvailabilityStatus)
-                }
-                className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
-                aria-label="Availability status"
-              >
-                <option value="available">available</option>
-                <option value="unavailable">unavailable</option>
-                <option value="maybe">maybe</option>
-              </select>
-              <Button size="sm" onClick={handleBulkSubmit} className="h-8">
-                Apply
-              </Button>
-            </div>
-          </div>
-          {otherGames && otherGames.length > 0 && onCopyFromGame && (
-            <>
-              <span className="hidden lg:inline text-muted-foreground/50">|</span>
-              <div className="border-t border-muted-foreground/25 lg:hidden" />
-              {/* Copy from section — stacked on mobile, inline on desktop */}
-              <div className="lg:contents">
-                <p className="text-xs text-muted-foreground mb-1 lg:hidden">Copy from</p>
-                <span className="text-muted-foreground hidden lg:inline">Copy from</span>
-                <div className="flex items-center gap-2 lg:contents">
-                  <select
-                    value={copySourceGameId}
-                    onChange={(e) => setCopySourceGameId(e.target.value)}
-                    className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-50"
-                    data-testid="copy-game-select"
-                  >
-                    <option value="">Select a game</option>
-                    {otherGames.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    size="sm"
-                    onClick={handleCopyFromGame}
-                    disabled={!copySourceGameId || isCopying}
-                    className="h-8"
-                    data-testid="copy-game-button"
-                  >
-                    {isCopying ? "Copying..." : "Copy"}
-                  </Button>
-                  {copyResultMessage && (
-                    <span className="text-xs text-muted-foreground" data-testid="copy-result-message">
-                      {copyResultMessage}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start text-sm">
+        {/* Apply my default availability — its own panel */}
+        {bulkActionsLead && (
+          <div className="bg-secondary rounded-lg p-3">{bulkActionsLead}</div>
+        )}
+
+        {/* Mark all — its own panel */}
+        <div className="bg-secondary rounded-lg p-3 flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground">Mark all</span>
+          <select
+            value={bulkDayFilter}
+            onChange={(e) => setBulkDayFilter(e.target.value)}
+            className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
+            aria-label="Day of week"
+          >
+            <option value="remaining">remaining days</option>
+            {playDays.map((day) => (
+              <option key={day} value={day}>
+                {DAY_LABELS.full[day]}s
+              </option>
+            ))}
+          </select>
+          <span className="text-muted-foreground">as</span>
+          <select
+            value={bulkStatus}
+            onChange={(e) => setBulkStatus(e.target.value as AvailabilityStatus)}
+            className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
+            aria-label="Availability status"
+          >
+            <option value="available">available</option>
+            <option value="unavailable">unavailable</option>
+            <option value="maybe">maybe</option>
+          </select>
+          <Button size="sm" onClick={handleBulkSubmit} className="h-8">
+            Apply
+          </Button>
         </div>
+
+        {/* Copy from — its own panel */}
+        {otherGames && otherGames.length > 0 && onCopyFromGame && (
+          <div className="bg-secondary rounded-lg p-3 flex flex-wrap items-center gap-2">
+            <span className="text-muted-foreground">Copy from</span>
+            <select
+              value={copySourceGameId}
+              onChange={(e) => setCopySourceGameId(e.target.value)}
+              className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-50"
+              data-testid="copy-game-select"
+            >
+              <option value="">Select a game</option>
+              {otherGames.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              onClick={handleCopyFromGame}
+              disabled={!copySourceGameId || isCopying}
+              className="h-8"
+              data-testid="copy-game-button"
+            >
+              {isCopying ? "Copying..." : "Copy"}
+            </Button>
+            {copyResultMessage && (
+              <span className="text-xs text-muted-foreground" data-testid="copy-result-message">
+                {copyResultMessage}
+              </span>
+            )}
+          </div>
+        )}
       </div>
       )}
 

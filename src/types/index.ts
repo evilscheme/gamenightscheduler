@@ -56,6 +56,18 @@ export interface Availability {
   updated_at: string;
 }
 
+export interface UserAvailabilityDefault {
+  id: string;
+  user_id: string;
+  day_of_week: number; // 0=Sun … 6=Sat
+  status: AvailabilityStatus;
+  comment: string | null;
+  available_after: string | null; // HH:MM:SS
+  available_until: string | null; // HH:MM:SS
+  created_at: string;
+  updated_at: string;
+}
+
 // Note: Sessions are always created as 'confirmed' and cancelled by deletion.
 // The 'suggested' and 'cancelled' values existed historically but were never used.
 export type SessionStatus = 'confirmed';

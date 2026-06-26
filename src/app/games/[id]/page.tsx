@@ -34,7 +34,7 @@ export default function GameDetailPage() {
 
   const ready = !!game;
   const availabilityHook = useAvailability(gameId, userId, game);
-  const { availability, allAvailability, changeAvailability, copyFromGame: copyFromGameRaw, removePlayerData } = availabilityHook;
+  const { availability, allAvailability, changeAvailability, copyFromGame: copyFromGameRaw, applyDefaults, removePlayerData } = availabilityHook;
 
   const sessionsHook = useSessions(gameId, ready);
   const { sessions, confirmSession: confirmSessionRaw, updateSession, cancelSession } = sessionsHook;
@@ -64,6 +64,17 @@ export default function GameDetailPage() {
   const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+
+  // Honor a `?tab=` hint so deep links land on the right tab — e.g. returning
+  // from the default-availability editor sends you back to the Availability tab
+  // you came from, not Overview. The loading spinner masks this initial set.
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    if (tab === "availability" || tab === "schedule") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep-link tab hint
+      setActiveTab(tab);
+    }
+  }, []);
 
   const isGm = game?.gm_id === profile?.id;
   const isCoGm =
@@ -313,6 +324,7 @@ export default function GameDetailPage() {
           use24h={use24h}
           otherGames={otherGames}
           onCopyFromGame={copyFromGame}
+          onApplyDefaults={() => applyDefaults(extraDateStrings)}
           playDateNotes={playDateNotes}
           onUpdatePlayDateNote={updatePlayDateNote}
           hasCampaignDates={!!(game.campaign_start_date || game.campaign_end_date)}

@@ -79,6 +79,21 @@ CREATE TABLE availability (
   UNIQUE(user_id, game_id, date)
 );
 
+-- User-level default (recurring weekly) availability.
+-- One row per weekday the user has configured; no row = "no default" for that weekday.
+CREATE TABLE user_availability_defaults (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6), -- 0=Sun … 6=Sat
+  status availability_status NOT NULL,
+  comment TEXT CHECK (comment IS NULL OR char_length(comment) <= 500),
+  available_after TIME,
+  available_until TIME,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, day_of_week)
+);
+
 -- Sessions (Scheduled Game Nights) table
 -- Note: Sessions are always created as 'confirmed' and cancelled by deletion.
 -- The 'suggested' and 'cancelled' values existed historically but were never used.
@@ -391,6 +406,10 @@ CREATE TRIGGER update_availability_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_user_availability_defaults_updated_at
+  BEFORE UPDATE ON user_availability_defaults
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Create user profile when auth user signs up
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -479,6 +498,19 @@ CREATE POLICY "GMs can update memberships" ON game_memberships
   WITH CHECK (
     EXISTS (SELECT 1 FROM public.games WHERE id = game_id AND gm_id = (select auth.uid()))
   );
+
+-- User availability defaults policies
+ALTER TABLE user_availability_defaults ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own availability defaults" ON user_availability_defaults
+  FOR SELECT USING ((select auth.uid()) = user_id);
+CREATE POLICY "Users can insert own availability defaults" ON user_availability_defaults
+  FOR INSERT WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can update own availability defaults" ON user_availability_defaults
+  FOR UPDATE USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
+CREATE POLICY "Users can delete own availability defaults" ON user_availability_defaults
+  FOR DELETE USING ((select auth.uid()) = user_id);
 
 -- Availability policies
 CREATE POLICY "Game participants can view availability" ON availability

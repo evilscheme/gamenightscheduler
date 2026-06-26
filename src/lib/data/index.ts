@@ -4,3 +4,4 @@ export * from './availability';
 export * from './sessions';
 export * from './playDates';
 export * from './users';
+export * from './defaultAvailability';

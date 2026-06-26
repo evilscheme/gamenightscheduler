@@ -5,6 +5,8 @@ import type { GameSession, AvailabilityStatus } from '@/types';
 import type { AvailabilityEntry } from '@/components/calendar/AvailabilityCalendar';
 import { AvailabilityCalendar } from '@/components/calendar/AvailabilityCalendar';
 import { AvailabilityHeader } from './AvailabilityHeader';
+import { ApplyDefaultsButton } from './ApplyDefaultsButton';
+import type { ApplyDefaultsResult } from '@/hooks/useAvailability';
 
 export interface AvailabilityTabContentProps {
   // Header
@@ -31,6 +33,7 @@ export interface AvailabilityTabContentProps {
   use24h: boolean;
   otherGames: { id: string; name: string }[];
   onCopyFromGame: (sourceGameId: string) => Promise<number>;
+  onApplyDefaults?: () => Promise<ApplyDefaultsResult>;
   playDateNotes: Map<string, string>;
   onUpdatePlayDateNote: (date: string, note: string | null) => void;
   hasCampaignDates: boolean;
@@ -47,7 +50,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
     windowStart, windowEnd, currentUserId, completionByUserId,
     playDays, availability, onToggle, confirmedSessions, extraPlayDates,
     isGmOrCoGm, onToggleExtraDate, weekStartDay, use24h, otherGames,
-    onCopyFromGame, playDateNotes, onUpdatePlayDateNote, hasCampaignDates,
+    onCopyFromGame, onApplyDefaults, playDateNotes, onUpdatePlayDateNote, hasCampaignDates,
     adHocOnly, readOnly = false,
   } = props;
 
@@ -96,6 +99,9 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         use24h={use24h}
         otherGames={otherGames}
         onCopyFromGame={onCopyFromGame}
+        bulkActionsLead={
+          onApplyDefaults ? <ApplyDefaultsButton onApplyDefaults={onApplyDefaults} /> : undefined
+        }
         playDateNotes={playDateNotes}
         onUpdatePlayDateNote={onUpdatePlayDateNote}
         hasCampaignDates={hasCampaignDates}

@@ -40,7 +40,7 @@ test.describe('Bulk Availability Actions', () => {
     await dayDropdown.selectOption('5'); // Friday = 5
 
     // Click Apply button
-    const applyButton = page.getByRole('button', { name: /apply/i });
+    const applyButton = page.getByRole('button', { name: 'Apply', exact: true });
     await applyButton.click();
 
     // Get upcoming Fridays to verify
@@ -99,7 +99,7 @@ test.describe('Bulk Availability Actions', () => {
     await statusDropdown.selectOption('unavailable');
 
     // Click Apply button
-    const applyButton = page.getByRole('button', { name: /apply/i });
+    const applyButton = page.getByRole('button', { name: 'Apply', exact: true });
     await applyButton.click();
 
     // Get upcoming Saturdays to verify
@@ -153,7 +153,7 @@ test.describe('Bulk Availability Actions', () => {
     const dayDropdown = page.getByLabel('Day of week');
     await dayDropdown.selectOption('5'); // Friday = 5
     // Status is already "available" by default
-    const applyButton = page.getByRole('button', { name: /apply/i });
+    const applyButton = page.getByRole('button', { name: 'Apply', exact: true });
     await applyButton.click();
 
     // Get first Friday to check
@@ -222,7 +222,7 @@ test.describe('Bulk Availability Actions', () => {
     const dayDropdown = page.getByLabel('Day of week');
     await dayDropdown.selectOption('remaining');
     // Status is already "available" by default
-    const applyButton = page.getByRole('button', { name: /apply/i });
+    const applyButton = page.getByRole('button', { name: 'Apply', exact: true });
     await applyButton.click();
 
     // The first Friday should still be unavailable - not overwritten
@@ -281,7 +281,7 @@ test.describe('Bulk Availability Actions', () => {
     const statusDropdown = page.getByLabel('Availability status');
     await statusDropdown.selectOption('maybe');
 
-    const applyButton = page.getByRole('button', { name: /apply/i });
+    const applyButton = page.getByRole('button', { name: 'Apply', exact: true });
     await applyButton.click();
 
     // Verify Fridays are marked as maybe

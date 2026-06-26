@@ -18,7 +18,6 @@ interface MiniCalendarProps {
   weekStartDay: number;
   onCellActivate: (date: string) => void;
   subscribeLink?: React.ReactNode;
-  embedded?: boolean;
 }
 
 export function MiniCalendar({
@@ -31,7 +30,6 @@ export function MiniCalendar({
   weekStartDay,
   onCellActivate,
   subscribeLink,
-  embedded = false,
 }: MiniCalendarProps) {
   const months = useMemo(() => {
     const count = differenceInCalendarMonths(windowEnd, windowStart) + 1;
@@ -57,14 +55,10 @@ export function MiniCalendar({
 
   const body = (
     <>
-      {embedded ? (
-        subscribeLink && <div className="flex justify-end mb-3">{subscribeLink}</div>
-      ) : (
-        <div className="flex items-center justify-between mb-3">
-          <EyebrowLabel>Calendar</EyebrowLabel>
-          {subscribeLink}
-        </div>
-      )}
+      <div className="flex items-center justify-between mb-3">
+        <EyebrowLabel>Calendar</EyebrowLabel>
+        {subscribeLink}
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {months.map((m) => (
           <CalendarMonth
@@ -91,6 +85,5 @@ export function MiniCalendar({
     </>
   );
 
-  if (embedded) return body;
   return <Panel>{body}</Panel>;
 }

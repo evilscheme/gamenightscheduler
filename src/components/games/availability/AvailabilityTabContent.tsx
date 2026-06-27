@@ -7,6 +7,7 @@ import { AvailabilityCalendar } from '@/components/calendar/AvailabilityCalendar
 import { AvailabilityHeader } from './AvailabilityHeader';
 import { ApplyDefaultsButton } from './ApplyDefaultsButton';
 import type { ApplyDefaultsResult } from '@/hooks/useAvailability';
+import type { OtherGameSessionInfo } from '@/lib/otherGameSessions';
 
 export interface AvailabilityTabContentProps {
   // Header
@@ -32,6 +33,7 @@ export interface AvailabilityTabContentProps {
   weekStartDay: 0 | 1;
   use24h: boolean;
   otherGames: { id: string; name: string }[];
+  otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   onCopyFromGame: (
     sourceGameId: string,
     conflict: import('@/lib/copyAvailability').CopyConflict | null,
@@ -54,7 +56,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
     playDays, availability, onToggle, confirmedSessions, extraPlayDates,
     isGmOrCoGm, onToggleExtraDate, weekStartDay, use24h, otherGames,
     onCopyFromGame, onApplyDefaults, playDateNotes, onUpdatePlayDateNote, hasCampaignDates,
-    adHocOnly, readOnly = false,
+    adHocOnly, readOnly = false, otherGameSessionsByDate = new Map(),
   } = props;
 
   const monthRange = `${format(windowStart, 'MMM')} – ${format(windowEnd, 'MMM yyyy')}`;
@@ -101,6 +103,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         weekStartDay={weekStartDay}
         use24h={use24h}
         otherGames={otherGames}
+        otherGameSessionsByDate={otherGameSessionsByDate}
         onCopyFromGame={onCopyFromGame}
         bulkActionsLead={
           onApplyDefaults ? <ApplyDefaultsButton onApplyDefaults={onApplyDefaults} /> : undefined

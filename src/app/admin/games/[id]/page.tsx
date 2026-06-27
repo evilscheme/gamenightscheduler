@@ -245,6 +245,7 @@ export default function AdminGamePeekPage() {
             weekStartDay={weekStartDay}
             use24h={use24h}
             otherGames={[]}
+            otherGameSessionsByDate={new Map()}
             onCopyFromGame={async () => ({ copied: 0, overridden: 0 })}
             playDateNotes={playDateNotes}
             onUpdatePlayDateNote={() => {}}

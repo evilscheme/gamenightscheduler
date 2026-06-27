@@ -24,6 +24,7 @@ import {
 } from "@/lib/availabilityStatus";
 import { formatTimeShort } from "@/lib/formatting";
 import { getTimeOptions } from "@/lib/timeOptions";
+import type { OtherGameSessionInfo } from "@/lib/otherGameSessions";
 
 export type { AvailabilityEntry };
 
@@ -52,6 +53,7 @@ interface AvailabilityCalendarProps {
   ) => Promise<{ copied: number; overridden: number }>;
   playDateNotes?: Map<string, string>;
   onUpdatePlayDateNote?: (date: string, note: string | null) => void;
+  otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   hasCampaignDates?: boolean;
   /** Optional content rendered as the first section of the bulk-actions bar
    *  (e.g. "Apply my default availability"), so related fill shortcuts share one element. */
@@ -74,6 +76,7 @@ export function AvailabilityCalendar({
   use24h = false,
   otherGames,
   onCopyFromGame,
+  otherGameSessionsByDate = new Map(),
   playDateNotes = new Map(),
   onUpdatePlayDateNote,
   hasCampaignDates = false,
@@ -391,6 +394,7 @@ export function AvailabilityCalendar({
             windowStart={windowStart}
             windowEnd={windowEnd}
             onOutOfRangeTap={showOutOfRangeToast}
+            otherGameSessionsByDate={otherGameSessionsByDate}
             readOnly={readOnly}
           />
         ))}
@@ -561,6 +565,7 @@ interface MonthCalendarProps {
   windowStart: Date;
   windowEnd: Date;
   onOutOfRangeTap?: (message: string) => void;
+  otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   readOnly?: boolean;
 }
 
@@ -584,6 +589,7 @@ function MonthCalendar({
   windowStart,
   windowEnd,
   onOutOfRangeTap,
+  otherGameSessionsByDate = new Map(),
   readOnly = false,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({

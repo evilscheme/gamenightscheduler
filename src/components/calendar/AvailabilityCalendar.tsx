@@ -25,6 +25,7 @@ import {
 import { formatTimeShort } from "@/lib/formatting";
 import { getTimeOptions } from "@/lib/timeOptions";
 import type { OtherGameSessionInfo } from "@/lib/otherGameSessions";
+import { CopyFromGamePanel } from "@/components/games/availability/CopyFromGamePanel";
 
 export type { AvailabilityEntry };
 
@@ -94,11 +95,6 @@ export function AvailabilityCalendar({
   const [bulkStatus, setBulkStatus] = useState<AvailabilityStatus>("available");
   // Action menu for GM long-press on extra play dates
   const [actionMenuDate, setActionMenuDate] = useState<string | null>(null);
-  // Copy from game state
-  const [copySourceGameId, setCopySourceGameId] = useState<string>("");
-  const [isCopying, setIsCopying] = useState(false);
-  const [copyResultMessage, setCopyResultMessage] = useState<string | null>(null);
-
   // Out-of-range toast state (mobile feedback)
   const [outOfRangeToast, setOutOfRangeToast] = useState<string | null>(null);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -270,28 +266,6 @@ export function AvailabilityCalendar({
     bulkSetDays(bulkDayFilter, bulkStatus);
   };
 
-  const handleCopyFromGame = async () => {
-    if (!copySourceGameId || !onCopyFromGame) return;
-    setIsCopying(true);
-    setCopyResultMessage(null);
-    try {
-      const { copied } = await onCopyFromGame(copySourceGameId, null);
-      const gameName =
-        otherGames?.find((g) => g.id === copySourceGameId)?.name ?? "game";
-      setCopyResultMessage(
-        copied > 0
-          ? `Copied ${copied} date${copied !== 1 ? "s" : ""} from ${gameName}`
-          : "No new dates to copy"
-      );
-      setTimeout(() => setCopyResultMessage(null), 3000);
-    } catch {
-      setCopyResultMessage("Failed to copy availability");
-      setTimeout(() => setCopyResultMessage(null), 3000);
-    } finally {
-      setIsCopying(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       {/* Bulk actions */}
@@ -336,36 +310,15 @@ export function AvailabilityCalendar({
 
         {/* Copy from — its own panel */}
         {otherGames && otherGames.length > 0 && onCopyFromGame && (
-          <div className="bg-secondary rounded-lg p-3 flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground">Copy from</span>
-            <select
-              value={copySourceGameId}
-              onChange={(e) => setCopySourceGameId(e.target.value)}
-              className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-50"
-              data-testid="copy-game-select"
-            >
-              <option value="">Select a game</option>
-              {otherGames.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-            <Button
-              size="sm"
-              onClick={handleCopyFromGame}
-              disabled={!copySourceGameId || isCopying}
-              className="h-8"
-              data-testid="copy-game-button"
-            >
-              {isCopying ? "Copying..." : "Copy"}
-            </Button>
-            {copyResultMessage && (
-              <span className="text-xs text-muted-foreground" data-testid="copy-result-message">
-                {copyResultMessage}
-              </span>
-            )}
-          </div>
+          <CopyFromGamePanel
+            otherGames={otherGames}
+            otherGameSessionsByDate={otherGameSessionsByDate}
+            availability={availability}
+            playDays={playDays}
+            extraPlayDates={extraPlayDates}
+            windowEnd={windowEnd}
+            onCopyFromGame={onCopyFromGame}
+          />
         )}
       </div>
       )}

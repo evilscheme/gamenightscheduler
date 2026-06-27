@@ -245,7 +245,7 @@ export default function AdminGamePeekPage() {
             weekStartDay={weekStartDay}
             use24h={use24h}
             otherGames={[]}
-            onCopyFromGame={async () => 0}
+            onCopyFromGame={async () => ({ copied: 0, overridden: 0 })}
             playDateNotes={playDateNotes}
             onUpdatePlayDateNote={() => {}}
             hasCampaignDates={!!(game.campaign_start_date || game.campaign_end_date)}

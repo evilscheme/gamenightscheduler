@@ -46,7 +46,10 @@ interface AvailabilityCalendarProps {
   weekStartDay?: 0 | 1;
   use24h?: boolean;
   otherGames?: { id: string; name: string }[];
-  onCopyFromGame?: (sourceGameId: string) => Promise<number>;
+  onCopyFromGame?: (
+    sourceGameId: string,
+    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+  ) => Promise<{ copied: number; overridden: number }>;
   playDateNotes?: Map<string, string>;
   onUpdatePlayDateNote?: (date: string, note: string | null) => void;
   hasCampaignDates?: boolean;
@@ -269,12 +272,12 @@ export function AvailabilityCalendar({
     setIsCopying(true);
     setCopyResultMessage(null);
     try {
-      const count = await onCopyFromGame(copySourceGameId);
+      const { copied } = await onCopyFromGame(copySourceGameId, null);
       const gameName =
         otherGames?.find((g) => g.id === copySourceGameId)?.name ?? "game";
       setCopyResultMessage(
-        count > 0
-          ? `Copied ${count} date${count !== 1 ? "s" : ""} from ${gameName}`
+        copied > 0
+          ? `Copied ${copied} date${copied !== 1 ? "s" : ""} from ${gameName}`
           : "No new dates to copy"
       );
       setTimeout(() => setCopyResultMessage(null), 3000);

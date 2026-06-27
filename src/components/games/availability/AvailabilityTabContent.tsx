@@ -32,7 +32,10 @@ export interface AvailabilityTabContentProps {
   weekStartDay: 0 | 1;
   use24h: boolean;
   otherGames: { id: string; name: string }[];
-  onCopyFromGame: (sourceGameId: string) => Promise<number>;
+  onCopyFromGame: (
+    sourceGameId: string,
+    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+  ) => Promise<{ copied: number; overridden: number }>;
   onApplyDefaults?: () => Promise<ApplyDefaultsResult>;
   playDateNotes: Map<string, string>;
   onUpdatePlayDateNote: (date: string, note: string | null) => void;

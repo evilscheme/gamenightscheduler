@@ -153,8 +153,10 @@ export default function GameDetailPage() {
   const toggleExtraDate = (date: string) =>
     toggleExtraDateRaw(date, extraDateStrings.includes(date));
 
-  const copyFromGame = (sourceGameId: string) =>
-    copyFromGameRaw(sourceGameId, extraDateStrings);
+  const copyFromGame = (
+    sourceGameId: string,
+    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+  ) => copyFromGameRaw(sourceGameId, extraDateStrings, conflict);
 
   const confirmSession = (
     date: string,

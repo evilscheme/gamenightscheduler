@@ -70,7 +70,7 @@ test.describe('Navbar My Games link', () => {
     await expect(nav.getByRole('link', { name: 'My Games' })).toBeVisible();
   });
 
-  test('does not show "My Games" in navbar when user has no games', async ({ page, request }) => {
+  test('shows "My Games" in navbar even when user has no games, linking to the create/join page', async ({ page, request }) => {
     const user = await createTestUser(request, {
       email: `user-nogames-${Date.now()}@e2e.local`,
       name: 'No Games User',
@@ -83,14 +83,22 @@ test.describe('Navbar My Games link', () => {
       is_gm: true,
     });
 
-    await page.goto('/dashboard');
-    await expect(page.getByRole('heading', { name: /your games/i })).toBeVisible({
+    // Start somewhere other than the dashboard.
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
 
-    // "My Games" link should NOT be in the navbar
+    // "My Games" is always present for a logged-in user, regardless of game count.
     const nav = page.locator('nav');
-    await expect(nav.getByRole('link', { name: 'My Games' })).not.toBeVisible();
+    await expect(nav.getByRole('link', { name: 'My Games' })).toBeVisible();
+
+    // Clicking it lands on the helpful create-or-join welcome page.
+    await nav.getByRole('link', { name: 'My Games' }).click();
+    await expect(page.getByRole('heading', { name: 'Create a Game' })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await expect(page.getByRole('heading', { name: 'Join a Game' })).toBeVisible();
   });
 
   test('"My Games" link navigates to dashboard', async ({ page, request }) => {

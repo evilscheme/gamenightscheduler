@@ -134,3 +134,24 @@ export function filterSessionConflictsForCopy({
   result.sort((a, b) => a.localeCompare(b));
   return result;
 }
+
+/**
+ * Merge availability copy entries with session-conflict overrides.
+ *
+ * Conflict dates are written status-only (no comment/time) using `conflictStatus`,
+ * replacing any copied entry on the same date and adding entries for conflict
+ * dates that had no copied availability. Result is sorted by date.
+ */
+export function applyCopyConflicts(
+  toCopy: CopyEntry[],
+  conflictDates: string[],
+  conflictStatus: AvailabilityStatus,
+): CopyEntry[] {
+  const conflictSet = new Set(conflictDates);
+  const base = toCopy.filter((e) => !conflictSet.has(e.date));
+  const overrides: CopyEntry[] = conflictDates.map((date) => ({
+    date,
+    entry: { status: conflictStatus, comment: null, available_after: null, available_until: null },
+  }));
+  return [...base, ...overrides].sort((a, b) => a.date.localeCompare(b.date));
+}

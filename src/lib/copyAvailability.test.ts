@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterAvailabilityForCopy, filterSessionConflictsForCopy } from "./copyAvailability";
+import { filterAvailabilityForCopy, filterSessionConflictsForCopy, applyCopyConflicts } from "./copyAvailability";
 import { AvailabilityEntry } from "@/lib/availabilityStatus";
 
 // Helper functions matching date-fns behavior
@@ -275,5 +275,32 @@ describe("filterSessionConflictsForCopy", () => {
       destinationExtraPlayDates: [],
     });
     expect(result).toEqual([]);
+  });
+});
+
+describe("applyCopyConflicts", () => {
+  it("overrides copied entries on conflict dates and adds missing conflict dates", () => {
+    const toCopy = [
+      { date: "2025-01-17", entry: makeEntry("available", "from B", "18:00", "22:00") },
+      { date: "2025-01-24", entry: makeEntry("maybe") },
+    ];
+    // 2025-01-17 is a conflict (override + strip note/time); 2025-01-31 is a
+    // conflict with no copied entry (added fresh); 2025-01-24 is untouched.
+    const result = applyCopyConflicts(toCopy, ["2025-01-17", "2025-01-31"], "unavailable");
+
+    expect(result).toEqual([
+      { date: "2025-01-17", entry: { status: "unavailable", comment: null, available_after: null, available_until: null } },
+      { date: "2025-01-24", entry: makeEntry("maybe") },
+      { date: "2025-01-31", entry: { status: "unavailable", comment: null, available_after: null, available_until: null } },
+    ]);
+  });
+
+  it("with no conflict dates returns the copied entries sorted", () => {
+    const toCopy = [
+      { date: "2025-01-24", entry: makeEntry("available") },
+      { date: "2025-01-17", entry: makeEntry("available") },
+    ];
+    const result = applyCopyConflicts(toCopy, [], "unavailable");
+    expect(result.map((r) => r.date)).toEqual(["2025-01-17", "2025-01-24"]);
   });
 });

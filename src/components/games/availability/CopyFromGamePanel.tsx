@@ -90,7 +90,7 @@ export function CopyFromGamePanel({
       getDayOfWeek: getDay,
       isBefore,
       isAfter,
-      parseDate: (s) => parseISO(s),
+      parseDate: parseISO,
     });
 
     if (conflictDates.length > 0) {
@@ -111,7 +111,10 @@ export function CopyFromGamePanel({
       <span className="text-muted-foreground">Copy from</span>
       <select
         value={sourceGameId}
-        onChange={(e) => setSourceGameId(e.target.value)}
+        onChange={(e) => {
+          setSourceGameId(e.target.value);
+          setResultMessage(null);
+        }}
         className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-50"
         data-testid="copy-game-select"
       >

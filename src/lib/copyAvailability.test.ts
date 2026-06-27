@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterAvailabilityForCopy } from "./copyAvailability";
+import { filterAvailabilityForCopy, filterSessionConflictsForCopy } from "./copyAvailability";
 import { AvailabilityEntry } from "@/lib/availabilityStatus";
 
 // Helper functions matching date-fns behavior
@@ -229,5 +229,51 @@ describe("filterAvailabilityForCopy", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].date).toBe("2025-01-15");
+  });
+});
+
+describe("filterSessionConflictsForCopy", () => {
+  const today = new Date("2025-01-15T12:00:00"); // Wed
+  const windowEndDate = new Date("2025-03-31T12:00:00");
+  const base = { today, windowEndDate, getDayOfWeek, isBefore, isAfter, parseDate };
+
+  it("keeps only blank, in-window, future destination play-days/extra-dates", () => {
+    const result = filterSessionConflictsForCopy({
+      ...base,
+      conflictCandidateDates: [
+        "2025-01-17", // Fri, play day, blank → keep
+        "2025-01-24", // Fri, but already set in dest → drop
+        "2025-01-21", // Tue, not a play day/extra → drop
+        "2025-01-10", // past → drop
+        "2025-04-04", // beyond window → drop
+        "2025-01-20", // Mon, extra play date → keep
+      ],
+      destinationAvailability: { "2025-01-24": makeEntry("available") },
+      destinationPlayDays: [5],
+      destinationExtraPlayDates: ["2025-01-20"],
+    });
+    expect(result).toEqual(["2025-01-17", "2025-01-20"]);
+  });
+
+  it("dedupes and sorts", () => {
+    const result = filterSessionConflictsForCopy({
+      ...base,
+      conflictCandidateDates: ["2025-01-31", "2025-01-17", "2025-01-17"],
+      destinationAvailability: {},
+      destinationPlayDays: [5],
+      destinationExtraPlayDates: [],
+    });
+    expect(result).toEqual(["2025-01-17", "2025-01-31"]);
+  });
+
+  it("returns empty for no candidates", () => {
+    const result = filterSessionConflictsForCopy({
+      ...base,
+      conflictCandidateDates: [],
+      destinationAvailability: {},
+      destinationPlayDays: [5],
+      destinationExtraPlayDates: [],
+    });
+    expect(result).toEqual([]);
   });
 });

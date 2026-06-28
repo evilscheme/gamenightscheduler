@@ -644,6 +644,11 @@ function MonthCalendar({
           const avail = availability[dateStr];
           const otherSessions = otherGameSessionsByDate.get(dateStr);
           const showOtherGameBadge = isPlayDay && !isPast && !!otherSessions?.length;
+          // Ad-hoc games (no regular play days) keep the GM add/remove icon in the
+          // top-left, so the other-game badge sits top-right there to avoid overlap.
+          // (The extra-date triangle, the only top-right element, renders only when
+          // playDays.length > 0, so the corner is free for ad-hoc games.)
+          const otherGameBadgeAtTopRight = playDays.length === 0;
 
           // Can GM add this as a extra play date? Only non-play days that aren't past
           const canAddAsExtra =
@@ -842,8 +847,10 @@ function MonthCalendar({
               {/* Another game is scheduled this night (informational) */}
               {showOtherGameBadge && (
                 <span
-                  className={`absolute top-0.5 left-0.5 z-10 flex items-center rounded-sm bg-accent text-accent-foreground p-px leading-none ${
-                    canRemoveExtra ? "group-hover:opacity-0" : ""
+                  className={`absolute top-0.5 z-10 flex items-center rounded-sm bg-accent text-accent-foreground p-px leading-none ${
+                    otherGameBadgeAtTopRight
+                      ? "right-0.5"
+                      : `left-0.5 ${canRemoveExtra ? "group-hover:opacity-0" : ""}`
                   }`}
                   data-testid="other-game-indicator"
                   title={otherSessions!

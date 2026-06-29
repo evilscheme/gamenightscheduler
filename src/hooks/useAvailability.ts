@@ -22,7 +22,7 @@ import {
   batchUpsertAvailability,
   fetchUserDefaults,
 } from '@/lib/data';
-import { filterAvailabilityForCopy } from '@/lib/copyAvailability';
+import { filterAvailabilityForCopy, applyCopyConflicts, type CopyConflict } from '@/lib/copyAvailability';
 import { computeDefaultEntries, type WeekdayDefault } from '@/lib/defaultAvailability';
 import { getSchedulingWindow } from '@/lib/scheduling';
 
@@ -46,7 +46,11 @@ export interface UseAvailabilityReturn {
     availableAfter: string | null,
     availableUntil: string | null,
   ) => Promise<void>;
-  copyFromGame: (sourceGameId: string, extraDateStrings: string[]) => Promise<number>;
+  copyFromGame: (
+    sourceGameId: string,
+    extraDateStrings: string[],
+    conflict: CopyConflict | null,
+  ) => Promise<{ copied: number; overridden: number }>;
   applyDefaults: (extraDateStrings: string[]) => Promise<ApplyDefaultsResult>;
   removePlayerData: (playerId: string) => void;
   refresh: () => Promise<void>;
@@ -163,14 +167,17 @@ export function useAvailability(
   );
 
   const copyFromGame = useCallback(
-    async (sourceGameId: string, extraDateStrings: string[]): Promise<number> => {
-      if (!userId || !gameId || !game) return 0;
+    async (
+      sourceGameId: string,
+      extraDateStrings: string[],
+      conflict: CopyConflict | null,
+    ): Promise<{ copied: number; overridden: number }> => {
+      if (!userId || !gameId || !game) return { copied: 0, overridden: 0 };
 
       const { data: sourceAvail } = await fetchUserAvailability(supabase, sourceGameId, userId);
-      if (!sourceAvail || sourceAvail.length === 0) return 0;
 
       const sourceMap: Record<string, AvailabilityEntry> = {};
-      sourceAvail.forEach((a) => {
+      (sourceAvail ?? []).forEach((a) => {
         sourceMap[a.date] = {
           status: a.status,
           comment: a.comment,
@@ -182,7 +189,7 @@ export function useAvailability(
       const today = startOfDay(new Date());
       const { end: windowEnd } = getSchedulingWindow(game, today);
 
-      const toCopy = filterAvailabilityForCopy({
+      const copied = filterAvailabilityForCopy({
         sourceAvailability: sourceMap,
         destinationAvailability: availability,
         destinationPlayDays: game.play_days,
@@ -195,15 +202,19 @@ export function useAvailability(
         parseDate: (s) => parseISO(s),
       });
 
-      if (toCopy.length === 0) return 0;
+      const finalEntries = conflict
+        ? applyCopyConflicts(copied, conflict.dates, conflict.status)
+        : copied;
+
+      if (finalEntries.length === 0) return { copied: 0, overridden: 0 };
 
       setAvailability((prev) => {
         const next = { ...prev };
-        for (const { date, entry } of toCopy) next[date] = entry;
+        for (const { date, entry } of finalEntries) next[date] = entry;
         return next;
       });
 
-      const rows = toCopy.map(({ date, entry }) => ({
+      const rows = finalEntries.map(({ date, entry }) => ({
         user_id: userId,
         game_id: gameId,
         date,
@@ -218,7 +229,7 @@ export function useAvailability(
       if (error) {
         setAvailability((prev) => {
           const next = { ...prev };
-          for (const { date } of toCopy) delete next[date];
+          for (const { date } of finalEntries) delete next[date];
           return next;
         });
         throw error;
@@ -227,7 +238,7 @@ export function useAvailability(
       const now = new Date().toISOString();
       setAllAvailability((prev) => [
         ...prev,
-        ...toCopy.map(({ date, entry }) => ({
+        ...finalEntries.map(({ date, entry }) => ({
           id: 'temp',
           user_id: userId,
           game_id: gameId,
@@ -241,7 +252,8 @@ export function useAvailability(
         })),
       ]);
 
-      return toCopy.length;
+      const overridden = conflict ? conflict.dates.length : 0;
+      return { copied: finalEntries.length - overridden, overridden };
     },
     [userId, gameId, game, availability],
   );

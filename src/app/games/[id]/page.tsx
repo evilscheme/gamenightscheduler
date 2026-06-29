@@ -16,6 +16,7 @@ import { useAvailability } from "@/hooks/useAvailability";
 import { useSessions } from "@/hooks/useSessions";
 import { usePlayDates } from "@/hooks/usePlayDates";
 import { useGameDerivedState } from "@/hooks/useGameDerivedState";
+import { useOtherGameSessions } from "@/hooks/useOtherGameSessions";
 
 type Tab = "overview" | "availability" | "schedule";
 
@@ -102,6 +103,8 @@ export default function GameDetailPage() {
     suggestions,
   } = useGameDerivedState(game, allAvailability, gamePlayDates);
 
+  const { otherGameSessionsByDate } = useOtherGameSessions(otherGames, userId);
+
   const [subscribeUrl, setSubscribeUrl] = useState('');
   useEffect(() => {
     if (typeof window !== 'undefined' && game?.invite_code) {
@@ -153,8 +156,10 @@ export default function GameDetailPage() {
   const toggleExtraDate = (date: string) =>
     toggleExtraDateRaw(date, extraDateStrings.includes(date));
 
-  const copyFromGame = (sourceGameId: string) =>
-    copyFromGameRaw(sourceGameId, extraDateStrings);
+  const copyFromGame = (
+    sourceGameId: string,
+    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+  ) => copyFromGameRaw(sourceGameId, extraDateStrings, conflict);
 
   const confirmSession = (
     date: string,
@@ -323,6 +328,7 @@ export default function GameDetailPage() {
           weekStartDay={weekStartDay}
           use24h={use24h}
           otherGames={otherGames}
+          otherGameSessionsByDate={otherGameSessionsByDate}
           onCopyFromGame={copyFromGame}
           onApplyDefaults={() => applyDefaults(extraDateStrings)}
           playDateNotes={playDateNotes}

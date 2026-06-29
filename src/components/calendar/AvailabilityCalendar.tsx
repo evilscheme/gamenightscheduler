@@ -14,7 +14,7 @@ import {
   startOfDay,
   parseISO,
 } from "date-fns";
-import { Clock, FileText, MessageSquare, Pencil, Plus, X } from "lucide-react";
+import { CalendarDays, Clock, FileText, MessageSquare, Pencil, Plus, X } from "lucide-react";
 import { Button, EyebrowLabel } from "@/components/ui";
 import type { GameSession, AvailabilityStatus } from "@/types";
 import { DAY_LABELS, TEXT_LIMITS } from "@/lib/constants";
@@ -24,6 +24,8 @@ import {
 } from "@/lib/availabilityStatus";
 import { formatTimeShort } from "@/lib/formatting";
 import { getTimeOptions } from "@/lib/timeOptions";
+import type { OtherGameSessionInfo } from "@/lib/otherGameSessions";
+import { CopyFromGamePanel } from "@/components/games/availability/CopyFromGamePanel";
 
 export type { AvailabilityEntry };
 
@@ -46,9 +48,13 @@ interface AvailabilityCalendarProps {
   weekStartDay?: 0 | 1;
   use24h?: boolean;
   otherGames?: { id: string; name: string }[];
-  onCopyFromGame?: (sourceGameId: string) => Promise<number>;
+  onCopyFromGame?: (
+    sourceGameId: string,
+    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+  ) => Promise<{ copied: number; overridden: number }>;
   playDateNotes?: Map<string, string>;
   onUpdatePlayDateNote?: (date: string, note: string | null) => void;
+  otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   hasCampaignDates?: boolean;
   /** Optional content rendered as the first section of the bulk-actions bar
    *  (e.g. "Apply my default availability"), so related fill shortcuts share one element. */
@@ -71,6 +77,7 @@ export function AvailabilityCalendar({
   use24h = false,
   otherGames,
   onCopyFromGame,
+  otherGameSessionsByDate = new Map(),
   playDateNotes = new Map(),
   onUpdatePlayDateNote,
   hasCampaignDates = false,
@@ -88,11 +95,6 @@ export function AvailabilityCalendar({
   const [bulkStatus, setBulkStatus] = useState<AvailabilityStatus>("available");
   // Action menu for GM long-press on extra play dates
   const [actionMenuDate, setActionMenuDate] = useState<string | null>(null);
-  // Copy from game state
-  const [copySourceGameId, setCopySourceGameId] = useState<string>("");
-  const [isCopying, setIsCopying] = useState(false);
-  const [copyResultMessage, setCopyResultMessage] = useState<string | null>(null);
-
   // Out-of-range toast state (mobile feedback)
   const [outOfRangeToast, setOutOfRangeToast] = useState<string | null>(null);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -264,28 +266,6 @@ export function AvailabilityCalendar({
     bulkSetDays(bulkDayFilter, bulkStatus);
   };
 
-  const handleCopyFromGame = async () => {
-    if (!copySourceGameId || !onCopyFromGame) return;
-    setIsCopying(true);
-    setCopyResultMessage(null);
-    try {
-      const count = await onCopyFromGame(copySourceGameId);
-      const gameName =
-        otherGames?.find((g) => g.id === copySourceGameId)?.name ?? "game";
-      setCopyResultMessage(
-        count > 0
-          ? `Copied ${count} date${count !== 1 ? "s" : ""} from ${gameName}`
-          : "No new dates to copy"
-      );
-      setTimeout(() => setCopyResultMessage(null), 3000);
-    } catch {
-      setCopyResultMessage("Failed to copy availability");
-      setTimeout(() => setCopyResultMessage(null), 3000);
-    } finally {
-      setIsCopying(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       {/* Bulk actions */}
@@ -330,36 +310,15 @@ export function AvailabilityCalendar({
 
         {/* Copy from — its own panel */}
         {otherGames && otherGames.length > 0 && onCopyFromGame && (
-          <div className="bg-secondary rounded-lg p-3 flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground">Copy from</span>
-            <select
-              value={copySourceGameId}
-              onChange={(e) => setCopySourceGameId(e.target.value)}
-              className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm max-w-50"
-              data-testid="copy-game-select"
-            >
-              <option value="">Select a game</option>
-              {otherGames.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-            <Button
-              size="sm"
-              onClick={handleCopyFromGame}
-              disabled={!copySourceGameId || isCopying}
-              className="h-8"
-              data-testid="copy-game-button"
-            >
-              {isCopying ? "Copying..." : "Copy"}
-            </Button>
-            {copyResultMessage && (
-              <span className="text-xs text-muted-foreground" data-testid="copy-result-message">
-                {copyResultMessage}
-              </span>
-            )}
-          </div>
+          <CopyFromGamePanel
+            otherGames={otherGames}
+            otherGameSessionsByDate={otherGameSessionsByDate}
+            availability={availability}
+            playDays={playDays}
+            extraPlayDates={extraPlayDates}
+            windowEnd={windowEnd}
+            onCopyFromGame={onCopyFromGame}
+          />
         )}
       </div>
       )}
@@ -388,6 +347,7 @@ export function AvailabilityCalendar({
             windowStart={windowStart}
             windowEnd={windowEnd}
             onOutOfRangeTap={showOutOfRangeToast}
+            otherGameSessionsByDate={otherGameSessionsByDate}
             readOnly={readOnly}
           />
         ))}
@@ -445,6 +405,12 @@ export function AvailabilityCalendar({
             </svg>
           </div>
           <span>Scheduled</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="flex size-3.5 items-center justify-center rounded-sm bg-accent text-accent-foreground">
+            <CalendarDays className="size-2.5" />
+          </div>
+          <span>Scheduled in another game</span>
         </div>
         {hasCampaignDates && (
           <div className="flex items-center gap-1.5">
@@ -558,6 +524,7 @@ interface MonthCalendarProps {
   windowStart: Date;
   windowEnd: Date;
   onOutOfRangeTap?: (message: string) => void;
+  otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   readOnly?: boolean;
 }
 
@@ -581,6 +548,7 @@ function MonthCalendar({
   windowStart,
   windowEnd,
   onOutOfRangeTap,
+  otherGameSessionsByDate = new Map(),
   readOnly = false,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
@@ -674,6 +642,8 @@ function MonthCalendar({
           const isPast = isBefore(date, today);
           const isConfirmed = confirmedDates.has(dateStr);
           const avail = availability[dateStr];
+          const otherSessions = otherGameSessionsByDate.get(dateStr);
+          const showOtherGameBadge = isPlayDay && !isPast && !!otherSessions?.length;
 
           // Can GM add this as a extra play date? Only non-play days that aren't past
           const canAddAsExtra =
@@ -791,6 +761,15 @@ function MonthCalendar({
           if (hasComment) {
             tooltipParts.push(`Note: ${avail!.comment}`);
           }
+          if (otherSessions?.length) {
+            for (const os of otherSessions) {
+              const oStart = formatTimeShort(os.startTime, use24h);
+              const oEnd = formatTimeShort(os.endTime, use24h);
+              const when =
+                oStart && oEnd ? ` ${oStart}–${oEnd}` : oStart ? ` from ${oStart}` : "";
+              tooltipParts.push(`Scheduled: ${os.gameName}${when}`);
+            }
+          }
           const gmNote = playDateNotes?.get(dateStr);
           if (gmNote) {
             tooltipParts.push(`GM note: ${gmNote}`);
@@ -838,6 +817,7 @@ function MonthCalendar({
               data-status={dataStatus}
               data-availability={isConfirmed && !isPast ? (avail?.status ?? "unset") : undefined}
               data-extra={isExtraPlayDate ? "true" : undefined}
+              data-other-game={showOtherGameBadge ? "true" : undefined}
               title={cellTooltip}
             >
               {/* Scheduled game star decoration */}
@@ -859,9 +839,25 @@ function MonthCalendar({
                   </svg>
                 </span>
               )}
+              {/* Another game is scheduled this night (informational).
+                  Always top-right; the GM add/remove icons own the top-left, and
+                  the extra-date triangle (also top-right) is suppressed below when
+                  this badge shows, so nothing overlaps. */}
+              {showOtherGameBadge && (
+                <span
+                  className="absolute top-0.5 right-0.5 z-10 flex items-center rounded-sm bg-accent text-accent-foreground p-px leading-none"
+                  data-testid="other-game-indicator"
+                  title={otherSessions!
+                    .map((os) => `Scheduled: ${os.gameName}`)
+                    .join("\n")}
+                >
+                  <CalendarDays className="size-2.5" />
+                </span>
+              )}
               {format(date, "d")}
-              {/* Extra date indicator - corner triangle (hidden for ad-hoc games) */}
-              {isExtraPlayDate && !isPast && playDays.length > 0 && (
+              {/* Extra date indicator - corner triangle (hidden for ad-hoc games,
+                  and yielded to the other-game badge when both want the top-right) */}
+              {isExtraPlayDate && !isPast && playDays.length > 0 && !showOtherGameBadge && (
                 <span className="absolute top-0 right-0 size-0 border-t-10 border-t-primary border-l-10 border-l-transparent" />
               )}
               {/* GM: Add extra play date icon on non-play days */}

@@ -729,6 +729,13 @@ function MonthCalendar({
 
           const hasComment = !!avail?.comment;
           const hasTimeConstraint = !!(avail?.available_after || avail?.available_until);
+          // Time windows only apply to available/maybe. The data is preserved
+          // through an "unavailable" toggle so it round-trips, but don't surface
+          // the clock — its editor hides the time fields when unavailable, so the
+          // icon would be a dead affordance the user can't edit or clear.
+          const showTimeConstraint =
+            hasTimeConstraint &&
+            (avail?.status === "available" || avail?.status === "maybe");
           const hasAvailability = !!avail;
 
           // Build tooltip
@@ -751,7 +758,7 @@ function MonthCalendar({
               tooltipParts.push(`Your status: ${statusLabel}`);
             }
           }
-          if (hasTimeConstraint) {
+          if (showTimeConstraint) {
             const after = formatTimeShort(avail?.available_after ?? null, use24h);
             const until = formatTimeShort(avail?.available_until ?? null, use24h);
             if (after && until) {
@@ -898,7 +905,7 @@ function MonthCalendar({
                 </span>
               )}
               {/* Bottom-left status icons (clickable — open editor popover) */}
-              {isPlayDay && !isPast && (hasTimeConstraint || playDateNotes?.has(dateStr)) && (
+              {isPlayDay && !isPast && (showTimeConstraint || playDateNotes?.has(dateStr)) && (
                 <span
                   className="absolute bottom-0 left-0.5 leading-none cursor-pointer flex items-center gap-px hover:scale-125 transition-all"
                   data-testid="note-icons"
@@ -911,7 +918,7 @@ function MonthCalendar({
                     onEditComment(dateStr);
                   }}
                 >
-                  {hasTimeConstraint && (
+                  {showTimeConstraint && (
                     <span
                       data-testid="time-indicator"
                       title={(() => {

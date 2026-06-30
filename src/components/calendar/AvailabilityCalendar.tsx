@@ -24,7 +24,10 @@ import {
 } from "@/lib/availabilityStatus";
 import { formatTimeShort } from "@/lib/formatting";
 import { getTimeOptions } from "@/lib/timeOptions";
-import type { OtherGameSessionInfo } from "@/lib/otherGameSessions";
+import {
+  formatSessionTimeWindow,
+  type OtherGameSessionInfo,
+} from "@/lib/otherGameSessions";
 import { CopyFromGamePanel } from "@/components/games/availability/CopyFromGamePanel";
 
 export type { AvailabilityEntry };
@@ -449,6 +452,7 @@ export function AvailabilityCalendar({
           onSave={handleSaveComment}
           onCancel={handleCancelComment}
           use24h={use24h}
+          otherGameSessions={otherGameSessionsByDate.get(commentingDate) ?? []}
           gmNote={playDateNotes.get(commentingDate!) ?? null}
           showGmNote={isGmOrCoGm || !!playDateNotes.get(commentingDate!)}
           isGmOrCoGm={isGmOrCoGm}
@@ -763,11 +767,8 @@ function MonthCalendar({
           }
           if (otherSessions?.length) {
             for (const os of otherSessions) {
-              const oStart = formatTimeShort(os.startTime, use24h);
-              const oEnd = formatTimeShort(os.endTime, use24h);
-              const when =
-                oStart && oEnd ? ` ${oStart}–${oEnd}` : oStart ? ` from ${oStart}` : "";
-              tooltipParts.push(`Scheduled: ${os.gameName}${when}`);
+              const when = formatSessionTimeWindow(os.startTime, os.endTime, use24h);
+              tooltipParts.push(`Scheduled: ${os.gameName}${when ? ` ${when}` : ""}`);
             }
           }
           const gmNote = playDateNotes?.get(dateStr);
@@ -986,6 +987,7 @@ interface NoteEditorPopoverProps {
   isGmOrCoGm?: boolean;
   gmNoteText?: string;
   onGmNoteChange?: (value: string) => void;
+  otherGameSessions?: OtherGameSessionInfo[];
 }
 
 function NoteEditorPopover({
@@ -1006,6 +1008,7 @@ function NoteEditorPopover({
   isGmOrCoGm,
   gmNoteText,
   onGmNoteChange,
+  otherGameSessions,
 }: NoteEditorPopoverProps) {
   const timeOptions = getTimeOptions(use24h);
   return (
@@ -1028,6 +1031,28 @@ function NoteEditorPopover({
             &times;
           </button>
         </div>
+
+        {/* Scheduled elsewhere — confirmed sessions you have in other games that
+            night. Matches the calendar's accent badge so the two read as one idea. */}
+        {otherGameSessions && otherGameSessions.length > 0 && (
+          <div className="mb-3">
+            <EyebrowLabel variant="muted" className="block mb-2">Scheduled elsewhere</EyebrowLabel>
+            <div className="rounded-md border border-accent/30 bg-accent/10 p-3 space-y-1.5">
+              {otherGameSessions.map((os) => {
+                const when = formatSessionTimeWindow(os.startTime, os.endTime, use24h);
+                return (
+                  <div key={os.gameId} className="flex items-start gap-2 text-sm" data-testid="popover-other-game">
+                    <CalendarDays className="size-3.5 mt-0.5 shrink-0 text-accent-foreground" />
+                    <span className="text-foreground">
+                      <span className="font-medium">{os.gameName}</span>
+                      {when && <span className="text-muted-foreground"> · {when}</span>}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* GM Note section */}
         {showGmNote && (

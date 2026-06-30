@@ -183,6 +183,12 @@ export default function HelpPage() {
               <p>
                 Dates you haven&apos;t responded to yet show as <strong className="text-foreground">pending</strong>.
               </p>
+              <p>
+                If you&apos;re in more than one game, a badge marks any night where you already
+                have a confirmed session in another game. To see which game, hover the date on
+                desktop or long-press it on mobile; the game and time appear under <strong className="text-foreground">Scheduled
+                elsewhere</strong>.
+              </p>
             </HelpSection>
 
             <HelpSection title="Adding Notes & Time Constraints">
@@ -214,12 +220,36 @@ export default function HelpPage() {
               </p>
             </HelpSection>
 
+            <HelpSection title="Default Availability">
+              <p>
+                Set your usual weekly pattern once instead of filling in every game by hand. In <Link href="/settings/default-availability" className="text-primary hover:underline">Settings &rarr; Default
+                availability</Link>, pick a status for each day of the week &mdash; available,
+                unavailable, maybe, or No default.
+                Available and maybe days can carry the same time constraints and notes as any
+                other date.
+              </p>
+              <p>
+                On any game&apos;s Availability tab, click <strong className="text-foreground">Apply my
+                default availability</strong> to fill that game&apos;s calendar from your pattern.
+                It fills only the dates you haven&apos;t answered yet, leaving anything you&apos;ve
+                already marked untouched, and you can apply it again later (for example, after your
+                GM adds play dates). Use <strong className="text-foreground">Edit defaults</strong> beside
+                the button to change your pattern.
+              </p>
+            </HelpSection>
+
             <HelpSection title="Copy Availability">
               <p>
                 If you&apos;re in multiple games with overlapping dates, use <strong className="text-foreground">Copy
                 from</strong> in the bulk actions bar to pull your availability over from another game.
                 It only fills in dates you haven&apos;t responded to yet, so anything
                 you&apos;ve already set stays untouched.
+              </p>
+              <p>
+                If the game you&apos;re copying from has confirmed sessions on nights you
+                haven&apos;t answered here, you&apos;ll first be asked how to mark those nights
+                &mdash; unavailable, maybe, or available &mdash; so a booked night isn&apos;t copied
+                in as available.
               </p>
             </HelpSection>
 
@@ -245,6 +275,11 @@ export default function HelpPage() {
             <li><strong className="text-foreground">Time format</strong>: 12-hour or 24-hour</li>
             <li><strong className="text-foreground">Color theme</strong>: applies across all your games</li>
           </ul>
+          <p>
+            Settings is also where you set your <strong className="text-foreground">default
+            availability</strong> &mdash; the reusable weekly pattern covered under Default
+            Availability above.
+          </p>
         </HelpSection>
       </div>
     </div>

@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { buildOtherGameSessionMap } from "./otherGameSessions";
+import {
+  buildOtherGameSessionMap,
+  formatSessionTimeWindow,
+} from "./otherGameSessions";
 import type { GameSession } from "@/types";
 
 const makeSession = (over: Partial<GameSession>): GameSession => ({
@@ -57,5 +60,27 @@ describe("buildOtherGameSessionMap", () => {
     const sessions = [makeSession({ id: "1", game_id: "gB", date: "2026-06-26" })];
     const map = buildOtherGameSessionMap(sessions, names, "2026-06-26");
     expect(map.has("2026-06-26")).toBe(true);
+  });
+});
+
+describe("formatSessionTimeWindow", () => {
+  it("joins start and end with an en dash", () => {
+    expect(formatSessionTimeWindow("19:00", "22:00", false)).toBe("7pm–10pm");
+  });
+
+  it("prefixes a start-only window with 'from'", () => {
+    expect(formatSessionTimeWindow("19:00", null, false)).toBe("from 7pm");
+  });
+
+  it("prefixes an end-only window with 'until'", () => {
+    expect(formatSessionTimeWindow(null, "22:00", false)).toBe("until 10pm");
+  });
+
+  it("returns an empty string when neither time is set", () => {
+    expect(formatSessionTimeWindow(null, null, false)).toBe("");
+  });
+
+  it("respects the 24-hour preference", () => {
+    expect(formatSessionTimeWindow("19:00", "22:00", true)).toBe("19:00–22:00");
   });
 });

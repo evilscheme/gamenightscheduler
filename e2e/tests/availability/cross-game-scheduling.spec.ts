@@ -50,6 +50,45 @@ test.describe('Cross-game scheduling awareness', () => {
     await expect(cleanCell).not.toHaveAttribute('data-other-game', 'true');
   });
 
+  test('the date popover surfaces the other-game session (reachable on mobile)', async ({ page, request }) => {
+    const user = await createTestUser(request, {
+      email: `xgame-popover-${Date.now()}@e2e.local`,
+      name: 'XGame Popover',
+      is_gm: true,
+    });
+
+    const gameA = await createTestGame({
+      gm_id: user.id, name: 'Game A Popover', play_days: [5], scheduling_window_months: 2,
+    });
+    const gameB = await createTestGame({
+      gm_id: user.id, name: 'Game B Popover', play_days: [5], scheduling_window_months: 2,
+    });
+
+    const fridays = getPlayDates([5], 4);
+    await createTestSession({
+      game_id: gameB.id, date: fridays[0], confirmed_by: user.id,
+      start_time: '19:00', end_time: '22:00',
+    });
+
+    await loginTestUser(page, { email: user.email, name: user.name, is_gm: true });
+    await page.goto(`/games/${gameA.id}`);
+    await page.getByRole('button', { name: /availability/i }).click();
+    await expect(page.getByText(/mark your availability/i)).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Open the date's detail popover — the same one a mobile long-press opens.
+    const conflictCell = page.locator(`button[data-date="${fridays[0]}"]`);
+    await conflictCell.hover();
+    await conflictCell.locator('[data-testid="edit-note-icon"]').click();
+
+    // It names the game you're already scheduled with that night, with the time.
+    const otherGame = page.locator('[data-testid="popover-other-game"]');
+    await expect(otherGame).toBeVisible({ timeout: TEST_TIMEOUTS.DEFAULT });
+    await expect(otherGame).toContainText('Game B Popover');
+    await expect(otherGame).toContainText('7pm–10pm');
+  });
+
   test('copy prompts on conflicts and applies the chosen status', async ({ page, request }) => {
     const user = await createTestUser(request, {
       email: `xgame-copy-${Date.now()}@e2e.local`,

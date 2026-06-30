@@ -243,6 +243,63 @@ test.describe('Time Availability Constraints', () => {
     await expect(endTimeInput).toHaveValue('23:00');
   });
 
+  test('clock indicator is hidden on unavailable days (no dead affordance)', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-time-unavail-${Date.now()}@e2e.local`,
+      name: 'Time Unavail GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Time Unavail Campaign',
+      play_days: [5, 6],
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    await page.goto(`/games/${game.id}`);
+
+    await expect(page.getByRole('button', { name: /availability/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /availability/i }).click();
+    await expect(page.getByText(/mark your availability/i)).toBeVisible();
+
+    const playDates = getPlayDates([5, 6], 2);
+    const targetDate = playDates[0];
+
+    const dateButton = page.locator(`button[data-date="${targetDate}"]`);
+    await expect(dateButton).toBeVisible();
+
+    // Mark available and set a time constraint
+    await dateButton.click();
+    await expect(dateButton).toHaveAttribute('data-status', 'available');
+
+    const editIcon = dateButton.locator('span[title="Add note"]');
+    await editIcon.click();
+    await page.getByLabel('Available after').selectOption('20:00');
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Clock indicator visible while available
+    await expect(dateButton.getByTestId('time-indicator')).toBeVisible();
+
+    // Cycle to unavailable — time windows don't apply, so the clock (an editor
+    // that can't edit the time for unavailable) must NOT be shown.
+    await dateButton.click();
+    await expect(dateButton).toHaveAttribute('data-status', 'unavailable');
+    await expect(dateButton.getByTestId('time-indicator')).toHaveCount(0);
+
+    // Cycle to maybe — the preserved constraint round-trips back into view.
+    await dateButton.click();
+    await expect(dateButton).toHaveAttribute('data-status', 'maybe');
+    await expect(dateButton.getByTestId('time-indicator')).toBeVisible();
+  });
+
   test('time constraints persist when cycling availability states', async ({ page, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-time-persist-${Date.now()}@e2e.local`,

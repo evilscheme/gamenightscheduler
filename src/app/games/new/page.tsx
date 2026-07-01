@@ -155,7 +155,11 @@ export default function NewGamePage() {
         initial={initial}
         busy={creating}
         error={error}
-        disabledReason={atGameLimit ? 'limit' : null}
+        disabledReason={
+          atGameLimit
+            ? 'Game limit reached — remove a game to unlock this.'
+            : null
+        }
         onSubmit={handleCreate}
         onCancel={() => router.back()}
       />

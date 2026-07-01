@@ -102,4 +102,24 @@ describe('GameForm', () => {
       }),
     );
   });
+
+  it('disables the submit button and shows the disabled reason as a hint', () => {
+    const onSubmit = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <GameForm
+        mode="create"
+        initial={baseInitial}
+        busy={false}
+        disabledReason="Game limit reached — remove a game to unlock this."
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /create game/i })).toBeDisabled();
+    expect(
+      screen.getByText('Game limit reached — remove a game to unlock this.'),
+    ).toBeInTheDocument();
+  });
 });

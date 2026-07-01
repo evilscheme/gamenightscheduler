@@ -35,7 +35,7 @@ export default function GameDetailPage() {
 
   const ready = !!game;
   const availabilityHook = useAvailability(gameId, userId, game);
-  const { availability, allAvailability, changeAvailability, copyFromGame: copyFromGameRaw, applyDefaults, removePlayerData } = availabilityHook;
+  const { availability, allAvailability, changeAvailability, copyFromGame: copyFromGameRaw, applyDefaults, removePlayerData, hasDefaults } = availabilityHook;
 
   const sessionsHook = useSessions(gameId, ready);
   const { sessions, confirmSession: confirmSessionRaw, updateSession, cancelSession } = sessionsHook;
@@ -331,6 +331,7 @@ export default function GameDetailPage() {
           otherGameSessionsByDate={otherGameSessionsByDate}
           onCopyFromGame={copyFromGame}
           onApplyDefaults={() => applyDefaults(extraDateStrings)}
+          hasDefaults={hasDefaults}
           playDateNotes={playDateNotes}
           onUpdatePlayDateNote={updatePlayDateNote}
           hasCampaignDates={!!(game.campaign_start_date || game.campaign_end_date)}

@@ -39,6 +39,8 @@ export interface UseAvailabilityReturn {
   availability: Record<string, AvailabilityEntry>;
   allAvailability: Availability[];
   loading: boolean;
+  /** Whether the user has any default availability saved. `null` while the initial fetch is in flight. */
+  hasDefaults: boolean | null;
   changeAvailability: (
     date: string,
     status: AvailabilityStatus,
@@ -64,12 +66,14 @@ export function useAvailability(
   const [availability, setAvailability] = useState<Record<string, AvailabilityEntry>>({});
   const [allAvailability, setAllAvailability] = useState<Availability[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasDefaults, setHasDefaults] = useState<boolean | null>(null);
 
   const fetchAll = useCallback(async () => {
     if (!gameId || !userId) return;
-    const [userAvailRes, allAvailRes] = await Promise.all([
+    const [userAvailRes, allAvailRes, defaultsRes] = await Promise.all([
       fetchUserAvailability(supabase, gameId, userId),
       fetchAllAvailability(supabase, gameId),
+      fetchUserDefaults(supabase, userId),
     ]);
 
     const map: Record<string, AvailabilityEntry> = {};
@@ -83,6 +87,7 @@ export function useAvailability(
     });
     setAvailability(map);
     setAllAvailability(allAvailRes.data || []);
+    setHasDefaults((defaultsRes.data?.length ?? 0) > 0);
     setLoading(false);
   }, [gameId, userId]);
 
@@ -360,6 +365,7 @@ export function useAvailability(
     availability,
     allAvailability,
     loading,
+    hasDefaults,
     changeAvailability,
     copyFromGame,
     applyDefaults,

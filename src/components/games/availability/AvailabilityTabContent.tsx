@@ -39,6 +39,7 @@ export interface AvailabilityTabContentProps {
     conflict: import('@/lib/copyAvailability').CopyConflict | null,
   ) => Promise<{ copied: number; overridden: number }>;
   onApplyDefaults?: () => Promise<ApplyDefaultsResult>;
+  hasDefaults?: boolean | null;
   playDateNotes: Map<string, string>;
   onUpdatePlayDateNote: (date: string, note: string | null) => void;
   hasCampaignDates: boolean;
@@ -55,7 +56,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
     windowStart, windowEnd, currentUserId, completionByUserId,
     playDays, availability, onToggle, confirmedSessions, extraPlayDates,
     isGmOrCoGm, onToggleExtraDate, weekStartDay, use24h, otherGames,
-    onCopyFromGame, onApplyDefaults, playDateNotes, onUpdatePlayDateNote, hasCampaignDates,
+    onCopyFromGame, onApplyDefaults, hasDefaults, playDateNotes, onUpdatePlayDateNote, hasCampaignDates,
     adHocOnly, readOnly = false, otherGameSessionsByDate = new Map(),
   } = props;
 
@@ -106,7 +107,9 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         otherGameSessionsByDate={otherGameSessionsByDate}
         onCopyFromGame={onCopyFromGame}
         bulkActionsLead={
-          onApplyDefaults ? <ApplyDefaultsButton onApplyDefaults={onApplyDefaults} /> : undefined
+          onApplyDefaults ? (
+            <ApplyDefaultsButton onApplyDefaults={onApplyDefaults} hasDefaults={hasDefaults ?? null} />
+          ) : undefined
         }
         playDateNotes={playDateNotes}
         onUpdatePlayDateNote={onUpdatePlayDateNote}

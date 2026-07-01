@@ -72,6 +72,12 @@ test.describe('Usage Limits - RLS Policy Enforcement', () => {
       // The Create Game button should be disabled
       const createButton = page.getByRole('button', { name: /create game/i });
       await expect(createButton).toBeDisabled();
+
+      // The reason is now also shown as a hint right next to the button (in
+      // addition to the top-of-page banner), so it's visible at the point of
+      // the disabled action without needing to scroll back up. Distinct
+      // wording from the banner text above avoids an ambiguous double-match.
+      await expect(page.getByText(/game limit reached — remove a game/i)).toBeVisible();
     });
   });
 

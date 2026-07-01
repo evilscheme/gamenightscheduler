@@ -11,5 +11,6 @@ export { StatePill, type PillState } from './StatePill';
 export { RankCircle } from './RankCircle';
 export { EyebrowLabel } from './EyebrowLabel';
 export { Modal } from './Modal';
+export { HintText } from './HintText';
 export { OnboardingBanner, type OnboardingBannerProps } from './OnboardingBanner';
 export { ToastProvider, useToast } from './Toast';

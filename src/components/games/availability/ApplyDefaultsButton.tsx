@@ -9,9 +9,11 @@ import type { ApplyDefaultsResult } from '@/hooks/useAvailability';
 
 interface ApplyDefaultsButtonProps {
   onApplyDefaults: () => Promise<ApplyDefaultsResult>;
+  /** Whether the user has any default availability saved. `null` while still loading. */
+  hasDefaults: boolean | null;
 }
 
-export function ApplyDefaultsButton({ onApplyDefaults }: ApplyDefaultsButtonProps) {
+export function ApplyDefaultsButton({ onApplyDefaults, hasDefaults }: ApplyDefaultsButtonProps) {
   const toast = useToast();
   const pathname = usePathname();
   const [busy, setBusy] = useState(false);
@@ -43,14 +45,19 @@ export function ApplyDefaultsButton({ onApplyDefaults }: ApplyDefaultsButtonProp
 
   return (
     <div className="flex items-center gap-2">
-      <Button size="sm" className="h-8" onClick={handleClick} disabled={busy}>
+      <Button
+        size="sm"
+        className="h-8"
+        onClick={handleClick}
+        disabled={busy || hasDefaults === false}
+      >
         {busy ? 'Applying…' : 'Apply my default availability'}
       </Button>
       <Link
         href={editHref}
         className="text-xs text-muted-foreground hover:text-foreground"
       >
-        Edit defaults
+        {hasDefaults === false ? 'Set up defaults' : 'Edit defaults'}
       </Link>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useReducer } from 'react';
-import { Button, EyebrowLabel, Input, Panel, Textarea, ToggleSwitch } from '@/components/ui';
+import { Button, EyebrowLabel, HintText, Input, Panel, Textarea, ToggleSwitch } from '@/components/ui';
 import {
   DAY_OPTIONS,
   SCHEDULING_WINDOW_OPTIONS,
@@ -48,7 +48,7 @@ export interface GameFormProps {
   busy: boolean;
   /** Optional informational message shown above Schedule (used by edit mode for ad-hoc conversion notice). */
   noticeMessage?: string | null;
-  /** Optional disabling reason (e.g. game-limit reached on create). When set, the submit button is disabled. */
+  /** Optional reason the submit button is disabled (e.g. at game limit). Rendered as a hint below the submit button, in addition to disabling it. */
   disabledReason?: string | null;
   /** Validation/submission error rendered above the submit button. */
   error?: string;
@@ -373,6 +373,7 @@ export function GameForm({
           Cancel
         </Button>
       </div>
+      {disabledReason && <HintText>{disabledReason}</HintText>}
     </form>
   );
 }

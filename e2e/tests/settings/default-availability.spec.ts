@@ -103,8 +103,9 @@ test.describe('Default availability', () => {
     await expect(page.getByRole('button', { name: /^availability$/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
     await page.getByRole('button', { name: /^availability$/i }).click();
 
-    // Open the editor via the "Edit defaults" link on the Availability tab.
-    await page.getByRole('link', { name: /edit defaults/i }).click();
+    // Open the editor via the defaults link on the Availability tab. This is a
+    // fresh game with no saved defaults yet, so the link reads "Set up defaults".
+    await page.getByRole('link', { name: 'Set up defaults' }).click();
     await expect(page).toHaveURL(/\/settings\/default-availability\?returnTo=/, { timeout: TEST_TIMEOUTS.DEFAULT });
 
     // The back link returns to the game's Availability tab (not Settings, and
@@ -117,5 +118,37 @@ test.describe('Default availability', () => {
     await expect(page.getByRole('button', { name: /apply my default availability/i })).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
+  });
+
+  test('Apply button is disabled with a "Set up defaults" link until defaults are saved', async ({ page }) => {
+    const user = await loginTestUser(page, {
+      email: `default-none-${Date.now()}@e2e.local`,
+      name: 'No Defaults User',
+      is_gm: true,
+    });
+    const game = await createTestGame({ gm_id: user.id, name: 'No Defaults Game', play_days: [5] });
+
+    await page.goto(`/games/${game.id}`);
+    await expect(page.getByRole('button', { name: /^availability$/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
+    await page.getByRole('button', { name: /^availability$/i }).click();
+
+    await expect(page.getByRole('button', { name: /apply my default availability/i })).toBeDisabled();
+    await expect(page.getByRole('link', { name: 'Set up defaults' })).toBeVisible();
+
+    // Set defaults, then confirm the button flips to enabled with "Edit defaults".
+    // Use the editor's "Back to game" link (not browser back) — it round-trips
+    // through the `returnTo` query param to land back on the Availability tab
+    // specifically; the tab switch itself doesn't change the URL, so a plain
+    // back-navigation would land on the default tab instead.
+    await page.getByRole('link', { name: 'Set up defaults' }).click();
+    await expect(page.getByRole('heading', { name: /default availability/i })).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
+    await setDefault(page, 'friday', 'available');
+    await saveDefaults(page);
+    await page.getByRole('link', { name: /back to game/i }).click();
+
+    await expect(page.getByRole('button', { name: /apply my default availability/i })).toBeEnabled({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await expect(page.getByRole('link', { name: 'Edit defaults' })).toBeVisible();
   });
 });

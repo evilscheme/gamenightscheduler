@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
-import { startOfWeek, subWeeks, format } from 'date-fns';
+import { buildRollingEngagement } from '@/lib/adminEngagement';
+import { startOfDay, subDays, format } from 'date-fns';
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -10,14 +11,6 @@ const VALID_WEEKS = [8, 12, 26] as const;
 // In serverless, this only helps when the function instance is reused across
 // requests (Fluid Compute). Misses silently on cold starts — that's fine.
 const cache = new Map<string, { data: unknown; timestamp: number }>();
-
-interface WeekBucket {
-  week: string; // ISO date string for the Monday of that week
-  newUsers: number;
-  newGames: number;
-  sessionsConfirmed: number;
-  activeUsers: number;
-}
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -41,9 +34,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
 
     const now = new Date();
-    const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+    // Rolling windows are anchored on midnight today (today is excluded as
+    // incomplete). N "weeks" = N trailing 7-day windows, so fetch N*7 days back.
+    const endExclusive = startOfDay(now);
     const cutoffDate = weeks
-      ? format(subWeeks(currentWeekStart, weeks), 'yyyy-MM-dd')
+      ? format(subDays(endExclusive, weeks * 7), 'yyyy-MM-dd')
       : null;
 
     const cutoff = cutoffDate ?? undefined;
@@ -54,60 +49,13 @@ export async function GET(request: NextRequest): Promise<Response> {
       paginate<{ user_id: string; updated_at: string }>(admin, 'availability', 'user_id, updated_at', { dateColumn: 'updated_at', cutoff }),
     ]);
 
-    // Build week buckets
-    const bucketMap = new Map<string, WeekBucket>();
-
-    function getWeekKey(dateStr: string): string {
-      const weekStart = startOfWeek(new Date(dateStr), { weekStartsOn: 1 });
-      return format(weekStart, 'yyyy-MM-dd');
-    }
-
-    function ensureBucket(weekKey: string): WeekBucket {
-      if (!bucketMap.has(weekKey)) {
-        bucketMap.set(weekKey, {
-          week: weekKey,
-          newUsers: 0,
-          newGames: 0,
-          sessionsConfirmed: 0,
-          activeUsers: 0,
-        });
-      }
-      return bucketMap.get(weekKey)!;
-    }
-
-    // Bucket users
-    for (const u of users) {
-      ensureBucket(getWeekKey(u.created_at)).newUsers++;
-    }
-
-    // Bucket games
-    for (const g of games) {
-      ensureBucket(getWeekKey(g.created_at)).newGames++;
-    }
-
-    // Bucket sessions (only confirmed)
-    for (const s of sessions) {
-      if (s.status === 'confirmed') {
-        ensureBucket(getWeekKey(s.created_at)).sessionsConfirmed++;
-      }
-    }
-
-    // Bucket active users (distinct per week)
-    const activeUsersByWeek = new Map<string, Set<string>>();
-    for (const a of availability) {
-      const weekKey = getWeekKey(a.updated_at);
-      if (!activeUsersByWeek.has(weekKey)) {
-        activeUsersByWeek.set(weekKey, new Set());
-      }
-      activeUsersByWeek.get(weekKey)!.add(a.user_id);
-    }
-    for (const [weekKey, userSet] of activeUsersByWeek) {
-      ensureBucket(weekKey).activeUsers = userSet.size;
-    }
-
-    // Sort buckets chronologically
-    const weeklyData = [...bucketMap.values()].sort((a, b) =>
-      a.week.localeCompare(b.week)
+    // Bucket into rolling 7-day windows. Today is excluded as incomplete, so the
+    // charts never plot partial data yet fresh data appears within a day. Empty
+    // windows are zero-filled for a continuous line — see buildRollingEngagement.
+    const weeklyData = buildRollingEngagement(
+      { users, games, sessions, availability },
+      now,
+      weeks ?? undefined
     );
 
     const responseData = { weeklyData };

@@ -12,7 +12,7 @@ import type { HealthGrade } from '@/lib/gameHealth';
 // ── Types ──────────────────────────────────────────────────
 
 interface WeekBucket {
-  week: string;
+  windowEnd: string; // last day of the rolling 7-day window (yesterday for the newest)
   newUsers: number;
   newGames: number;
   sessionsConfirmed: number;
@@ -46,8 +46,8 @@ const HEALTH_GRADE_COLORS: Record<string, string> = {
 
 // ── Helpers ────────────────────────────────────────────────
 
-function formatWeekLabel(weekStr: string): string {
-  const date = new Date(weekStr + 'T00:00:00');
+function formatDayLabel(dayStr: string): string {
+  const date = new Date(dayStr + 'T00:00:00');
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
@@ -100,7 +100,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
 
   const chartData = data?.weeklyData.map((w) => ({
     ...w,
-    label: formatWeekLabel(w.week),
+    label: formatDayLabel(w.windowEnd),
   })) ?? [];
 
   const healthData = useMemo(() => {

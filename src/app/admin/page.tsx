@@ -2,15 +2,19 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { parseISO } from 'date-fns';
 import { ChevronRight, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Avatar, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { Avatar, Button, Card, CardContent, CardHeader, EmptyState, LoadingSpinner } from '@/components/ui';
 import EngagementCharts from '@/components/admin/EngagementCharts';
+import { formatTimeShort } from '@/lib/formatting';
 import type { HealthBreakdown, HealthGrade } from '@/lib/gameHealth';
 import type { TopUsersResult, TopGmEntry, TopPlayerEntry } from '@/lib/topUsers';
+import type { AdminUpcomingSessionRow } from '@/types';
 
-type Tab = 'overview' | 'games' | 'topUsers' | 'activity';
+type Tab = 'overview' | 'games' | 'topUsers' | 'activity' | 'upcomingGames';
 
 interface AdminStats {
   totalUsers: number;
@@ -119,6 +123,7 @@ export default function AdminPage() {
     { id: 'games', label: 'Games' },
     { id: 'topUsers', label: 'Top Users' },
     { id: 'activity', label: 'Activity' },
+    { id: 'upcomingGames', label: 'Upcoming Games' },
   ];
 
   return (
@@ -127,12 +132,12 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="border-b border-border mb-6">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
                 activeTab === tab.id
                   ? 'border-primary text-primary'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
@@ -156,6 +161,7 @@ export default function AdminPage() {
           {activeTab === 'games' && <GamesTab games={games} />}
           {activeTab === 'topUsers' && topUsers && <TopUsersTab topUsers={topUsers} />}
           {activeTab === 'activity' && stats && <ActivityTab stats={stats} />}
+          {activeTab === 'upcomingGames' && <UpcomingGamesTab />}
         </>
       )}
     </div>
@@ -625,5 +631,170 @@ function ActivityTab({ stats }: { stats: AdminStats }) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+interface UpcomingSessionsResponse {
+  sessions: AdminUpcomingSessionRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+function formatUpcomingSessionDate(dateStr: string): string {
+  return parseISO(dateStr).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function UpcomingGamesTab() {
+  const { use24h } = useUserPreferences();
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState<UpcomingSessionsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/admin/upcoming-sessions?page=${page}`);
+        if (!res.ok) throw new Error('Failed to fetch upcoming sessions');
+        const json = await res.json();
+        if (!cancelled) setData(json);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchData();
+    return () => {
+      cancelled = true;
+    };
+  }, [page]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-destructive text-center py-12">{error}</div>;
+  }
+
+  if (!data || data.total === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <EmptyState
+            title="No upcoming sessions"
+            description="Confirmed sessions across all games will appear here once scheduled."
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-lg font-semibold text-card-foreground">
+          Upcoming Games
+          <span className="text-sm font-normal text-muted-foreground ml-2">
+            {data.total} upcoming session{data.total !== 1 ? 's' : ''}
+          </span>
+        </h2>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Date</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Time</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Game</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">GM</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.sessions.map((row) => (
+                <tr key={row.session.id} className="border-b border-border/50 hover:bg-muted/50">
+                  <td className="py-3 px-2 text-foreground whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      {formatUpcomingSessionDate(row.session.date)}
+                      {row.dayHighlight && (
+                        <span className="inline-block rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                          {row.dayHighlight === 'today' ? 'Today' : 'Tomorrow'}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3 px-2 text-muted-foreground whitespace-nowrap">
+                    {row.session.start_time
+                      ? `${formatTimeShort(row.session.start_time, use24h)}${
+                          row.session.end_time
+                            ? `–${formatTimeShort(row.session.end_time, use24h)}`
+                            : ''
+                        }`
+                      : 'TBD'}
+                  </td>
+                  <td className="py-3 px-2 font-medium text-foreground">
+                    <Link
+                      href={`/admin/games/${row.gameId}`}
+                      className="hover:text-primary hover:underline"
+                      title="Open read-only admin view"
+                    >
+                      {row.gameName}
+                    </Link>
+                  </td>
+                  <td className="py-3 px-2 text-muted-foreground">{row.gmName}</td>
+                  <td className="py-3 px-2 text-muted-foreground">{row.session.location ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Page {data.page} of {data.totalPages} &middot; {data.total} total session
+            {data.total !== 1 ? 's' : ''}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={data.page <= 1}
+              aria-label="Previous page of upcoming sessions"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={data.page >= data.totalPages}
+              aria-label="Next page of upcoming sessions"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

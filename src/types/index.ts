@@ -1,6 +1,7 @@
 // Database types
 
 import type { SchedulingWindowMonths } from "@/lib/constants";
+import type { UpcomingSessionRow } from "@/lib/upcomingSessions";
 
 export interface User {
   id: string;
@@ -98,6 +99,11 @@ export interface MemberWithRole extends User {
 export interface GameWithMembers extends Game {
   gm: User;
   members: MemberWithRole[];
+}
+
+/** Admin "Upcoming Games" row: an upcoming session row plus the game's GM name. */
+export interface AdminUpcomingSessionRow extends UpcomingSessionRow {
+  gmName: string;
 }
 
 // Supabase query result types for relations

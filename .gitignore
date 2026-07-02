@@ -35,9 +35,9 @@
 .DS_Store
 *.pem
 
-# claude local settings
-.claude/settings.local.json
-.claude
+# claude local settings (agent definitions are tracked and shared)
+.claude/*
+!.claude/agents/
 
 # demo artifacts
 /demo/

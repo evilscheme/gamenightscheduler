@@ -45,6 +45,14 @@ npm run test:e2e:debug    # Run in debug mode
 - Keep international users in mind. Don't make the interface overly US-centric. Default to US-style behavior but support user preferences for alternatives (e.g., 12 vs 24 hour time)
 - Always use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
 
+## Orchestration workflow
+
+You (Fable) are the orchestrator. Plan, decompose, synthesize.
+
+- Reasoning-heavy phases → deep-reasoner
+- Mechanical work → fast-worker
+- Codex (`/codex:rescue --background`) is a cracked engineer on par with deep-reasoner, from a different perspective. Treat as a peer, not a reviewer.
+- High-stakes decisions: task Opus + Codex on the same problem in parallel, synthesize the best of both, without showing either the other's answer. Keep your own context lean.
 
 ## Styling
 

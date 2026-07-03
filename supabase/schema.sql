@@ -564,10 +564,24 @@ CREATE POLICY "GMs and co-GMs can delete play dates" ON game_play_dates
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+-- Functions: authenticated + service_role only. anon is deliberately excluded so
+-- the SECURITY DEFINER helpers (count_*, is_*, shares_game_with) and
+-- join_game_by_invite are NOT callable as unauthenticated PostgREST RPCs.
+-- RLS still works: authenticated holds EXECUTE, which is what policy evaluation needs.
+-- Must REVOKE FROM both PUBLIC and anon explicitly (not just omit anon from the
+-- GRANT ... TO list): every function in this file picks up TWO separate grants at
+-- CREATE FUNCTION time — (1) Postgres's built-in default EXECUTE-to-PUBLIC (which every
+-- role, including anon, inherits) and (2) an explicit anon grant from a pre-existing
+-- default ACL this local Supabase CLI version seeds before this script runs. GRANT is
+-- additive and never revokes an existing grant, so a positive-list GRANT alone leaves
+-- both of those intact. Same pattern already used for join_game_by_invite above.
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC, anon;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
+  REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT EXECUTE ON FUNCTIONS TO authenticated, service_role;

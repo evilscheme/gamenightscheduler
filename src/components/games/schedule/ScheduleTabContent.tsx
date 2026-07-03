@@ -15,6 +15,7 @@ import { CalendarHoverPopover } from './CalendarHoverPopover';
 import { generateICS, slugifyGameName, triggerICSDownload, composeIcsDescription } from '@/lib/ics';
 import { splitUpcomingPast } from '@/lib/scheduleView';
 import { useToast } from '@/components/ui/Toast';
+import { useCelebration } from '@/components/ui/CelebrationBurst';
 import { CalendarSubscribeButton } from '@/components/games/CalendarSubscribeButton';
 
 export interface ScheduleTabContentProps {
@@ -63,6 +64,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
   } = props;
 
   const toast = useToast();
+  const { celebrate, overlay: celebrationOverlay } = useCelebration();
   const [scheduleFor, setScheduleFor] = useState<string | null>(null);
   const [cancelFor, setCancelFor] = useState<GameSession | null>(null);
   // editFor is set via onEditDetails in ScheduledList (added in a later task);
@@ -104,6 +106,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     if (!scheduleFor) return { success: false, error: 'No date selected' };
     const res = await onConfirm(scheduleFor, values.start, values.end, values.location, values.notes);
     if (res.success) {
+      celebrate();
       toast.show(`Scheduled ${format(parseISO(scheduleFor), 'MMM d')}.`);
     }
     return res;
@@ -263,6 +266,8 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
         />
 
         <CalendarHoverPopover suggestions={suggestions} scheduledDates={scheduledDates} />
+
+        {celebrationOverlay}
       </div>
     </HoverSyncProvider>
   );

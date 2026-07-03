@@ -150,7 +150,7 @@ export function ScheduledRow({
       ref={rowRef}
       data-testid={past ? 'past-session-row' : 'scheduled-row'}
       className={`rounded-xl border border-border bg-card p-4 ${past ? 'opacity-70' : ''} ${
-        celebrate ? 'relative isolate' : ''
+        celebrate ? 'relative isolate overflow-hidden' : ''
       }`}
     >
       {celebrate && <SessionGlow onDone={onCelebrationDone} />}

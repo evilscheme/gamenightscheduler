@@ -9,10 +9,11 @@ import { CritBurst } from '@/lib/critBurst';
  * newly scheduled session appears to light up for a moment as it lands on the
  * page.
  *
- * Render this as a child of a `relative isolate` element; the canvas sits at
- * `-z-10` so it paints over the parent's background but behind its content,
- * and spills a little past the parent's box to halo around it. The caller must
- * NOT render this when `prefers-reduced-motion` is set.
+ * Render this as a child of a `relative isolate overflow-hidden` element; the
+ * canvas is sized to exactly cover the parent (`inset-0`) so the burst is
+ * clipped to the card and never spills onto neighbouring content, and it sits
+ * at `-z-10` so it paints over the parent's background but behind its content.
+ * The caller must NOT render this when `prefers-reduced-motion` is set.
  */
 export function SessionGlow({ onDone }: { onDone?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -40,8 +41,9 @@ export function SessionGlow({ onDone }: { onDone?: () => void }) {
     canvas.height = h * dpr;
     ctx.scale(dpr, dpr);
 
-    // Glow centered in the canvas box, scaled to the row height.
-    const burst = new CritBurst(w / 2, h / 2, h * 0.42);
+    // Glow centered in the card, scaled to the row height. Kept modest so the
+    // rays read as a backdrop behind the card content rather than an explosion.
+    const burst = new CritBurst(w / 2, h / 2, h * 0.5);
     let raf = 0;
     let last: number | null = null;
     const loop = (now: number) => {
@@ -64,7 +66,7 @@ export function SessionGlow({ onDone }: { onDone?: () => void }) {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none absolute -inset-10 -z-10"
+      className="pointer-events-none absolute inset-0 -z-10"
     />
   );
 }

@@ -228,7 +228,11 @@ BEGIN
   WHERE gm_id = user_id_param;
   RETURN game_count;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+-- VOLATILE (not STABLE): used in an INSERT ... WITH CHECK cap guard. A STABLE
+-- count is evaluated once per statement, letting a bulk (multi-row) INSERT
+-- bypass the limit; VOLATILE re-checks as rows accumulate. See
+-- e2e/tests/rls/usage-limits-bulk.spec.ts.
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Count how many players are in a game (members + GM)
 CREATE OR REPLACE FUNCTION public.count_game_players(game_id_param UUID)
@@ -242,7 +246,8 @@ BEGIN
   -- Add 1 for the GM (who is not in game_memberships)
   RETURN member_count + 1;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+-- VOLATILE (not STABLE): count-based limit guard; see count_user_games above.
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Count how many future sessions exist for a game (used by RLS to enforce limit)
 CREATE OR REPLACE FUNCTION public.count_future_sessions(game_id_param UUID)
@@ -256,7 +261,8 @@ BEGIN
     AND date >= CURRENT_DATE;
   RETURN session_count;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+-- VOLATILE (not STABLE): count-based limit guard; see count_user_games above.
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Check if the current user shares a game with the target user (used by users RLS)
 CREATE OR REPLACE FUNCTION public.shares_game_with(target_user_id UUID)

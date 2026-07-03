@@ -188,7 +188,7 @@ BEGIN
     SELECT 1 FROM public.game_memberships WHERE game_id = game_id_param AND user_id = user_id_param
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Check if user is GM or co-GM (used by RLS policies)
 CREATE OR REPLACE FUNCTION public.is_game_gm_or_co_gm(game_id_param UUID, user_id_param UUID)
@@ -204,7 +204,7 @@ BEGIN
     WHERE game_id = game_id_param AND user_id = user_id_param AND is_co_gm = TRUE
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Check if a membership is for a co-GM (used by RLS policies to determine removal permissions)
 CREATE OR REPLACE FUNCTION public.is_membership_co_gm(membership_game_id UUID, membership_user_id UUID)
@@ -215,7 +215,7 @@ BEGIN
     WHERE game_id = membership_game_id AND user_id = membership_user_id AND is_co_gm = TRUE
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Count how many games a user has created (used by RLS to enforce limit)
 CREATE OR REPLACE FUNCTION public.count_user_games(user_id_param UUID)
@@ -228,7 +228,7 @@ BEGIN
   WHERE gm_id = user_id_param;
   RETURN game_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Count how many players are in a game (members + GM)
 CREATE OR REPLACE FUNCTION public.count_game_players(game_id_param UUID)
@@ -242,7 +242,7 @@ BEGIN
   -- Add 1 for the GM (who is not in game_memberships)
   RETURN member_count + 1;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Count how many future sessions exist for a game (used by RLS to enforce limit)
 CREATE OR REPLACE FUNCTION public.count_future_sessions(game_id_param UUID)
@@ -256,7 +256,7 @@ BEGIN
     AND date >= CURRENT_DATE;
   RETURN session_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Check if the current user shares a game with the target user (used by users RLS)
 CREATE OR REPLACE FUNCTION public.shares_game_with(target_user_id UUID)
@@ -278,7 +278,7 @@ BEGIN
     ) their_games ON my_games.game_id = their_games.game_id
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Allowlist-based column protection for the users table.
 -- Saves the values of allowed columns, resets the entire row to OLD,

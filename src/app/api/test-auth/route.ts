@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isLocalSupabase } from '@/lib/supabase/env';
 
 /**
  * Test-only authentication route for E2E testing.
@@ -35,7 +36,9 @@ interface TestUserResponse {
 
 export async function POST(request: Request): Promise<Response> {
   // SECURITY: Only allow in development (not 403 to avoid revealing route exists)
-  if (process.env.NODE_ENV !== 'development') {
+  // Defense in depth: dev-only AND only against local Supabase, so this can
+  // never mint an admin against cloud creds even if NODE_ENV is misconfigured.
+  if (process.env.NODE_ENV !== 'development' || !isLocalSupabase()) {
     return new Response('Not found', { status: 404 });
   }
 
@@ -185,7 +188,9 @@ export async function POST(request: Request): Promise<Response> {
 
 // Also support DELETE to clean up test users
 export async function DELETE(request: Request): Promise<Response> {
-  if (process.env.NODE_ENV !== 'development') {
+  // Defense in depth: dev-only AND only against local Supabase, so this can
+  // never mint an admin against cloud creds even if NODE_ENV is misconfigured.
+  if (process.env.NODE_ENV !== 'development' || !isLocalSupabase()) {
     return new Response('Not found', { status: 404 });
   }
 
@@ -237,7 +242,9 @@ export async function DELETE(request: Request): Promise<Response> {
 
 // Sign out the current user
 export async function PUT(request: Request): Promise<Response> {
-  if (process.env.NODE_ENV !== 'development') {
+  // Defense in depth: dev-only AND only against local Supabase, so this can
+  // never mint an admin against cloud creds even if NODE_ENV is misconfigured.
+  if (process.env.NODE_ENV !== 'development' || !isLocalSupabase()) {
     return new Response('Not found', { status: 404 });
   }
 

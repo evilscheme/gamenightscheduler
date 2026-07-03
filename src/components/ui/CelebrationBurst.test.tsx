@@ -1,38 +1,48 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, act } from '@testing-library/react';
-import { useCelebration } from './CelebrationBurst';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render } from '@testing-library/react';
+import { SessionGlow } from './CelebrationBurst';
 
-function Harness() {
-  const { celebrate, overlay } = useCelebration();
-  return (
-    <div>
-      <button onClick={celebrate}>go</button>
-      {overlay}
-    </div>
-  );
+function stubCanvas2dContext() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (HTMLCanvasElement.prototype as any).getContext = vi.fn(() => ({
+    clearRect: vi.fn(), save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(),
+    closePath: vi.fn(), arc: vi.fn(), fill: vi.fn(), stroke: vi.fn(),
+    moveTo: vi.fn(), lineTo: vi.fn(), translate: vi.fn(), rotate: vi.fn(), scale: vi.fn(),
+    globalAlpha: 1, fillStyle: '', strokeStyle: '', lineWidth: 1,
+  }));
 }
 
-describe('useCelebration', () => {
+function stubRect(width: number, height: number) {
+  vi.spyOn(HTMLCanvasElement.prototype, 'getBoundingClientRect').mockReturnValue({
+    width, height, top: 0, left: 0, right: width, bottom: height, x: 0, y: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
+}
+
+describe('SessionGlow', () => {
   beforeEach(() => {
-    // Minimal 2D context stub for jsdom
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (HTMLCanvasElement.prototype as any).getContext = vi.fn(() => ({
-      clearRect: vi.fn(), save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(),
-      arc: vi.fn(), fill: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(),
-      translate: vi.fn(), rotate: vi.fn(), scale: vi.fn(),
-      createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
-      fillRect: vi.fn(), setTransform: vi.fn(),
-      // fields the renderer may set
-      globalAlpha: 1, globalCompositeOperation: 'source-over', fillStyle: '', strokeStyle: '',
-    }));
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => { void cb; return 1; });
+    stubCanvas2dContext();
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('mounts a canvas overlay only after celebrate() is called', () => {
-    const { container, getByText } = render(<Harness />);
-    expect(container.querySelector('canvas')).toBeNull();
-    act(() => { getByText('go').click(); });
+  it('renders a canvas and schedules the glow when it has a drawable box', () => {
+    stubRect(320, 84);
+    const onDone = vi.fn();
+    const { container } = render(<SessionGlow onDone={onDone} />);
     expect(container.querySelector('canvas')).not.toBeNull();
     expect(window.requestAnimationFrame).toHaveBeenCalled();
+    expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it('finishes immediately (no animation) when there is no drawable surface', async () => {
+    stubRect(0, 0);
+    const onDone = vi.fn();
+    render(<SessionGlow onDone={onDone} />);
+    expect(window.requestAnimationFrame).not.toHaveBeenCalled();
+    await new Promise((r) => setTimeout(r, 0)); // flush queueMicrotask
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 });

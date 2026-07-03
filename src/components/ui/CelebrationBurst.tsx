@@ -1,46 +1,47 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { CritBurst } from '@/lib/critBurst';
 
 /**
- * One-shot celebratory burst reusing the Nat-20 CritBurst effect. Renders a
- * fixed, click-through canvas overlay only while a burst is playing, then
- * unmounts itself. Respects prefers-reduced-motion.
+ * A one-shot gold glow that blooms behind its positioned parent, reusing the
+ * Nat-20 CritBurst's light-ray + shockwave layer (drawBack) — no sparks — so a
+ * newly scheduled session appears to light up for a moment as it lands on the
+ * page.
+ *
+ * Render this as a child of a `relative isolate` element; the canvas sits at
+ * `-z-10` so it paints over the parent's background but behind its content,
+ * and spills a little past the parent's box to halo around it. The caller must
+ * NOT render this when `prefers-reduced-motion` is set.
  */
-export function useCelebration(): { celebrate: () => void; overlay: React.ReactNode } {
-  const [active, setActive] = useState(false);
+export function SessionGlow({ onDone }: { onDone?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  const celebrate = useCallback(() => {
-    if (typeof window !== 'undefined' &&
-        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      return; // honor reduced-motion: no animation
-    }
-    setActive(true);
-  }, []);
+  const onDoneRef = useRef(onDone);
+  useEffect(() => {
+    onDoneRef.current = onDone;
+  });
 
   useEffect(() => {
-    if (!active) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      // Practically unreachable (2D context is always available), but bail
-      // out safely without calling setState synchronously inside the effect.
-      queueMicrotask(() => setActive(false));
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width;
+    const h = rect.height;
+    if (!ctx || w === 0 || h === 0) {
+      // No drawable surface (e.g. jsdom / detached): finish immediately without
+      // a synchronous setState from inside the effect body.
+      queueMicrotask(() => onDoneRef.current?.());
       return;
     }
 
     const dpr = window.devicePixelRatio || 1;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     ctx.scale(dpr, dpr);
 
-    // Burst from screen center, scaled to viewport.
-    const burst = new CritBurst(w / 2, h / 2, Math.min(w, h) * 0.12);
+    // Glow centered in the canvas box, scaled to the row height.
+    const burst = new CritBurst(w / 2, h / 2, h * 0.42);
     let raf = 0;
     let last: number | null = null;
     const loop = (now: number) => {
@@ -48,25 +49,22 @@ export function useCelebration(): { celebrate: () => void; overlay: React.ReactN
       last = now;
       ctx.clearRect(0, 0, w, h);
       burst.step(dt);
-      burst.drawBack(ctx);
-      burst.drawFront(ctx);
+      burst.drawBack(ctx); // glow only — the spark layer (drawFront) is skipped
       if (!burst.done) {
         raf = requestAnimationFrame(loop);
       } else {
-        setActive(false);
+        onDoneRef.current?.();
       }
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [active]);
+  }, []);
 
-  const overlay = active ? (
+  return (
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-100 size-full"
+      className="pointer-events-none absolute -inset-10 -z-10"
     />
-  ) : null;
-
-  return { celebrate, overlay };
+  );
 }

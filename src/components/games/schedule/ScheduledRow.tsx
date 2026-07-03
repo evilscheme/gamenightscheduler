@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { Calendar, ChevronRight, MapPin, Pencil, StickyNote, X } from 'lucide-react';
 import type { DateSuggestion, GameSession } from '@/types';
 import { Button, EyebrowLabel } from '@/components/ui';
-import { SessionGlow } from '@/components/ui/CelebrationBurst';
+import { SessionCelebration } from '@/components/ui/CelebrationBurst';
 import { formatTime } from '@/lib/formatting';
 import { convertTimeForDisplay } from '@/lib/timezone';
 import { PartyBreakdown } from './PartyBreakdown';
@@ -153,7 +153,7 @@ export function ScheduledRow({
         celebrate ? 'relative isolate overflow-hidden' : ''
       }`}
     >
-      {celebrate && <SessionGlow onDone={onCelebrationDone} />}
+      {celebrate && <SessionCelebration onDone={onCelebrationDone} />}
       <div className="flex items-start gap-3">
         <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
         <div className="min-w-0 flex-1">{infoContent}</div>

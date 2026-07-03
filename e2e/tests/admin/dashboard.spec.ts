@@ -53,7 +53,7 @@ test.describe('Admin Dashboard', () => {
 
     // Should see tabs
     await expect(page.getByRole('button', { name: /overview/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /games/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Games', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: /activity/i })).toBeVisible();
   });
 
@@ -183,7 +183,7 @@ test.describe('Admin Dashboard', () => {
     await page.goto('/admin');
 
     // Click Games tab
-    await page.getByRole('button', { name: /games/i }).click();
+    await page.getByRole('button', { name: 'Games', exact: true }).click();
 
     // Should see the game in the list
     await expect(page.getByText('Games Tab Test Campaign')).toBeVisible({

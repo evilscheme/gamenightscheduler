@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
 import { buildRollingEngagement } from '@/lib/adminEngagement';
 import { startOfDay, subDays, format } from 'date-fns';
+import { serverError } from '@/lib/apiError';
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -63,10 +64,6 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     return NextResponse.json(responseData);
   } catch (error) {
-    console.error('Admin engagement error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return serverError(error, { route: '/api/admin/engagement' });
   }
 }

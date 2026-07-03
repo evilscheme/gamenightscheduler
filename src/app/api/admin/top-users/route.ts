@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
 import { computeTopUsers, type TopUserProfile } from '@/lib/topUsers';
+import { serverError } from '@/lib/apiError';
 
 export async function GET(): Promise<Response> {
   try {
@@ -20,7 +21,6 @@ export async function GET(): Promise<Response> {
       computeTopUsers({ users, games, memberships, sessions, availability })
     );
   } catch (error) {
-    console.error('Admin top users error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return serverError(error, { route: '/api/admin/top-users' });
   }
 }

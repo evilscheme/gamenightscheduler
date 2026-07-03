@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
 import { calculateGameFillRate } from '@/lib/availability';
 import { calculateGameHealth, type HealthBreakdown, type HealthGrade } from '@/lib/gameHealth';
+import { serverError } from '@/lib/apiError';
 
 interface GameWithEngagement {
   id: string;
@@ -152,10 +153,6 @@ export async function GET(): Promise<Response> {
 
     return NextResponse.json({ games: gamesWithEngagement });
   } catch (error) {
-    console.error('Admin games error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return serverError(error, { route: '/api/admin/games' });
   }
 }

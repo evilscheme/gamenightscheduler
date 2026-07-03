@@ -7,6 +7,7 @@ import {
   type GameDisplayInfo,
 } from '@/lib/upcomingSessions';
 import { paginateArray } from '@/lib/pagination';
+import { serverError } from '@/lib/apiError';
 import type { GameSession, AdminUpcomingSessionRow } from '@/types';
 
 // Rows per page for the "Upcoming Games" admin table.
@@ -70,7 +71,6 @@ export async function GET(request: NextRequest): Promise<Response> {
       totalPages,
     });
   } catch (error) {
-    console.error('Admin upcoming sessions error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return serverError(error, { route: '/api/admin/upcoming-sessions' });
   }
 }

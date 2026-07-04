@@ -7,6 +7,7 @@ import {
   fetchGameSessions,
   fetchGamePlayDates,
 } from '@/lib/data';
+import { serverError } from '@/lib/apiError';
 
 /**
  * Read-only snapshot of a game for the admin peek view. Uses the service-role
@@ -44,7 +45,6 @@ export async function GET(
       playDates: playDatesRes.data ?? [],
     });
   } catch (error) {
-    console.error('Admin game snapshot error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return serverError(error, { route: '/api/admin/games/[id]' });
   }
 }

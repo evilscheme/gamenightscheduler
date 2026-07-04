@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isLocalSupabase } from '@/lib/supabase/env';
 
 interface DevUser {
   email: string;
@@ -17,11 +18,6 @@ const DEV_USERS: Record<string, DevUser> = {
   player2: { email: 'dev-player2@dev.local', name: 'Dev Player 2', is_gm: true, is_admin: false },
   admin: { email: 'dev-admin@dev.local', name: 'Dev Admin', is_gm: true, is_admin: true },
 };
-
-function isLocalSupabase(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  return url.includes('localhost') || url.includes('127.0.0.1');
-}
 
 export async function loginAsDevUser(persona: string): Promise<{ success: boolean; error?: string; user?: DevUser }> {
   if (process.env.NODE_ENV !== 'development') {

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/api/admin';
+import { serverError } from '@/lib/apiError';
 
 export async function GET(): Promise<Response> {
   try {
@@ -29,7 +30,6 @@ export async function GET(): Promise<Response> {
       recentGames: recentGamesResult.data ?? [],
     });
   } catch (error) {
-    console.error('Admin stats error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return serverError(error, { route: '/api/admin/stats' });
   }
 }

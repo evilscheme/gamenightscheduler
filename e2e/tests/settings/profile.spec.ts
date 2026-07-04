@@ -142,4 +142,29 @@ test.describe('Settings Profile', () => {
     });
   });
 
+  test('empty display name shows an error in danger color, not success', async ({ page }) => {
+    await loginTestUser(page, {
+      email: `user-empty-name-${Date.now()}@e2e.local`,
+      name: 'Has A Name',
+      is_gm: false,
+    });
+
+    await page.goto('/settings');
+    await expect(page.getByRole('heading', { name: /settings/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // Use placeholder since the Display Name label isn't associated via id/htmlFor
+    const nameInput = page.getByPlaceholder(/your name/i);
+    await expect(nameInput).toHaveValue('Has A Name', { timeout: TEST_TIMEOUTS.DEFAULT });
+
+    await nameInput.fill('');
+    await page.getByRole('button', { name: /save changes/i }).click();
+
+    const msg = page.getByText('Display name cannot be empty.');
+    await expect(msg).toBeVisible();
+    await expect(msg).toHaveClass(/text-danger/);
+    await expect(msg).not.toHaveClass(/text-success/);
+  });
+
 });

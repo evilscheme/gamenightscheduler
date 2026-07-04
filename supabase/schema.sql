@@ -188,7 +188,7 @@ BEGIN
     SELECT 1 FROM public.game_memberships WHERE game_id = game_id_param AND user_id = user_id_param
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Check if user is GM or co-GM (used by RLS policies)
 CREATE OR REPLACE FUNCTION public.is_game_gm_or_co_gm(game_id_param UUID, user_id_param UUID)
@@ -204,7 +204,7 @@ BEGIN
     WHERE game_id = game_id_param AND user_id = user_id_param AND is_co_gm = TRUE
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Check if a membership is for a co-GM (used by RLS policies to determine removal permissions)
 CREATE OR REPLACE FUNCTION public.is_membership_co_gm(membership_game_id UUID, membership_user_id UUID)
@@ -215,7 +215,7 @@ BEGIN
     WHERE game_id = membership_game_id AND user_id = membership_user_id AND is_co_gm = TRUE
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Count how many games a user has created (used by RLS to enforce limit)
 CREATE OR REPLACE FUNCTION public.count_user_games(user_id_param UUID)
@@ -228,6 +228,10 @@ BEGIN
   WHERE gm_id = user_id_param;
   RETURN game_count;
 END;
+-- VOLATILE (not STABLE): used in an INSERT ... WITH CHECK cap guard. A STABLE
+-- count is evaluated once per statement, letting a bulk (multi-row) INSERT
+-- bypass the limit; VOLATILE re-checks as rows accumulate. See
+-- e2e/tests/rls/usage-limits-bulk.spec.ts.
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Count how many players are in a game (members + GM)
@@ -242,6 +246,7 @@ BEGIN
   -- Add 1 for the GM (who is not in game_memberships)
   RETURN member_count + 1;
 END;
+-- VOLATILE (not STABLE): count-based limit guard; see count_user_games above.
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Count how many future sessions exist for a game (used by RLS to enforce limit)
@@ -256,6 +261,7 @@ BEGIN
     AND date >= CURRENT_DATE;
   RETURN session_count;
 END;
+-- VOLATILE (not STABLE): count-based limit guard; see count_user_games above.
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- Check if the current user shares a game with the target user (used by users RLS)
@@ -278,7 +284,7 @@ BEGIN
     ) their_games ON my_games.game_id = their_games.game_id
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
 -- Allowlist-based column protection for the users table.
 -- Saves the values of allowed columns, resets the entire row to OLD,
@@ -564,10 +570,24 @@ CREATE POLICY "GMs and co-GMs can delete play dates" ON game_play_dates
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_role;
+-- Functions: authenticated + service_role only. anon is deliberately excluded so
+-- the SECURITY DEFINER helpers (count_*, is_*, shares_game_with) and
+-- join_game_by_invite are NOT callable as unauthenticated PostgREST RPCs.
+-- RLS still works: authenticated holds EXECUTE, which is what policy evaluation needs.
+-- Must REVOKE FROM both PUBLIC and anon explicitly (not just omit anon from the
+-- GRANT ... TO list): every function in this file picks up TWO separate grants at
+-- CREATE FUNCTION time — (1) Postgres's built-in default EXECUTE-to-PUBLIC (which every
+-- role, including anon, inherits) and (2) an explicit anon grant from a pre-existing
+-- default ACL this local Supabase CLI version seeds before this script runs. GRANT is
+-- additive and never revokes an existing grant, so a positive-list GRANT alone leaves
+-- both of those intact. Same pattern already used for join_game_by_invite above.
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC, anon;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
+  REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT EXECUTE ON FUNCTIONS TO authenticated, service_role;

@@ -24,6 +24,7 @@
   --warning-muted: #92400e;
   --danger: #dc2626;
   --danger-muted: #b91c1c;
+  --danger-foreground: #ffffff;
   --scheduled: #0ea5e9;
 
   --cal-available-bg: #22c55e;
@@ -83,6 +84,7 @@
   --warning-muted: #f59e0b;
   --danger: #f87171;
   --danger-muted: #ef4444;
+  --danger-foreground: #450a0a;
   --scheduled: #38bdf8;
 
   --cal-available-bg: #15803d;
@@ -144,6 +146,7 @@
   --warning-muted: #92400e;
   --danger: #dc2626;
   --danger-muted: #b91c1c;
+  --danger-foreground: #ffffff;
   --scheduled: #7c3aed;
 
   --cal-available-bg: #22c55e;
@@ -185,6 +188,7 @@
   --warning-muted: #f59e0b;
   --danger: #f87171;
   --danger-muted: #ef4444;
+  --danger-foreground: #450a0a;
   --scheduled: #a78bfa;
 
   --cal-available-bg: #15803d;
@@ -229,6 +233,7 @@
   --warning-muted: #92400e;
   --danger: #dc2626;
   --danger-muted: #b91c1c;
+  --danger-foreground: #ffffff;
   --scheduled: #16a34a;
 
   --cal-available-bg: #22c55e;
@@ -270,6 +275,7 @@
   --warning-muted: #f59e0b;
   --danger: #f87171;
   --danger-muted: #ef4444;
+  --danger-foreground: #450a0a;
   --scheduled: #4ade80;
 
   --cal-available-bg: #15803d;
@@ -314,6 +320,7 @@
   --warning-muted: #92400e;
   --danger: #dc2626;
   --danger-muted: #b91c1c;
+  --danger-foreground: #ffffff;
   --scheduled: #475569;
 
   --cal-available-bg: #22c55e;
@@ -355,6 +362,7 @@
   --warning-muted: #f59e0b;
   --danger: #f87171;
   --danger-muted: #ef4444;
+  --danger-foreground: #450a0a;
   --scheduled: #94a3b8;
 
   --cal-available-bg: #15803d;
@@ -399,6 +407,7 @@
   --warning-muted: #92400e;
   --danger: #dc2626;
   --danger-muted: #b91c1c;
+  --danger-foreground: #ffffff;
   --scheduled: #e11d48;
 
   --cal-available-bg: #22c55e;
@@ -440,6 +449,7 @@
   --warning-muted: #f59e0b;
   --danger: #f87171;
   --danger-muted: #ef4444;
+  --danger-foreground: #450a0a;
   --scheduled: #fb7185;
 
   --cal-available-bg: #15803d;
@@ -480,6 +490,7 @@
   --color-warning-muted: var(--warning-muted);
   --color-danger: var(--danger);
   --color-danger-muted: var(--danger-muted);
+  --color-danger-foreground: var(--danger-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
@@ -552,5 +563,3 @@ body {
 .dice-filled rect {
   fill: var(--background);
 }
-
-

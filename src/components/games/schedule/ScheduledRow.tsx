@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Calendar, ChevronRight, MapPin, Pencil, StickyNote, X } from 'lucide-react';
 import type { DateSuggestion, GameSession } from '@/types';
 import { Button, EyebrowLabel } from '@/components/ui';
+import { SessionCelebration } from '@/components/ui/CelebrationBurst';
 import { formatTime } from '@/lib/formatting';
 import { convertTimeForDisplay } from '@/lib/timezone';
 import { PartyBreakdown } from './PartyBreakdown';
@@ -51,6 +52,9 @@ interface ScheduledRowProps {
   coGmIds: Set<string>;
   playDateNote: string | null;
   past?: boolean;
+  /** When true, this freshly-confirmed row glows once as it appears. */
+  celebrate?: boolean;
+  onCelebrationDone?: () => void;
   onDownloadIcs: (session: GameSession) => void;
   onRequestCancel: (session: GameSession) => void;
   onEditDetails?: (session: GameSession) => void;
@@ -58,9 +62,19 @@ interface ScheduledRowProps {
 
 export function ScheduledRow({
   session, suggestion, timezone, userTimezone, use24h, isGm, gmId, coGmIds,
-  playDateNote, past = false, onDownloadIcs, onRequestCancel, onEditDetails,
+  playDateNote, past = false, celebrate = false, onCelebrationDone,
+  onDownloadIcs, onRequestCancel, onEditDetails,
 }: ScheduledRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const rowRef = useRef<HTMLLIElement | null>(null);
+
+  // Bring a just-confirmed row into view so its glow is actually seen (no-op if
+  // it's already visible).
+  useEffect(() => {
+    if (celebrate) {
+      rowRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [celebrate]);
   // Expandable when there's something in the expanded section worth showing:
   // a party breakdown (from suggestion) or the calendar/cancel actions (upcoming only).
   const expandable = !!suggestion || !past;
@@ -133,9 +147,13 @@ export function ScheduledRow({
 
   return (
     <li
+      ref={rowRef}
       data-testid={past ? 'past-session-row' : 'scheduled-row'}
-      className={`rounded-xl border border-border bg-card p-4 ${past ? 'opacity-70' : ''}`}
+      className={`rounded-xl border border-border bg-card p-4 ${past ? 'opacity-70' : ''} ${
+        celebrate ? 'relative isolate overflow-hidden' : ''
+      }`}
     >
+      {celebrate && <SessionCelebration onDone={onCelebrationDone} />}
       <div className="flex items-start gap-3">
         <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
         <div className="min-w-0 flex-1">{infoContent}</div>

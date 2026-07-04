@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { generateICS, composeIcsDescription } from '@/lib/ics';
 import type { Game, GameSession } from '@/types';
+import { serverError } from '@/lib/apiError';
 
 /**
  * Public endpoint for calendar subscription feeds.
@@ -86,7 +87,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Calendar feed error:', error);
-    return new Response('Internal server error', { status: 500 });
+    return serverError(error, { route: '/api/games/calendar/[code]' });
   }
 }

@@ -16,7 +16,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       primary: 'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-ring',
       secondary:
         'bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 focus:ring-ring',
-      danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+      danger: 'bg-danger text-danger-foreground hover:bg-danger-muted focus:ring-danger',
       ghost: 'text-muted-foreground hover:bg-secondary hover:text-foreground focus:ring-ring',
     };
 

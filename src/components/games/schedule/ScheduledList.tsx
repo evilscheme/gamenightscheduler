@@ -17,6 +17,9 @@ interface ScheduledListProps {
   gmId: string;
   coGmIds: Set<string>;
   playDateNotes: Map<string, string> | undefined;
+  /** Date of a just-confirmed session whose row should glow as it appears. */
+  celebrateDate?: string | null;
+  onCelebrationDone?: () => void;
   onDownloadIcs: (session: GameSession) => void;
   onDownloadAllIcs: () => void;
   onRequestCancel: (session: GameSession) => void;
@@ -25,6 +28,7 @@ interface ScheduledListProps {
 
 export function ScheduledList({
   sessions, suggestions, timezone, userTimezone, use24h, isGm, gmId, coGmIds, playDateNotes,
+  celebrateDate, onCelebrationDone,
   onDownloadIcs, onDownloadAllIcs, onRequestCancel, onEditDetails,
 }: ScheduledListProps) {
   const [showPast, setShowPast] = useState(false);
@@ -62,6 +66,8 @@ export function ScheduledList({
                 gmId={gmId}
                 coGmIds={coGmIds}
                 playDateNote={playDateNotes?.get(s.date) ?? null}
+                celebrate={!!celebrateDate && s.date === celebrateDate}
+                onCelebrationDone={onCelebrationDone}
                 onDownloadIcs={onDownloadIcs}
                 onRequestCancel={onRequestCancel}
                 onEditDetails={onEditDetails}

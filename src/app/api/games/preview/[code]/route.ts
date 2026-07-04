@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { GameWithGMNameResult } from '@/types';
+import { serverError } from '@/lib/apiError';
 
 /**
  * Public endpoint for OG crawlers to fetch game preview data.
@@ -46,10 +47,6 @@ export async function GET(
       gm_name: typedGame.gm?.name || 'Unknown',
     });
   } catch (error) {
-    console.error('Preview lookup error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return serverError(error, { route: '/api/games/preview/[code]' });
   }
 }

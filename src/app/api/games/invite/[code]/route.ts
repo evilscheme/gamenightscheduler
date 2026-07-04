@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { serverError } from '@/lib/apiError';
 
 /**
  * Fetches game details by invite code.
@@ -85,10 +86,6 @@ export async function GET(
       playerCount,
     });
   } catch (error) {
-    console.error('Invite lookup error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return serverError(error, { route: '/api/games/invite/[code]' });
   }
 }

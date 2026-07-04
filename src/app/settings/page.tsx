@@ -17,7 +17,9 @@ export default function SettingsPage() {
   const [weekStartDay, setWeekStartDay] = useState(0);
   const [timeFormat, setTimeFormat] = useState('12h');
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState<{ text: string; tone: 'success' | 'danger' } | null>(
+    null
+  );
   const supabase = createClient();
 
   useAuthRedirect();
@@ -45,16 +47,19 @@ export default function SettingsPage() {
     if (!profile?.id) return;
 
     if (!name.trim()) {
-      setMessage('Display name cannot be empty.');
+      setMessage({ text: 'Display name cannot be empty.', tone: 'danger' });
       return;
     }
     if (name.length > TEXT_LIMITS.USER_DISPLAY_NAME) {
-      setMessage(`Display name must be ${TEXT_LIMITS.USER_DISPLAY_NAME} characters or less.`);
+      setMessage({
+        text: `Display name must be ${TEXT_LIMITS.USER_DISPLAY_NAME} characters or less.`,
+        tone: 'danger',
+      });
       return;
     }
 
     setSaving(true);
-    setMessage('');
+    setMessage(null);
 
     const { error } = await supabase
       .from('users')
@@ -68,12 +73,15 @@ export default function SettingsPage() {
 
     if (error) {
       if (error.code === '23514') {
-        setMessage(`Display name must be ${TEXT_LIMITS.USER_DISPLAY_NAME} characters or less.`);
+        setMessage({
+          text: `Display name must be ${TEXT_LIMITS.USER_DISPLAY_NAME} characters or less.`,
+          tone: 'danger',
+        });
       } else {
-        setMessage('Error saving settings. Please try again.');
+        setMessage({ text: 'Error saving settings. Please try again.', tone: 'danger' });
       }
     } else {
-      setMessage('Settings saved successfully!');
+      setMessage({ text: 'Settings saved successfully!', tone: 'success' });
       await refreshProfile();
     }
 
@@ -219,10 +227,8 @@ export default function SettingsPage() {
         </Panel>
 
         {message && (
-          <p
-            className={`text-sm ${message.includes('Error') ? 'text-danger' : 'text-success'}`}
-          >
-            {message}
+          <p className={`text-sm ${message.tone === 'danger' ? 'text-danger' : 'text-success'}`}>
+            {message.text}
           </p>
         )}
 

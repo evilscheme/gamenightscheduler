@@ -109,9 +109,13 @@ export function ScheduledRow({
     ? format(sessionDate, 'EEE, MMM d')
     : format(sessionDate, 'EEE, MMM d, yyyy');
 
-  const infoContent = (
+  // Confirmed date, shown in the primary header band (upcoming) or inline (past).
+  const dateLine = <p className="font-semibold text-card-foreground">{dateLabel}</p>;
+
+  // Everything below the date: time, note, location/notes, party avatars. Shared by
+  // both layouts so only the date placement differs between upcoming and past.
+  const bodyContent = (
     <>
-      <p className="font-semibold text-card-foreground">{dateLabel}</p>
       <p className="font-mono text-xs text-muted-foreground">{timeLine()}</p>
       {playDateNote && (
         <p className="mt-0.5 text-xs italic text-muted-foreground">{playDateNote}</p>
@@ -145,80 +149,115 @@ export function ScheduledRow({
     </>
   );
 
+  const expandToggle = expandable && (
+    <button
+      type="button"
+      aria-expanded={expanded}
+      aria-label={expanded ? 'Hide session details' : 'Show session details'}
+      onClick={() => setExpanded((v) => !v)}
+      className="self-center p-1"
+      title={expanded ? 'Hide details' : 'Show details'}
+    >
+      <ChevronRight
+        className={`size-4 text-muted-foreground transition-transform ${
+          expanded ? 'rotate-90' : ''
+        }`}
+      />
+    </button>
+  );
+
+  const expandedSection = expandable && expanded && (
+    <div className="mt-3 space-y-3 border-t border-border pt-3">
+      {suggestion && (
+        <div>
+          <EyebrowLabel variant="muted" className="mb-2 block">Party breakdown</EyebrowLabel>
+          <PartyBreakdown suggestion={suggestion} gmId={gmId} coGmIds={coGmIds} use24h={use24h} />
+        </div>
+      )}
+      {!past && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onDownloadIcs(session)}
+            data-testid="ics-download-single"
+            title="Download a calendar file (.ics) you can import into Google Calendar, Apple Calendar, or Outlook"
+          >
+            <Calendar className="mr-1.5 size-4" /> Add to calendar
+          </Button>
+          {isGm && onEditDetails && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onEditDetails(session)}
+              data-testid="session-edit-details"
+              title="Edit times, location, and notes for this session"
+            >
+              <Pencil className="mr-1 size-4" /> Edit details
+            </Button>
+          )}
+          {isGm && (
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => onRequestCancel(session)}
+              title="Cancel this scheduled session"
+              aria-label="Cancel"
+            >
+              <X className="mr-1 size-4" /> Cancel
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <li
       ref={rowRef}
       data-testid={past ? 'past-session-row' : 'scheduled-row'}
-      className={`rounded-xl border border-border bg-card p-4 ${past ? 'opacity-70' : ''} ${
-        celebrate ? 'relative isolate overflow-hidden' : ''
+      className={`overflow-hidden rounded-xl border border-border bg-card ${past ? 'opacity-70' : ''} ${
+        celebrate ? 'relative isolate' : ''
       }`}
     >
       {celebrate && <SessionCelebration onDone={onCelebrationDone} />}
-      <div className="flex items-start gap-3">
-        <span className={`text-lg leading-none ${past ? 'text-muted-foreground' : 'text-primary'}`}>★</span>
-        <div className="min-w-0 flex-1">{infoContent}</div>
-        {expandable && (
-          <button
-            type="button"
-            aria-expanded={expanded}
-            aria-label={expanded ? 'Hide session details' : 'Show session details'}
-            onClick={() => setExpanded((v) => !v)}
-            className="self-center p-1"
-            title={expanded ? 'Hide details' : 'Show details'}
-          >
-            <ChevronRight
-              className={`size-4 text-muted-foreground transition-transform ${
-                expanded ? 'rotate-90' : ''
-              }`}
-            />
-          </button>
-        )}
-      </div>
-
-      {expandable && expanded && (
-        <div className="mt-3 space-y-3 border-t border-border pt-3">
-          {suggestion && (
-            <div>
-              <EyebrowLabel variant="muted" className="mb-2 block">Party breakdown</EyebrowLabel>
-              <PartyBreakdown suggestion={suggestion} gmId={gmId} coGmIds={coGmIds} use24h={use24h} />
+      {past ? (
+        // Past sessions already read as "done" via opacity; keep the neutral inline
+        // layout with a muted star. The band is reserved for upcoming, where the
+        // confirmed-vs-suggested confusion actually lives.
+        <div className="p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-lg leading-none text-muted-foreground">★</span>
+            <div className="min-w-0 flex-1">
+              {dateLine}
+              {bodyContent}
             </div>
-          )}
-          {!past && (
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onDownloadIcs(session)}
-                data-testid="ics-download-single"
-                title="Download a calendar file (.ics) you can import into Google Calendar, Apple Calendar, or Outlook"
-              >
-                <Calendar className="mr-1.5 size-4" /> Add to calendar
-              </Button>
-              {isGm && onEditDetails && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onEditDetails(session)}
-                  data-testid="session-edit-details"
-                  title="Edit times, location, and notes for this session"
-                >
-                  <Pencil className="mr-1 size-4" /> Edit details
-                </Button>
-              )}
-              {isGm && (
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={() => onRequestCancel(session)}
-                  title="Cancel this scheduled session"
-                  aria-label="Cancel"
-                >
-                  <X className="mr-1 size-4" /> Cancel
-                </Button>
-              )}
-            </div>
-          )}
+            {expandToggle}
+          </div>
+          {expandedSection}
         </div>
+      ) : (
+        // Upcoming confirmed session: a solid primary band caps the card so a
+        // locked-in date is unmistakable next to the neutral, outlined suggestion cards.
+        <>
+          <div
+            className="flex items-center gap-2 bg-primary px-4 py-2 text-primary-foreground"
+            data-testid="session-confirmed-band"
+          >
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.08em] opacity-90">
+              Confirmed
+            </span>
+            <span className="text-sm font-semibold">{dateLabel}</span>
+            <span className="ml-auto text-base leading-none">★</span>
+          </div>
+          <div className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">{bodyContent}</div>
+              {expandToggle}
+            </div>
+            {expandedSection}
+          </div>
+        </>
       )}
     </li>
   );

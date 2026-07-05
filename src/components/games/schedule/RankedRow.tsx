@@ -76,11 +76,13 @@ export function RankedRow({
       data-date={suggestion.date}
       onMouseEnter={() => setHoveredDate(suggestion.date, 'row')}
       onMouseLeave={() => setHoveredDate(null)}
-      className={`rounded-xl border p-4 transition-colors ${
-        highlighted
-          ? 'border-primary/40 bg-card ring-1 ring-primary/15'
-          : 'border-border bg-card'
-      } ${isHovered ? 'ring-2 ring-primary/30' : ''}`}
+      // All suggestions share the neutral card shell — the primary hue now belongs to
+      // confirmed sessions (the header band). The #1 pick still stands out via its
+      // primary rank circle and larger percentage (both driven by `highlighted`),
+      // just not a primary card frame that competed with confirmed rows.
+      className={`rounded-xl border border-border bg-card p-4 transition-colors ${
+        isHovered ? 'ring-2 ring-primary/30' : ''
+      }`}
     >
       <button
         type="button"

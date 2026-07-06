@@ -22,6 +22,7 @@ import {
   getNextStatus,
   AvailabilityEntry,
 } from "@/lib/availabilityStatus";
+import { filterDatesForBulkSet } from "@/lib/bulkAvailability";
 import { formatTimeShort } from "@/lib/formatting";
 import { getTimeOptions } from "@/lib/timeOptions";
 import {
@@ -64,6 +65,8 @@ interface AvailabilityCalendarProps {
   bulkActionsLead?: ReactNode;
   /** Disables all interaction (day clicks, long-press editing, bulk actions). Used by the admin peek view. */
   readOnly?: boolean;
+  /** Applies a bulk status change in one call. When omitted, falls back to per-date onToggle calls. */
+  onBulkSet?: (dates: string[], status: AvailabilityStatus) => void;
 }
 
 export function AvailabilityCalendar({
@@ -86,6 +89,7 @@ export function AvailabilityCalendar({
   hasCampaignDates = false,
   bulkActionsLead,
   readOnly = false,
+  onBulkSet,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = windowEnd;
@@ -232,28 +236,29 @@ export function AvailabilityCalendar({
   };
 
   const bulkSetDays = (filter: string, status: AvailabilityStatus) => {
-    const datesInWindow = eachDayOfInterval({
-      start: windowStart,
-      end: maxDate,
-    }).filter((date) => {
-      const dayOfWeek = getDay(date);
-      const dateStr = format(date, "yyyy-MM-dd");
-      const isExtraPlayDate = extraPlayDates.includes(dateStr);
-      if (!playDays.includes(dayOfWeek) && !isExtraPlayDate) return false;
-      if (isBefore(date, today)) return false;
-
-      if (filter === "remaining") {
-        // Only dates without availability set
-        return !availability[dateStr];
-      } else {
-        // Specific day of week
-        return dayOfWeek === parseInt(filter, 10);
-      }
+    const dates = filterDatesForBulkSet({
+      filter,
+      dates: eachDayOfInterval({ start: windowStart, end: maxDate }),
+      playDays,
+      extraPlayDates,
+      existingAvailability: availability,
+      today,
+      formatDate: (d) => format(d, "yyyy-MM-dd"),
+      getDayOfWeek: getDay,
+      isBefore,
     });
 
-    datesInWindow.forEach((date) => {
-      const dateStr = format(date, "yyyy-MM-dd");
-      // Preserve existing comments and time constraints when bulk setting
+    if (dates.length === 0) return;
+
+    if (onBulkSet) {
+      onBulkSet(dates, status);
+      return;
+    }
+
+    // Fallback for callers that don't provide onBulkSet (e.g. the read-only
+    // admin peek): emit one onToggle call per date, preserving existing
+    // comments and time constraints when bulk setting.
+    dates.forEach((dateStr) => {
       const existing = availability[dateStr];
       onToggle(
         dateStr,

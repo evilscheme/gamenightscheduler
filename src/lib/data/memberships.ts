@@ -35,28 +35,23 @@ export async function fetchMembershipCount(supabase: SupabaseClient, gameId: str
     .eq('game_id', gameId);
 }
 
-export async function fetchUserOtherGames(
-  supabase: SupabaseClient,
-  userId: string,
-  excludeGameId: string
-) {
-  const { data: memberGames } = await supabase
-    .from('game_memberships')
-    .select('game_id, games(id, name)')
-    .eq('user_id', userId);
-
-  const { data: gmGames } = await supabase
-    .from('games')
-    .select('id, name')
-    .eq('gm_id', userId);
+/**
+ * Every game the user participates in (as GM or member), as {id, name} pairs.
+ * Callers filter out the current game themselves so the result is cacheable
+ * per user rather than per (user, game) pair.
+ */
+export async function fetchMyGamesLite(supabase: SupabaseClient, userId: string) {
+  const [memberRes, gmRes] = await Promise.all([
+    supabase.from('game_memberships').select('game_id, games(id, name)').eq('user_id', userId),
+    supabase.from('games').select('id, name').eq('gm_id', userId),
+  ]);
 
   const gameMap = new Map<string, string>();
-  gmGames?.forEach((g) => gameMap.set(g.id, g.name));
-  memberGames?.forEach((m) => {
+  gmRes.data?.forEach((g) => gameMap.set(g.id, g.name));
+  memberRes.data?.forEach((m) => {
     const g = m.games as unknown as { id: string; name: string } | null;
     if (g) gameMap.set(g.id, g.name);
   });
-  gameMap.delete(excludeGameId);
 
   return Array.from(gameMap.entries()).map(([id, name]) => ({ id, name }));
 }

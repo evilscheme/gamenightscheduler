@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { parseISO, startOfDay } from 'date-fns';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import type { GameSession } from '@/types';
 import {
@@ -8,9 +9,12 @@ import {
   cancelSession as cancelSessionQuery,
   updateSession as updateSessionQuery,
 } from '@/lib/data';
+import { queryKeys } from '@/lib/queryKeys';
 import { USAGE_LIMITS } from '@/lib/constants';
 
 const supabase = createClient();
+
+const EMPTY_SESSIONS: GameSession[] = [];
 
 export interface UseSessionsReturn {
   sessions: GameSession[];
@@ -36,21 +40,30 @@ export interface UseSessionsReturn {
   refresh: () => Promise<void>;
 }
 
-export function useSessions(gameId: string, ready: boolean): UseSessionsReturn {
-  const [sessions, setSessions] = useState<GameSession[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useSessions(gameId: string): UseSessionsReturn {
+  const queryClient = useQueryClient();
 
-  const fetchAll = useCallback(async () => {
-    if (!gameId) return;
-    const { data } = await fetchGameSessions(supabase, gameId);
-    setSessions(data || []);
-    setLoading(false);
-  }, [gameId]);
+  // Fires as soon as the gameId is known (no need to wait for the game fetch);
+  // RLS returns an empty list for non-participants.
+  const sessionsQuery = useQuery({
+    queryKey: queryKeys.sessions(gameId),
+    enabled: !!gameId,
+    queryFn: async () => (await fetchGameSessions(supabase, gameId)).data ?? [],
+  });
+  const sessions = sessionsQuery.data ?? EMPTY_SESSIONS;
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch-on-mount
-    if (ready) fetchAll();
-  }, [ready, fetchAll]);
+  const setSessions = useCallback(
+    (updater: (prev: GameSession[]) => GameSession[]) => {
+      queryClient.setQueryData<GameSession[]>(queryKeys.sessions(gameId), (prev = []) =>
+        updater(prev)
+      );
+    },
+    [queryClient, gameId]
+  );
+
+  const refresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.sessions(gameId) });
+  }, [queryClient, gameId]);
 
   const confirmSession = useCallback(
     async (
@@ -111,11 +124,13 @@ export function useSessions(gameId: string, ready: boolean): UseSessionsReturn {
           }
           return [...prev, data].sort((a, b) => a.date.localeCompare(b.date));
         });
+        // The dashboard's upcoming-sessions panel includes this game.
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }
 
       return { success: true };
     },
-    [gameId, sessions],
+    [gameId, sessions, setSessions, queryClient],
   );
 
   const updateSession = useCallback(
@@ -134,7 +149,7 @@ export function useSessions(gameId: string, ready: boolean): UseSessionsReturn {
       if (error) {
         if (error.code === 'PGRST116') {
           // Row was deleted by another GM in another tab.
-          await fetchAll();
+          await refresh();
           return { success: false, error: 'This session no longer exists.' };
         }
         if (error.code === '42501') {
@@ -145,10 +160,11 @@ export function useSessions(gameId: string, ready: boolean): UseSessionsReturn {
 
       if (data) {
         setSessions((prev) => prev.map((s) => (s.id === data.id ? data : s)));
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }
       return { success: true };
     },
-    [fetchAll, gameId],
+    [gameId, setSessions, refresh, queryClient],
   );
 
   const cancelSession = useCallback(
@@ -157,10 +173,18 @@ export function useSessions(gameId: string, ready: boolean): UseSessionsReturn {
       const { error } = await cancelSessionQuery(supabase, gameId, date);
       if (error) return { success: false, error: error.message };
       setSessions((prev) => prev.filter((s) => s.date !== date));
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       return { success: true };
     },
-    [gameId],
+    [gameId, setSessions, queryClient],
   );
 
-  return { sessions, loading, confirmSession, updateSession, cancelSession, refresh: fetchAll };
+  return {
+    sessions,
+    loading: sessionsQuery.isPending,
+    confirmSession,
+    updateSession,
+    cancelSession,
+    refresh,
+  };
 }

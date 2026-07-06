@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { nanoid } from 'nanoid';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 
 const supabase = createClient();
@@ -7,13 +8,14 @@ import type { GameWithMembers } from '@/types';
 import {
   fetchGameWithGM,
   fetchGameMembers,
-  fetchUserOtherGames,
+  fetchMyGamesLite,
   regenerateInviteCode,
   leaveGame as leaveGameQuery,
   removePlayer as removePlayerQuery,
   deleteGame as deleteGameQuery,
   toggleCoGm as toggleCoGmQuery,
 } from '@/lib/data';
+import { queryKeys } from '@/lib/queryKeys';
 import { withOptimistic } from './withOptimistic';
 
 export interface UseGameMetaReturn {
@@ -30,40 +32,56 @@ export interface UseGameMetaReturn {
 }
 
 export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
-  const [game, setGame] = useState<GameWithMembers | null>(null);
-  const [otherGames, setOtherGames] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAll = useCallback(async () => {
-    if (!gameId || !userId) return;
+  const gameQuery = useQuery({
+    queryKey: queryKeys.game(gameId),
+    enabled: !!gameId && !!userId,
+    queryFn: async (): Promise<GameWithMembers | null> => {
+      // Game and member list are independent; fetch them in parallel.
+      const [gameRes, membersRes] = await Promise.all([
+        fetchGameWithGM(supabase, gameId),
+        fetchGameMembers(supabase, gameId),
+      ]);
+      // Not found (or not a participant, which RLS reports the same way).
+      if (gameRes.error || !gameRes.data) return null;
+      return { ...gameRes.data, members: membersRes.data } as GameWithMembers;
+    },
+  });
 
-    const { data: gameData, error: gameError } = await fetchGameWithGM(supabase, gameId);
-    if (gameError || !gameData) {
-      setLoading(false);
-      return;
-    }
+  // Shared across game pages and kept fresh by join/create/leave invalidations;
+  // the current game is excluded at render rather than baked into the fetch.
+  const myGamesQuery = useQuery({
+    queryKey: queryKeys.myGamesLite(userId),
+    enabled: !!userId,
+    queryFn: () => fetchMyGamesLite(supabase, userId),
+  });
 
-    const [membersRes, otherGamesList] = await Promise.all([
-      fetchGameMembers(supabase, gameId),
-      fetchUserOtherGames(supabase, userId, gameId),
-    ]);
+  const game = gameQuery.data ?? null;
+  const otherGames = useMemo(
+    () => (myGamesQuery.data ?? []).filter((g) => g.id !== gameId),
+    [myGamesQuery.data, gameId]
+  );
 
-    setGame({ ...gameData, members: membersRes.data } as GameWithMembers);
-    setOtherGames(otherGamesList);
-    setLoading(false);
-  }, [gameId, userId]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch-on-mount
-    if (userId) fetchAll();
-  }, [userId, fetchAll]);
+  const setGame = useCallback(
+    (updater: (prev: GameWithMembers | null) => GameWithMembers | null) => {
+      queryClient.setQueryData<GameWithMembers | null>(
+        queryKeys.game(gameId),
+        (prev) => updater(prev ?? null)
+      );
+    },
+    [queryClient, gameId]
+  );
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchAll();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.myGamesLite(userId) }),
+    ]);
     setRefreshing(false);
-  }, [fetchAll]);
+  }, [queryClient, gameId, userId]);
 
   const regenerateInvite = useCallback(async () => {
     if (!game || !gameId) return;
@@ -74,13 +92,18 @@ export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
       revert: () => setGame((prev) => (prev ? { ...prev, invite_code: oldCode } : prev)),
       mutation: () => regenerateInviteCode(supabase, gameId, newCode),
     });
-  }, [game, gameId]);
+  }, [game, gameId, setGame]);
 
   const leaveGame = useCallback(async (): Promise<boolean> => {
     if (!userId || !gameId) return false;
     const { error } = await leaveGameQuery(supabase, gameId, userId);
-    return !error;
-  }, [userId, gameId]);
+    if (error) return false;
+    // This game must disappear from the games lists on next visit.
+    queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.myGamesLite(userId) });
+    return true;
+  }, [userId, gameId, queryClient]);
 
   const removePlayer = useCallback(
     async (playerId: string): Promise<boolean> => {
@@ -88,18 +111,24 @@ export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
       const { error } = await removePlayerQuery(supabase, gameId, playerId);
       if (error) return false;
       setGame((prev) =>
-        prev ? { ...prev, members: prev.members.filter((m) => m.id !== playerId) } : prev,
+        prev ? { ...prev, members: prev.members.filter((m) => m.id !== playerId) } : prev
       );
+      // Dashboard shows per-game member counts.
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       return true;
     },
-    [gameId],
+    [gameId, setGame, queryClient]
   );
 
   const deleteGame = useCallback(async (): Promise<boolean> => {
     if (!gameId) return false;
     const { error } = await deleteGameQuery(supabase, gameId);
-    return !error;
-  }, [gameId]);
+    if (error) return false;
+    queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.myGamesLite(userId) });
+    return true;
+  }, [gameId, userId, queryClient]);
 
   const toggleCoGm = useCallback(
     async (playerId: string, makeCoGm: boolean): Promise<boolean> => {
@@ -111,19 +140,19 @@ export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
           ? {
               ...prev,
               members: prev.members.map((m) =>
-                m.id === playerId ? { ...m, is_co_gm: makeCoGm } : m,
+                m.id === playerId ? { ...m, is_co_gm: makeCoGm } : m
               ),
             }
-          : prev,
+          : prev
       );
       return true;
     },
-    [gameId],
+    [gameId, setGame]
   );
 
   return {
     game,
-    loading,
+    loading: gameQuery.isPending,
     refreshing,
     otherGames,
     refresh,

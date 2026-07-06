@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui';
 import { DAY_LABELS } from '@/lib/constants';
+import { queryKeys } from '@/lib/queryKeys';
 import type { WeekdayDefault } from '@/lib/defaultAvailability';
 import { fetchUserDefaults, upsertUserDefault, deleteUserDefault } from '@/lib/data';
 import { DefaultDayRow } from './DefaultDayRow';
@@ -29,6 +31,7 @@ function sameDefault(a: WeekdayDefault | undefined, b: WeekdayDefault | undefine
 
 export function DefaultAvailabilityEditor() {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const { weekStartDay, use24h } = useUserPreferences();
   const [defaults, setDefaults] = useState<DefaultsMap>({});
   const [saved, setSaved] = useState<DefaultsMap>({});
@@ -98,6 +101,11 @@ export function DefaultAvailabilityEditor() {
     } else {
       setSaved(defaults);
       setMessage('Default availability saved!');
+    }
+    // Game pages cache the defaults (for the "Apply defaults" button); refresh
+    // even on partial failure since some rows may have been written.
+    if (userId) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.userDefaults(userId) });
     }
     setSaving(false);
   };

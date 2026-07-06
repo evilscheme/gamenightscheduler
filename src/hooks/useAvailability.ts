@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   getDay,
   startOfDay,
@@ -8,6 +8,7 @@ import {
   eachDayOfInterval,
   format,
 } from 'date-fns';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import type {
   Availability,
@@ -22,11 +23,15 @@ import {
   batchUpsertAvailability,
   fetchUserDefaults,
 } from '@/lib/data';
+import { queryKeys } from '@/lib/queryKeys';
 import { filterAvailabilityForCopy, applyCopyConflicts, type CopyConflict } from '@/lib/copyAvailability';
+import { buildBulkUpsertEntries } from '@/lib/bulkAvailability';
 import { computeDefaultEntries, type WeekdayDefault } from '@/lib/defaultAvailability';
 import { getSchedulingWindow } from '@/lib/scheduling';
 
 const supabase = createClient();
+
+const EMPTY_AVAILABILITY: Availability[] = [];
 
 export interface ApplyDefaultsResult {
   /** False when the user has not configured any default availability yet. */
@@ -48,6 +53,8 @@ export interface UseAvailabilityReturn {
     availableAfter: string | null,
     availableUntil: string | null,
   ) => Promise<void>;
+  /** Set one status on many dates with a single batched upsert (bulk-actions bar). */
+  bulkSetStatus: (dates: string[], status: AvailabilityStatus) => Promise<void>;
   copyFromGame: (
     sourceGameId: string,
     extraDateStrings: string[],
@@ -63,40 +70,92 @@ export function useAvailability(
   userId: string,
   game: GameWithMembers | null,
 ): UseAvailabilityReturn {
-  const [availability, setAvailability] = useState<Record<string, AvailabilityEntry>>({});
-  const [allAvailability, setAllAvailability] = useState<Availability[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasDefaults, setHasDefaults] = useState<boolean | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchAll = useCallback(async () => {
-    if (!gameId || !userId) return;
-    const [userAvailRes, allAvailRes, defaultsRes] = await Promise.all([
-      fetchUserAvailability(supabase, gameId, userId),
-      fetchAllAvailability(supabase, gameId),
-      fetchUserDefaults(supabase, userId),
-    ]);
+  // Single source of truth: every player's rows for this game. The current
+  // user's own entries (the old separate fetchUserAvailability query) are
+  // derived from this set instead of fetched twice.
+  const allQuery = useQuery({
+    queryKey: queryKeys.availability(gameId),
+    enabled: !!gameId && !!userId,
+    queryFn: async () => (await fetchAllAvailability(supabase, gameId)).data ?? [],
+  });
+  const allAvailability = allQuery.data ?? EMPTY_AVAILABILITY;
 
+  const availability = useMemo(() => {
     const map: Record<string, AvailabilityEntry> = {};
-    userAvailRes.data?.forEach((a) => {
+    for (const a of allAvailability) {
+      if (a.user_id !== userId) continue;
       map[a.date] = {
         status: a.status,
         comment: a.comment,
         available_after: a.available_after,
         available_until: a.available_until,
       };
-    });
-    setAvailability(map);
-    setAllAvailability(allAvailRes.data || []);
-    setHasDefaults((defaultsRes.data?.length ?? 0) > 0);
-    setLoading(false);
-  }, [gameId, userId]);
+    }
+    return map;
+  }, [allAvailability, userId]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch-on-mount
-    if (userId) fetchAll();
-  }, [userId, fetchAll]);
+  const defaultsQueryFn = useCallback(
+    async () => (await fetchUserDefaults(supabase, userId)).data ?? [],
+    [userId]
+  );
+  const defaultsQuery = useQuery({
+    queryKey: queryKeys.userDefaults(userId),
+    enabled: !!userId,
+    queryFn: defaultsQueryFn,
+  });
+  const hasDefaults = defaultsQuery.data === undefined ? null : defaultsQuery.data.length > 0;
 
-  const refresh = fetchAll;
+  /**
+   * Optimistically write the current user's rows for the given dates into the
+   * availability cache. Returns a revert function that restores exactly the
+   * rows that were replaced or removed (not a whole-cache snapshot, so two
+   * in-flight changes to different dates can't clobber each other).
+   */
+  const optimisticallyApply = useCallback(
+    (entries: { date: string; entry: AvailabilityEntry }[]) => {
+      const key = queryKeys.availability(gameId);
+      const dates = new Set(entries.map((e) => e.date));
+      const prevRows = (queryClient.getQueryData<Availability[]>(key) ?? []).filter(
+        (a) => a.user_id === userId && dates.has(a.date)
+      );
+      const prevByDate = new Map(prevRows.map((r) => [r.date, r]));
+      const nowIso = new Date().toISOString();
+      const nextRows: Availability[] = entries.map(({ date, entry }) => ({
+        id: prevByDate.get(date)?.id ?? 'temp',
+        user_id: userId,
+        game_id: gameId,
+        date,
+        status: entry.status,
+        comment: entry.comment,
+        available_after: entry.available_after,
+        available_until: entry.available_until,
+        created_at: prevByDate.get(date)?.created_at ?? nowIso,
+        updated_at: nowIso,
+      }));
+
+      queryClient.setQueryData<Availability[]>(key, (cur = []) => [
+        ...cur.filter((a) => !(a.user_id === userId && dates.has(a.date))),
+        ...nextRows,
+      ]);
+
+      return () => {
+        queryClient.setQueryData<Availability[]>(key, (cur = []) => [
+          ...cur.filter((a) => !(a.user_id === userId && dates.has(a.date))),
+          ...prevRows,
+        ]);
+      };
+    },
+    [queryClient, gameId, userId]
+  );
+
+  const refresh = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.availability(gameId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.userDefaults(userId) }),
+    ]);
+  }, [queryClient, gameId, userId]);
 
   const changeAvailability = useCallback(
     async (
@@ -108,15 +167,17 @@ export function useAvailability(
     ) => {
       if (!userId || !gameId) return;
 
-      setAvailability((prev) => ({
-        ...prev,
-        [date]: {
-          status,
-          comment,
-          available_after: availableAfter,
-          available_until: availableUntil,
+      const revert = optimisticallyApply([
+        {
+          date,
+          entry: {
+            status,
+            comment,
+            available_after: availableAfter,
+            available_until: availableUntil,
+          },
         },
-      }));
+      ]);
 
       const { error } = await upsertAvailability(supabase, {
         user_id: userId,
@@ -128,47 +189,33 @@ export function useAvailability(
         available_until: availableUntil,
       });
 
-      if (error) {
-        setAvailability((prev) => {
-          const next = { ...prev };
-          delete next[date];
-          return next;
-        });
-        return;
-      }
-
-      setAllAvailability((prev) => {
-        const existing = prev.findIndex((a) => a.user_id === userId && a.date === date);
-        const now = new Date().toISOString();
-        if (existing >= 0) {
-          const updated = [...prev];
-          updated[existing] = {
-            ...updated[existing],
-            status,
-            comment,
-            available_after: availableAfter,
-            available_until: availableUntil,
-          };
-          return updated;
-        }
-        return [
-          ...prev,
-          {
-            id: 'temp',
-            user_id: userId,
-            game_id: gameId,
-            date,
-            status,
-            comment,
-            available_after: availableAfter,
-            available_until: availableUntil,
-            created_at: now,
-            updated_at: now,
-          },
-        ];
-      });
+      if (error) revert();
     },
-    [userId, gameId],
+    [userId, gameId, optimisticallyApply],
+  );
+
+  const bulkSetStatus = useCallback(
+    async (dates: string[], status: AvailabilityStatus) => {
+      if (!userId || !gameId || dates.length === 0) return;
+
+      // Preserve existing comments/time constraints, matching single-date toggles.
+      const entries = buildBulkUpsertEntries(dates, status, availability);
+      const revert = optimisticallyApply(entries);
+
+      const rows = entries.map(({ date, entry }) => ({
+        user_id: userId,
+        game_id: gameId,
+        date,
+        status: entry.status,
+        comment: entry.comment,
+        available_after: entry.available_after,
+        available_until: entry.available_until,
+      }));
+
+      const { error } = await batchUpsertAvailability(supabase, rows);
+      if (error) revert();
+    },
+    [userId, gameId, availability, optimisticallyApply],
   );
 
   const copyFromGame = useCallback(
@@ -213,11 +260,7 @@ export function useAvailability(
 
       if (finalEntries.length === 0) return { copied: 0, overridden: 0 };
 
-      setAvailability((prev) => {
-        const next = { ...prev };
-        for (const { date, entry } of finalEntries) next[date] = entry;
-        return next;
-      });
+      const revert = optimisticallyApply(finalEntries);
 
       const rows = finalEntries.map(({ date, entry }) => ({
         user_id: userId,
@@ -232,42 +275,27 @@ export function useAvailability(
       const { error } = await batchUpsertAvailability(supabase, rows);
 
       if (error) {
-        setAvailability((prev) => {
-          const next = { ...prev };
-          for (const { date } of finalEntries) delete next[date];
-          return next;
-        });
+        revert();
         throw error;
       }
-
-      const now = new Date().toISOString();
-      setAllAvailability((prev) => [
-        ...prev,
-        ...finalEntries.map(({ date, entry }) => ({
-          id: 'temp',
-          user_id: userId,
-          game_id: gameId,
-          date,
-          status: entry.status,
-          comment: entry.comment,
-          available_after: entry.available_after,
-          available_until: entry.available_until,
-          created_at: now,
-          updated_at: now,
-        })),
-      ]);
 
       const overridden = conflict ? conflict.dates.length : 0;
       return { copied: finalEntries.length - overridden, overridden };
     },
-    [userId, gameId, game, availability],
+    [userId, gameId, game, availability, optimisticallyApply],
   );
 
   const applyDefaults = useCallback(
     async (extraDateStrings: string[]): Promise<ApplyDefaultsResult> => {
       if (!userId || !gameId || !game) return { hadDefaults: false, filled: 0 };
 
-      const { data: defaultRows } = await fetchUserDefaults(supabase, userId);
+      // Force a fresh read (defaults may have been edited in another tab) and
+      // refresh the cached copy while we're at it.
+      const defaultRows = await queryClient.fetchQuery({
+        queryKey: queryKeys.userDefaults(userId),
+        queryFn: defaultsQueryFn,
+        staleTime: 0,
+      });
       if (!defaultRows || defaultRows.length === 0) {
         return { hadDefaults: false, filled: 0 };
       }
@@ -301,19 +329,17 @@ export function useAvailability(
 
       if (entries.length === 0) return { hadDefaults: true, filled: 0 };
 
-      // Optimistic local update.
-      setAvailability((prev) => {
-        const next = { ...prev };
-        for (const e of entries) {
-          next[e.date] = {
+      const revert = optimisticallyApply(
+        entries.map((e) => ({
+          date: e.date,
+          entry: {
             status: e.status,
             comment: e.comment,
             available_after: e.available_after,
             available_until: e.available_until,
-          };
-        }
-        return next;
-      });
+          },
+        }))
+      );
 
       const rows = entries.map((e) => ({
         user_id: userId,
@@ -327,46 +353,32 @@ export function useAvailability(
 
       const { error } = await batchUpsertAvailability(supabase, rows);
       if (error) {
-        setAvailability((prev) => {
-          const next = { ...prev };
-          for (const e of entries) delete next[e.date];
-          return next;
-        });
+        revert();
         throw error;
       }
 
-      const now = new Date().toISOString();
-      setAllAvailability((prev) => [
-        ...prev,
-        ...entries.map((e) => ({
-          id: 'temp',
-          user_id: userId,
-          game_id: gameId,
-          date: e.date,
-          status: e.status,
-          comment: e.comment,
-          available_after: e.available_after,
-          available_until: e.available_until,
-          created_at: now,
-          updated_at: now,
-        })),
-      ]);
-
       return { hadDefaults: true, filled: entries.length };
     },
-    [userId, gameId, game, availability],
+    [userId, gameId, game, availability, optimisticallyApply, queryClient, defaultsQueryFn],
   );
 
-  const removePlayerData = useCallback((playerId: string) => {
-    setAllAvailability((prev) => prev.filter((a) => a.user_id !== playerId));
-  }, []);
+  const removePlayerData = useCallback(
+    (playerId: string) => {
+      queryClient.setQueryData<Availability[]>(
+        queryKeys.availability(gameId),
+        (prev = []) => prev.filter((a) => a.user_id !== playerId)
+      );
+    },
+    [queryClient, gameId]
+  );
 
   return {
     availability,
     allAvailability,
-    loading,
+    loading: allQuery.isPending,
     hasDefaults,
     changeAvailability,
+    bulkSetStatus,
     copyFromGame,
     applyDefaults,
     removePlayerData,

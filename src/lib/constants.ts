@@ -17,6 +17,11 @@ export const TIMEOUTS = {
   BACKEND_HEALTH_RECHECK: 30000,
 } as const;
 
+// How long React Query treats fetched data as fresh (ms). Within this window,
+// remounting a page (e.g. dashboard -> game -> back) reuses the cache instead
+// of refetching; a window refocus or explicit invalidation refetches sooner.
+export const QUERY_STALE_TIME = 45_000;
+
 // Default session times
 export const SESSION_DEFAULTS = {
   START_TIME: '18:00',

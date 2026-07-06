@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
@@ -30,6 +31,7 @@ export default function NewGamePage() {
   const { timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -120,6 +122,10 @@ export default function NewGamePage() {
       setCreating(false);
       return;
     }
+
+    // The cached games lists don't include the new game yet.
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ['myGamesLite'] });
 
     router.push(`/games/${createdGame?.id || '/dashboard'}`);
   };

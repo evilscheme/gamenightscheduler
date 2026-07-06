@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import type { GamePlayDate } from '@/types';
 import {
@@ -8,8 +9,11 @@ import {
   updatePlayDateNote as updatePlayDateNoteQuery,
   upsertPlayDate,
 } from '@/lib/data';
+import { queryKeys } from '@/lib/queryKeys';
 
 const supabase = createClient();
+
+const EMPTY_PLAY_DATES: GamePlayDate[] = [];
 
 export interface UsePlayDatesReturn {
   gamePlayDates: GamePlayDate[];
@@ -19,21 +23,30 @@ export interface UsePlayDatesReturn {
   refresh: () => Promise<void>;
 }
 
-export function usePlayDates(gameId: string, ready: boolean): UsePlayDatesReturn {
-  const [gamePlayDates, setGamePlayDates] = useState<GamePlayDate[]>([]);
-  const [loading, setLoading] = useState(true);
+export function usePlayDates(gameId: string): UsePlayDatesReturn {
+  const queryClient = useQueryClient();
 
-  const fetchAll = useCallback(async () => {
-    if (!gameId) return;
-    const { data } = await fetchGamePlayDates(supabase, gameId);
-    setGamePlayDates(data || []);
-    setLoading(false);
-  }, [gameId]);
+  // Fires as soon as the gameId is known (no need to wait for the game fetch);
+  // RLS returns an empty list for non-participants.
+  const playDatesQuery = useQuery({
+    queryKey: queryKeys.playDates(gameId),
+    enabled: !!gameId,
+    queryFn: async () => (await fetchGamePlayDates(supabase, gameId)).data ?? [],
+  });
+  const gamePlayDates = playDatesQuery.data ?? EMPTY_PLAY_DATES;
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch-on-mount
-    if (ready) fetchAll();
-  }, [ready, fetchAll]);
+  const setGamePlayDates = useCallback(
+    (updater: (prev: GamePlayDate[]) => GamePlayDate[]) => {
+      queryClient.setQueryData<GamePlayDate[]>(queryKeys.playDates(gameId), (prev = []) =>
+        updater(prev)
+      );
+    },
+    [queryClient, gameId]
+  );
+
+  const refresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.playDates(gameId) });
+  }, [queryClient, gameId]);
 
   const toggleExtraDate = useCallback(
     async (date: string, isCurrentlyExtra: boolean) => {
@@ -72,7 +85,7 @@ export function usePlayDates(gameId: string, ready: boolean): UsePlayDatesReturn
         );
       }
     },
-    [gameId, gamePlayDates],
+    [gameId, gamePlayDates, setGamePlayDates],
   );
 
   const updatePlayDateNote = useCallback(
@@ -109,8 +122,8 @@ export function usePlayDates(gameId: string, ready: boolean): UsePlayDatesReturn
         );
       }
     },
-    [gameId, gamePlayDates],
+    [gameId, gamePlayDates, setGamePlayDates],
   );
 
-  return { gamePlayDates, loading, toggleExtraDate, updatePlayDateNote, refresh: fetchAll };
+  return { gamePlayDates, loading: playDatesQuery.isPending, toggleExtraDate, updatePlayDateNote, refresh };
 }

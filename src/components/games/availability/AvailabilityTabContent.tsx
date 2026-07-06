@@ -26,6 +26,8 @@ export interface AvailabilityTabContentProps {
     availableAfter: string | null,
     availableUntil: string | null
   ) => void;
+  /** Applies a bulk status change in one call. When omitted, the calendar falls back to per-date onToggle calls. */
+  onBulkSet?: (dates: string[], status: AvailabilityStatus) => void;
   confirmedSessions: GameSession[];
   extraPlayDates: string[];
   isGmOrCoGm: boolean;
@@ -54,7 +56,7 @@ export interface AvailabilityTabContentProps {
 export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
   const {
     windowStart, windowEnd, currentUserId, completionByUserId,
-    playDays, availability, onToggle, confirmedSessions, extraPlayDates,
+    playDays, availability, onToggle, onBulkSet, confirmedSessions, extraPlayDates,
     isGmOrCoGm, onToggleExtraDate, weekStartDay, use24h, otherGames,
     onCopyFromGame, onApplyDefaults, hasDefaults, playDateNotes, onUpdatePlayDateNote, hasCampaignDates,
     adHocOnly, readOnly = false, otherGameSessionsByDate = new Map(),
@@ -97,6 +99,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
         windowEnd={windowEnd}
         availability={availability}
         onToggle={onToggle}
+        onBulkSet={onBulkSet}
         confirmedSessions={confirmedSessions}
         extraPlayDates={extraPlayDates}
         isGmOrCoGm={isGmOrCoGm}

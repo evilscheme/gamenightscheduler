@@ -72,3 +72,39 @@ test.describe('Function EXECUTE grants — anon lockdown', () => {
     });
   });
 });
+
+// SECURITY DEFINER functions that exist ONLY as triggers. A trigger fires via the
+// table's trigger machinery, which does NOT check the invoking role's EXECUTE
+// grant, so these need no grant to any client role. The blanket
+// `GRANT EXECUTE ON ALL FUNCTIONS ... TO authenticated` swept them up anyway,
+// leaving them listed as authenticated-callable SECURITY DEFINER RPCs (Supabase
+// advisor lint 0029) for zero functional benefit. Revoking the grant removes
+// them from the /rest/v1/rpc surface without affecting the triggers.
+const TRIGGER_FUNCTIONS: string[] = [
+  'handle_new_user',
+  'protect_user_columns',
+  'protect_game_gm_id',
+];
+
+test.describe('Trigger-function EXECUTE lockdown', () => {
+  // Authoritative ACL check (same rationale as the helper test above: a REST
+  // probe cannot verify this — PostgREST does not route trigger-returning
+  // functions as RPCs at all). Neither anon NOR authenticated should hold
+  // EXECUTE on a trigger-only function.
+  test('no client role holds EXECUTE on any trigger-only function (ACL)', () => {
+    const projection = TRIGGER_FUNCTIONS.map(
+      (name) =>
+        `has_function_privilege('anon','public.${name}()','EXECUTE') AS anon_${name}, ` +
+        `has_function_privilege('authenticated','public.${name}()','EXECUTE') AS auth_${name}`
+    ).join(', ');
+    const out = execSync(`psql "${DB_URL}" -tAc "SELECT ${projection};"`, {
+      encoding: 'utf8',
+    }).trim();
+    const vals = out.split('|').map((v) => v.trim());
+    expect(vals).toHaveLength(TRIGGER_FUNCTIONS.length * 2);
+    TRIGGER_FUNCTIONS.forEach((name, i) => {
+      expect(vals[i * 2], `anon must NOT hold EXECUTE on ${name}`).toBe('f');
+      expect(vals[i * 2 + 1], `authenticated must NOT hold EXECUTE on ${name}`).toBe('f');
+    });
+  });
+});

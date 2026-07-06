@@ -591,3 +591,15 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
   REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT EXECUTE ON FUNCTIONS TO authenticated, service_role;
+
+-- Trigger-only functions: revoke the authenticated EXECUTE the blanket grant above
+-- just handed them. handle_new_user, protect_user_columns, and protect_game_gm_id
+-- exist solely as triggers; a trigger fires via the table's trigger machinery,
+-- which does NOT check the invoking role's EXECUTE grant, so no client role needs
+-- it. Leaving the grant only lists them as authenticated-callable SECURITY DEFINER
+-- RPCs in the Supabase advisor (lint 0029) for zero functional benefit. Revoking
+-- removes them from the /rest/v1/rpc surface without affecting the triggers.
+-- (join_game_by_invite is intentionally left callable — it IS a client RPC.)
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.protect_user_columns() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.protect_game_gm_id() FROM authenticated;

@@ -28,13 +28,6 @@ export async function fetchUserMemberships(supabase: SupabaseClient, userId: str
     .eq('user_id', userId);
 }
 
-export async function fetchMembershipCount(supabase: SupabaseClient, gameId: string) {
-  return supabase
-    .from('game_memberships')
-    .select('*', { count: 'exact', head: true })
-    .eq('game_id', gameId);
-}
-
 /**
  * Every game the user participates in (as GM or member), as {id, name} pairs.
  * Callers filter out the current game themselves so the result is cacheable

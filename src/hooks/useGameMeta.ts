@@ -15,7 +15,7 @@ import {
   deleteGame as deleteGameQuery,
   toggleCoGm as toggleCoGmQuery,
 } from '@/lib/data';
-import { queryKeys } from '@/lib/queryKeys';
+import { invalidateGamesLists, queryKeys } from '@/lib/queryKeys';
 import { withOptimistic } from './withOptimistic';
 
 export interface UseGameMetaReturn {
@@ -100,8 +100,7 @@ export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
     if (error) return false;
     // This game must disappear from the games lists on next visit.
     queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    queryClient.invalidateQueries({ queryKey: queryKeys.myGamesLite(userId) });
+    invalidateGamesLists(queryClient);
     return true;
   }, [userId, gameId, queryClient]);
 
@@ -114,7 +113,7 @@ export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
         prev ? { ...prev, members: prev.members.filter((m) => m.id !== playerId) } : prev
       );
       // Dashboard shows per-game member counts.
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardAll });
       return true;
     },
     [gameId, setGame, queryClient]
@@ -125,10 +124,9 @@ export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
     const { error } = await deleteGameQuery(supabase, gameId);
     if (error) return false;
     queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    queryClient.invalidateQueries({ queryKey: queryKeys.myGamesLite(userId) });
+    invalidateGamesLists(queryClient);
     return true;
-  }, [gameId, userId, queryClient]);
+  }, [gameId, queryClient]);
 
   const toggleCoGm = useCallback(
     async (playerId: string, makeCoGm: boolean): Promise<boolean> => {

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/queryKeys';
+import { invalidateGamesLists, queryKeys } from '@/lib/queryKeys';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import {
   Button,
@@ -156,8 +156,7 @@ export default function EditGamePage() {
     // the ad-hoc conversion above may also have added play dates.
     queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
     queryClient.invalidateQueries({ queryKey: queryKeys.playDates(gameId) });
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['myGamesLite'] });
+    invalidateGamesLists(queryClient);
 
     router.push(`/games/${gameId}`);
   };
@@ -188,8 +187,7 @@ export default function EditGamePage() {
       return;
     }
     queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['myGamesLite'] });
+    invalidateGamesLists(queryClient);
     router.push('/dashboard');
   };
 

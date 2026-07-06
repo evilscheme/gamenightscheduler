@@ -107,6 +107,34 @@ export function useAvailability(
   });
   const hasDefaults = defaultsQuery.data === undefined ? null : defaultsQuery.data.length > 0;
 
+  /** Build a full upsert row for the current user from a per-date entry. */
+  const toUpsertRow = useCallback(
+    (date: string, entry: AvailabilityEntry) => ({
+      user_id: userId,
+      game_id: gameId,
+      date,
+      status: entry.status,
+      comment: entry.comment,
+      available_after: entry.available_after,
+      available_until: entry.available_until,
+    }),
+    [userId, gameId]
+  );
+
+  /**
+   * Recover from a failed write: roll back the optimistic rows, then refetch
+   * from the server. The refetch matters when writes to the same date
+   * interleave — an earlier write's rollback can clobber a later write that
+   * succeeded, and only server truth can untangle that.
+   */
+  const revertAndReconcile = useCallback(
+    (revert: () => void) => {
+      revert();
+      queryClient.invalidateQueries({ queryKey: queryKeys.availability(gameId) });
+    },
+    [queryClient, gameId]
+  );
+
   /**
    * Optimistically write the current user's rows for the given dates into the
    * availability cache. Returns a revert function that restores exactly the
@@ -179,19 +207,19 @@ export function useAvailability(
         },
       ]);
 
-      const { error } = await upsertAvailability(supabase, {
-        user_id: userId,
-        game_id: gameId,
-        date,
-        status,
-        comment,
-        available_after: availableAfter,
-        available_until: availableUntil,
-      });
+      const { error } = await upsertAvailability(
+        supabase,
+        toUpsertRow(date, {
+          status,
+          comment,
+          available_after: availableAfter,
+          available_until: availableUntil,
+        })
+      );
 
-      if (error) revert();
+      if (error) revertAndReconcile(revert);
     },
-    [userId, gameId, optimisticallyApply],
+    [userId, gameId, optimisticallyApply, toUpsertRow, revertAndReconcile],
   );
 
   const bulkSetStatus = useCallback(
@@ -202,20 +230,12 @@ export function useAvailability(
       const entries = buildBulkUpsertEntries(dates, status, availability);
       const revert = optimisticallyApply(entries);
 
-      const rows = entries.map(({ date, entry }) => ({
-        user_id: userId,
-        game_id: gameId,
-        date,
-        status: entry.status,
-        comment: entry.comment,
-        available_after: entry.available_after,
-        available_until: entry.available_until,
-      }));
+      const rows = entries.map(({ date, entry }) => toUpsertRow(date, entry));
 
       const { error } = await batchUpsertAvailability(supabase, rows);
-      if (error) revert();
+      if (error) revertAndReconcile(revert);
     },
-    [userId, gameId, availability, optimisticallyApply],
+    [userId, gameId, availability, optimisticallyApply, toUpsertRow, revertAndReconcile],
   );
 
   const copyFromGame = useCallback(
@@ -262,27 +282,19 @@ export function useAvailability(
 
       const revert = optimisticallyApply(finalEntries);
 
-      const rows = finalEntries.map(({ date, entry }) => ({
-        user_id: userId,
-        game_id: gameId,
-        date,
-        status: entry.status,
-        comment: entry.comment,
-        available_after: entry.available_after,
-        available_until: entry.available_until,
-      }));
+      const rows = finalEntries.map(({ date, entry }) => toUpsertRow(date, entry));
 
       const { error } = await batchUpsertAvailability(supabase, rows);
 
       if (error) {
-        revert();
+        revertAndReconcile(revert);
         throw error;
       }
 
       const overridden = conflict ? conflict.dates.length : 0;
       return { copied: finalEntries.length - overridden, overridden };
     },
-    [userId, gameId, game, availability, optimisticallyApply],
+    [userId, gameId, game, availability, optimisticallyApply, toUpsertRow, revertAndReconcile],
   );
 
   const applyDefaults = useCallback(
@@ -329,37 +341,28 @@ export function useAvailability(
 
       if (entries.length === 0) return { hadDefaults: true, filled: 0 };
 
-      const revert = optimisticallyApply(
-        entries.map((e) => ({
-          date: e.date,
-          entry: {
-            status: e.status,
-            comment: e.comment,
-            available_after: e.available_after,
-            available_until: e.available_until,
-          },
-        }))
-      );
-
-      const rows = entries.map((e) => ({
-        user_id: userId,
-        game_id: gameId,
+      const datedEntries = entries.map((e) => ({
         date: e.date,
-        status: e.status,
-        comment: e.comment,
-        available_after: e.available_after,
-        available_until: e.available_until,
+        entry: {
+          status: e.status,
+          comment: e.comment,
+          available_after: e.available_after,
+          available_until: e.available_until,
+        },
       }));
+      const revert = optimisticallyApply(datedEntries);
+
+      const rows = datedEntries.map(({ date, entry }) => toUpsertRow(date, entry));
 
       const { error } = await batchUpsertAvailability(supabase, rows);
       if (error) {
-        revert();
+        revertAndReconcile(revert);
         throw error;
       }
 
       return { hadDefaults: true, filled: entries.length };
     },
-    [userId, gameId, game, availability, optimisticallyApply, queryClient, defaultsQueryFn],
+    [userId, gameId, game, availability, optimisticallyApply, queryClient, defaultsQueryFn, toUpsertRow, revertAndReconcile],
   );
 
   const removePlayerData = useCallback(
@@ -375,7 +378,10 @@ export function useAvailability(
   return {
     availability,
     allAvailability,
-    loading: allQuery.isPending,
+    // Defaults gate loading too (both queries run in parallel, so this costs
+    // nothing): rendering before hasDefaults resolves would flash the
+    // ApplyDefaultsButton's null state for users with no defaults.
+    loading: allQuery.isPending || (!!userId && defaultsQuery.isPending),
     hasDefaults,
     changeAvailability,
     bulkSetStatus,

@@ -1,13 +1,13 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Users, Calendar } from "lucide-react";
 import { Button, LoadingSpinner } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
 import { DAY_LABELS } from "@/lib/constants";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { fetchDashboardData, type DashboardGame } from "@/lib/dashboardData";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
@@ -21,11 +21,23 @@ export function DashboardContent() {
   const supabase = createClient();
   const userId = user?.id ?? '';
 
+  const queryClient = useQueryClient();
   const { data, isPending } = useQuery({
     queryKey: queryKeys.dashboard(userId),
     queryFn: () => fetchDashboardData(supabase, userId),
     enabled: !!userId,
   });
+
+  // The dashboard result already contains every game's id and name, so seed
+  // the my-games cache: the common dashboard -> game navigation then skips
+  // fetchMyGamesLite's two round trips entirely.
+  useEffect(() => {
+    if (!data || !userId) return;
+    queryClient.setQueryData(
+      queryKeys.myGamesLite(userId),
+      data.games.map((g) => ({ id: g.id, name: g.name }))
+    );
+  }, [data, userId, queryClient]);
 
   const games: DashboardGame[] = data?.games ?? [];
 

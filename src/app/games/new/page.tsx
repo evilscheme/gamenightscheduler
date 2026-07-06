@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
 import { fetchUserGameCount, createGame } from '@/lib/data';
+import { invalidateGamesLists } from '@/lib/queryKeys';
 import {
   SESSION_DEFAULTS,
   USAGE_LIMITS,
@@ -124,8 +125,7 @@ export default function NewGamePage() {
     }
 
     // The cached games lists don't include the new game yet.
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['myGamesLite'] });
+    invalidateGamesLists(queryClient);
 
     router.push(`/games/${createdGame?.id || '/dashboard'}`);
   };

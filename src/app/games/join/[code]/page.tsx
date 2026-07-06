@@ -9,6 +9,7 @@ import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { DAY_LABELS, USAGE_LIMITS } from '@/lib/constants';
 import { joinGame } from '@/lib/data';
+import { invalidateGamesLists } from '@/lib/queryKeys';
 
 interface GamePreview {
   id: string;
@@ -99,8 +100,7 @@ export default function JoinGamePage() {
     }
 
     // The cached games lists don't include the just-joined game yet.
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    queryClient.invalidateQueries({ queryKey: ['myGamesLite'] });
+    invalidateGamesLists(queryClient);
 
     router.push(`/games/${game.id}`);
   };

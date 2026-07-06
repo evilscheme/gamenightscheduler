@@ -33,9 +33,12 @@ export interface DashboardData {
 /**
  * Merge the GM-owned and member games lists into deduped dashboard rows.
  *
- * Pure function (no I/O), so it's directly unit-testable. GM games take
- * priority on id collisions, matching the pre-React-Query `new Map(...)`
- * dedupe (which put GM games first in the source array).
+ * Pure function (no I/O), so it's directly unit-testable. On an id collision
+ * the GM-list entry wins — a deliberate change from the pre-React-Query
+ * `new Map(...)` dedupe (where the later, member-list entry's content won):
+ * the user's own GM row is authoritative over a stray membership row for a
+ * game they host. fetchDashboardData also pre-filters overlapping ids, so
+ * collisions only arise from inconsistent data.
  */
 export function mergeDashboardGames({
   gmGames,

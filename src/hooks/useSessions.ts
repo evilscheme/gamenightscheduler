@@ -125,7 +125,7 @@ export function useSessions(gameId: string): UseSessionsReturn {
           return [...prev, data].sort((a, b) => a.date.localeCompare(b.date));
         });
         // The dashboard's upcoming-sessions panel includes this game.
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardAll });
       }
 
       return { success: true };
@@ -160,7 +160,7 @@ export function useSessions(gameId: string): UseSessionsReturn {
 
       if (data) {
         setSessions((prev) => prev.map((s) => (s.id === data.id ? data : s)));
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardAll });
       }
       return { success: true };
     },
@@ -173,7 +173,7 @@ export function useSessions(gameId: string): UseSessionsReturn {
       const { error } = await cancelSessionQuery(supabase, gameId, date);
       if (error) return { success: false, error: error.message };
       setSessions((prev) => prev.filter((s) => s.date !== date));
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardAll });
       return { success: true };
     },
     [gameId, setSessions, queryClient],

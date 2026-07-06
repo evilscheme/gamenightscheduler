@@ -26,8 +26,8 @@ export interface AvailabilityTabContentProps {
     availableAfter: string | null,
     availableUntil: string | null
   ) => void;
-  /** Applies a bulk status change in one call. When omitted, the calendar falls back to per-date onToggle calls. */
-  onBulkSet?: (dates: string[], status: AvailabilityStatus) => void;
+  /** Applies a bulk status change in one batched call (read-only callers pass a no-op). */
+  onBulkSet: (dates: string[], status: AvailabilityStatus) => void;
   confirmedSessions: GameSession[];
   extraPlayDates: string[];
   isGmOrCoGm: boolean;

@@ -65,8 +65,12 @@ interface AvailabilityCalendarProps {
   bulkActionsLead?: ReactNode;
   /** Disables all interaction (day clicks, long-press editing, bulk actions). Used by the admin peek view. */
   readOnly?: boolean;
-  /** Applies a bulk status change in one call. When omitted, falls back to per-date onToggle calls. */
-  onBulkSet?: (dates: string[], status: AvailabilityStatus) => void;
+  /**
+   * Applies a bulk status change in one batched call. Required so a caller
+   * can't silently regress to one write per date; read-only callers pass a
+   * no-op (their bulk-actions bar never renders).
+   */
+  onBulkSet: (dates: string[], status: AvailabilityStatus) => void;
 }
 
 export function AvailabilityCalendar({
@@ -250,24 +254,7 @@ export function AvailabilityCalendar({
 
     if (dates.length === 0) return;
 
-    if (onBulkSet) {
-      onBulkSet(dates, status);
-      return;
-    }
-
-    // Fallback for callers that don't provide onBulkSet (e.g. the read-only
-    // admin peek): emit one onToggle call per date, preserving existing
-    // comments and time constraints when bulk setting.
-    dates.forEach((dateStr) => {
-      const existing = availability[dateStr];
-      onToggle(
-        dateStr,
-        status,
-        existing?.comment || null,
-        existing?.available_after || null,
-        existing?.available_until || null
-      );
-    });
+    onBulkSet(dates, status);
   };
 
   const handleBulkSubmit = () => {

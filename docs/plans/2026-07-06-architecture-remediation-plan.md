@@ -50,7 +50,53 @@ gospel — locate code by function/pattern name if lines have drifted.
 ## Status legend
 
 `[ ]` not started · `[x]` done and verified · `[B]` blocked (reason in Work Log) ·
-`[S]` split (replaced by sub-items added directly below it)
+`[S]` split (replaced by sub-items added directly below it) ·
+`[D]` dropped by owner decision (do not implement)
+
+Items whose **title contains `[G1]`** are gated: do not start them until Gate G1
+below is `[x]`.
+
+---
+
+## Gate G1 `[ ]` — Merge PR #133 and revise this plan (blocks all `[G1]`-tagged items)
+
+**Context:** PR #133 ("Restructure client data fetching: React Query cache, parallel
+dashboard fetch, batched bulk availability") rewrites the game-page hooks
+(`useGameMeta`, `useAvailability`, `useSessions`, `usePlayDates`,
+`useOtherGameSessions`) around TanStack Query v5 with a central key registry
+(`src/lib/queryKeys.ts`), adds `src/lib/dashboardData.ts` (parallel dashboard fetch),
+batches bulk availability through a required `onBulkSet` prop, and touches
+`AuthContext`, `DashboardContent`, `AvailabilityCalendar`, `lib/data/games.ts`,
+`lib/data/memberships.ts`, `Providers.tsx`, and `CLAUDE.md`. It contains **no schema
+changes** — Phase 6 is unaffected.
+
+**Eligibility:** this item may only be worked when #133 has landed on main. Check
+with `git fetch origin main && git log origin/main --oneline -15` — if the #133
+merge is not present, skip this item AND every `[G1]`-tagged item this iteration.
+Untagged items may proceed in the meantime (note: `games/[id]/edit/page.tsx`,
+settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P1.2
+— expect small, trivially resolvable merge conflicts there).
+
+**When eligible, do:**
+1. `git merge origin/main` into the working branch; resolve conflicts; run the full
+   baseline verification (lint, typecheck, unit).
+2. Revise the affected items IN THIS FILE before doing any of them:
+   - **P3.1–P3.3:** the `withOptimistic` standardization is superseded — the app's
+     mutation standard is now TanStack Query optimistic cache writes + rollback +
+     invalidation via `queryKeys.ts`. Rewrite these items as: renderHook
+     characterization tests for the NEW hooks (wrap in `QueryClientProvider`);
+     verify every mutation follows the optimistic-write/rollback/invalidation
+     pattern; delete `withOptimistic` if nothing imports it anymore.
+   - **P1.3:** re-locate the module-scope `createClient()` call sites — the hooks and
+     AuthContext were rewritten; the singleton work may be partially done or moved.
+   - **P2.2:** DashboardContent's inline query likely moved into
+     `src/lib/dashboardData.ts` — re-verify each bypass still exists before fixing.
+   - **P5.2 / P5.3:** refresh AvailabilityCalendar line anchors and scope (its bulk
+     path changed).
+   - **P7.2:** include `queryKeys.ts` and `dashboardData.ts` in the lib clustering.
+   - Review doc T7 (client fetch waterfall): largely addressed by #133 — verify and
+     add a note there.
+3. Record the revision as a `G1` Work Log entry; flip this gate to `[x]`.
 
 ---
 
@@ -66,14 +112,11 @@ gospel — locate code by function/pattern name if lines have drifted.
 - **Done when:** `npm run typecheck` exits 0; ci.yml contains the step; lint and unit
   tests pass.
 
-### P0.2 `[ ]` Gate coverage with thresholds
-- **Files:** `vitest.config.ts`
-- **Do:** Run `npm run test:coverage`; note the current global % for lines, branches,
-  functions, statements. Set `coverage.thresholds` in vitest.config.ts to roughly
-  5 points below each current value (round down to whole numbers) so CI fails on
-  meaningful regression without blocking today's state.
-- **Done when:** `npm run test:coverage` passes with thresholds active; the chosen
-  numbers and the actuals they were derived from are recorded in the Work Log.
+### P0.2 `[D]` ~~Gate coverage with thresholds~~ — DROPPED (owner decision, 2026-07-08)
+- Coverage metrics have never worked reliably in this codebase (the React/client
+  architecture produces misleading numbers). Do NOT add coverage thresholds or gate
+  CI on coverage. `npm run test:coverage` remains available for local inspection
+  only. The "tests required" rule is enforced by review, not by a coverage gate.
 
 ## Phase 1 — Confirmed bug fixes (independent; small)
 
@@ -128,7 +171,7 @@ gospel — locate code by function/pattern name if lines have drifted.
   all existing upcomingSessions/timezone/topUsers tests pass unmodified (import paths
   aside); new tests pass.
 
-### P1.3 `[ ]` Single browser Supabase client (T1.6)
+### P1.3 `[ ]` **[G1]** Single browser Supabase client (T1.6)
 - **Files:** `src/lib/supabase/client.ts`, `src/contexts/AuthContext.tsx`, hooks
   (`useOtherGameSessions`, `usePlayDates`, `useSessions`, `useAvailability`,
   `useGameMeta`), and the 6 pages/components found by
@@ -179,7 +222,7 @@ gospel — locate code by function/pattern name if lines have drifted.
   helpers or test-auth only); lint/typecheck/unit pass; **[e2e]**
   `e2e/tests/settings/delete-account.spec.ts`.
 
-### P2.2 `[ ]` Route data-layer bypasses through `src/lib/data`
+### P2.2 `[ ]` **[G1]** Route data-layer bypasses through `src/lib/data`
 - **Files:** `src/components/dashboard/DashboardContent.tsx` (~:62-66),
   `src/app/settings/page.tsx` (~:64-72), possibly `src/lib/data/games.ts`/`users.ts`.
 - **Do:** Compare DashboardContent's inline games+GM query with
@@ -225,7 +268,7 @@ gospel — locate code by function/pattern name if lines have drifted.
 
 Order matters: characterization tests land BEFORE the refactor they protect.
 
-### P3.1 `[ ]` renderHook tests for `useAvailability` (pre-refactor safety net)
+### P3.1 `[ ]` **[G1]** renderHook tests for `useAvailability` (pre-refactor safety net)
 - **Files:** new `src/hooks/useAvailability.test.ts` (or .tsx).
 - **Do:** Using `renderHook` from `@testing-library/react` (see
   `src/hooks/useLocalStoragePref.test.ts` for setup conventions), cover the three
@@ -238,7 +281,7 @@ Order matters: characterization tests land BEFORE the refactor they protect.
 - **Done when:** the new tests pass and meaningfully assert revert-on-error for all
   three paths; existing suite unaffected.
 
-### P3.2 `[ ]` Refactor `useAvailability` mutations through `withOptimistic`
+### P3.2 `[ ]` **[G1]** Refactor `useAvailability` mutations through `withOptimistic`
 - **Files:** `src/hooks/useAvailability.ts`.
 - **Do:** Read `src/hooks/withOptimistic.ts` and its one adopter
   (`useGameMeta.ts:72`). Convert the three hand-rolled apply→mutate→revert blocks to
@@ -250,7 +293,7 @@ Order matters: characterization tests land BEFORE the refactor they protect.
   tests pass unmodified; lint/typecheck/unit pass; **[e2e]**
   `e2e/tests/availability` directory.
 
-### P3.3 `[ ]` Same treatment for `usePlayDates` and `useSessions`
+### P3.3 `[ ]` **[G1]** Same treatment for `usePlayDates` and `useSessions`
 - **Files:** `src/hooks/usePlayDates.ts` (~:45-73, ~:85-110),
   `src/hooks/useSessions.ts` (~:104-114), new tests for each.
 - **Do:** Repeat P3.1+P3.2 per hook: renderHook characterization tests first, then
@@ -310,7 +353,7 @@ Order matters: characterization tests land BEFORE the refactor they protect.
 - **Done when:** the duplicated block appears 0 times outside the primitive
   (re-run the grep); lint/typecheck/unit pass.
 
-### P5.2 `[ ]` Extract pure `calendarCellState` from AvailabilityCalendar
+### P5.2 `[ ]` **[G1]** Extract pure `calendarCellState` from AvailabilityCalendar
 - **Files:** new `src/lib/calendarCellState.ts` + test;
   `src/components/calendar/AvailabilityCalendar.tsx` (~:660-723 and ~:788-802).
 - **Do:** The MonthCalendar cell renderer computes a ~140-line status→
@@ -323,7 +366,7 @@ Order matters: characterization tests land BEFORE the refactor they protect.
 - **Done when:** the calendar renders from the pure function; new tests cover all
   branches; **[e2e]** `e2e/tests/availability` passes; lint/typecheck/unit pass.
 
-### P5.3 `[ ]` Split AvailabilityCalendar into components + shared Modal
+### P5.3 `[ ]` **[G1]** Split AvailabilityCalendar into components + shared Modal
 - **Files:** `src/components/calendar/` — new `MonthCalendar.tsx`,
   `CalendarLegend.tsx`, `NoteEditorPopover.tsx`, `DateActionMenu.tsx`; new
   `src/hooks/useLongPress.ts`; slim `AvailabilityCalendar.tsx`.
@@ -483,7 +526,9 @@ Each loop iteration:
    on network failure). Read this plan file fresh — it is the single source of truth.
 2. **Select** the first item (top-to-bottom) whose status is `[ ]` and whose stated
    dependencies (each item's "Depends on" mentions, and phase ordering for Phase 0
-   and P3.1→P3.2→P3.3, P5.2→P5.3) are `[x]`. Skip `[B]` items.
+   and P3.1→P3.2→P3.3, P5.2→P5.3) are `[x]`. Skip `[B]` and `[D]` items. Skip
+   `[G1]`-tagged items (and Gate G1 itself unless its eligibility check passes)
+   while Gate G1 is not `[x]`.
 3. **Implement exactly that one item**, including its tests, per the Ground Rules.
    If mid-way you judge the item too large for one iteration, stop, split it: mark
    it `[S]`, insert sub-items (`Pn.mA`, `Pn.mB`, …) directly beneath it with their

@@ -7,6 +7,14 @@ actionable work items live in `2026-07-06-architecture-remediation-plan.md`.
 Line numbers were accurate at review time (commit `0f4738f`) and will drift — treat them
 as anchors, and locate code by the named function/pattern.
 
+> **Post-review updates (2026-07-08):**
+> 1. PR #133 (React Query cache, parallel dashboard fetch, batched bulk availability)
+>    substantially supersedes theme **T7** (client fetch waterfall) and changes the
+>    landscape for **T1.2** (withOptimistic) and parts of **T1.6/T3** — see Gate G1 in
+>    the remediation plan before acting on those.
+> 2. Owner decision: coverage gating (part of **T8**) is off the table — coverage
+>    metrics have never been reliable with this React architecture.
+
 ## Overall assessment
 
 Healthy codebase with strong bones: logic aggressively extracted into pure, tested

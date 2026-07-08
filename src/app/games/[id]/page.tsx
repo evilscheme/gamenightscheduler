@@ -21,35 +21,35 @@ import { useOtherGameSessions } from "@/hooks/useOtherGameSessions";
 type Tab = "overview" | "availability" | "schedule";
 
 export default function GameDetailPage() {
-  const { profile, authStatus } = useAuth();
+  const { user, authStatus } = useAuth();
   const { weekStartDay, use24h, timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
   const params = useParams();
   const gameId = params.id as string;
 
-  const userId = profile?.id ?? "";
+  // The auth session's user id is available one round trip before the profile
+  // row, so keying the data fetches off it starts them earlier.
+  const userId = user?.id ?? "";
 
-  // Data layer via focused hooks
+  // Data layer via focused hooks — all fetches fire in parallel as soon as
+  // gameId/userId are known (RLS returns nothing for non-participants).
   const meta = useGameMeta(gameId, userId);
   const { game, otherGames, refreshing, leaveGame, removePlayer, toggleCoGm } = meta;
 
-  const ready = !!game;
   const availabilityHook = useAvailability(gameId, userId, game);
-  const { availability, allAvailability, changeAvailability, copyFromGame: copyFromGameRaw, applyDefaults, removePlayerData, hasDefaults } = availabilityHook;
+  const { availability, allAvailability, changeAvailability, bulkSetStatus, copyFromGame: copyFromGameRaw, applyDefaults, removePlayerData, hasDefaults } = availabilityHook;
 
-  const sessionsHook = useSessions(gameId, ready);
+  const sessionsHook = useSessions(gameId);
   const { sessions, confirmSession: confirmSessionRaw, updateSession, cancelSession } = sessionsHook;
 
-  const playDatesHook = usePlayDates(gameId, ready);
+  const playDatesHook = usePlayDates(gameId);
   const { gamePlayDates, toggleExtraDate: toggleExtraDateRaw, updatePlayDateNote } = playDatesHook;
 
-  // Loading is driven by meta until the game resolves; only then do we wait
-  // on downstream hooks. Without the `!game` short-circuit, a non-member
-  // request leaves downstream loading=true forever (their fetches never run).
   const loading =
     meta.loading ||
-    (!!game &&
-      (availabilityHook.loading || sessionsHook.loading || playDatesHook.loading));
+    availabilityHook.loading ||
+    sessionsHook.loading ||
+    playDatesHook.loading;
 
   const refresh = async () => {
     await Promise.all([
@@ -77,11 +77,11 @@ export default function GameDetailPage() {
     }
   }, []);
 
-  const isGm = game?.gm_id === profile?.id;
+  const isGm = !!userId && game?.gm_id === userId;
   const isCoGm =
-    game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;
+    game?.members.some((m) => m.id === userId && m.is_co_gm) ?? false;
   const canDoGmActions = !!(isGm || isCoGm);
-  const isMember = game?.members.some((m) => m.id === profile?.id);
+  const isMember = game?.members.some((m) => m.id === userId);
 
   const hasAnyAvailability = Object.keys(availability).length > 0;
   // The host GM owns the game via gm_id and is intentionally not a
@@ -117,10 +117,10 @@ export default function GameDetailPage() {
 
   // Redirect to dashboard if game not found after loading
   useEffect(() => {
-    if (!loading && !game && profile?.id) {
+    if (!loading && !game && userId) {
       router.push("/dashboard");
     }
-  }, [loading, game, profile?.id, router]);
+  }, [loading, game, userId, router]);
 
   const toast = useToast();
 
@@ -167,7 +167,7 @@ export default function GameDetailPage() {
     endTime: string,
     location: string | null,
     notes: string | null,
-  ) => confirmSessionRaw(date, startTime, endTime, profile?.id ?? "", location, notes);
+  ) => confirmSessionRaw(date, startTime, endTime, userId, location, notes);
 
   if (authStatus === 'loading' || loading) {
     return (
@@ -312,15 +312,16 @@ export default function GameDetailPage() {
         />
       )}
 
-      {activeTab === "availability" && profile && (
+      {activeTab === "availability" && userId && (
         <AvailabilityTabContent
           windowStart={windowStart}
           windowEnd={windowEnd}
-          currentUserId={profile.id}
+          currentUserId={userId}
           completionByUserId={completionByUserId}
           playDays={game.play_days}
           availability={availability}
           onToggle={changeAvailability}
+          onBulkSet={bulkSetStatus}
           confirmedSessions={confirmedSessions}
           extraPlayDates={extraDateStrings}
           isGmOrCoGm={canDoGmActions}

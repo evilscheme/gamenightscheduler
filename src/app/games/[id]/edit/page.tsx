@@ -3,6 +3,8 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { invalidateGamesLists, queryKeys } from '@/lib/queryKeys';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import {
   Button,
@@ -51,6 +53,7 @@ export default function EditGamePage() {
   const params = useParams();
   const gameId = params.id as string;
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const [game, setGame] = useState<Game | null>(null);
   const [loading, setLoading] = useState(true);
@@ -149,6 +152,12 @@ export default function EditGamePage() {
       return;
     }
 
+    // The game page and games lists hold cached copies of this game's settings;
+    // the ad-hoc conversion above may also have added play dates.
+    queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.playDates(gameId) });
+    invalidateGamesLists(queryClient);
+
     router.push(`/games/${gameId}`);
   };
 
@@ -164,6 +173,7 @@ export default function EditGamePage() {
       return;
     }
     setGame({ ...game, invite_code: newCode });
+    queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
     toast.show('Invite code regenerated. The old link no longer works.');
   };
 
@@ -176,6 +186,8 @@ export default function EditGamePage() {
       toast.show('Could not delete the game. Please try again.', 'danger');
       return;
     }
+    queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
+    invalidateGamesLists(queryClient);
     router.push('/dashboard');
   };
 

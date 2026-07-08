@@ -1,133 +1,59 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Users, Calendar } from "lucide-react";
 import { Button, LoadingSpinner } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
-import { GameWithGM, GameSession } from "@/types";
 import { DAY_LABELS } from "@/lib/constants";
-import {
-  fetchUserMemberships,
-  fetchUserGmGames,
-  fetchMembershipCount,
-  fetchUpcomingSessionsForGames,
-} from "@/lib/data";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
+import { fetchDashboardData, type DashboardGame } from "@/lib/dashboardData";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
-import {
-  buildUpcomingSessionRows,
-  getTodayLocalDate,
-  getUpcomingQueryFloor,
-  type UpcomingSessionRow,
-} from "@/lib/upcomingSessions";
+import { buildUpcomingSessionRows } from "@/lib/upcomingSessions";
 import { WelcomeEmptyState } from "./WelcomeEmptyState";
 import { UpcomingSessionsPanel } from "./UpcomingSessionsPanel";
 
-interface GameWithGMAndCount extends GameWithGM {
-  member_count: number;
-  is_co_gm: boolean;
-}
-
 export function DashboardContent() {
-  const { profile, authStatus } = useAuth();
+  const { user, profile, authStatus } = useAuth();
   const { use24h, timezone: userTimezone } = useUserPreferences();
-  const [games, setGames] = useState<GameWithGMAndCount[]>([]);
-  const [sessionRows, setSessionRows] = useState<UpcomingSessionRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const userId = user?.id ?? '';
 
+  const queryClient = useQueryClient();
+  const { data, isPending } = useQuery({
+    queryKey: queryKeys.dashboard(userId),
+    queryFn: () => fetchDashboardData(supabase, userId),
+    enabled: !!userId,
+  });
+
+  // The dashboard result already contains every game's id and name, so seed
+  // the my-games cache: the common dashboard -> game navigation then skips
+  // fetchMyGamesLite's two round trips entirely.
   useEffect(() => {
-    async function fetchGames() {
-      if (!profile?.id) {
-        // No profile, nothing to fetch
-        setLoading(false);
-        return;
-      }
+    if (!data || !userId) return;
+    queryClient.setQueryData(
+      queryKeys.myGamesLite(userId),
+      data.games.map((g) => ({ id: g.id, name: g.name }))
+    );
+  }, [data, userId, queryClient]);
 
-      // Fetch games where user is GM or member, including co-GM status
-      const { data: memberships } = await fetchUserMemberships(supabase, profile.id);
+  const games: DashboardGame[] = data?.games ?? [];
 
-      const memberGameIds = memberships?.map((m) => m.game_id) || [];
-      const coGmGameIds = new Set(
-        memberships?.filter((m) => m.is_co_gm).map((m) => m.game_id) || []
-      );
+  // The clock comes from the queryFn (see DashboardData.fetchedAtMs) — reading
+  // it here would be an impure render (react-hooks/purity). staleTime plus
+  // refetch-on-focus keep the fetch-time clock close enough for day-granularity
+  // highlighting.
+  const sessionRows = useMemo(() => {
+    if (!data) return [];
+    const gameInfo = new Map<string, { name: string; timezone: string | null }>(
+      data.games.map((g) => [g.id, { name: g.name, timezone: g.timezone }])
+    );
+    return buildUpcomingSessionRows(data.upcoming, gameInfo, data.fetchedToday, data.fetchedAtMs);
+  }, [data]);
 
-      const { data: gmGames } = await fetchUserGmGames(supabase, profile.id);
-
-      // Only query for member games if user has memberships
-      const memberGames =
-        memberGameIds.length > 0
-          ? (
-              await supabase
-                .from("games")
-                .select("*, gm:users!games_gm_id_fkey(*)")
-                .in("id", memberGameIds)
-            ).data
-          : [];
-
-      // Combine and dedupe
-      const allGames = [...(gmGames || []), ...(memberGames || [])];
-      const uniqueGames = Array.from(
-        new Map(allGames.map((g) => [g.id, g])).values()
-      );
-
-      // Get member counts and add co-GM status
-      const gamesWithCounts = await Promise.all(
-        uniqueGames.map(async (game) => {
-          const { count } = await fetchMembershipCount(supabase, game.id);
-
-          return {
-            ...game,
-            member_count: (count || 0) + 1, // +1 for GM
-            is_co_gm: coGmGameIds.has(game.id),
-          };
-        })
-      );
-
-      setGames(gamesWithCounts as GameWithGMAndCount[]);
-
-      const nowMs = Date.now();
-      const today = getTodayLocalDate();
-      // Two-day buffer covers the full UTC-12..UTC+14 span; the per-game-timezone
-      // filter in buildUpcomingSessionRows then trims it precisely.
-      const queryFloor = getUpcomingQueryFloor(nowMs);
-      const gameIds = uniqueGames.map((g) => g.id);
-      const gameInfo = new Map<string, { name: string; timezone: string | null }>(
-        uniqueGames.map((g) => [g.id, { name: g.name, timezone: g.timezone }])
-      );
-      const { data: upcoming, error: sessionsError } = await fetchUpcomingSessionsForGames(
-        supabase,
-        gameIds,
-        queryFloor
-      );
-      if (sessionsError) {
-        // Games already rendered above; surface the failure rather than showing
-        // a silently-empty panel that looks like "no upcoming sessions".
-        console.error('[UpcomingSessions] failed to fetch upcoming sessions:', sessionsError);
-      }
-      setSessionRows(
-        buildUpcomingSessionRows(
-          (upcoming ?? []) as GameSession[],
-          gameInfo,
-          today,
-          nowMs
-        )
-      );
-
-      setLoading(false);
-    }
-
-    if (profile?.id) {
-      fetchGames();
-    } else if (authStatus !== 'loading') {
-      // Auth finished but no profile - stop loading
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
-  }, [profile?.id, authStatus]);
-
-  if (authStatus === 'loading' || loading) {
+  if (authStatus === 'loading' || (!!userId && isPending)) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -161,7 +87,7 @@ export function DashboardContent() {
           <div className="order-last lg:order-first lg:flex-1">
             <ul className="grid gap-5 md:grid-cols-2">
               {games.map((game) => {
-            const isOwner = game.gm_id === profile?.id;
+            const isOwner = game.gm_id === userId;
             const cadence = game.ad_hoc_only
               ? 'Ad-hoc'
               : game.play_days.map((d) => DAY_LABELS.short[d]).join(', ');

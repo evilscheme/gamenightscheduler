@@ -238,6 +238,7 @@ export default function AdminGamePeekPage() {
             playDays={game.play_days}
             availability={viewAsAvailability}
             onToggle={() => {}}
+            onBulkSet={() => {}}
             confirmedSessions={confirmedSessions}
             extraPlayDates={extraDateStrings}
             isGmOrCoGm={false}

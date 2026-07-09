@@ -6,7 +6,7 @@ import {
   isBefore,
   startOfDay,
 } from "date-fns";
-import { getSchedulingWindow } from "../scheduling";
+import { getSchedulingWindow } from "../schedule";
 import { isEligiblePlayDate } from "./eligibleDates";
 import type { SchedulingWindowMonths } from "../constants";
 

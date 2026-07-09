@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { DateSuggestion, GameSession } from '@/types';
 import { EyebrowLabel, Button } from '@/components/ui';
-import { splitUpcomingPast } from '@/lib/scheduleView';
+import { splitUpcomingPast } from '@/lib/schedule';
 import { ScheduledRow } from './ScheduledRow';
 
 interface ScheduledListProps {

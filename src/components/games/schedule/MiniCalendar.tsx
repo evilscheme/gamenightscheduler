@@ -5,7 +5,7 @@ import { addMonths, startOfMonth, differenceInCalendarMonths, startOfDay } from 
 import type { DateSuggestion, GameSession } from '@/types';
 import { CalendarMonth } from './CalendarMonth';
 import { EyebrowLabel, Panel } from '@/components/ui';
-import { getCellTintTier, CellTintTier } from '@/lib/scheduleView';
+import { getCellTintTier, CellTintTier } from '@/lib/schedule';
 import { CALENDAR_STYLES, LEGEND_ORDER } from './calendarStyles';
 
 interface MiniCalendarProps {

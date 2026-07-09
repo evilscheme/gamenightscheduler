@@ -7,7 +7,7 @@ import {
   fetchGamesWithGMByIds,
   fetchUpcomingSessionsForGames,
 } from '@/lib/data';
-import { getUpcomingQueryFloor } from '@/lib/upcomingSessions';
+import { getUpcomingQueryFloor } from './upcomingSessions';
 import { getTodayLocalDate } from '@/lib/date';
 
 /** Row shape returned by the games queries with the embedded membership count. */

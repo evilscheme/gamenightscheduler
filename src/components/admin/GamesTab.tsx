@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui';
-import type { HealthBreakdown, HealthGrade } from '@/lib/gameHealth';
+import type { HealthBreakdown, HealthGrade } from '@/lib/schedule';
 import type { GameWithEngagement } from '@/types/api';
 import { AdminTable, AdminTh, AdminEmptyRow } from './AdminTable';
 

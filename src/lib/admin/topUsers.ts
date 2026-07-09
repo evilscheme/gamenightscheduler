@@ -1,4 +1,4 @@
-import { getTodayLocalDate } from './date';
+import { getTodayLocalDate } from '../date';
 
 // Leaderboard aggregation for the admin "Top Users" tab.
 // Pure functions over raw table rows so the ranking logic is unit-testable

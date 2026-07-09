@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
 import { calculateGameFillRate } from '@/lib/availability';
-import { calculateGameHealth } from '@/lib/gameHealth';
+import { calculateGameHealth } from '@/lib/schedule';
 import { serverError } from '@/lib/apiError';
 import { getTodayLocalDate } from '@/lib/date';
 

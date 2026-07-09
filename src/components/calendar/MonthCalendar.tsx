@@ -18,7 +18,7 @@ import { calendarCellState } from '@/lib/calendarCellState';
 import {
   formatSessionTimeWindow,
   type OtherGameSessionInfo,
-} from '@/lib/otherGameSessions';
+} from '@/lib/schedule';
 import { useLongPress } from '@/hooks/useLongPress';
 
 // Separate component for individual month to keep things clean

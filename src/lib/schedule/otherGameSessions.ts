@@ -1,5 +1,6 @@
 import type { GameSession } from "@/types";
-import { formatTimeShort } from "./formatting";
+import { formatTimeShort } from "../formatting";
+import { joinTimeWindow } from "./scheduleView";
 
 export interface OtherGameSessionInfo {
   gameId: string;
@@ -46,6 +47,10 @@ export function buildOtherGameSessionMap(
 /**
  * Human-readable time window for an other-game session — e.g. "7pm–10pm",
  * "from 7pm", "until 10pm", or "" when the session has no times set.
+ *
+ * Thin wrapper over `scheduleView`'s shared `joinTimeWindow` core (see its
+ * doc comment) — this call site pins a bare "–" separator and "" for the
+ * empty case, vs. `formatTimeWindow`'s " – " and `null`.
  */
 export function formatSessionTimeWindow(
   startTime: string | null,
@@ -54,8 +59,5 @@ export function formatSessionTimeWindow(
 ): string {
   const start = formatTimeShort(startTime, use24h);
   const end = formatTimeShort(endTime, use24h);
-  if (start && end) return `${start}–${end}`;
-  if (start) return `from ${start}`;
-  if (end) return `until ${end}`;
-  return "";
+  return joinTimeWindow(start, end, "–");
 }

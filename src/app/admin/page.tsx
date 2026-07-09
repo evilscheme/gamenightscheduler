@@ -10,7 +10,7 @@ import { TopUsersTab } from '@/components/admin/TopUsersTab';
 import { ActivityTab } from '@/components/admin/ActivityTab';
 import { UpcomingGamesTab } from '@/components/admin/UpcomingGamesTab';
 import type { AdminStats, GameWithEngagement } from '@/types/api';
-import type { TopUsersResult } from '@/lib/topUsers';
+import type { TopUsersResult } from '@/lib/admin';
 
 type Tab = 'overview' | 'games' | 'topUsers' | 'activity' | 'upcomingGames';
 

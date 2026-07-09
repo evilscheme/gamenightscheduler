@@ -18,7 +18,7 @@ import {
   AvailabilityEntry,
   filterDatesForBulkSet,
 } from "@/lib/availability";
-import type { OtherGameSessionInfo } from "@/lib/otherGameSessions";
+import type { OtherGameSessionInfo } from "@/lib/schedule";
 import { useNoteEditorState } from "@/hooks/useNoteEditorState";
 import { MonthCalendar } from "./MonthCalendar";
 import { CalendarLegend } from "./CalendarLegend";

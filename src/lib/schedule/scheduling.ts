@@ -6,7 +6,7 @@ import {
   min,
   parseISO,
 } from "date-fns";
-import { SchedulingWindowMonths } from "./constants";
+import { SchedulingWindowMonths } from "../constants";
 
 interface SchedulingWindowGame {
   scheduling_window_months: SchedulingWindowMonths;

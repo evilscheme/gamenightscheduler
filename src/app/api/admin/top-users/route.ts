@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
-import { computeTopUsers, type TopUserProfile } from '@/lib/topUsers';
+import { computeTopUsers, type TopUserProfile } from '@/lib/admin';
 import { serverError } from '@/lib/apiError';
 
 export async function GET(): Promise<Response> {

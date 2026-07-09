@@ -7,7 +7,7 @@ import { getTodayLocalDate } from '@/lib/date';
 import {
   buildOtherGameSessionMap,
   type OtherGameSessionInfo,
-} from '@/lib/otherGameSessions';
+} from '@/lib/schedule';
 
 const supabase = getSupabaseClient();
 

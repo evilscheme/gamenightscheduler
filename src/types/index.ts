@@ -1,7 +1,7 @@
 // Database types
 
 import type { SchedulingWindowMonths } from "@/lib/constants";
-import type { UpcomingSessionRow } from "@/lib/upcomingSessions";
+import type { UpcomingSessionRow } from "@/lib/schedule";
 
 export interface User {
   id: string;

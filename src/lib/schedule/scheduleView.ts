@@ -33,17 +33,34 @@ export function partitionByThreshold(items: DateSuggestion[]): {
   return { viable, belowThreshold };
 }
 
+/**
+ * Shared core for building a "start–end" time-window phrase out of two
+ * already-`formatTimeShort`-formatted strings: `"<start><separator><end>"`,
+ * `"from <start>"`, `"until <end>"`, or `""` when neither is set.
+ *
+ * `formatTimeWindow` (below) and `otherGameSessions.formatSessionTimeWindow`
+ * both implement this same start/end → phrase logic; they differ only in
+ * separator spacing and in what they return for "neither set" (`null` vs
+ * `""`), and each difference is pinned by that call site's own tests — so
+ * this stays the one shared implementation behind two thin wrappers rather
+ * than a single formatter with two different pinned outputs.
+ */
+export function joinTimeWindow(start: string, end: string, separator: string): string {
+  if (start && end) return `${start}${separator}${end}`;
+  if (start) return `from ${start}`;
+  if (end) return `until ${end}`;
+  return '';
+}
+
 export function formatTimeWindow(
   earliestStartTime: string | null,
   latestEndTime: string | null,
   use24h: boolean
 ): string | null {
-  if (!earliestStartTime && !latestEndTime) return null;
-  if (earliestStartTime && latestEndTime) {
-    return `${formatTimeShort(earliestStartTime, use24h)} – ${formatTimeShort(latestEndTime, use24h)}`;
-  }
-  if (earliestStartTime) return `from ${formatTimeShort(earliestStartTime, use24h)}`;
-  return `until ${formatTimeShort(latestEndTime!, use24h)}`;
+  const start = formatTimeShort(earliestStartTime, use24h);
+  const end = formatTimeShort(latestEndTime, use24h);
+  if (!start && !end) return null;
+  return joinTimeWindow(start, end, ' – ');
 }
 
 /**

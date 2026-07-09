@@ -4,8 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { DateSuggestion } from '@/types';
 import { EyebrowLabel, EmptyState } from '@/components/ui';
 import { useLocalStoragePref } from '@/hooks/useLocalStoragePref';
-import { partitionByThreshold } from '@/lib/scheduleView';
-import { sortSuggestionsChronologically } from '@/lib/suggestions';
+import { partitionByThreshold, sortSuggestionsChronologically } from '@/lib/schedule';
 import { RankedRow } from './RankedRow';
 
 type SortMode = 'availability' | 'chronological';

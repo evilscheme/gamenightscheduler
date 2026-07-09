@@ -9,7 +9,7 @@ import {
   filterSessionConflictsForCopy,
   type CopyConflict,
 } from '@/lib/availability';
-import type { OtherGameSessionInfo } from '@/lib/otherGameSessions';
+import type { OtherGameSessionInfo } from '@/lib/schedule';
 import { CopyConflictModal } from './CopyConflictModal';
 
 interface CopyFromGamePanelProps {

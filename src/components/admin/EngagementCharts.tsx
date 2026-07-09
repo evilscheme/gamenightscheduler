@@ -7,7 +7,7 @@ import {
   ResponsiveContainer, Cell,
 } from 'recharts';
 import { Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
-import type { HealthGrade } from '@/lib/gameHealth';
+import type { HealthGrade } from '@/lib/schedule';
 
 // ── Types ──────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import type { GameSession } from '@/types';
-import { getSessionInstantMs, getDateInTimezone } from './timezone';
-import { toLocalDateString } from './date';
+import { getSessionInstantMs, getDateInTimezone } from '../timezone';
+import { toLocalDateString } from '../date';
 
 export type DayHighlight = 'today' | 'tomorrow' | null;
 

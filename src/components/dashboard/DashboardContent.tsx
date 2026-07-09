@@ -9,9 +9,12 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import { DAY_LABELS } from "@/lib/constants";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
-import { fetchDashboardData, type DashboardGame } from "@/lib/dashboardData";
+import {
+  fetchDashboardData,
+  type DashboardGame,
+  buildUpcomingSessionRows,
+} from "@/lib/schedule";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
-import { buildUpcomingSessionRows } from "@/lib/upcomingSessions";
 import { WelcomeEmptyState } from "./WelcomeEmptyState";
 import { UpcomingSessionsPanel } from "./UpcomingSessionsPanel";
 

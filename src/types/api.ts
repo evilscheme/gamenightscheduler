@@ -5,7 +5,7 @@
 // (duplicated declarations drift silently; that is how the admin page ended up
 // disagreeing with its route about created_at nullability).
 
-import type { HealthBreakdown, HealthGrade } from '@/lib/gameHealth';
+import type { HealthBreakdown, HealthGrade } from '@/lib/schedule';
 
 // --- /api/account/delete-preview ---
 

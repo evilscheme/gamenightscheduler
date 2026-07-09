@@ -5,7 +5,7 @@ import { Button } from '@/components/ui';
 import type { AvailabilityStatus } from '@/types';
 import { DAY_LABELS } from '@/lib/constants';
 import type { AvailabilityEntry } from '@/lib/availability';
-import type { OtherGameSessionInfo } from '@/lib/otherGameSessions';
+import type { OtherGameSessionInfo } from '@/lib/schedule';
 import { CopyFromGamePanel } from '@/components/games/availability/CopyFromGamePanel';
 
 interface BulkActionsBarProps {

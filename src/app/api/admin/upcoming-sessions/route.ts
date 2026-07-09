@@ -4,7 +4,7 @@ import {
   buildUpcomingSessionRows,
   getUpcomingQueryFloor,
   type GameDisplayInfo,
-} from '@/lib/upcomingSessions';
+} from '@/lib/schedule';
 import { getTodayLocalDate } from '@/lib/date';
 import { paginateArray } from '@/lib/pagination';
 import { serverError } from '@/lib/apiError';

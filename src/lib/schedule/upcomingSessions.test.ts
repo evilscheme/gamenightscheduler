@@ -3,7 +3,7 @@ import {
   buildUpcomingSessionRows,
   getUpcomingQueryFloor,
 } from './upcomingSessions';
-import { toLocalDateString } from './date';
+import { toLocalDateString } from '../date';
 import type { GameSession } from '@/types';
 
 const mkSession = (overrides: Partial<GameSession>): GameSession => ({

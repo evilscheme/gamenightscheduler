@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Modal, Button, Input, Textarea, EyebrowLabel } from '@/components/ui';
 import type { DateSuggestion, GameSession } from '@/types';
-import { computeDefaultSessionTimes } from '@/lib/scheduleView';
+import { computeDefaultSessionTimes } from '@/lib/schedule';
 import { SESSION_DEFAULTS, TEXT_LIMITS } from '@/lib/constants';
 
 export type SessionDetailsMode = 'schedule' | 'edit';

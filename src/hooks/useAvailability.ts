@@ -31,7 +31,7 @@ import {
   computeDefaultEntries,
   type WeekdayDefault,
 } from '@/lib/availability';
-import { getSchedulingWindow } from '@/lib/scheduling';
+import { getSchedulingWindow } from '@/lib/schedule';
 
 const supabase = getSupabaseClient();
 

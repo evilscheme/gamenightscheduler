@@ -8,7 +8,7 @@ import {
   format,
 } from 'date-fns';
 import { CalendarCell } from './CalendarCell';
-import { CellTintTier } from '@/lib/scheduleView';
+import { CellTintTier } from '@/lib/schedule';
 
 interface CalendarMonthProps {
   monthStart: Date;

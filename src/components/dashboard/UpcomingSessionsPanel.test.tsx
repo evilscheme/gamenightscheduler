@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { UpcomingSessionsPanel } from './UpcomingSessionsPanel';
-import type { UpcomingSessionRow } from '@/lib/upcomingSessions';
+import type { UpcomingSessionRow } from '@/lib/schedule';
 import type { GameSession } from '@/types';
 
 const mkRow = (overrides: Partial<UpcomingSessionRow> & { id: string }): UpcomingSessionRow => {

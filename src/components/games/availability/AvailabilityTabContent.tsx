@@ -7,7 +7,7 @@ import { AvailabilityCalendar } from '@/components/calendar/AvailabilityCalendar
 import { AvailabilityHeader } from './AvailabilityHeader';
 import { ApplyDefaultsButton } from './ApplyDefaultsButton';
 import type { ApplyDefaultsResult } from '@/hooks/useAvailability';
-import type { OtherGameSessionInfo } from '@/lib/otherGameSessions';
+import type { OtherGameSessionInfo } from '@/lib/schedule';
 
 export interface AvailabilityTabContentProps {
   // Header

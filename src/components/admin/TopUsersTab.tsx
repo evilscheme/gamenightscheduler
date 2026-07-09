@@ -4,7 +4,7 @@ import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Eye } from 'lucide-react';
 import { Avatar, Card, CardContent, CardHeader } from '@/components/ui';
-import type { TopUsersResult, TopGmEntry, TopPlayerEntry } from '@/lib/topUsers';
+import type { TopUsersResult, TopGmEntry, TopPlayerEntry } from '@/lib/admin';
 import { AdminTable, AdminTh, AdminEmptyRow } from './AdminTable';
 
 function UserCell({ user, expanded }: { user: TopGmEntry['user']; expanded: boolean }) {

@@ -1,4 +1,4 @@
-import type { CellTintTier } from '@/lib/scheduleView';
+import type { CellTintTier } from '@/lib/schedule';
 
 export type CalendarVisualState = CellTintTier | 'scheduled' | 'past';
 

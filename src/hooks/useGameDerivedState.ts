@@ -12,8 +12,7 @@ import {
 } from 'date-fns';
 import type { Availability, DateSuggestion, GameWithMembers } from '@/types';
 import { getPlayDatesInWindow } from '@/lib/availability';
-import { calculateDateSuggestions } from '@/lib/suggestions';
-import { getSchedulingWindow } from '@/lib/scheduling';
+import { calculateDateSuggestions, getSchedulingWindow } from '@/lib/schedule';
 
 export interface GameDerivedState {
   playDateEntries: { date: string; note: string | null }[];

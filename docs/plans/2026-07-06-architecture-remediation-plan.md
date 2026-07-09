@@ -536,7 +536,7 @@ overlaps P6.4 — coordinate, don't duplicate.
 - **Done when:** one predicate implementation (grep the old inline patterns); all
   existing availability tests pass; lint/typecheck/unit pass.
 
-### P7.2 `[ ]` Fold schedule + admin-analytics clusters; merge duplicate formatters
+### P7.2 `[x]` Fold schedule + admin-analytics clusters; merge duplicate formatters
 - **Files:** `src/lib/schedule/` ← `suggestions`, `scheduling`, `scheduleView`,
   `upcomingSessions`, `otherGameSessions`, `gameHealth` (+tests);
   `src/lib/admin/` ← `adminEngagement`, `topUsers` (+tests).
@@ -643,6 +643,23 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P7.2: schedule + admin clusters foldered; formatter core shared — DONE
+- Changed: `src/lib/schedule/` ← suggestions, scheduling, scheduleView,
+  upcomingSessions, otherGameSessions, gameHealth, dashboardData (+tests,
+  barrel); `src/lib/admin/` ← adminEngagement, topUsers (+tests, barrel);
+  `queryKeys.ts` stays top-level per plan. 30 import sites across 29 files
+  repointed to the barrels (same consolidation style as P7.1);
+  `lib/api/admin.ts` (route guards) untouched. Formatter dedup: the two
+  time-window formatters pin genuinely DIFFERENT outputs ("X – Y"/null vs
+  "X–Y"/"") — one shared `joinTimeWindow(start, end, separator)` core now
+  feeds both thin wrappers, rendered output byte-identical.
+- Verification (independent re-run): folders + barrels in place; zero old
+  specifiers remain (grep); lint clean; typecheck clean; 644/644 unit tests
+  with logic unmodified.
+- Notes: top-level `src/lib` is down from ~50 to 43 entries with the three
+  domain folders (availability, schedule, admin) + the I/O layers (data, api,
+  supabase) now carrying the structure.
 
 ### 2026-07-09 — P7.1: lib/availability/ + shared eligibility predicate — DONE
 - Changed: new `src/lib/availability/` owns the domain (availability,

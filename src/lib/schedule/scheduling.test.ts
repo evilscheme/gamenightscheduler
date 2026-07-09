@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { getSchedulingWindow } from "./scheduling";
 import { addMonths, format, lastDayOfMonth, parseISO, startOfDay, subDays } from "date-fns";
-import type { SchedulingWindowMonths } from "./constants";
+import type { SchedulingWindowMonths } from "../constants";
 
 // Helper to create a local-midnight date from a YYYY-MM-DD string.
 // Uses parseISO (which treats date-only strings as local time) instead of

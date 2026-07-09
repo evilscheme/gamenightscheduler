@@ -8,7 +8,7 @@ import { getTimeOptions } from '@/lib/timeOptions';
 import {
   formatSessionTimeWindow,
   type OtherGameSessionInfo,
-} from '@/lib/otherGameSessions';
+} from '@/lib/schedule';
 
 // Extracted component to avoid IIFE in JSX (Turbopack compatibility)
 interface NoteEditorPopoverProps {

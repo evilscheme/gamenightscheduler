@@ -224,7 +224,7 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
 
 ## Phase 2 — Consistency: API guards, data layer, lint enforcement (T1)
 
-### P2.1 `[ ]` Shared `requireUser()` + uniform error handling in account routes
+### P2.1 `[x]` Shared `requireUser()` + uniform error handling in account routes
 - **Files:** new `src/lib/api/auth.ts` (+ test), `src/app/api/account/delete/route.ts`,
   `src/app/api/account/delete-preview/route.ts`,
   `src/app/api/games/invite/[code]/route.ts`.
@@ -625,6 +625,21 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P2.1: requireUser() guard + serverError() standardization — DONE
+- Changed: new `src/lib/api/auth.ts` (`requireUser()`, mirrors requireAdmin's
+  return-union) + `auth.test.ts` (3 tests). The three copy-pasted getUser()+401
+  blocks in `account/delete`, `account/delete-preview`, `games/invite/[code]`
+  replaced with the guard. All bare `console.error`+500 responses in the two
+  account routes converted to `serverError()` with route/step context (6 sites),
+  matching the admin routes' errorId correlation.
+- Verification: `grep -rn "auth.getUser" src/app/api | grep -v test-auth` → no
+  hits (guards own it now); lint clean; typecheck clean; 593/593 unit tests pass
+  (3 new). e2e deferred: `e2e/tests/settings/delete-account.spec.ts` (no local
+  Supabase here).
+- Notes: 500 response bodies for those routes changed from bespoke messages to
+  the canonical `{ error: 'Internal server error', errorId }` shape — matches
+  what admin routes already return; the client page displays the generic message.
 
 ### 2026-07-09 — P1.4: account deletion ordering — DONE
 - Changed: `src/app/api/account/delete/route.ts` — removed the manual

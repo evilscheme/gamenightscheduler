@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireUser } from '@/lib/api/auth';
+import { serverError } from '@/lib/apiError';
 
 export interface OwnedGameMember {
   id: string;
@@ -25,15 +26,9 @@ export interface DeletePreview {
 }
 
 export async function GET(): Promise<Response> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+  const { user } = auth;
 
   const admin = createAdminClient();
 
@@ -45,8 +40,7 @@ export async function GET(): Promise<Response> {
     .order('name');
 
   if (gamesError) {
-    console.error('delete-preview: failed to fetch owned games', gamesError);
-    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
+    return serverError(gamesError, { route: 'account/delete-preview', step: 'fetch-owned-games' });
   }
 
   // Fetch player memberships with game names
@@ -56,8 +50,7 @@ export async function GET(): Promise<Response> {
     .eq('user_id', user.id);
 
   if (membershipError) {
-    console.error('delete-preview: failed to fetch membership data', membershipError);
-    return NextResponse.json({ error: 'Failed to fetch membership data' }, { status: 500 });
+    return serverError(membershipError, { route: 'account/delete-preview', step: 'fetch-memberships' });
   }
 
   const playerMembershipGames: PlayerMembershipGame[] = (membershipRows ?? []).map((row) => {

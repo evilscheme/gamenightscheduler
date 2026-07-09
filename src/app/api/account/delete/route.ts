@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireUser } from '@/lib/api/auth';
+import { serverError } from '@/lib/apiError';
 
 interface GameAction {
   gameId: string;
@@ -13,15 +14,9 @@ interface DeleteRequest {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+  const { user } = auth;
 
   let body: DeleteRequest;
   try {
@@ -62,7 +57,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       .in('id', gameIds);
 
     if (verifyError) {
-      return NextResponse.json({ error: 'Failed to verify game ownership' }, { status: 500 });
+      return serverError(verifyError, { route: 'account/delete', step: 'verify-ownership' });
     }
 
     if ((verifiedGames?.length ?? 0) !== gameIds.length) {
@@ -77,7 +72,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     .eq('gm_id', user.id);
 
   if (ownedError) {
-    return NextResponse.json({ error: 'Failed to fetch owned games' }, { status: 500 });
+    return serverError(ownedError, { route: 'account/delete', step: 'fetch-owned-games' });
   }
 
   // Every game that has members must have an explicit action
@@ -104,7 +99,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       .maybeSingle();
 
     if (memberError) {
-      return NextResponse.json({ error: 'Failed to verify transfer target' }, { status: 500 });
+      return serverError(memberError, { route: 'account/delete', step: 'verify-transfer-target' });
     }
     if (!membership) {
       return NextResponse.json(
@@ -125,8 +120,11 @@ export async function POST(req: NextRequest): Promise<Response> {
       .eq('gm_id', user.id); // safety: only update if still owned by this user
 
     if (updateError) {
-      console.error('delete: failed to transfer game', action.gameId, updateError);
-      return NextResponse.json({ error: 'Failed to transfer game ownership' }, { status: 500 });
+      return serverError(updateError, {
+        route: 'account/delete',
+        step: 'transfer-game',
+        gameId: action.gameId,
+      });
     }
 
     // Remove the new GM from the membership table (they're now the owner, not a player)
@@ -151,8 +149,11 @@ export async function POST(req: NextRequest): Promise<Response> {
   const { error: deleteAuthError } = await admin.auth.admin.deleteUser(user.id);
 
   if (deleteAuthError) {
-    console.error('delete: auth user deletion failed', user.id, deleteAuthError);
-    return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 });
+    return serverError(deleteAuthError, {
+      route: 'account/delete',
+      step: 'delete-auth-user',
+      userId: user.id,
+    });
   }
 
   return NextResponse.json({ success: true });

@@ -6,7 +6,8 @@ import {
   fetchGamesWithGMByIds,
   fetchUpcomingSessionsForGames,
 } from '@/lib/data';
-import { getTodayLocalDate, getUpcomingQueryFloor } from '@/lib/upcomingSessions';
+import { getUpcomingQueryFloor } from '@/lib/upcomingSessions';
+import { getTodayLocalDate } from '@/lib/date';
 
 /** Row shape returned by the games queries with the embedded membership count. */
 export type GameWithGMAndCounts = GameWithGM & { game_memberships?: { count: number }[] };

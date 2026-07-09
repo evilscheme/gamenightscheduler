@@ -3,6 +3,7 @@ import { requireAdmin, paginate } from '@/lib/api/admin';
 import { calculateGameFillRate } from '@/lib/availability';
 import { calculateGameHealth, type HealthBreakdown, type HealthGrade } from '@/lib/gameHealth';
 import { serverError } from '@/lib/apiError';
+import { getTodayLocalDate } from '@/lib/date';
 
 interface GameWithEngagement {
   id: string;
@@ -51,7 +52,7 @@ export async function GET(): Promise<Response> {
       membershipsByGame.get(m.game_id)!.add(m.user_id);
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayLocalDate();
     const sessionsByGame = new Map<string, { total: number; future: number; lastActivity: string | null }>();
     for (const s of sessions) {
       if (!sessionsByGame.has(s.game_id)) {

@@ -28,6 +28,7 @@ import { SESSION_DEFAULTS, DEFAULT_TIMEZONE } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 import { nanoid } from 'nanoid';
 import { GameForm, type GameFormState } from '@/components/games/forms/GameForm';
+import { getTodayLocalDate } from '@/lib/date';
 
 function gameToFormState(game: Game): GameFormState {
   return {
@@ -119,7 +120,7 @@ export default function EditGamePage() {
     setConversionMessage(null);
 
     if (state.adHocOnly && !game.ad_hoc_only) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayLocalDate();
       const { data: futureSessions } = await fetchFutureSessions(supabase, gameId, today);
       if (futureSessions && futureSessions.length > 0) {
         const sessionDates = futureSessions.map((s) => s.date);

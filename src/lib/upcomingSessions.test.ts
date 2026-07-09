@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildUpcomingSessionRows,
-  toLocalDateString,
   getUpcomingQueryFloor,
 } from './upcomingSessions';
+import { toLocalDateString } from './date';
 import type { GameSession } from '@/types';
 
 const mkSession = (overrides: Partial<GameSession>): GameSession => ({

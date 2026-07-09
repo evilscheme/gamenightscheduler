@@ -159,7 +159,7 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
   `grep -rnE "bg-(purple|blue|green|red|yellow)-[0-9]" src/app/admin/page.tsx src/app/help/page.tsx`
   returns nothing; lint/typecheck/unit pass.
 
-### P1.2 `[ ]` Centralize local-date helpers; fix UTC-today bugs (T4 app layer)
+### P1.2 `[x]` Centralize local-date helpers; fix UTC-today bugs (T4 app layer)
 - **Files:** new `src/lib/date.ts` + `src/lib/date.test.ts`;
   `src/lib/upcomingSessions.ts`; `src/lib/timezone.ts` (~:191-193);
   `src/app/games/[id]/edit/page.tsx:119`; `src/app/api/admin/games/route.ts:54`;
@@ -625,6 +625,20 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P1.2: canonical local-date helpers; UTC-today bug fixes — DONE
+- Changed: new `src/lib/date.ts` owns `toLocalDateString`/`getTodayLocalDate`
+  (moved from `upcomingSessions.ts`; importers updated — `useOtherGameSessions`,
+  `api/admin/upcoming-sessions`, `dashboardData`, `upcomingSessions` itself, its
+  test). `timezone.ts` `getDateInTimezone`'s no-timezone fallback now delegates to
+  the shared helper. The three UTC-today bugs fixed:
+  `games/[id]/edit/page.tsx`, `api/admin/games/route.ts`, `topUsers.ts` (kept the
+  `opts.today ??` injection, changed only the fallback). New `src/lib/date.test.ts`
+  (5 tests incl. local-vs-UTC midnight proof).
+- Verification: `grep -rn "toISOString().split" src | grep -v test` → only the
+  cautionary doc comment in date.ts itself; lint clean; typecheck clean; 589/589
+  unit tests pass (5 new).
+- Notes: none.
 
 ### 2026-07-09 — P1.1: destructive→danger token fix + hardcoded colors — DONE
 - Changed: 15 `*-destructive` class usages replaced with `danger` equivalents across

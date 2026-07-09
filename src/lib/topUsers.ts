@@ -1,3 +1,5 @@
+import { getTodayLocalDate } from './date';
+
 // Leaderboard aggregation for the admin "Top Users" tab.
 // Pure functions over raw table rows so the ranking logic is unit-testable
 // independently of Supabase.
@@ -52,7 +54,7 @@ export function computeTopUsers(
   opts: { limit?: number; today?: string } = {}
 ): TopUsersResult {
   const limit = opts.limit ?? TOP_USERS_LIMIT;
-  const today = opts.today ?? new Date().toISOString().split('T')[0];
+  const today = opts.today ?? getTodayLocalDate();
 
   const usersById = new Map(input.users.map((u) => [u.id, u]));
   const gamesById = new Map(input.games.map((g) => [g.id, g]));

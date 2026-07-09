@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { fetchUpcomingSessionsForGames } from '@/lib/data';
 import { queryKeys } from '@/lib/queryKeys';
-import { getTodayLocalDate } from '@/lib/upcomingSessions';
+import { getTodayLocalDate } from '@/lib/date';
 import {
   buildOtherGameSessionMap,
   type OtherGameSessionInfo,

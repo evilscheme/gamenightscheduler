@@ -322,7 +322,7 @@ Order matters: characterization tests land BEFORE any refactor they protect.
   useGameMeta test passes; lint/typecheck/unit pass; **[e2e]** `e2e/tests/overview`
   or the game-detail specs.
 
-### P3.3 `[ ]` **[G1]** renderHook tests for `usePlayDates` + `useSessions`; verify pattern consistency
+### P3.3 `[x]` **[G1]** renderHook tests for `usePlayDates` + `useSessions`; verify pattern consistency
 - **Files:** new tests for `src/hooks/usePlayDates.ts` and `src/hooks/useSessions.ts`.
 - **Do:** Same harness as P3.1 (QueryClientProvider wrapper, mocked client). For each
   mutation in both hooks, test optimistic apply / success / rollback-on-error, and
@@ -625,6 +625,23 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P3.3: renderHook tests for usePlayDates + useSessions — DONE
+- Changed: new `usePlayDates.test.tsx` (4 tests: optimistic temp-row add +
+  server-row reconcile, rollback on add failure, sorted restore on delete
+  failure, note revert) and `useSessions.test.tsx` (7 tests: server-confirmed
+  cache write sorted + dashboardAll invalidation, past-date and
+  future-session-limit guards rejecting without a server call, cancel remove +
+  invalidate, cancel failure retention, PGRST116 refetch, update success).
+- Verification: 11/11 new tests pass; lint clean; typecheck clean; 607/607
+  unit tests pass.
+- Notes: pattern-consistency verdict — usePlayDates is fully optimistic per the
+  CLAUDE.md standard. useSessions is deliberately server-confirmed-then-cache-
+  write (confirm flows through a modal and carries past-date/limit/RLS
+  validation, so nothing is flashed that the server may reject); it still honors
+  the core contract (registry keys, cache writes, cross-view dashboardAll
+  invalidation). Characterized as-is rather than forced optimistic — a behavior
+  change there would violate Ground Rule 7 for no UX gain.
 
 ### 2026-07-09 — P3.2: withOptimistic retired — DONE
 - Changed: `useGameMeta.regenerateInvite` migrated to the inline standard

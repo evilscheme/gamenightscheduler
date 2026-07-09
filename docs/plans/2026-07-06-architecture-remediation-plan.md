@@ -466,7 +466,7 @@ overlaps P6.4 — coordinate, don't duplicate.
   if runnable; prod SQL (CREATE OR REPLACE FUNCTION + ALTER TABLE ... DROP/ADD
   CONSTRAINT) recorded in Work Log.
 
-### P6.2 `[ ]` Timezone-correct "future" cutoffs for sessions
+### P6.2 `[x]` Timezone-correct "future" cutoffs for sessions
 - **Where:** sessions INSERT policy (`date >= CURRENT_DATE`, ~:543) and
   `count_future_sessions` (~:261).
 - **Do:** Both evaluate CURRENT_DATE in UTC while games have a `timezone` column.
@@ -631,6 +631,69 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P6.2: timezone-correct session cutoffs — DONE
+- Changed (schema.sql + one e2e spec row): new `public.game_today(game_id)`
+  (STABLE SECURITY DEFINER; `(now() AT TIME ZONE COALESCE(games.timezone,
+  'UTC'))::date`, with an exception fallback to UTC so a malformed stored
+  timezone can't break session inserts). The sessions INSERT policy and
+  `count_future_sessions` now compare against it instead of UTC CURRENT_DATE.
+  `game_today` added to `e2e/tests/rls/function-grants.spec.ts`'s lockdown
+  list per the security doc's rule for new SECURITY DEFINER functions.
+- Verification: schema applies cleanly to throwaway Postgres 16; functional
+  assertions all pass — game_today matches per-zone dates
+  (Pacific/Kiritimati UTC+14, Pacific/Midway UTC-11), NULL and invalid tz fall
+  back to UTC, and count_future_sessions excludes a session dated local-
+  yesterday. Lint/typecheck/unit unaffected (633/633). e2e grants spec
+  deferred (no local Supabase) — run before merge.
+- **HUMAN ACTION REQUIRED** — apply to prod as
+  `docs/migrations/2026-07-09-p6-2-game-today-cutoffs-prod.sql`:
+
+```sql
+BEGIN;
+
+CREATE OR REPLACE FUNCTION public.game_today(game_id_param UUID)
+RETURNS DATE AS $$
+DECLARE
+  tz TEXT;
+BEGIN
+  SELECT timezone INTO tz FROM public.games WHERE id = game_id_param;
+  BEGIN
+    RETURN (now() AT TIME ZONE COALESCE(tz, 'UTC'))::date;
+  EXCEPTION WHEN OTHERS THEN
+    RETURN (now() AT TIME ZONE 'UTC')::date;
+  END;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+
+-- Grant discipline for new functions (see open-security-findings progress log)
+REVOKE EXECUTE ON FUNCTION public.game_today(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.game_today(UUID) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.count_future_sessions(game_id_param UUID)
+RETURNS INTEGER AS $$
+DECLARE
+  session_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO session_count
+  FROM public.sessions
+  WHERE game_id = game_id_param
+    AND date >= public.game_today(game_id_param);
+  RETURN session_count;
+END;
+-- VOLATILE (not STABLE): count-based limit guard
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+DROP POLICY IF EXISTS "GMs and co-GMs can insert sessions" ON sessions;
+CREATE POLICY "GMs and co-GMs can insert sessions" ON sessions
+  FOR INSERT WITH CHECK (
+    public.is_game_gm_or_co_gm(game_id, (select auth.uid()))
+    AND date >= public.game_today(game_id)
+    AND public.count_future_sessions(game_id) < 100
+  );
+
+COMMIT;
+```
 
 ### 2026-07-09 — P6.1: handle_new_user signup resilience — DONE
 - Changed (schema.sql only): `users.avatar_url` CHECK widened from `lh3\.` to

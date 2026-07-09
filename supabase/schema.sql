@@ -258,6 +258,26 @@ END;
 -- VOLATILE (not STABLE): count-based limit guard; see count_user_games above.
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- "Today" as observed in the game's own timezone. Session dates are calendar
+-- dates in the game's locale, so cutoffs computed with CURRENT_DATE (UTC on
+-- Supabase) misclassify evenings near the UTC day boundary — "tonight" in a US
+-- timezone was rejected as past after 00:00 UTC.
+CREATE OR REPLACE FUNCTION public.game_today(game_id_param UUID)
+RETURNS DATE AS $$
+DECLARE
+  tz TEXT;
+BEGIN
+  SELECT timezone INTO tz FROM public.games WHERE id = game_id_param;
+  BEGIN
+    RETURN (now() AT TIME ZONE COALESCE(tz, 'UTC'))::date;
+  EXCEPTION WHEN OTHERS THEN
+    -- Invalid IANA name stored on the game: fall back to UTC rather than
+    -- making every session insert fail.
+    RETURN (now() AT TIME ZONE 'UTC')::date;
+  END;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+
 -- Count how many future sessions exist for a game (used by RLS to enforce limit)
 CREATE OR REPLACE FUNCTION public.count_future_sessions(game_id_param UUID)
 RETURNS INTEGER AS $$
@@ -267,7 +287,7 @@ BEGIN
   SELECT COUNT(*) INTO session_count
   FROM public.sessions
   WHERE game_id = game_id_param
-    AND date >= CURRENT_DATE;
+    AND date >= public.game_today(game_id_param);
   RETURN session_count;
 END;
 -- VOLATILE (not STABLE): count-based limit guard; see count_user_games above.
@@ -549,7 +569,7 @@ CREATE POLICY "Game participants can view sessions" ON sessions
 CREATE POLICY "GMs and co-GMs can insert sessions" ON sessions
   FOR INSERT WITH CHECK (
     public.is_game_gm_or_co_gm(game_id, (select auth.uid()))
-    AND date >= CURRENT_DATE
+    AND date >= public.game_today(game_id)
     AND public.count_future_sessions(game_id) < 100
   );
 CREATE POLICY "GMs and co-GMs can update sessions" ON sessions

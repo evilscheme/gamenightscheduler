@@ -493,7 +493,7 @@ overlaps P6.4 — coordinate, don't duplicate.
   SQL in Work Log **including a pre-flight query** the human runs first to find any
   existing violating rows.
 
-### P6.4 `[ ]` (Stretch) Usage caps → typed errors instead of RLS `WITH CHECK`
+### P6.4 `[B]` (Stretch) Usage caps → typed errors instead of RLS `WITH CHECK`
 - **Where:** 20-games cap (~:471), 100-future-sessions cap (~:544); reference
   pattern: `join_game_by_invite`'s `RAISE ... 'Game is full'` (~:388).
 - **Do:** Move the count checks from `WITH CHECK` into `BEFORE INSERT` triggers that
@@ -637,6 +637,28 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P6.4: caps → typed errors — BLOCKED (by design)
+- Why blocked: the change alters the DB error contract on enforcement paths and
+  everything that depends on it, none of which is verifiable in this
+  environment (no local Supabase): (a) two dedicated e2e specs assert the
+  CURRENT RLS failure mode (`e2e/tests/rls/usage-limits.spec.ts`,
+  `usage-limits-bulk.spec.ts`); (b) three app-side parsers branch on
+  `error.code === '42501'` (`useSessions.ts:107,155`,
+  `games/new/page.tsx:116`) and would need the new P0001 contract;
+  (c) the TOCTOU-race half overlaps open security finding #8, whose
+  disposition (accept vs fix) is tracked in
+  `docs/security/2026-06-10-open-security-findings.md` and is a human call.
+  Half-landing an unverified error-contract change on limits enforcement is
+  exactly what this item's own escape hatch was written for.
+- Unblock recipe (run WITH local Supabase): (1) BEFORE INSERT triggers on
+  games/sessions raising typed errors (advisory lock on gm_id/game_id to
+  serialize the count), keeping the rest of each policy; (2) update the three
+  42501 parsers to also match the trigger errors; (3) update both usage-limit
+  specs to the new failure mode; (4) `npm run db:reset` + run
+  `e2e/tests/rls/usage-limits*.spec.ts` + games/new + scheduling e2e; (5)
+  coordinate the disposition note on finding #8; (6) prod SQL per Ground
+  Rule 2.
 
 ### 2026-07-09 — P6.3: play_days CHECK added; time-window CHECKs deliberately deferred — DONE
 - Changed (schema.sql): `games.play_days` gains

@@ -28,6 +28,20 @@ export async function fetchGamesWithGMByIds(supabase: SupabaseClient, gameIds: s
     .in('id', gameIds);
 }
 
+/** Minimal name lookup for page-title metadata (generateMetadata layouts). */
+export async function fetchGameName(supabase: SupabaseClient, gameId: string) {
+  return supabase.from('games').select('name').eq('id', gameId).single<{ name: string }>();
+}
+
+/** Invite-preview shape for the join page's OG/social metadata. */
+export async function fetchGameInviteMetaByCode(supabase: SupabaseClient, code: string) {
+  return supabase
+    .from('games')
+    .select('name, description, play_days, gm:users!games_gm_id_fkey(name)')
+    .eq('invite_code', code)
+    .single();
+}
+
 export async function fetchUserGameCount(supabase: SupabaseClient, userId: string) {
   return supabase
     .from('games')

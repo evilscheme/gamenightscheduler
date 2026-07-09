@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { fetchGameName } from '@/lib/data/games';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,11 +12,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
 
   try {
     const admin = createAdminClient();
-    const { data: game } = await admin
-      .from('games')
-      .select('name')
-      .eq('id', id)
-      .single();
+    const { data: game } = await fetchGameName(admin, id);
 
     if (game) {
       return { title: `Edit ${game.name}` };

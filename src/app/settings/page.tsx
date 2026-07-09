@@ -6,6 +6,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import Link from 'next/link';
 import { Button, EyebrowLabel, Input, LoadingSpinner, Panel } from '@/components/ui';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { updateUserProfile } from '@/lib/data/users';
 import { TEXT_LIMITS, TIMEZONE_GROUPS } from '@/lib/constants';
 import { ThemePicker } from '@/components/settings/ThemePicker';
 import { getBrowserTimezone, isValidTimezone } from '@/lib/timezone';
@@ -61,15 +62,12 @@ export default function SettingsPage() {
     setSaving(true);
     setMessage(null);
 
-    const { error } = await supabase
-      .from('users')
-      .update({
-        name: name.trim(),
-        timezone: userTimezone || null,
-        week_start_day: weekStartDay,
-        time_format: timeFormat,
-      })
-      .eq('id', profile.id);
+    const { error } = await updateUserProfile(supabase, profile.id, {
+      name: name.trim(),
+      timezone: userTimezone || null,
+      week_start_day: weekStartDay,
+      time_format: timeFormat,
+    });
 
     if (error) {
       if (error.code === '23514') {

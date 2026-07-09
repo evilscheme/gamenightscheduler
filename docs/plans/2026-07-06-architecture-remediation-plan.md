@@ -240,7 +240,7 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
   helpers or test-auth only); lint/typecheck/unit pass; **[e2e]**
   `e2e/tests/settings/delete-account.spec.ts`.
 
-### P2.2 `[ ]` **[G1]** Route data-layer bypasses through `src/lib/data`
+### P2.2 `[x]` **[G1]** Route data-layer bypasses through `src/lib/data`
 - **Files (re-verified post-#133):** `src/app/settings/page.tsx` only — the
   DashboardContent bypass was resolved by #133 (`src/lib/dashboardData.ts` now
   composes `lib/data` functions; DashboardContent has zero inline queries).
@@ -625,6 +625,18 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P2.2: data-layer bypasses routed through lib/data — DONE
+- Changed: `settings/page.tsx` now calls `updateUserProfile` (error handling
+  unchanged — it still branches on `error.code === '23514'`). The sweep also found
+  three `generateMetadata` layouts querying `games` inline; added `fetchGameName`
+  and `fetchGameInviteMetaByCode` to `lib/data/games.ts` and converted
+  `games/[id]/layout.tsx`, `games/[id]/edit/layout.tsx`, `games/join/[code]/layout.tsx`
+  (still on the admin client — behavior preserved; the name-leak question stays
+  open in Discovered Work). New `lib/data/games.test.ts` (2 query-shape tests).
+- Verification: `.from(` sweep across components/pages → only `Array.from` false
+  positives remain; lint clean; typecheck clean; 595/595 unit tests pass (2 new).
+- Notes: none.
 
 ### 2026-07-09 — P2.1: requireUser() guard + serverError() standardization — DONE
 - Changed: new `src/lib/api/auth.ts` (`requireUser()`, mirrors requireAdmin's

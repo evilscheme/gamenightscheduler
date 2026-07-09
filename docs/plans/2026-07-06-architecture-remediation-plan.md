@@ -182,7 +182,7 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
   all existing upcomingSessions/timezone/topUsers tests pass unmodified (import paths
   aside); new tests pass.
 
-### P1.3 `[ ]` **[G1]** Single browser Supabase client (T1.6)
+### P1.3 `[x]` **[G1]** Single browser Supabase client (T1.6)
 - **Files (re-verified post-#133):** `src/lib/supabase/client.ts`, plus 12 call
   sites: module-scope `const supabase = createClient()` in 5 hooks
   (`useAvailability.ts:32`, `useGameMeta.ts:6`, `useSessions.ts:15`,
@@ -625,6 +625,22 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P1.3: single browser Supabase client — DONE
+- Changed: `src/lib/supabase/client.ts` gains `getSupabaseClient()` (memoized
+  singleton; comment explains the GoTrueClient token-refresh race). All 11
+  browser call sites converted (5 hooks' module-scope clients, DefaultAvailability-
+  Editor, and the 5 per-render `createClient()` calls in DashboardContent,
+  settings, games/new, games/edit, games/join). `AuthContext.tsx`'s private
+  singleton deleted in favor of the shared one. New unit test proves identity
+  across calls (createBrowserClient invoked exactly once).
+- Verification: remaining `createClient()` hits outside `src/lib/supabase/` are
+  exactly the 6 `await createClient()` SERVER-client sites (all import from
+  `supabase/server`; per-request by design — cookie-bound). Lint clean; typecheck
+  clean; 590/590 unit tests pass (1 new). e2e deferred: no local Supabase in this
+  environment.
+- Notes: browser-client construction now has exactly one owner; per-render client
+  churn in the 5 pages is gone.
 
 ### 2026-07-09 — P1.2: canonical local-date helpers; UTC-today bug fixes — DONE
 - Changed: new `src/lib/date.ts` owns `toLocalDateString`/`getTodayLocalDate`

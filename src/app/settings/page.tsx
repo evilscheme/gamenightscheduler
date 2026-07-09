@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import Link from 'next/link';
 import { Button, EyebrowLabel, Input, LoadingSpinner, Panel } from '@/components/ui';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { TEXT_LIMITS, TIMEZONE_GROUPS } from '@/lib/constants';
 import { ThemePicker } from '@/components/settings/ThemePicker';
 import { getBrowserTimezone, isValidTimezone } from '@/lib/timezone';
@@ -20,7 +20,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<{ text: string; tone: 'success' | 'danger' } | null>(
     null
   );
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
 
   useAuthRedirect();
 

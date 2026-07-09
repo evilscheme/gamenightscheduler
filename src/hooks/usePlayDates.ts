@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import type { GamePlayDate } from '@/types';
 import {
   fetchGamePlayDates,
@@ -11,7 +11,7 @@ import {
 } from '@/lib/data';
 import { queryKeys } from '@/lib/queryKeys';
 
-const supabase = createClient();
+const supabase = getSupabaseClient();
 
 const EMPTY_PLAY_DATES: GamePlayDate[] = [];
 

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
-import { createClient, onSupabaseStatus } from '@/lib/supabase/client';
+import { getSupabaseClient, onSupabaseStatus } from '@/lib/supabase/client';
 import { User } from '@/types';
 import { TIMEOUTS } from '@/lib/constants';
 import { deriveAuthStatus, type AuthStatus } from './authStatus';
@@ -23,14 +23,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create a singleton supabase client to avoid recreating on each render
-let supabaseClient: ReturnType<typeof createClient> | null = null;
-function getSupabaseClient() {
-  if (!supabaseClient) {
-    supabaseClient = createClient();
-  }
-  return supabaseClient;
-}
 
 // Check for stored Supabase auth tokens (cookies or localStorage).
 // Used to detect returning users and prevent flash of unauthenticated UI

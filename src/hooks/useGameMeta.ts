@@ -1,9 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { nanoid } from 'nanoid';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 
-const supabase = createClient();
+const supabase = getSupabaseClient();
 import type { GameWithMembers } from '@/types';
 import {
   fetchGameWithGM,

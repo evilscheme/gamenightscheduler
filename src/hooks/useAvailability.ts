@@ -9,7 +9,7 @@ import {
   format,
 } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import type {
   Availability,
   AvailabilityStatus,
@@ -29,7 +29,7 @@ import { buildBulkUpsertEntries } from '@/lib/bulkAvailability';
 import { computeDefaultEntries, type WeekdayDefault } from '@/lib/defaultAvailability';
 import { getSchedulingWindow } from '@/lib/scheduling';
 
-const supabase = createClient();
+const supabase = getSupabaseClient();
 
 const EMPTY_AVAILABILITY: Availability[] = [];
 

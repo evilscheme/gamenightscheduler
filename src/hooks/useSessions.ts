@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { parseISO, startOfDay } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import type { GameSession } from '@/types';
 import {
   fetchGameSessions,
@@ -12,7 +12,7 @@ import {
 import { queryKeys } from '@/lib/queryKeys';
 import { USAGE_LIMITS } from '@/lib/constants';
 
-const supabase = createClient();
+const supabase = getSupabaseClient();
 
 const EMPTY_SESSIONS: GameSession[] = [];
 

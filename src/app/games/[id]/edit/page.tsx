@@ -13,7 +13,7 @@ import {
   Modal,
   useToast,
 } from '@/components/ui';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
 import {
   fetchGameWithGM,
@@ -53,7 +53,7 @@ export default function EditGamePage() {
   const router = useRouter();
   const params = useParams();
   const gameId = params.id as string;
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const queryClient = useQueryClient();
 
   const [game, setGame] = useState<Game | null>(null);

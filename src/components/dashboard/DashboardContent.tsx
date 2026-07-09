@@ -5,7 +5,7 @@ import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Users, Calendar } from "lucide-react";
 import { Button, LoadingSpinner } from "@/components/ui";
-import { createClient } from "@/lib/supabase/client";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import { DAY_LABELS } from "@/lib/constants";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
@@ -18,7 +18,7 @@ import { UpcomingSessionsPanel } from "./UpcomingSessionsPanel";
 export function DashboardContent() {
   const { user, profile, authStatus } = useAuth();
   const { use24h, timezone: userTimezone } = useUserPreferences();
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const userId = user?.id ?? '';
 
   const queryClient = useQueryClient();

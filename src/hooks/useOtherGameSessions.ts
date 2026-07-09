@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { fetchUpcomingSessionsForGames } from '@/lib/data';
 import { queryKeys } from '@/lib/queryKeys';
 import { getTodayLocalDate } from '@/lib/date';
@@ -9,7 +9,7 @@ import {
   type OtherGameSessionInfo,
 } from '@/lib/otherGameSessions';
 
-const supabase = createClient();
+const supabase = getSupabaseClient();
 
 const EMPTY_MAP = new Map<string, OtherGameSessionInfo[]>();
 

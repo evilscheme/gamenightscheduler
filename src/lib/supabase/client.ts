@@ -85,3 +85,17 @@ export function createClient() {
     }
   );
 }
+
+// --- Shared browser client singleton ---
+
+// Multiple GoTrueClient instances in one tab race on token refresh, so every
+// browser-side consumer (hooks, pages, AuthContext) must share this instance.
+// Only tests should call createClient() directly.
+let browserClient: ReturnType<typeof createClient> | null = null;
+
+export function getSupabaseClient() {
+  if (!browserClient) {
+    browserClient = createClient();
+  }
+  return browserClient;
+}

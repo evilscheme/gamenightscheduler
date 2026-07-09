@@ -13,6 +13,21 @@ const SUPABASE_URL = 'https://test.supabase.co';
 process.env.NEXT_PUBLIC_SUPABASE_URL = SUPABASE_URL;
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 
+describe('getSupabaseClient singleton', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    mockCreateBrowserClient.mockClear();
+  });
+
+  it('returns the same client instance across calls', async () => {
+    const mod = await import('./client');
+    const a = mod.getSupabaseClient();
+    const b = mod.getSupabaseClient();
+    expect(a).toBe(b);
+    expect(mockCreateBrowserClient).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('Supabase client fetch monitoring', () => {
   let createClient: typeof import('./client').createClient;
   let onSupabaseStatus: typeof import('./client').onSupabaseStatus;

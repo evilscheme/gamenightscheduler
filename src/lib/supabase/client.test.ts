@@ -40,14 +40,14 @@ describe('Supabase client fetch monitoring', () => {
 
   describe('fetch wrapper', () => {
     let monitoredFetch: typeof fetch;
-    let listener: ReturnType<typeof vi.fn>;
+    let listener: ReturnType<typeof vi.fn<(isError: boolean) => void>>;
     let unsubscribe: () => void;
 
     beforeEach(() => {
       createClient();
       monitoredFetch =
         mockCreateBrowserClient.mock.calls[0][2].global.fetch;
-      listener = vi.fn();
+      listener = vi.fn<(isError: boolean) => void>();
       unsubscribe = onSupabaseStatus(listener);
     });
 

@@ -114,9 +114,9 @@ describe('splitUpcomingPast', () => {
   it('partitions sessions relative to a reference date', () => {
     const today = new Date('2026-04-23T12:00:00');
     const sessions: GameSession[] = [
-      { id: 'a', game_id: 'g', date: '2026-04-20', start_time: null, end_time: null, status: 'confirmed', confirmed_by: null, created_at: '' },
-      { id: 'b', game_id: 'g', date: '2026-04-23', start_time: null, end_time: null, status: 'confirmed', confirmed_by: null, created_at: '' },
-      { id: 'c', game_id: 'g', date: '2026-04-30', start_time: null, end_time: null, status: 'confirmed', confirmed_by: null, created_at: '' },
+      { id: 'a', game_id: 'g', date: '2026-04-20', start_time: null, end_time: null, status: 'confirmed', confirmed_by: null, location: null, notes: null, created_at: '' },
+      { id: 'b', game_id: 'g', date: '2026-04-23', start_time: null, end_time: null, status: 'confirmed', confirmed_by: null, location: null, notes: null, created_at: '' },
+      { id: 'c', game_id: 'g', date: '2026-04-30', start_time: null, end_time: null, status: 'confirmed', confirmed_by: null, location: null, notes: null, created_at: '' },
     ];
     const { upcoming, past } = splitUpcomingPast(sessions, today);
     expect(upcoming.map((s) => s.id)).toEqual(['b', 'c']);

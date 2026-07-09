@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "db:wipe": "tsx scripts/wipe-database.ts",
     "db:delete-user": "env-cmd -f .env.local tsx scripts/delete-user.ts",
     "db:start": "supabase start",

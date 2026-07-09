@@ -113,7 +113,7 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
 
 ## Phase 0 — CI guardrails (do first; protects everything after)
 
-### P0.1 `[ ]` Add a typecheck script and CI step
+### P0.1 `[x]` Add a typecheck script and CI step
 - **Files:** `package.json`, `.github/workflows/ci.yml`
 - **Do:** Add `"typecheck": "tsc --noEmit"` to package.json scripts. Run it. Fix any
   pre-existing errors it reveals (record the count and nature in the Work Log — if a
@@ -625,6 +625,20 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P0.1: typecheck script + CI step — DONE
+- Changed: `package.json` (added `"typecheck": "tsc --noEmit"`),
+  `.github/workflows/ci.yml` (Typecheck step between Lint and Unit Tests), and four
+  test files with pre-existing type errors that tsc surfaced on first run (unit
+  tests had been passing because vitest doesn't typecheck): missing vitest imports
+  in `StatusBanner.test.tsx` and `admin.test.ts` (repo convention is explicit
+  imports, not globals), `GameSession` fixtures missing `location`/`notes` in
+  `scheduleView.test.ts`, and an untyped `vi.fn()` mock vs `StatusListener` in
+  `supabase/client.test.ts`. All four fixes are types/imports only — zero runtime
+  behavior change.
+- Verification: `npm run lint` clean, `npm run typecheck` exits 0,
+  `npm run test:run` 584/584 pass.
+- Notes: none.
 
 ### 2026-07-09 — G1: Merged post-#133 main; revised gated items — DONE
 - Changed: merged `origin/main` (`560a222`, brings PRs #132 + #133) into the branch

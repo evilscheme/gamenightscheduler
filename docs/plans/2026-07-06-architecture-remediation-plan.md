@@ -400,7 +400,7 @@ Order matters: characterization tests land BEFORE any refactor they protect.
 - **Done when:** the calendar renders from the pure function; new tests cover all
   branches; **[e2e]** `e2e/tests/availability` passes; lint/typecheck/unit pass.
 
-### P5.3 `[ ]` **[G1]** Split AvailabilityCalendar into components + shared Modal
+### P5.3 `[x]` **[G1]** Split AvailabilityCalendar into components + shared Modal
 - **Files:** `src/components/calendar/` — new `MonthCalendar.tsx`,
   `CalendarLegend.tsx`, `NoteEditorPopover.tsx`, `DateActionMenu.tsx`; new
   `src/hooks/useLongPress.ts`; slim `AvailabilityCalendar.tsx`.
@@ -631,6 +631,26 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P5.3: AvailabilityCalendar split — DONE
+- Changed: AvailabilityCalendar.tsx 1,101 → 314 lines. New:
+  `MonthCalendar.tsx` (382), `CalendarLegend.tsx` (81),
+  `NoteEditorPopover.tsx` (206), `DateActionMenu.tsx` (46),
+  `BulkActionsBar.tsx` (97), `src/hooks/useLongPress.ts` (53),
+  `src/hooks/useNoteEditorState.ts` (101). Both overlays now render through
+  the shared `Modal` (gaining Escape-to-close + body scroll-lock), using its
+  title/footer conventions like CancelSessionModal/CopyConflictModal.
+  `onBulkSet` contract, public props, and every `data-*` test attribute
+  preserved byte-identical; long-press timing unchanged (extracted as
+  `consumeLongPress()` check-and-reset).
+- Verification (run independently after the fast-worker's own pass): lint
+  clean; typecheck clean; 627/627 unit tests; zero `fixed inset-0` overlays in
+  calendar files; orchestrator ≤320 lines. e2e deferred:
+  `e2e/tests/availability` (no local Supabase) — run before merge.
+- Notes for human visual check: with Modal, both popovers render at `max-w-md`
+  (were max-w-xs/max-w-sm — slightly wider), and the redundant "×" close
+  button is gone (Modal has no header-close slot; Escape/backdrop-click cover
+  it, matching the app's other modals). Check both breakpoints per CLAUDE.md.
 
 ### 2026-07-09 — P5.2: pure calendarCellState extracted — DONE
 - Changed: new `src/lib/calendarCellState.ts` — the cell's

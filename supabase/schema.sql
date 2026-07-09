@@ -18,7 +18,7 @@ CREATE TABLE users (
   name TEXT NOT NULL CHECK (char_length(name) <= 50),
   avatar_url TEXT CHECK (
     avatar_url IS NULL
-    OR avatar_url ~ '^https://(lh3\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/'
+    OR avatar_url ~ '^https://(lh[0-9]+\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/'
   ),
   is_gm BOOLEAN DEFAULT TRUE,
   is_admin BOOLEAN DEFAULT FALSE,
@@ -157,23 +157,32 @@ $$ LANGUAGE plpgsql SET search_path = '';
 -- Auto-create user profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.users (id, email, name, avatar_url, is_gm, is_admin)
-  VALUES (
-    NEW.id,
-    NEW.email,
+DECLARE
+  -- Sanitize inputs instead of letting public.users CHECK constraints reject
+  -- the row: this trigger runs inside the auth signup transaction, so a
+  -- constraint violation here turns a validation rule into a signup outage
+  -- (OAuth name >50 chars, avatar from an unexpected host).
+  v_name TEXT := left(
     COALESCE(
       NEW.raw_user_meta_data->>'full_name',
       NEW.raw_user_meta_data->>'name',
       split_part(NEW.email, '@', 1)
     ),
-    COALESCE(
-      NEW.raw_user_meta_data->>'avatar_url',
-      NEW.raw_user_meta_data->>'picture'
-    ),
-    true,
-    false
+    50
   );
+  v_avatar TEXT := COALESCE(
+    NEW.raw_user_meta_data->>'avatar_url',
+    NEW.raw_user_meta_data->>'picture'
+  );
+BEGIN
+  -- Must mirror the users.avatar_url CHECK; drop rather than reject.
+  IF v_avatar IS NOT NULL
+     AND v_avatar !~ '^https://(lh[0-9]+\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/' THEN
+    v_avatar := NULL;
+  END IF;
+
+  INSERT INTO public.users (id, email, name, avatar_url, is_gm, is_admin)
+  VALUES (NEW.id, NEW.email, v_name, v_avatar, true, false);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';

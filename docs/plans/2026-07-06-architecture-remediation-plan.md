@@ -454,7 +454,7 @@ new function you add must follow the same grant lockdown pattern (and gets a row
 `e2e/tests/rls/function-grants.spec.ts`), and its finding #8 (cap-race residual)
 overlaps P6.4 — coordinate, don't duplicate.
 
-### P6.1 `[ ]` Make `handle_new_user()` unable to block signup
+### P6.1 `[x]` Make `handle_new_user()` unable to block signup
 - **Where:** `handle_new_user()` in schema.sql (~:158-179); the CHECKs it can trip
   are `users.name` ≤50 chars (~:18) and the `avatar_url` host allowlist (~:19-22).
 - **Do:** Inside the trigger function, sanitize before insert: `left(name, 50)`;
@@ -631,6 +631,60 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P6.1: handle_new_user signup resilience — DONE
+- Changed (schema.sql only): `users.avatar_url` CHECK widened from `lh3\.` to
+  `lh[0-9]+\.googleusercontent.com` (legacy lh4/lh5/lh6 CDN hosts);
+  `handle_new_user()` now sanitizes instead of failing — `left(name, 50)` and
+  avatar nulled when it fails the (mirrored) allowlist — so a CHECK violation
+  can never abort the auth signup transaction.
+- Verification: full schema.sql applies cleanly to a throwaway Postgres 16
+  (stub auth schema); functional test: an auth.users insert with a 60-char
+  name + lh4 avatar succeeds (name_len=50, avatar kept), and a hostile-host
+  avatar lands as NULL — both would previously have aborted signup. Lint/
+  typecheck/unit unaffected (633/633).
+- **HUMAN ACTION REQUIRED** — apply to prod as
+  `docs/migrations/2026-07-09-p6-1-handle-new-user-resilience-prod.sql`
+  (no pre-flight needed: the new CHECK is strictly weaker than the old one):
+
+```sql
+BEGIN;
+
+ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_avatar_url_check;
+ALTER TABLE public.users ADD CONSTRAINT users_avatar_url_check CHECK (
+  avatar_url IS NULL
+  OR avatar_url ~ '^https://(lh[0-9]+\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/'
+);
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_name TEXT := left(
+    COALESCE(
+      NEW.raw_user_meta_data->>'full_name',
+      NEW.raw_user_meta_data->>'name',
+      split_part(NEW.email, '@', 1)
+    ),
+    50
+  );
+  v_avatar TEXT := COALESCE(
+    NEW.raw_user_meta_data->>'avatar_url',
+    NEW.raw_user_meta_data->>'picture'
+  );
+BEGIN
+  IF v_avatar IS NOT NULL
+     AND v_avatar !~ '^https://(lh[0-9]+\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/' THEN
+    v_avatar := NULL;
+  END IF;
+
+  INSERT INTO public.users (id, email, name, avatar_url, is_gm, is_admin)
+  VALUES (NEW.id, NEW.email, v_name, v_avatar, true, false);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+COMMIT;
+```
 
 ### 2026-07-09 — P5.4: admin page → TabContent pattern — DONE
 - Changed: `admin/page.tsx` 783 → 124 lines (auth gate + tab switcher). New in

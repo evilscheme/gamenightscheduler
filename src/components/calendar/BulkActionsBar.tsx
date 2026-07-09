@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui';
 import type { AvailabilityStatus } from '@/types';
 import { DAY_LABELS } from '@/lib/constants';
-import type { AvailabilityEntry } from '@/lib/availabilityStatus';
+import type { AvailabilityEntry } from '@/lib/availability';
 import type { OtherGameSessionInfo } from '@/lib/otherGameSessions';
 import { CopyFromGamePanel } from '@/components/games/availability/CopyFromGamePanel';
 
@@ -21,7 +21,7 @@ interface BulkActionsBarProps {
   windowEnd: Date;
   onCopyFromGame?: (
     sourceGameId: string,
-    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+    conflict: import('@/lib/availability').CopyConflict | null,
   ) => Promise<{ copied: number; overridden: number }>;
 }
 

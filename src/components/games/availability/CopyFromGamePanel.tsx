@@ -1,14 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { getDay, isBefore, isAfter, parseISO, startOfDay } from 'date-fns';
+import { parseISO, startOfDay } from 'date-fns';
 import { Button } from '@/components/ui';
-import type { AvailabilityEntry } from '@/lib/availabilityStatus';
+import type { AvailabilityEntry } from '@/lib/availability';
 import type { AvailabilityStatus } from '@/types';
 import {
   filterSessionConflictsForCopy,
   type CopyConflict,
-} from '@/lib/copyAvailability';
+} from '@/lib/availability';
 import type { OtherGameSessionInfo } from '@/lib/otherGameSessions';
 import { CopyConflictModal } from './CopyConflictModal';
 
@@ -87,9 +87,6 @@ export function CopyFromGamePanel({
       destinationExtraPlayDates: extraPlayDates,
       today: startOfDay(new Date()),
       windowEndDate: windowEnd,
-      getDayOfWeek: getDay,
-      isBefore,
-      isAfter,
       parseDate: parseISO,
     });
 

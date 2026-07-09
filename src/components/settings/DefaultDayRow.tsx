@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { WeekdayDefault } from '@/lib/defaultAvailability';
+import type { WeekdayDefault } from '@/lib/availability';
 import { getTimeOptions } from '@/lib/timeOptions';
 import { TEXT_LIMITS } from '@/lib/constants';
 import { StatusSelector, type DefaultStatus } from './StatusSelector';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { AvailabilityEntry } from '@/lib/availabilityStatus';
+import type { AvailabilityEntry } from '@/lib/availability';
 import type { AvailabilityStatus } from '@/types';
 
 interface UseNoteEditorStateArgs {

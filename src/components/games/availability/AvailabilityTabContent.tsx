@@ -38,7 +38,7 @@ export interface AvailabilityTabContentProps {
   otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   onCopyFromGame: (
     sourceGameId: string,
-    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+    conflict: import('@/lib/availability').CopyConflict | null,
   ) => Promise<{ copied: number; overridden: number }>;
   onApplyDefaults?: () => Promise<ApplyDefaultsResult>;
   hasDefaults?: boolean | null;

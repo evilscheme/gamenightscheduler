@@ -2,14 +2,13 @@ import {
   addMonths,
   endOfMonth,
   eachDayOfInterval,
-  getDay,
   format,
-  isAfter,
   isBefore,
   startOfDay,
 } from "date-fns";
-import { getSchedulingWindow } from "./scheduling";
-import type { SchedulingWindowMonths } from "./constants";
+import { getSchedulingWindow } from "../scheduling";
+import { isEligiblePlayDate } from "./eligibleDates";
+import type { SchedulingWindowMonths } from "../constants";
 
 export interface AvailabilityRecord {
   user_id: string;
@@ -51,15 +50,7 @@ export function calculatePlayerCompletionPercentages({
 
   // Get all future play dates within the window
   const playDates = eachDayOfInterval({ start, end })
-    .filter((date) => {
-      const dateStr = format(date, "yyyy-MM-dd");
-      return playDays.includes(getDay(date)) || extraPlayDates.includes(dateStr);
-    })
-    .filter(
-      (date) =>
-        isAfter(date, today) ||
-        format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
-    )
+    .filter((date) => isEligiblePlayDate({ date, playDays, extraPlayDates, today }))
     .map((date) => format(date, "yyyy-MM-dd"));
 
   const totalDates = playDates.length;
@@ -157,14 +148,6 @@ export function getPlayDatesInWindow({
   if (isBefore(end, start)) return [];
 
   return eachDayOfInterval({ start, end })
-    .filter((date) => {
-      const dateStr = format(date, "yyyy-MM-dd");
-      return playDays.includes(getDay(date)) || extraPlayDates.includes(dateStr);
-    })
-    .filter(
-      (date) =>
-        isAfter(date, today) ||
-        format(date, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
-    )
+    .filter((date) => isEligiblePlayDate({ date, playDays, extraPlayDates, today }))
     .map((date) => format(date, "yyyy-MM-dd"));
 }

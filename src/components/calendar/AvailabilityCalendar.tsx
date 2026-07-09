@@ -16,8 +16,8 @@ import { DAY_LABELS } from "@/lib/constants";
 import {
   getNextStatus,
   AvailabilityEntry,
-} from "@/lib/availabilityStatus";
-import { filterDatesForBulkSet } from "@/lib/bulkAvailability";
+  filterDatesForBulkSet,
+} from "@/lib/availability";
 import type { OtherGameSessionInfo } from "@/lib/otherGameSessions";
 import { useNoteEditorState } from "@/hooks/useNoteEditorState";
 import { MonthCalendar } from "./MonthCalendar";
@@ -49,7 +49,7 @@ interface AvailabilityCalendarProps {
   otherGames?: { id: string; name: string }[];
   onCopyFromGame?: (
     sourceGameId: string,
-    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+    conflict: import('@/lib/availability').CopyConflict | null,
   ) => Promise<{ copied: number; overridden: number }>;
   playDateNotes?: Map<string, string>;
   onUpdatePlayDateNote?: (date: string, note: string | null) => void;
@@ -204,7 +204,6 @@ export function AvailabilityCalendar({
       today,
       formatDate: (d) => format(d, "yyyy-MM-dd"),
       getDayOfWeek: getDay,
-      isBefore,
     });
 
     if (dates.length === 0) return;

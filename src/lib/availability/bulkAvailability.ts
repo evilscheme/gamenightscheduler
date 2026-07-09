@@ -1,5 +1,6 @@
-import { AvailabilityEntry } from "@/lib/availabilityStatus";
+import { AvailabilityEntry } from "./availabilityStatus";
 import type { AvailabilityStatus } from "@/types";
+import { isEligiblePlayDate } from "./eligibleDates";
 
 interface FilterDatesParams {
   filter: string; // "remaining" or day number "0"-"6"
@@ -10,7 +11,12 @@ interface FilterDatesParams {
   today: Date;
   formatDate: (date: Date) => string;
   getDayOfWeek: (date: Date) => number;
-  isBefore: (date: Date, dateToCompare: Date) => boolean;
+  /**
+   * @deprecated no longer used — the past/eligibility check now lives in
+   * `eligibleDates.ts`. Kept optional so existing callers/tests can still
+   * pass it.
+   */
+  isBefore?: (date: Date, dateToCompare: Date) => boolean;
 }
 
 /**
@@ -36,31 +42,26 @@ export function filterDatesForBulkSet({
   today,
   formatDate,
   getDayOfWeek,
-  isBefore,
 }: FilterDatesParams): string[] {
   return dates
     .filter((date) => {
-      const dayOfWeek = getDayOfWeek(date);
-      const dateStr = formatDate(date);
-      const isExtraPlayDate = extraPlayDates.includes(dateStr);
-
-      // Must be a play day or extra play date
-      if (!playDays.includes(dayOfWeek) && !isExtraPlayDate) {
-        return false;
-      }
-
-      // Can't set past dates
-      if (isBefore(date, today)) {
-        return false;
-      }
-
       if (filter === "remaining") {
         // Only dates without availability set
-        return !existingAvailability[dateStr];
-      } else {
-        // Specific day of week
-        return dayOfWeek === parseInt(filter, 10);
+        return isEligiblePlayDate({
+          date,
+          playDays,
+          extraPlayDates,
+          today,
+          existingAvailability,
+        });
       }
+
+      // Specific day of week — still must be an eligible (play/extra, not
+      // past) date, but existing availability doesn't disqualify it.
+      if (!isEligiblePlayDate({ date, playDays, extraPlayDates, today })) {
+        return false;
+      }
+      return getDayOfWeek(date) === parseInt(filter, 10);
     })
     .map((date) => formatDate(date));
 }

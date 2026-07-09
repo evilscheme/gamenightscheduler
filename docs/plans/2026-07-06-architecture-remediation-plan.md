@@ -520,7 +520,7 @@ overlaps P6.4 — coordinate, don't duplicate.
 
 ## Phase 7 — `src/lib` reorganization + test hygiene (T8, T9)
 
-### P7.1 `[ ]` `lib/availability/` folder + one shared eligibility predicate
+### P7.1 `[x]` `lib/availability/` folder + one shared eligibility predicate
 - **Files:** move `availability.ts`, `availabilityStatus.ts`, `bulkAvailability.ts`,
   `copyAvailability.ts`, `defaultAvailability.ts` (with their tests) into
   `src/lib/availability/`; new `eligibleDates.ts` inside it.
@@ -619,6 +619,12 @@ Each loop iteration:
   the page title — decide desired behavior before fixing.
 - (from review, deliberately not planned) Server-side prefetch/hydration for the
   `games/[id]` hook waterfall (review T7) — worthwhile but needs a design pass.
+- (from P7.1) `AvailabilityCalendar.handleDayClick` and `MonthCalendar`'s cell
+  loop contain a similar-looking play-day/window guard with a BIDIRECTIONAL
+  window bound (windowStart + windowEnd) that the shared `isEligiblePlayDate`
+  doesn't model (and one is a UI click-guard, not a data filter). Folding them
+  in needs a widened predicate and touches P5.2's pinned cell-state tests —
+  deliberate follow-up, not done in P7.1.
 - (from P6.3) The `available_after < available_until` CHECKs were NOT added:
   neither time editor (NoteEditorPopover via useNoteEditorState, nor
   DefaultDayRow) validates ordering, so users can and do save reversed/equal
@@ -637,6 +643,22 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P7.1: lib/availability/ + shared eligibility predicate — DONE
+- Changed: new `src/lib/availability/` owns the domain (availability,
+  availabilityStatus, bulk/copy/defaultAvailability, new `eligibleDates.ts` +
+  tests + `index.ts` barrel mirroring lib/data's convention). One predicate —
+  `isEligiblePlayDate({date, playDays, extraPlayDates, today, windowEnd?,
+  existingAvailability?})` — now serves all six formerly-duplicated sites.
+  The historical `formatDate`/`getDayOfWeek`/`isBefore` injections proved
+  vestigial (every caller passed date-fns's own functions) and are
+  deprecated-optional for old tests' sake; `parseDate` in copyAvailability is
+  genuinely load-bearing and stays. 10 importer files repointed to the barrel.
+- Verification (independent re-run): the eligibility rule exists in exactly
+  ONE place (grep); lint clean; typecheck clean; 644/644 unit tests (11 new;
+  all pre-existing tests logic-unmodified). `lib/data/availability.ts` (I/O
+  layer) untouched.
+- Notes: none.
 
 ### 2026-07-09 — P6.5: prod migration-strategy design doc — DONE
 - Changed: new `docs/plans/2026-07-09-prod-migration-strategy-design.md` —

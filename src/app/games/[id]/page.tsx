@@ -158,7 +158,7 @@ export default function GameDetailPage() {
 
   const copyFromGame = (
     sourceGameId: string,
-    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+    conflict: import('@/lib/availability').CopyConflict | null,
   ) => copyFromGameRaw(sourceGameId, extraDateStrings, conflict);
 
   const confirmSession = (

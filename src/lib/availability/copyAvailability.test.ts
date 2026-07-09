@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { filterAvailabilityForCopy, filterSessionConflictsForCopy, applyCopyConflicts } from "./copyAvailability";
-import { AvailabilityEntry } from "@/lib/availabilityStatus";
+import { AvailabilityEntry } from "./availabilityStatus";
 
 // Helper functions matching date-fns behavior
 const formatDate = (date: Date) => date.toISOString().split("T")[0];

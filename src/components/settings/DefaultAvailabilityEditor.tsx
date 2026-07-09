@@ -8,7 +8,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui';
 import { DAY_LABELS } from '@/lib/constants';
 import { queryKeys } from '@/lib/queryKeys';
-import type { WeekdayDefault } from '@/lib/defaultAvailability';
+import type { WeekdayDefault } from '@/lib/availability';
 import { fetchUserDefaults, upsertUserDefault, deleteUserDefault } from '@/lib/data';
 import { DefaultDayRow } from './DefaultDayRow';
 

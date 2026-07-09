@@ -1,5 +1,6 @@
-import { AvailabilityEntry } from "@/lib/availabilityStatus";
+import { AvailabilityEntry } from "./availabilityStatus";
 import type { AvailabilityStatus } from "@/types";
+import { isEligiblePlayDate } from "./eligibleDates";
 
 interface FilterAvailabilityForCopyParams {
   sourceAvailability: Record<string, AvailabilityEntry>;
@@ -8,9 +9,16 @@ interface FilterAvailabilityForCopyParams {
   destinationExtraPlayDates: string[];
   today: Date;
   windowEndDate: Date;
-  getDayOfWeek: (date: Date) => number;
-  isBefore: (date: Date, dateToCompare: Date) => boolean;
-  isAfter: (date: Date, dateToCompare: Date) => boolean;
+  /**
+   * @deprecated no longer used — the play-day/not-past/window-end check now
+   * lives in `eligibleDates.ts`. Kept optional so existing callers/tests can
+   * still pass it.
+   */
+  getDayOfWeek?: (date: Date) => number;
+  /** @deprecated see `getDayOfWeek` above. */
+  isBefore?: (date: Date, dateToCompare: Date) => boolean;
+  /** @deprecated see `getDayOfWeek` above. */
+  isAfter?: (date: Date, dateToCompare: Date) => boolean;
   parseDate: (dateStr: string) => Date;
 }
 
@@ -37,30 +45,27 @@ export function filterAvailabilityForCopy({
   destinationExtraPlayDates,
   today,
   windowEndDate,
-  getDayOfWeek,
-  isBefore,
-  isAfter,
   parseDate,
 }: FilterAvailabilityForCopyParams): CopyEntry[] {
   const result: CopyEntry[] = [];
 
   for (const [dateStr, entry] of Object.entries(sourceAvailability)) {
-    // Skip dates already set in destination
-    if (destinationAvailability[dateStr]) continue;
-
     const date = parseDate(dateStr);
 
-    // Skip past dates
-    if (isBefore(date, today)) continue;
-
-    // Skip dates beyond the scheduling window
-    if (isAfter(date, windowEndDate)) continue;
-
-    // Must be a play day or extra play date in the destination
-    const dayOfWeek = getDayOfWeek(date);
-    const isDestPlayDay = destinationPlayDays.includes(dayOfWeek);
-    const isDestExtra = destinationExtraPlayDates.includes(dateStr);
-    if (!isDestPlayDay && !isDestExtra) continue;
+    // Blank in destination, a destination play-day/extra-date, not past,
+    // and within the destination scheduling window.
+    if (
+      !isEligiblePlayDate({
+        date,
+        playDays: destinationPlayDays,
+        extraPlayDates: destinationExtraPlayDates,
+        today,
+        windowEnd: windowEndDate,
+        existingAvailability: destinationAvailability,
+      })
+    ) {
+      continue;
+    }
 
     result.push({ date: dateStr, entry });
   }
@@ -84,9 +89,16 @@ interface FilterSessionConflictsParams {
   destinationExtraPlayDates: string[];
   today: Date;
   windowEndDate: Date;
-  getDayOfWeek: (date: Date) => number;
-  isBefore: (date: Date, dateToCompare: Date) => boolean;
-  isAfter: (date: Date, dateToCompare: Date) => boolean;
+  /**
+   * @deprecated no longer used — the play-day/not-past/window-end check now
+   * lives in `eligibleDates.ts`. Kept optional so existing callers/tests can
+   * still pass it.
+   */
+  getDayOfWeek?: (date: Date) => number;
+  /** @deprecated see `getDayOfWeek` above. */
+  isBefore?: (date: Date, dateToCompare: Date) => boolean;
+  /** @deprecated see `getDayOfWeek` above. */
+  isAfter?: (date: Date, dateToCompare: Date) => boolean;
   parseDate: (dateStr: string) => Date;
 }
 
@@ -105,9 +117,6 @@ export function filterSessionConflictsForCopy({
   destinationExtraPlayDates,
   today,
   windowEndDate,
-  getDayOfWeek,
-  isBefore,
-  isAfter,
   parseDate,
 }: FilterSessionConflictsParams): string[] {
   const result: string[] = [];
@@ -117,16 +126,19 @@ export function filterSessionConflictsForCopy({
     if (seen.has(dateStr)) continue;
     seen.add(dateStr);
 
-    if (destinationAvailability[dateStr]) continue; // never overwrite
-
     const date = parseDate(dateStr);
-    if (isBefore(date, today)) continue;
-    if (isAfter(date, windowEndDate)) continue;
-
-    const dayOfWeek = getDayOfWeek(date);
-    const isPlayDay = destinationPlayDays.includes(dayOfWeek);
-    const isExtra = destinationExtraPlayDates.includes(dateStr);
-    if (!isPlayDay && !isExtra) continue;
+    if (
+      !isEligiblePlayDate({
+        date,
+        playDays: destinationPlayDays,
+        extraPlayDates: destinationExtraPlayDates,
+        today,
+        windowEnd: windowEndDate,
+        existingAvailability: destinationAvailability,
+      })
+    ) {
+      continue;
+    }
 
     result.push(dateStr);
   }

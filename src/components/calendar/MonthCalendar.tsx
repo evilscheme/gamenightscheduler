@@ -12,7 +12,7 @@ import {
 } from 'date-fns';
 import { CalendarDays, Clock, FileText, MessageSquare, Pencil, Plus, X } from 'lucide-react';
 import type { GameSession } from '@/types';
-import { AvailabilityEntry } from '@/lib/availabilityStatus';
+import { AvailabilityEntry } from '@/lib/availability';
 import { formatTimeShort } from '@/lib/formatting';
 import { calendarCellState } from '@/lib/calendarCellState';
 import {

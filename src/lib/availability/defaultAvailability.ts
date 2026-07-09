@@ -1,5 +1,6 @@
 import type { AvailabilityStatus } from "@/types";
-import type { AvailabilityEntry } from "@/lib/availabilityStatus";
+import type { AvailabilityEntry } from "./availabilityStatus";
+import { isEligiblePlayDate } from "./eligibleDates";
 
 /** A user's standing default for one weekday. Mirrors a per-date entry minus the date. */
 export interface WeekdayDefault {
@@ -29,7 +30,12 @@ interface ComputeDefaultEntriesParams {
   today: Date;
   formatDate: (date: Date) => string;
   getDayOfWeek: (date: Date) => number;
-  isBefore: (date: Date, dateToCompare: Date) => boolean;
+  /**
+   * @deprecated no longer used — the past/eligibility check now lives in
+   * `eligibleDates.ts`. Kept optional so existing callers/tests can still
+   * pass it.
+   */
+  isBefore?: (date: Date, dateToCompare: Date) => boolean;
 }
 
 /**
@@ -46,26 +52,23 @@ export function computeDefaultEntries({
   today,
   formatDate,
   getDayOfWeek,
-  isBefore,
 }: ComputeDefaultEntriesParams): DefaultEntryToWrite[] {
   const entries: DefaultEntryToWrite[] = [];
 
   for (const date of dates) {
-    const dayOfWeek = getDayOfWeek(date);
-    const dateStr = formatDate(date);
+    // Must be play-day-or-extra, not past, and blank in the destination
+    // (non-destructive: leave already-set dates alone).
+    if (!isEligiblePlayDate({ date, playDays, extraPlayDates, today, existingAvailability })) {
+      continue;
+    }
 
-    // Must be a play day or an extra play date.
-    if (!playDays.includes(dayOfWeek) && !extraPlayDates.includes(dateStr)) continue;
-    // Skip past dates; today is eligible.
-    if (isBefore(date, today)) continue;
-    // Non-destructive: leave already-set dates alone.
-    if (existingAvailability[dateStr]) continue;
     // The weekday must have a configured default.
+    const dayOfWeek = getDayOfWeek(date);
     const def = defaults[dayOfWeek];
     if (!def) continue;
 
     entries.push({
-      date: dateStr,
+      date: formatDate(date),
       status: def.status,
       comment: def.comment,
       available_after: def.available_after,

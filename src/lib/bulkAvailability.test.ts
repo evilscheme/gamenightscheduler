@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterDatesForBulkSet } from "./bulkAvailability";
+import { filterDatesForBulkSet, buildBulkUpsertEntries } from "./bulkAvailability";
 import { AvailabilityEntry } from "@/lib/availabilityStatus";
 
 // Helper functions matching date-fns behavior
@@ -251,5 +251,73 @@ describe("filterDatesForBulkSet", () => {
     });
 
     expect(result).toEqual(["2025-01-18", "2025-01-25"]);
+  });
+});
+
+describe("buildBulkUpsertEntries", () => {
+  it("sets the given status on every date", () => {
+    const dates = ["2025-01-17", "2025-01-18", "2025-01-24"];
+
+    const result = buildBulkUpsertEntries(dates, "available", {});
+
+    expect(result.every((r) => r.entry.status === "available")).toBe(true);
+  });
+
+  it("preserves existing comment/available_after/available_until for dates present in existingAvailability", () => {
+    const dates = ["2025-01-17"];
+    const existingAvailability: Record<string, AvailabilityEntry> = {
+      "2025-01-17": {
+        status: "unavailable",
+        comment: "Depends on work",
+        available_after: "18:00:00",
+        available_until: "23:00:00",
+      },
+    };
+
+    const result = buildBulkUpsertEntries(dates, "maybe", existingAvailability);
+
+    expect(result).toEqual([
+      {
+        date: "2025-01-17",
+        entry: {
+          status: "maybe",
+          comment: "Depends on work",
+          available_after: "18:00:00",
+          available_until: "23:00:00",
+        },
+      },
+    ]);
+  });
+
+  it("nulls comment/available_after/available_until for dates without an entry", () => {
+    const dates = ["2025-01-20"];
+
+    const result = buildBulkUpsertEntries(dates, "unavailable", {});
+
+    expect(result).toEqual([
+      {
+        date: "2025-01-20",
+        entry: {
+          status: "unavailable",
+          comment: null,
+          available_after: null,
+          available_until: null,
+        },
+      },
+    ]);
+  });
+
+  it("returns entries in input date order", () => {
+    const dates = ["2025-01-24", "2025-01-17", "2025-01-20"];
+
+    const result = buildBulkUpsertEntries(dates, "available", {});
+
+    expect(result.map((r) => r.date)).toEqual(["2025-01-24", "2025-01-17", "2025-01-20"]);
+  });
+
+  it("returns an empty array for empty input", () => {
+    const result = buildBulkUpsertEntries([], "available", {});
+
+    expect(result).toEqual([]);
   });
 });

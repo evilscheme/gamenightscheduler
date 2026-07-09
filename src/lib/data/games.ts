@@ -12,8 +12,20 @@ export async function fetchGameWithGM(supabase: SupabaseClient, gameId: string) 
 export async function fetchUserGmGames(supabase: SupabaseClient, userId: string) {
   return supabase
     .from('games')
-    .select('*, gm:users!games_gm_id_fkey(*)')
+    .select('*, gm:users!games_gm_id_fkey(*), game_memberships(count)')
     .eq('gm_id', userId);
+}
+
+/**
+ * Fetch a set of games (with GM profile and embedded membership count) by id.
+ * Used for the dashboard's "member" games — the ones the user belongs to but
+ * doesn't GM — resolved from the id list returned by fetchUserMemberships.
+ */
+export async function fetchGamesWithGMByIds(supabase: SupabaseClient, gameIds: string[]) {
+  return supabase
+    .from('games')
+    .select('*, gm:users!games_gm_id_fkey(*), game_memberships(count)')
+    .in('id', gameIds);
 }
 
 export async function fetchUserGameCount(supabase: SupabaseClient, userId: string) {

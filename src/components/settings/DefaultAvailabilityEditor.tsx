@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui';
 import { DAY_LABELS } from '@/lib/constants';
+import { queryKeys } from '@/lib/queryKeys';
 import type { WeekdayDefault } from '@/lib/defaultAvailability';
 import { fetchUserDefaults, upsertUserDefault, deleteUserDefault } from '@/lib/data';
 import { DefaultDayRow } from './DefaultDayRow';
@@ -29,38 +31,44 @@ function sameDefault(a: WeekdayDefault | undefined, b: WeekdayDefault | undefine
 
 export function DefaultAvailabilityEditor() {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const { weekStartDay, use24h } = useUserPreferences();
   const [defaults, setDefaults] = useState<DefaultsMap>({});
   const [saved, setSaved] = useState<DefaultsMap>({});
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
   const userId = profile?.id;
 
+  // Read through the shared userDefaults cache (same key the game pages use)
+  // so navigating settings <-> game doesn't fetch the same rows twice.
+  const defaultsQuery = useQuery({
+    queryKey: queryKeys.userDefaults(userId ?? ''),
+    enabled: !!userId,
+    queryFn: async () => (await fetchUserDefaults(supabase, userId!)).data ?? [],
+  });
+  const loading = defaultsQuery.isPending;
+
+  // Hydrate the editable local state ONCE from the first resolved data.
+  // Background refetches (window refocus etc.) update the cache for other
+  // consumers but must not clobber unsaved edits here.
+  const hydratedRef = useRef(false);
   useEffect(() => {
-    if (!userId) return;
-    let cancelled = false;
-    (async () => {
-      const { data } = await fetchUserDefaults(supabase, userId);
-      if (cancelled) return;
-      const map: DefaultsMap = {};
-      data?.forEach((d) => {
-        map[d.day_of_week] = {
-          status: d.status,
-          comment: d.comment,
-          available_after: d.available_after,
-          available_until: d.available_until,
-        };
-      });
-      setDefaults(map);
-      setSaved(map);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
+    if (hydratedRef.current || !defaultsQuery.data) return;
+    hydratedRef.current = true;
+    const map: DefaultsMap = {};
+    defaultsQuery.data.forEach((d) => {
+      map[d.day_of_week] = {
+        status: d.status,
+        comment: d.comment,
+        available_after: d.available_after,
+        available_until: d.available_until,
+      };
+    });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration of editable state from the first fetch
+    setDefaults(map);
+    setSaved(map);
+  }, [defaultsQuery.data]);
 
   // Edits only update local state; changes are persisted on Save.
   const handleChange = (dayOfWeek: number, next: WeekdayDefault | undefined) => {
@@ -98,6 +106,11 @@ export function DefaultAvailabilityEditor() {
     } else {
       setSaved(defaults);
       setMessage('Default availability saved!');
+    }
+    // Game pages cache the defaults (for the "Apply defaults" button); refresh
+    // even on partial failure since some rows may have been written.
+    if (userId) {
+      queryClient.invalidateQueries({ queryKey: queryKeys.userDefaults(userId) });
     }
     setSaving(false);
   };

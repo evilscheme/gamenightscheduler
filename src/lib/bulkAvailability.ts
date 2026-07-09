@@ -1,4 +1,5 @@
 import { AvailabilityEntry } from "@/lib/availabilityStatus";
+import type { AvailabilityStatus } from "@/types";
 
 interface FilterDatesParams {
   filter: string; // "remaining" or day number "0"-"6"
@@ -62,4 +63,28 @@ export function filterDatesForBulkSet({
       }
     })
     .map((date) => formatDate(date));
+}
+
+/**
+ * Build the full availability entries for a bulk status change, preserving any
+ * existing comment and time constraints on dates that already have an entry
+ * (matches the single-date toggle behavior, where only the status cycles).
+ */
+export function buildBulkUpsertEntries(
+  dates: string[],
+  status: AvailabilityStatus,
+  existingAvailability: Record<string, AvailabilityEntry>
+): { date: string; entry: AvailabilityEntry }[] {
+  return dates.map((date) => {
+    const existing = existingAvailability[date];
+    return {
+      date,
+      entry: {
+        status,
+        comment: existing?.comment ?? null,
+        available_after: existing?.available_after ?? null,
+        available_until: existing?.available_until ?? null,
+      },
+    };
+  });
 }

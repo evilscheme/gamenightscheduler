@@ -132,11 +132,25 @@ RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_part
 - Availability has three states: available, unavailable, maybe (with optional comment and optional time-of-day constraints on available/maybe)
 - GMs/co-GMs can add special play dates for one-off sessions outside regular play days
 
+### Data Fetching & Caching
+
+Client-side reads go through TanStack Query (React Query v5); the `QueryClientProvider` lives in `src/components/layout/Providers.tsx` with a default `staleTime` of `QUERY_STALE_TIME` (45s), so navigating between pages within that window reuses the cache instead of refetching.
+
+- **Every cache key is built via `src/lib/queryKeys.ts`** — never write inline key arrays. Prefix invalidation is used deliberately (e.g. `['dashboard']` invalidates all users' dashboard entries).
+- **Mutations write to the cache** (`queryClient.setQueryData`) with optimistic updates and surgical rollback, then invalidate any *other* keys whose data changed (e.g. confirming a session invalidates `['dashboard']` so the upcoming-sessions panel refreshes). When adding a mutation, ask which cached views its data appears in and invalidate those keys.
+- The dashboard loads via `fetchDashboardData` (`src/lib/dashboardData.ts`): two parallel stages with membership counts embedded in the games queries (`game_memberships(count)`) — do not reintroduce per-game count queries.
+- Game-page hooks (`useGameMeta`, `useAvailability`, `useSessions`, `usePlayDates`, `useOtherGameSessions`) each own one query key and fire in parallel as soon as `gameId`/`userId` are known — don't gate one hook's fetch on another's result; RLS already returns nothing for non-participants.
+- The current user's availability map is **derived** from the all-players availability cache (one query), not fetched separately.
+- Key data fetches off `session.user.id` (available immediately) rather than `profile.id` (needs a round trip); the two are the same value.
+- Bulk availability changes go through `batchUpsertAvailability` / `useAvailability().bulkSetStatus` — one round trip for N dates. Never loop single-row upserts.
+
 ### Shared Utilities
 
 - `src/hooks/useAuthRedirect.ts` - Hook for protected pages (redirects to login, optionally requires GM)
 - `src/hooks/useUserPreferences.ts` - Single source of truth for user i18n preferences (time format, week start)
-- `src/lib/constants.ts` - Shared constants (day labels, timeouts, session defaults, usage limits, text limits)
+- `src/lib/constants.ts` - Shared constants (day labels, timeouts, session defaults, usage limits, text limits, query stale time)
+- `src/lib/queryKeys.ts` - Central registry of React Query cache keys (all queries/invalidations build keys here)
+- `src/lib/dashboardData.ts` - Dashboard fetch (2-stage parallel, embedded member counts) + pure merge helper
 - `src/lib/availability.ts` - Player completion percentage calculations
 - `src/lib/scheduling.ts` - Scheduling window calculation (`getSchedulingWindow()`) for campaign date bounds
 - `src/lib/availabilityStatus.ts` - Availability state cycling (available → unavailable → maybe)

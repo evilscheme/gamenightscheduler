@@ -3,11 +3,13 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dice6, Frown } from 'lucide-react';
 import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { DAY_LABELS, USAGE_LIMITS } from '@/lib/constants';
 import { joinGame } from '@/lib/data';
+import { invalidateGamesLists } from '@/lib/queryKeys';
 
 interface GamePreview {
   id: string;
@@ -27,6 +29,7 @@ export default function JoinGamePage() {
   const params = useParams();
   const code = params.code as string;
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const [game, setGame] = useState<GamePreview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,6 +98,9 @@ export default function JoinGamePage() {
       setJoining(false);
       return;
     }
+
+    // The cached games lists don't include the just-joined game yet.
+    invalidateGamesLists(queryClient);
 
     router.push(`/games/${game.id}`);
   };

@@ -3,11 +3,13 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { LoadingSpinner } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
 import { fetchUserGameCount, createGame } from '@/lib/data';
+import { invalidateGamesLists } from '@/lib/queryKeys';
 import {
   SESSION_DEFAULTS,
   USAGE_LIMITS,
@@ -30,6 +32,7 @@ export default function NewGamePage() {
   const { timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -120,6 +123,9 @@ export default function NewGamePage() {
       setCreating(false);
       return;
     }
+
+    // The cached games lists don't include the new game yet.
+    invalidateGamesLists(queryClient);
 
     router.push(`/games/${createdGame?.id || '/dashboard'}`);
   };

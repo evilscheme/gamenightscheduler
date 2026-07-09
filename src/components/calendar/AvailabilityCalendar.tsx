@@ -22,6 +22,7 @@ import {
   getNextStatus,
   AvailabilityEntry,
 } from "@/lib/availabilityStatus";
+import { filterDatesForBulkSet } from "@/lib/bulkAvailability";
 import { formatTimeShort } from "@/lib/formatting";
 import { getTimeOptions } from "@/lib/timeOptions";
 import {
@@ -64,6 +65,12 @@ interface AvailabilityCalendarProps {
   bulkActionsLead?: ReactNode;
   /** Disables all interaction (day clicks, long-press editing, bulk actions). Used by the admin peek view. */
   readOnly?: boolean;
+  /**
+   * Applies a bulk status change in one batched call. Required so a caller
+   * can't silently regress to one write per date; read-only callers pass a
+   * no-op (their bulk-actions bar never renders).
+   */
+  onBulkSet: (dates: string[], status: AvailabilityStatus) => void;
 }
 
 export function AvailabilityCalendar({
@@ -86,6 +93,7 @@ export function AvailabilityCalendar({
   hasCampaignDates = false,
   bulkActionsLead,
   readOnly = false,
+  onBulkSet,
 }: AvailabilityCalendarProps) {
   const today = startOfDay(new Date());
   const maxDate = windowEnd;
@@ -232,37 +240,21 @@ export function AvailabilityCalendar({
   };
 
   const bulkSetDays = (filter: string, status: AvailabilityStatus) => {
-    const datesInWindow = eachDayOfInterval({
-      start: windowStart,
-      end: maxDate,
-    }).filter((date) => {
-      const dayOfWeek = getDay(date);
-      const dateStr = format(date, "yyyy-MM-dd");
-      const isExtraPlayDate = extraPlayDates.includes(dateStr);
-      if (!playDays.includes(dayOfWeek) && !isExtraPlayDate) return false;
-      if (isBefore(date, today)) return false;
-
-      if (filter === "remaining") {
-        // Only dates without availability set
-        return !availability[dateStr];
-      } else {
-        // Specific day of week
-        return dayOfWeek === parseInt(filter, 10);
-      }
+    const dates = filterDatesForBulkSet({
+      filter,
+      dates: eachDayOfInterval({ start: windowStart, end: maxDate }),
+      playDays,
+      extraPlayDates,
+      existingAvailability: availability,
+      today,
+      formatDate: (d) => format(d, "yyyy-MM-dd"),
+      getDayOfWeek: getDay,
+      isBefore,
     });
 
-    datesInWindow.forEach((date) => {
-      const dateStr = format(date, "yyyy-MM-dd");
-      // Preserve existing comments and time constraints when bulk setting
-      const existing = availability[dateStr];
-      onToggle(
-        dateStr,
-        status,
-        existing?.comment || null,
-        existing?.available_after || null,
-        existing?.available_until || null
-      );
-    });
+    if (dates.length === 0) return;
+
+    onBulkSet(dates, status);
   };
 
   const handleBulkSubmit = () => {

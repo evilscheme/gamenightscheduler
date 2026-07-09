@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 import { createClient, onSupabaseStatus } from '@/lib/supabase/client';
 import { User } from '@/types';
 import { TIMEOUTS } from '@/lib/constants';
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [backendError, setBackendError] = useState(false);
   const supabase = getSupabaseClient();
+  const queryClient = useQueryClient();
 
   const authStatus = useMemo(
     () => deriveAuthStatus(isLoading, session, profile, backendError),
@@ -181,6 +183,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const newUserId = session?.user?.id ?? null;
       const userChanged = newUserId !== currentUserId;
+      // Game/availability/session caches are keyed by gameId, not userId, so a
+      // sign-out or account switch (which Supabase syncs across tabs without a
+      // reload) must drop the previous identity's cached data entirely.
+      if (userChanged && currentUserId !== null) {
+        queryClient.clear();
+      }
       currentUserId = newUserId;
 
       setSession(session);
@@ -230,7 +238,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(sessionGraceRef.current);
       }
     };
-  }, [supabase, fetchProfile]);
+  }, [supabase, fetchProfile, queryClient]);
 
   async function signInWithGoogle(redirectTo?: string) {
     const redirectUrl = `${window.location.origin}/auth/callback${

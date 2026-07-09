@@ -140,7 +140,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
           <LoadingSpinner size="lg" />
         </div>
       ) : error ? (
-        <div className="text-destructive text-center py-12">{error}</div>
+        <div className="text-danger text-center py-12">{error}</div>
       ) : (
         <>
           {/* Hero: Platform Growth line chart */}

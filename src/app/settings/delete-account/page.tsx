@@ -155,7 +155,7 @@ export default function DeleteAccountPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardContent className="py-8 text-center space-y-4">
-            <p className="text-destructive font-medium">{errorMessage}</p>
+            <p className="text-danger font-medium">{errorMessage}</p>
             <div className="flex justify-center gap-4">
               <Button variant="secondary" onClick={() => { setStep('loading'); setErrorMessage(''); }}>
                 Try again
@@ -326,7 +326,7 @@ export default function DeleteAccountPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-destructive/40">
+          <Card className="border-danger/40">
             <CardContent className="pt-6 space-y-4">
               <p className="text-sm font-medium text-foreground">
                 Type <span className="font-mono font-bold">{CONFIRM_WORD}</span> to confirm
@@ -336,7 +336,7 @@ export default function DeleteAccountPage() {
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 placeholder={CONFIRM_WORD}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-destructive focus:border-destructive"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-danger focus:border-danger"
                 autoComplete="off"
                 aria-label="Type DELETE to confirm"
               />

@@ -59,7 +59,7 @@ You (Fable) are the orchestrator. Plan, decompose, synthesize.
 - **Never use hardcoded color classes** (e.g., `bg-blue-500`, `text-blue-700`, `dark:text-blue-300`). The app supports multiple color themes, so always use semantic theme classes instead.
 - For info callouts/highlights: `bg-primary/10 border border-primary/30 rounded-lg` with `text-primary`
 - For badges: `bg-primary/10 text-primary`
-- Available semantic color classes: `primary`, `secondary`, `muted`, `accent`, `card`, `destructive`, `foreground`, `border`, `ring` (each with `-foreground` variant where applicable)
+- Available semantic color classes: `primary`, `secondary`, `muted`, `accent`, `card`, `danger` (plus `danger-muted`), `foreground`, `border`, `ring` (each with `-foreground` variant where applicable). There is no `destructive` token — use `danger`.
 
 ## Testing Requirements
 

@@ -582,12 +582,12 @@ function ActivityTab({ stats }: { stats: AdminStats }) {
                     <p className="font-medium text-foreground">
                       {user.name}
                       {user.is_admin && (
-                        <span className="ml-2 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-1.5 py-0.5 rounded-sm">
+                        <span className="ml-2 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-sm">
                           Admin
                         </span>
                       )}
                       {user.is_gm && (
-                        <span className="ml-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-1.5 py-0.5 rounded-sm">
+                        <span className="ml-1 text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-sm">
                           GM
                         </span>
                       )}
@@ -691,7 +691,7 @@ function UpcomingGamesTab() {
   }
 
   if (error) {
-    return <div className="text-destructive text-center py-12">{error}</div>;
+    return <div className="text-danger text-center py-12">{error}</div>;
   }
 
   if (!data || data.total === 0) {

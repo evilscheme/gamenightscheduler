@@ -255,7 +255,7 @@ export default function SettingsPage() {
         </Panel>
 
         {/* ── Danger Zone ──────────────────────────────────────────────── */}
-        <section className="mt-2 rounded-xl border border-destructive/40 bg-card p-4 sm:p-6">
+        <section className="mt-2 rounded-xl border border-danger/40 bg-card p-4 sm:p-6">
           <EyebrowLabel variant="danger" className="mb-4 block">Danger Zone</EyebrowLabel>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="sm:max-w-md">

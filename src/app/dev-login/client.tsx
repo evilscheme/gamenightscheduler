@@ -62,7 +62,7 @@ export function DevLoginClient() {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
+            <div className="mb-4 p-3 bg-danger/10 border border-danger/30 rounded-lg text-danger text-sm">
               {error}
             </div>
           )}

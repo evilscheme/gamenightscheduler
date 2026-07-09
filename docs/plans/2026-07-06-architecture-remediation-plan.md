@@ -131,7 +131,7 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
 
 ## Phase 1 — Confirmed bug fixes (independent; small)
 
-### P1.1 `[ ]` Fix the nonexistent `destructive` token + hardcoded colors (T6)
+### P1.1 `[x]` Fix the nonexistent `destructive` token + hardcoded colors (T6)
 - **Files:** all 7 files matching `grep -rln "destructive" src --include="*.tsx"`
   (currently: `components/admin/EngagementCharts.tsx`,
   `components/games/schedule/SessionDetailsModal.tsx`, `app/admin/page.tsx`,
@@ -625,6 +625,22 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P1.1: destructive→danger token fix + hardcoded colors — DONE
+- Changed: 15 `*-destructive` class usages replaced with `danger` equivalents across
+  7 files (EngagementCharts, SessionDetailsModal, admin/page, settings/page,
+  settings/delete-account/page, dev-login/client, games/[id]/edit/page); admin
+  Admin/GM badges now `bg-primary/10 text-primary` / `bg-muted text-muted-foreground`;
+  help-page availability legend now uses the calendar's own `cal-available-bg`/
+  `cal-unavailable-bg`/`cal-maybe-bg` tokens; CLAUDE.md semantic-class list corrected
+  (`danger` + `danger-muted`, explicit note that `destructive` does not exist).
+- Verification: `grep -rn destructive src --include="*.tsx"` → 0 matches;
+  `grep -rnE "bg-(purple|blue|green|red|yellow)-[0-9]"` on admin/help pages → 0
+  matches; lint clean; typecheck clean; 584/584 unit tests pass. Styling-only change
+  (tests exempt per Ground Rule 4); visual check via dev-login deferred — this
+  environment has no local Supabase.
+- Notes: error text and danger-zone borders in those 7 files were previously
+  rendering unstyled (undefined utility) — they now actually show danger coloring.
 
 ### 2026-07-09 — P0.1: typecheck script + CI step — DONE
 - Changed: `package.json` (added `"typecheck": "tsc --noEmit"`),

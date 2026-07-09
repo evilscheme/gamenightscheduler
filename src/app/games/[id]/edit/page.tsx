@@ -222,7 +222,7 @@ export default function EditGamePage() {
         onCancel={() => router.push(`/games/${gameId}`)}
       />
 
-      <section className="mt-6 rounded-xl border border-destructive/40 bg-card p-4 sm:p-6">
+      <section className="mt-6 rounded-xl border border-danger/40 bg-card p-4 sm:p-6">
         <EyebrowLabel variant="danger" className="mb-4 block">Danger Zone</EyebrowLabel>
         <div className="space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -247,7 +247,7 @@ export default function EditGamePage() {
 
           {isOwner && (
             <>
-              <div className="border-t border-destructive/20" />
+              <div className="border-t border-danger/20" />
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="sm:max-w-md">
                   <p className="text-sm font-medium text-foreground">Delete game</p>

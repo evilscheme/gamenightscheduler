@@ -480,7 +480,7 @@ overlaps P6.4 — coordinate, don't duplicate.
 - **Done when:** schema.sql updated; local reset + `e2e/tests/scheduling` pass if
   runnable; prod SQL in Work Log.
 
-### P6.3 `[ ]` Add missing CHECK constraints
+### P6.3 `[x]` Add missing CHECK constraints (play_days only — see notes)
 - **Where:** `availability` (~:75-76), `user_availability_defaults` (~:90-91),
   `games.play_days` (~:37).
 - **Do:** Add `CHECK (available_after IS NULL OR available_until IS NULL OR
@@ -619,6 +619,12 @@ Each loop iteration:
   the page title — decide desired behavior before fixing.
 - (from review, deliberately not planned) Server-side prefetch/hydration for the
   `games/[id]` hook waterfall (review T7) — worthwhile but needs a design pass.
+- (from P6.3) The `available_after < available_until` CHECKs were NOT added:
+  neither time editor (NoteEditorPopover via useNoteEditorState, nor
+  DefaultDayRow) validates ordering, so users can and do save reversed/equal
+  windows today — the CHECK would turn those saves into raw constraint errors.
+  Add client-side validation (with UX for the reject case) to both editors
+  first, plus a prod pre-flight for existing violating rows, THEN the CHECKs.
 - (from P4.1) Schema hardening: `users.is_gm/is_admin/time_format/week_start_day`
   and every table's `created_at`/`updated_at` (and `sessions.status`) have
   DEFAULTs but no NOT NULL, so generated types are `| null` and one cast in
@@ -631,6 +637,34 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P6.3: play_days CHECK added; time-window CHECKs deliberately deferred — DONE
+- Changed (schema.sql): `games.play_days` gains
+  `CHECK (play_days <@ ARRAY[0,1,2,3,4,5,6])`. Functionally verified on
+  throwaway Postgres: `{0,5,6}` accepted, `{9}` rejected
+  (`games_play_days_check`).
+- Write-path scan (per the item's instruction): the play-days UI only offers
+  0-6 checkboxes and gameValidation requires non-empty → CHECK is a pure
+  backstop. But NEITHER time editor validates `available_after <
+  available_until` — users can legitimately save reversed/equal windows today,
+  so those CHECKs would convert saves into raw constraint errors. Deferred to
+  Discovered Work: add client-side ordering validation to both editors first,
+  then the CHECKs (with a prod pre-flight for existing violating rows).
+- Verification: schema applies cleanly; lint/typecheck/unit unaffected
+  (633/633).
+- **HUMAN ACTION REQUIRED** — apply to prod as
+  `docs/migrations/2026-07-09-p6-3-play-days-check-prod.sql`. Pre-flight first
+  (must return 0 rows):
+
+```sql
+-- Pre-flight: any games with out-of-range play_days?
+SELECT id, name, play_days FROM public.games
+WHERE NOT (play_days <@ ARRAY[0, 1, 2, 3, 4, 5, 6]);
+
+-- Then:
+ALTER TABLE public.games ADD CONSTRAINT games_play_days_check
+  CHECK (play_days <@ ARRAY[0, 1, 2, 3, 4, 5, 6]);
+```
 
 ### 2026-07-09 — P6.2: timezone-correct session cutoffs — DONE
 - Changed (schema.sql + one e2e spec row): new `public.game_today(game_id)`

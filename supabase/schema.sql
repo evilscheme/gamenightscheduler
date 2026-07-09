@@ -34,7 +34,7 @@ CREATE TABLE games (
   name TEXT NOT NULL CHECK (char_length(name) <= 100),
   description TEXT CHECK (description IS NULL OR char_length(description) <= 1000),
   gm_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  play_days INTEGER[] NOT NULL DEFAULT '{}',
+  play_days INTEGER[] NOT NULL DEFAULT '{}' CHECK (play_days <@ ARRAY[0, 1, 2, 3, 4, 5, 6]),
   invite_code TEXT UNIQUE NOT NULL,
   scheduling_window_months INTEGER DEFAULT 2 CHECK (scheduling_window_months IN (1, 2, 3, 6, 12)),
   default_start_time TIME DEFAULT '18:00',

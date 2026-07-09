@@ -306,7 +306,7 @@ Order matters: characterization tests land BEFORE any refactor they protect.
 - **Done when:** the new tests pass and meaningfully assert rollback-on-error for all
   mutation paths; existing suite unaffected.
 
-### P3.2 `[ ]` **[G1]** Retire `withOptimistic`: migrate `useGameMeta`'s last use to the React Query pattern
+### P3.2 `[x]` **[G1]** Retire `withOptimistic`: migrate `useGameMeta`'s last use to the React Query pattern
 - **Files:** `src/hooks/useGameMeta.ts` (withOptimistic call at ~:90),
   `src/hooks/withOptimistic.ts` + `withOptimistic.test.ts` (delete at the end).
 - **Do:** `useGameMeta` is now a hybrid: React Query for reads, but one mutation
@@ -625,6 +625,20 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P3.2: withOptimistic retired — DONE
+- Changed: `useGameMeta.regenerateInvite` migrated to the inline standard
+  (optimistic `setGame` cache write → revert + `invalidateQueries(game)` on
+  error — the reconcile step upgrades it to CLAUDE.md's revert-and-refetch
+  contract). `src/hooks/withOptimistic.ts` + its test DELETED; zero importers
+  remain. New `useGameMeta.test.tsx` (2 tests: optimistic apply + retention,
+  revert + reconcile refetch) using the P3.1 harness.
+- Verification: lint clean; typecheck clean; 596/596 unit tests pass (6
+  withOptimistic tests left with the deleted module, 2 hook tests added at the
+  right altitude); `grep -rn withOptimistic src` → 0 hits.
+- Notes: the old helper also reverted on thrown exceptions; supabase-js
+  mutations resolve `{ error }` rather than throwing, and no other hook guards
+  throws either — parity with the app standard, not a regression.
 
 ### 2026-07-09 — P3.1: renderHook tests for useAvailability — DONE
 - Changed: new `src/hooks/useAvailability.test.tsx` (4 tests): optimistic cache

@@ -39,6 +39,35 @@ const eslintConfig = defineConfig([
       "better-tailwindcss/no-unnecessary-whitespace": "warn",
     },
   },
+  // Data-layer boundary: UI code must query Supabase through src/lib/data
+  // functions, never inline .from() calls (remediation plan P2.3). Server
+  // routes (src/app/api), the OAuth callback, and the dev-only login action
+  // own their queries; lib/data and lib/api are the layer itself.
+  {
+    files: [
+      "src/app/**/*.{ts,tsx}",
+      "src/components/**/*.{ts,tsx}",
+      "src/contexts/**/*.{ts,tsx}",
+      "src/hooks/**/*.{ts,tsx}",
+    ],
+    ignores: [
+      "src/app/api/**",
+      "src/app/auth/**",
+      "src/app/dev-login/**",
+      "**/*.test.*",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "CallExpression[callee.property.name='from'][callee.object.name=/^(supabase|admin|client)$/]",
+          message:
+            "Query Supabase through src/lib/data functions instead of inline .from() calls (see docs/plans/2026-07-06-architecture-remediation-plan.md, P2.3).",
+        },
+      ],
+    },
+  },
   // Disable React hooks rules in e2e tests (Playwright's `use` is not a React hook)
   {
     files: ["e2e/**/*.ts"],

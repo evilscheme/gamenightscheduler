@@ -253,7 +253,7 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
 - **Done when:** the sweep grep returns nothing outside `src/app/api`;
   lint/typecheck/unit pass.
 
-### P2.3 `[ ]` ESLint rule: no raw Supabase queries outside the data layer
+### P2.3 `[x]` ESLint rule: no raw Supabase queries outside the data layer
 - **Files:** `eslint.config.mjs`.
 - **Do:** Add a `no-restricted-syntax` rule (or `no-restricted-imports` for
   `@/lib/supabase/admin`) that flags `supabase.from(...)`-style member calls in
@@ -625,6 +625,20 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P2.3: ESLint data-layer boundary rule — DONE
+- Changed: `eslint.config.mjs` gains a `no-restricted-syntax` rule (selector
+  `CallExpression[callee.property.name='from'][callee.object.name=/^(supabase|admin|client)$/]`,
+  severity error) over `src/app|components|contexts|hooks`, ignoring
+  `src/app/api`, `src/app/auth`, `src/app/dev-login`, and tests. Pre-req cleanup
+  the rule surfaced: `AuthContext.tsx`'s inline profile query extracted to
+  `fetchUserProfile` in `lib/data/users.ts` (+ new `users.test.ts`, 1 test); the
+  Promise.race timeout wrapper is unchanged.
+- Verification: lint clean on the tree; a deliberate `supabase.from('games')`
+  violation in DashboardContent fails lint with the rule's message (verified,
+  then reverted, not committed); typecheck clean; 596/596 unit tests pass.
+- Notes: `Array.from` is not matched (callee object name filter); dev-login is
+  path-ignored as the dev-only special case.
 
 ### 2026-07-09 — P2.2: data-layer bypasses routed through lib/data — DONE
 - Changed: `settings/page.tsx` now calls `updateUserProfile` (error handling

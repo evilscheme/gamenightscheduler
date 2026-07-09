@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, us
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient, onSupabaseStatus } from '@/lib/supabase/client';
+import { fetchUserProfile } from '@/lib/data/users';
 import { User } from '@/types';
 import { TIMEOUTS } from '@/lib/constants';
 import { deriveAuthStatus, type AuthStatus } from './authStatus';
@@ -123,11 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     try {
       // Add timeout to prevent hanging
-      const fetchPromise = supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const fetchPromise = fetchUserProfile(supabase, userId);
 
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Profile fetch timeout')), TIMEOUTS.PROFILE_FETCH)

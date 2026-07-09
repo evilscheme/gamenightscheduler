@@ -137,29 +137,22 @@ export async function POST(req: NextRequest): Promise<Response> {
       .eq('user_id', action.newGmId!);
   }
 
-  // 2. Delete public.users — cascades:
+  // 2. Delete the auth user. public.users REFERENCES auth.users ON DELETE
+  //    CASCADE, so this single delete cascades through the profile to:
   //    - All remaining owned games (those not transferred, including solo ones)
   //    - Their sessions, memberships, availability, play dates
   //    - User's own memberships in other games
   //    - User's own availability in other games
   //    - sessions.confirmed_by set to NULL (ON DELETE SET NULL)
-  const { error: deleteProfileError } = await admin
-    .from('users')
-    .delete()
-    .eq('id', user.id);
-
-  if (deleteProfileError) {
-    console.error('delete: failed to delete user profile', deleteProfileError);
-    return NextResponse.json({ error: 'Failed to delete user profile' }, { status: 500 });
-  }
-
-  // 3. Delete from auth.users (must come after public.users due to FK direction)
+  //    Deleting ONLY auth.users means a failure here leaves the account fully
+  //    intact — no orphan window where the profile is gone but the login still
+  //    works (the signup trigger only fires on INSERT, so a lost profile would
+  //    never regenerate).
   const { error: deleteAuthError } = await admin.auth.admin.deleteUser(user.id);
 
   if (deleteAuthError) {
-    // Profile is already deleted — log for manual recovery but don't fail the response
-    console.error('delete: profile deleted but auth user deletion failed', user.id, deleteAuthError);
-    return NextResponse.json({ error: 'Failed to delete auth account' }, { status: 500 });
+    console.error('delete: auth user deletion failed', user.id, deleteAuthError);
+    return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

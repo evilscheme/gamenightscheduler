@@ -209,7 +209,7 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
   unit pass; **[e2e]** smoke: any one auth-dependent spec, e.g.
   `e2e/tests/dashboard`.
 
-### P1.4 `[ ]` Account deletion: drop redundant delete, close orphan window (T5)
+### P1.4 `[x]` Account deletion: drop redundant delete, close orphan window (T5)
 - **Files:** `src/app/api/account/delete/route.ts` (~:146-163).
 - **Do:** `public.users.id` has `REFERENCES auth.users(id) ON DELETE CASCADE`, so the
   route's manual `public.users` delete before the `auth.users` delete is redundant —
@@ -625,6 +625,19 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P1.4: account deletion ordering — DONE
+- Changed: `src/app/api/account/delete/route.ts` — removed the manual
+  `public.users` delete; the route now processes transfers then deletes ONLY
+  `auth.users`, letting the `ON DELETE CASCADE` FK remove the profile and
+  everything under it. A failure now leaves the account fully intact instead of
+  orphaning a working login with no profile (which the INSERT-only signup trigger
+  would never regenerate). Comment explains the invariant.
+- Verification: lint clean; typecheck clean; 590/590 unit tests pass.
+  `src/proxy.test.ts` references the route only for its rate limit (unaffected).
+  e2e deferred: `e2e/tests/settings/delete-account.spec.ts` (no local Supabase in
+  this environment) — should be run before merge.
+- Notes: none.
 
 ### 2026-07-09 — P1.3: single browser Supabase client — DONE
 - Changed: `src/lib/supabase/client.ts` gains `getSupabaseClient()` (memoized

@@ -290,7 +290,7 @@ via `src/lib/queryKeys.ts`. This is documented in CLAUDE.md's "Data Fetching &
 Caching" section — read it first; it is the authority these items enforce.
 Order matters: characterization tests land BEFORE any refactor they protect.
 
-### P3.1 `[ ]` **[G1]** renderHook tests for the new React Query `useAvailability`
+### P3.1 `[x]` **[G1]** renderHook tests for the new React Query `useAvailability`
 - **Files:** new `src/hooks/useAvailability.test.tsx`.
 - **Do:** Using `renderHook` from `@testing-library/react` (setup conventions in
   `src/hooks/useLocalStoragePref.test.ts`), wrap the hook in a fresh
@@ -625,6 +625,22 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P3.1: renderHook tests for useAvailability — DONE
+- Changed: new `src/hooks/useAvailability.test.tsx` (4 tests): optimistic cache
+  write visible before the server write resolves + full upsert row shape;
+  retained on success with NO reconcile refetch; rollback + refetch-server-truth
+  on error; bulkSetStatus issues exactly ONE batchUpsertAvailability for N dates;
+  error revert restores exactly the affected rows (comment preserved,
+  speculative date removed, other players untouched). Harness: fresh QueryClient
+  (retry:false) + QueryClientProvider wrapper; `@/lib/data` and
+  `@/lib/supabase/client` mocked at the module boundary; deferred promises to
+  freeze the in-flight window.
+- Verification: 4/4 new tests pass; lint clean; typecheck clean; 600/600 unit
+  tests pass.
+- Notes: React Query v5 gotcha for future hook tests — observer notifications
+  flush on the notify scheduler, not within `await act(...)`; assert
+  post-mutation state inside `waitFor`. The cache itself updates synchronously.
 
 ### 2026-07-09 — P2.4: test-auth shared gate extraction — DONE
 - Changed: `src/app/api/test-auth/route.ts` — the triple gate (NODE_ENV +

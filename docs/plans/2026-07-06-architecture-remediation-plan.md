@@ -507,7 +507,7 @@ overlaps P6.4 — coordinate, don't duplicate.
   or explicitly noted; prod SQL in Work Log. If this proves too risky to verify in
   the environment, mark `[B]` rather than half-landing it.
 
-### P6.5 `[ ]` Draft the production migration-strategy design doc (no implementation)
+### P6.5 `[x]` Draft the production migration-strategy design doc (no implementation)
 - **Files:** new `docs/plans/2026-07-XX-prod-migration-strategy-design.md`.
 - **Do:** Write a 1-2 page proposal for versioned prod migrations: keep `schema.sql`
   as the fresh-install artifact; generate immutable timestamped migration files for
@@ -637,6 +637,20 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P6.5: prod migration-strategy design doc — DONE
+- Changed: new `docs/plans/2026-07-09-prod-migration-strategy-design.md` —
+  proposes a committed `supabase/prod-migrations/` chain (append-only,
+  schema.sql edits land with their prod file in the same PR), a CI drift check
+  (fresh schema.sql vs baseline+chain, diffed via migra/pg_dump on the
+  throwaway-cluster pattern), a confirm-gated apply workflow (recommends a
+  plain psql runner + `_applied_migrations` table over `supabase db push`),
+  and a forward-only rollback policy. Five explicit owner decisions listed,
+  including reversing the current "never commit prod SQL" convention.
+- Verification: doc-only item; decisions-for-human section present as the
+  Done-when requires. No code/schema changes.
+- Notes: the doc's migration path starts by applying this plan's three pending
+  HUMAN ACTION REQUIRED blocks as the chain's first files.
 
 ### 2026-07-09 — P6.4: caps → typed errors — BLOCKED (by design)
 - Why blocked: the change alters the DB error contract on enforcement paths and

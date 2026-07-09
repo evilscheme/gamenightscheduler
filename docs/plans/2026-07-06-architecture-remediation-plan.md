@@ -11,8 +11,10 @@ unit suite pass on the branch after every commit.
 **Rationale / evidence:** `docs/plans/2026-07-06-architecture-review.md` (theme numbers
 T1–T9 referenced below).
 
-**Baseline commit at planning time:** `0f4738f`. Cited line numbers are anchors, not
-gospel — locate code by function/pattern name if lines have drifted.
+**Baseline commit at planning time:** `0f4738f`. **Post-G1 baseline:** `560a222`
+(PRs #132 and #133 merged into this branch on 2026-07-09; anchors in the revised
+`[G1]` items reflect that). Cited line numbers are anchors, not gospel — locate code
+by function/pattern name if lines have drifted.
 
 ---
 
@@ -29,6 +31,10 @@ gospel — locate code by function/pattern name if lines have drifted.
    item, write the prod-apply SQL (idempotent `ALTER`/`CREATE OR REPLACE`) into the
    Work Log entry as a fenced SQL block tagged **HUMAN ACTION REQUIRED** — do not
    commit it as a migration file, and never run any SQL against a remote database.
+   Title the SQL block with the repo's existing (uncommitted, local-only) naming
+   convention `docs/migrations/YYYY-MM-DD-<item>-prod.sql` — see the progress log in
+   `docs/security/2026-06-10-open-security-findings.md` — so the human can save and
+   apply it the way previous prod migrations were handled.
 3. **Styling:** semantic theme classes only (`primary`, `danger`, `muted`, `accent`,
    `card`, `foreground`, `border`, `ring`, `cal-*`, …). No hardcoded palette classes
    (`bg-blue-500` etc.). Check both desktop and mobile rendering for UI changes.
@@ -58,7 +64,12 @@ below is `[x]`.
 
 ---
 
-## Gate G1 `[ ]` — Merge PR #133 and revise this plan (blocks all `[G1]`-tagged items)
+## Gate G1 `[x]` — Merge PR #133 and revise this plan (blocks all `[G1]`-tagged items)
+
+**EXECUTED 2026-07-09** (see Work Log). Main was merged in at `560a222` — which also
+brought in PR #132 (SECURITY DEFINER function-grant lockdown, a schema.sql change).
+All `[G1]`-tagged items below were revised against the post-merge code and are now
+unblocked. The original gate instructions are kept below for the record.
 
 **Context:** PR #133 ("Restructure client data fetching: React Query cache, parallel
 dashboard fetch, batched bulk availability") rewrites the game-page hooks
@@ -172,15 +183,22 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
   aside); new tests pass.
 
 ### P1.3 `[ ]` **[G1]** Single browser Supabase client (T1.6)
-- **Files:** `src/lib/supabase/client.ts`, `src/contexts/AuthContext.tsx`, hooks
-  (`useOtherGameSessions`, `usePlayDates`, `useSessions`, `useAvailability`,
-  `useGameMeta`), and the 6 pages/components found by
-  `grep -rln "createClient" src/components src/app --include="*.tsx"`.
+- **Files (re-verified post-#133):** `src/lib/supabase/client.ts`, plus 12 call
+  sites: module-scope `const supabase = createClient()` in 5 hooks
+  (`useAvailability.ts:32`, `useGameMeta.ts:6`, `useSessions.ts:15`,
+  `usePlayDates.ts:14`, `useOtherGameSessions.ts:12`) and
+  `DefaultAvailabilityEditor.tsx:15`; **per-render** `createClient()` inside
+  component bodies (worse — a new client every render) in
+  `DashboardContent.tsx:21`, `settings/page.tsx:23`, `games/new/page.tsx:34`,
+  `games/[id]/edit/page.tsx:55`, `games/join/[code]/page.tsx:31`; and
+  `AuthContext.tsx:30`'s own lazy singleton. Re-run
+  `grep -rn "= createClient()" src --include="*.ts*" | grep -v supabase/ | grep -v test`
+  before starting.
 - **Do:** In `client.ts`, add a module-level memoized accessor:
   `let client: ... | null = null; export function getSupabaseClient() { if (!client) client = createClient(); return client; }`
   Keep `createClient` exported (tests may use it) but switch every module-scope
   `const supabase = createClient()` call site — hooks, pages, components, and
-  AuthContext's own singleton logic (`AuthContext.tsx:25-32`) — to
+  AuthContext's own singleton logic (`AuthContext.tsx:30`) — to
   `getSupabaseClient()`. Rationale: multiple GoTrueClient instances race on token
   refresh; AuthContext already documents this.
 - **Tests:** small unit test: two `getSupabaseClient()` calls return the same
@@ -223,18 +241,17 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
   `e2e/tests/settings/delete-account.spec.ts`.
 
 ### P2.2 `[ ]` **[G1]** Route data-layer bypasses through `src/lib/data`
-- **Files:** `src/components/dashboard/DashboardContent.tsx` (~:62-66),
-  `src/app/settings/page.tsx` (~:64-72), possibly `src/lib/data/games.ts`/`users.ts`.
-- **Do:** Compare DashboardContent's inline games+GM query with
-  `fetchUserGmGames`/`fetchGameWithGM` in `src/lib/data/games.ts`. If the shape
-  differs (e.g. fetching games by membership ids), add a properly named function to
-  `lib/data/games.ts` rather than bending an existing one. Replace
-  `settings/page.tsx`'s inline `users` update with `updateUserProfile`
-  (`src/lib/data/users.ts:3`).
-- **Tests:** if a new data function is added, unit-test it following
-  `src/lib/data/sessions.test.ts` conventions (mock client).
-- **Done when:** `grep -n "\.from(" src/components/dashboard/DashboardContent.tsx src/app/settings/page.tsx`
-  returns nothing; lint/typecheck/unit pass.
+- **Files (re-verified post-#133):** `src/app/settings/page.tsx` only — the
+  DashboardContent bypass was resolved by #133 (`src/lib/dashboardData.ts` now
+  composes `lib/data` functions; DashboardContent has zero inline queries).
+- **Do:** Replace `settings/page.tsx`'s inline `users` update (its one remaining
+  `.from(` call) with `updateUserProfile` (`src/lib/data/users.ts:3`). Then sweep
+  `grep -rn "\.from(" src/components src/app --include="*.tsx"` for any other
+  stragglers outside `src/app/api` and fix them the same way (add a properly named
+  `lib/data` function if no existing one matches; unit-test it following
+  `src/lib/data/sessions.test.ts` conventions).
+- **Done when:** the sweep grep returns nothing outside `src/app/api`;
+  lint/typecheck/unit pass.
 
 ### P2.3 `[ ]` ESLint rule: no raw Supabase queries outside the data layer
 - **Files:** `eslint.config.mjs`.
@@ -264,43 +281,58 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
 - **Done when:** one gate implementation; e2e security spec passes (or deferred-noted);
   lint/typecheck/unit pass.
 
-## Phase 3 — Hook tests, then optimistic-mutation standardization (T1.2, T8)
+## Phase 3 — Hook tests + mutation-pattern consistency (T1.2, T8) — revised at G1
 
-Order matters: characterization tests land BEFORE the refactor they protect.
+PR #133 rewrote the game-page hooks around TanStack Query v5. The app's mutation
+standard is now: optimistic `queryClient.setQueryData` writes with surgical rollback,
+then invalidation of every other cached view the data appears in, with ALL keys built
+via `src/lib/queryKeys.ts`. This is documented in CLAUDE.md's "Data Fetching &
+Caching" section — read it first; it is the authority these items enforce.
+Order matters: characterization tests land BEFORE any refactor they protect.
 
-### P3.1 `[ ]` **[G1]** renderHook tests for `useAvailability` (pre-refactor safety net)
-- **Files:** new `src/hooks/useAvailability.test.ts` (or .tsx).
-- **Do:** Using `renderHook` from `@testing-library/react` (see
-  `src/hooks/useLocalStoragePref.test.ts` for setup conventions), cover the three
-  mutation paths in `useAvailability.ts` (single-date set/cycle ~:111-169, note/time
-  update ~:216-258, bulk ~:305-353): (a) optimistic state applied synchronously,
-  (b) state retained on mutation success, (c) state reverted on mutation error.
-  Mock the Supabase client at the module boundary (`vi.mock('@/lib/supabase/client')`
-  returning a stub whose query-builder methods resolve success/error per test) — after
-  P1.3 there is a single `getSupabaseClient` to mock.
-- **Done when:** the new tests pass and meaningfully assert revert-on-error for all
-  three paths; existing suite unaffected.
+### P3.1 `[ ]` **[G1]** renderHook tests for the new React Query `useAvailability`
+- **Files:** new `src/hooks/useAvailability.test.tsx`.
+- **Do:** Using `renderHook` from `@testing-library/react` (setup conventions in
+  `src/hooks/useLocalStoragePref.test.ts`), wrap the hook in a fresh
+  `QueryClientProvider` per test (new `QueryClient` with `retry: false`). Mock the
+  Supabase client at the module boundary (`vi.mock('@/lib/supabase/client')`; after
+  P1.3 there is a single `getSupabaseClient` to stub). Cover, for the single-date,
+  note/time, and `bulkSetStatus` mutation paths: (a) optimistic cache write applied
+  synchronously (`setQueryData`), (b) state retained on success, (c) rollback AND
+  refetch on error (the hook reverts and invalidates —
+  `useAvailability.ts:133,183-184`), (d) `bulkSetStatus` issues ONE
+  `batchUpsertAvailability` call for N dates, (e) invalidations use keys from
+  `queryKeys.ts`, never inline arrays.
+- **Done when:** the new tests pass and meaningfully assert rollback-on-error for all
+  mutation paths; existing suite unaffected.
 
-### P3.2 `[ ]` **[G1]** Refactor `useAvailability` mutations through `withOptimistic`
-- **Files:** `src/hooks/useAvailability.ts`.
-- **Do:** Read `src/hooks/withOptimistic.ts` and its one adopter
-  (`useGameMeta.ts:72`). Convert the three hand-rolled apply→mutate→revert blocks to
-  `withOptimistic`. Behavior-neutral: P3.1's tests must pass unmodified. If
-  `withOptimistic`'s signature genuinely can't express a path (e.g. multi-key bulk
-  revert), extend `withOptimistic` (with unit tests in `withOptimistic.test.ts`)
-  rather than leaving a hand-rolled block.
-- **Done when:** no hand-rolled revert blocks remain in `useAvailability.ts`; P3.1
-  tests pass unmodified; lint/typecheck/unit pass; **[e2e]**
-  `e2e/tests/availability` directory.
+### P3.2 `[ ]` **[G1]** Retire `withOptimistic`: migrate `useGameMeta`'s last use to the React Query pattern
+- **Files:** `src/hooks/useGameMeta.ts` (withOptimistic call at ~:90),
+  `src/hooks/withOptimistic.ts` + `withOptimistic.test.ts` (delete at the end).
+- **Do:** `useGameMeta` is now a hybrid: React Query for reads, but one mutation
+  still routed through the pre-#133 `withOptimistic` helper. Convert that mutation
+  to the standard pattern (optimistic `setQueryData` against its `queryKeys` key,
+  rollback on error, invalidate affected views — mirror how `useAvailability` and
+  `usePlayDates` do it post-#133). Then confirm `withOptimistic` has zero importers
+  (`grep -rln withOptimistic src | grep -v withOptimistic.`) and delete the helper
+  and its test — the React Query pattern supersedes it entirely.
+- **Tests:** renderHook coverage for the migrated `useGameMeta` mutation (same
+  harness as P3.1): optimistic apply, success, rollback-on-error.
+- **Done when:** `withOptimistic.ts` is deleted with no dangling imports; the new
+  useGameMeta test passes; lint/typecheck/unit pass; **[e2e]** `e2e/tests/overview`
+  or the game-detail specs.
 
-### P3.3 `[ ]` **[G1]** Same treatment for `usePlayDates` and `useSessions`
-- **Files:** `src/hooks/usePlayDates.ts` (~:45-73, ~:85-110),
-  `src/hooks/useSessions.ts` (~:104-114), new tests for each.
-- **Do:** Repeat P3.1+P3.2 per hook: renderHook characterization tests first, then
-  route mutations through `withOptimistic`.
-- **Done when:** tests exist and pass for both hooks; no hand-rolled optimistic
-  blocks remain in `src/hooks/` (grep for manual "revert"/rollback patterns);
-  **[e2e]** `e2e/tests/scheduling`.
+### P3.3 `[ ]` **[G1]** renderHook tests for `usePlayDates` + `useSessions`; verify pattern consistency
+- **Files:** new tests for `src/hooks/usePlayDates.ts` and `src/hooks/useSessions.ts`.
+- **Do:** Same harness as P3.1 (QueryClientProvider wrapper, mocked client). For each
+  mutation in both hooks, test optimistic apply / success / rollback-on-error, and
+  verify it follows the CLAUDE.md standard: optimistic cache write, rollback,
+  invalidation of every other view the data appears in (e.g. session changes must
+  invalidate the dashboard key), all keys via `queryKeys.ts`. Where a mutation
+  deviates from the standard, fix it (that is a bug fix, not a refactor — note it in
+  the Work Log).
+- **Done when:** tests exist and pass for both hooks; every mutation in `src/hooks/`
+  follows the standard pattern; **[e2e]** `e2e/tests/scheduling`.
 
 ## Phase 4 — Type safety at the DB boundary (T2)
 
@@ -355,7 +387,9 @@ Order matters: characterization tests land BEFORE the refactor they protect.
 
 ### P5.2 `[ ]` **[G1]** Extract pure `calendarCellState` from AvailabilityCalendar
 - **Files:** new `src/lib/calendarCellState.ts` + test;
-  `src/components/calendar/AvailabilityCalendar.tsx` (~:660-723 and ~:788-802).
+  `src/components/calendar/AvailabilityCalendar.tsx` (post-#133 anchors: the
+  `bgColor`/`textColor` cascade starts ~:652 inside `MonthCalendar` (function at
+  ~:527); the `data-status` derivation is further down the same cell JSX).
 - **Do:** The MonthCalendar cell renderer computes a ~140-line status→
   `bgColor`/`textColor` cascade plus a `data-status` derivation inline in JSX. Extract
   a pure function `(inputs: {date, availability, isPlayDay, isSpecialDate, isPast,
@@ -370,11 +404,14 @@ Order matters: characterization tests land BEFORE the refactor they protect.
 - **Files:** `src/components/calendar/` — new `MonthCalendar.tsx`,
   `CalendarLegend.tsx`, `NoteEditorPopover.tsx`, `DateActionMenu.tsx`; new
   `src/hooks/useLongPress.ts`; slim `AvailabilityCalendar.tsx`.
-- **Do:** Depends on P5.2. Move: bulk-actions/copy bar (may stay in the orchestrator
-  or extract `BulkActionsBar.tsx` — judge by size), month grid → `MonthCalendar`,
-  legend (~:359-424) → `CalendarLegend`, note editor (~:1000-1185) →
-  `NoteEditorPopover`, GM action menu (~:465-505) → `DateActionMenu`, long-press
-  touch handling (~:569-603) → `useLongPress`. Convert both overlays to render
+- **Do:** Depends on P5.2. Post-#133 the file is 1,177 lines and the bulk-actions
+  bar flows through the required `onBulkSet` prop (:73, :96, :257) — preserve that
+  contract exactly. Move: bulk-actions/copy bar (may stay in the orchestrator
+  or extract `BulkActionsBar.tsx` — judge by size), month grid → `MonthCalendar`
+  (function at ~:527), legend (~:351) → `CalendarLegend`, note editor (overlay at
+  ~:1015) → `NoteEditorPopover`, GM action menu (overlay at ~:459) →
+  `DateActionMenu`, long-press touch handling (~:558-591) → `useLongPress`.
+  Convert both overlays to render
   through the shared `src/components/ui/Modal` (gaining Escape-to-close and body
   scroll-lock — this is a small intended behavior improvement, note it in the
   commit). Orchestrator target: under ~300 lines. Keep prop names stable where
@@ -408,6 +445,14 @@ Every item here: edit `supabase/schema.sql` only (Ground Rule 2); verify with
 `npm run db:reset` + targeted e2e if the environment supports local Supabase,
 otherwise verify by careful SQL review + typecheck and note the deferral; put the
 idempotent prod-apply SQL in the Work Log entry tagged **HUMAN ACTION REQUIRED**.
+
+**Before starting any Phase 6 item, read
+`docs/security/2026-06-10-open-security-findings.md`.** It is the live security
+backlog: PR #132 added a REVOKE/GRANT block to schema.sql (anchors shifted ~12
+lines), it prescribes the `return=minimal` discipline for RLS regression tests, any
+new function you add must follow the same grant lockdown pattern (and gets a row in
+`e2e/tests/rls/function-grants.spec.ts`), and its finding #8 (cap-race residual)
+overlaps P6.4 — coordinate, don't duplicate.
 
 ### P6.1 `[ ]` Make `handle_new_user()` unable to block signup
 - **Where:** `handle_new_user()` in schema.sql (~:158-179); the CHECKs it can trip
@@ -495,7 +540,10 @@ idempotent prod-apply SQL in the Work Log entry tagged **HUMAN ACTION REQUIRED**
 - **Files:** `src/lib/schedule/` ← `suggestions`, `scheduling`, `scheduleView`,
   `upcomingSessions`, `otherGameSessions`, `gameHealth` (+tests);
   `src/lib/admin/` ← `adminEngagement`, `topUsers` (+tests).
-- **Do:** Mechanical moves + import updates. While touching them, merge
+- **Do:** Mechanical moves + import updates. Post-#133 additions: place
+  `dashboardData.ts` (+test) with the schedule/dashboard cluster; leave
+  `queryKeys.ts` at `lib/` top level (it is a cross-domain registry, not domain
+  logic). While touching them, merge
   `scheduleView.formatTimeWindow` (~:36-47) and
   `otherGameSessions.formatSessionTimeWindow` (~:50-61) into one exported formatter
   (they're the same start/end → "X–Y / from X / until Y" logic); keep both call
@@ -577,3 +625,17 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — G1: Merged post-#133 main; revised gated items — DONE
+- Changed: merged `origin/main` (`560a222`, brings PRs #132 + #133) into the branch
+  (clean merge — this branch only carried docs); revised P1.3, P2.2, P3.1–P3.3,
+  P5.2, P5.3, P7.2, Phase 6 intro, Ground Rule 2, and the review doc's T7 note.
+- Verification: `npm run lint` clean; `npm run test:run` 584/584 pass post-merge.
+  (No typecheck script yet — that is P0.1.)
+- Notes: #133 resolved the DashboardContent data-layer bypass (P2.2 shrinks to
+  settings/page.tsx) and superseded the withOptimistic standardization (Phase 3
+  rewritten around the TanStack Query pattern now documented in CLAUDE.md's "Data
+  Fetching & Caching" section; `withOptimistic` has one importer left —
+  `useGameMeta.ts:90` — and P3.2 now retires it). #132 revealed the existing
+  local-only `docs/migrations/*-prod.sql` convention, now referenced by Ground
+  Rule 2, and added the function-grant lockdown Phase 6 items must follow.

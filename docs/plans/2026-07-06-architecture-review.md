@@ -7,12 +7,20 @@ actionable work items live in `2026-07-06-architecture-remediation-plan.md`.
 Line numbers were accurate at review time (commit `0f4738f`) and will drift — treat them
 as anchors, and locate code by the named function/pattern.
 
-> **Post-review updates (2026-07-08):**
+> **Post-review updates (2026-07-08, revised 2026-07-09 after the merge):**
 > 1. PR #133 (React Query cache, parallel dashboard fetch, batched bulk availability)
->    substantially supersedes theme **T7** (client fetch waterfall) and changes the
->    landscape for **T1.2** (withOptimistic) and parts of **T1.6/T3** — see Gate G1 in
->    the remediation plan before acting on those.
-> 2. Owner decision: coverage gating (part of **T8**) is off the table — coverage
+>    is now MERGED (`560a222`). It resolves theme **T7** (client fetch waterfall —
+>    hooks fire in parallel, dashboard is a 2-stage parallel fetch, caching added),
+>    resolves the DashboardContent half of **T1.1**, and supersedes **T1.2**: the
+>    app's mutation standard is now the TanStack Query optimistic pattern documented
+>    in CLAUDE.md's "Data Fetching & Caching" section; `withOptimistic` is down to
+>    one importer and is being retired (plan P3.2). T1.6 (client singleton) and T3
+>    (monoliths) remain valid — re-verified post-merge.
+> 2. PR #132 (also merged) locked down EXECUTE grants on trigger-only SECURITY
+>    DEFINER functions and surfaced `docs/security/2026-06-10-open-security-findings.md`,
+>    which already tracks several minor findings listed below (test-auth gating,
+>    cap-race residual) — check it before acting on any security-adjacent item.
+> 3. Owner decision: coverage gating (part of **T8**) is off the table — coverage
 >    metrics have never been reliable with this React architecture.
 
 ## Overall assessment

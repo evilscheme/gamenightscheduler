@@ -6,27 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Button, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 
-interface OwnedGameMember {
-  id: string;
-  name: string;
-}
-
-interface OwnedGame {
-  id: string;
-  name: string;
-  members: OwnedGameMember[];
-}
-
-interface PlayerMembershipGame {
-  id: string;
-  name: string;
-}
-
-interface DeletePreview {
-  ownedGames: OwnedGame[];
-  playerMembershipCount: number;
-  playerMembershipGames: PlayerMembershipGame[];
-}
+import type { OwnedGame, DeletePreview } from '@/types/api';
 
 type GameDecision =
   | { action: 'delete' }

@@ -1,25 +1,11 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
 import { calculateGameFillRate } from '@/lib/availability';
-import { calculateGameHealth, type HealthBreakdown, type HealthGrade } from '@/lib/gameHealth';
+import { calculateGameHealth } from '@/lib/gameHealth';
 import { serverError } from '@/lib/apiError';
 import { getTodayLocalDate } from '@/lib/date';
 
-interface GameWithEngagement {
-  id: string;
-  name: string;
-  created_at: string | null;
-  gm: { id: string; name: string; email: string } | null;
-  playerCount: number;
-  sessionCount: number;
-  futureSessionCount: number;
-  availabilityFillRate: number;
-  lastActivity: string | null;
-  healthScore: number;
-  healthGrade: HealthGrade;
-  healthLabel: string;
-  healthBreakdown: HealthBreakdown;
-}
+import type { GameWithEngagement } from '@/types/api';
 
 export async function GET(): Promise<Response> {
   try {

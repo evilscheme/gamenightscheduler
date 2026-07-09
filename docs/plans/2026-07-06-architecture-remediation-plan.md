@@ -353,7 +353,7 @@ Order matters: characterization tests land BEFORE any refactor they protect.
   `grep -rn "as unknown as" src/lib/data src/app/api` count is reduced and each
   survivor has a one-line justification comment; lint/unit pass.
 
-### P4.2 `[ ]` Single-source the API contract types
+### P4.2 `[x]` Single-source the API contract types
 - **Files:** `src/app/api/account/delete-preview/route.ts`,
   `src/app/settings/delete-account/page.tsx` (~:9-27),
   `src/app/api/admin/games/route.ts` (~:7), `src/app/admin/page.tsx` (~:40).
@@ -631,6 +631,19 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P4.2: API contract types single-sourced — DONE
+- Changed: new `src/types/api.ts` owns the cross-boundary shapes
+  (`OwnedGame`/`OwnedGameMember`/`PlayerMembershipGame`/`DeletePreview`,
+  `GameWithEngagement`); the four declaring files (delete-preview route,
+  delete-account page, admin games route, admin page) now import it. Chose the
+  hoist over import-from-route so no route module enters the client graph at
+  all. The admin page's stale copy (`created_at: string` vs the route's
+  `string | null`) was the predicted silent drift — unified, and its
+  `created_at` sort made null-safe like the adjacent lastActivity sort.
+- Verification: one declaration site per type (grep clean); lint clean;
+  typecheck clean; 607/607 unit tests; `next build` passes.
+- Notes: none.
 
 ### 2026-07-09 — P4.1: Supabase type codegen + Database threading — DONE
 - Changed: new generated `src/types/database.ts` (512 lines); `db:types` npm

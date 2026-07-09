@@ -37,21 +37,7 @@ interface AdminStats {
   }>;
 }
 
-interface GameWithEngagement {
-  id: string;
-  name: string;
-  created_at: string;
-  gm: { id: string; name: string; email: string } | null;
-  playerCount: number;
-  sessionCount: number;
-  futureSessionCount: number;
-  availabilityFillRate: number;
-  lastActivity: string | null;
-  healthScore: number;
-  healthGrade: HealthGrade;
-  healthLabel: string;
-  healthBreakdown: HealthBreakdown;
-}
+import type { GameWithEngagement } from '@/types/api';
 
 type SortField = 'health' | 'name' | 'created' | 'lastActivity';
 
@@ -238,7 +224,7 @@ function GamesTab({ games }: { games: GameWithEngagement[] }) {
           cmp = a.name.localeCompare(b.name);
           break;
         case 'created':
-          cmp = a.created_at.localeCompare(b.created_at);
+          cmp = (a.created_at ?? '').localeCompare(b.created_at ?? '');
           break;
         case 'lastActivity':
           cmp = (a.lastActivity ?? '').localeCompare(b.lastActivity ?? '');

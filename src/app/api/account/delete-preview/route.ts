@@ -3,27 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/api/auth';
 import { serverError } from '@/lib/apiError';
 
-export interface OwnedGameMember {
-  id: string;
-  name: string;
-}
-
-export interface OwnedGame {
-  id: string;
-  name: string;
-  members: OwnedGameMember[];
-}
-
-export interface PlayerMembershipGame {
-  id: string;
-  name: string;
-}
-
-export interface DeletePreview {
-  ownedGames: OwnedGame[];
-  playerMembershipCount: number;
-  playerMembershipGames: PlayerMembershipGame[];
-}
+import type { PlayerMembershipGame, DeletePreview } from '@/types/api';
 
 export async function GET(): Promise<Response> {
   const auth = await requireUser();

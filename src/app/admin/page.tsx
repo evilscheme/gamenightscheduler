@@ -7,7 +7,7 @@ import { ChevronRight, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
-import { Avatar, Button, Card, CardContent, CardHeader, EmptyState, LoadingSpinner } from '@/components/ui';
+import { Avatar, Button, Card, CardContent, CardHeader, EmptyState, LoadingSpinner, PageLoading } from '@/components/ui';
 import EngagementCharts from '@/components/admin/EngagementCharts';
 import { formatTimeShort } from '@/lib/formatting';
 import type { HealthBreakdown, HealthGrade } from '@/lib/gameHealth';
@@ -89,18 +89,14 @@ export default function AdminPage() {
 
   if (authStatus === 'loading') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 
   // If user isn't admin, the redirect will handle it
   if (!profile?.is_admin) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
-import { LoadingSpinner } from '@/components/ui';
+import { PageLoading } from '@/components/ui';
 import { safeCallbackUrl } from '@/lib/url';
 
 function LoginContent() {
@@ -23,9 +23,7 @@ function LoginContent() {
 
   if (authStatus === 'loading' || authStatus === 'authenticated') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 
@@ -83,9 +81,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-          <LoadingSpinner size="lg" />
-        </div>
+        <PageLoading />
       }
     >
       <LoginContent />

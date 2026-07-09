@@ -371,7 +371,7 @@ Order matters: characterization tests land BEFORE any refactor they protect.
 
 ## Phase 5 — Component decomposition (T3, T1.4, T1.5)
 
-### P5.1 `[ ]` Shared `PageLoading` / `PageError` primitives
+### P5.1 `[x]` Shared `PageLoading` / `PageError` primitives
 - **Files:** new `src/components/ui/PageState.tsx` (or two files, match `ui/`
   conventions), ~18 call sites (grep
   `min-h-\[calc(100vh-4rem)\].*items-center` across `src/app` and `src/components`).
@@ -631,6 +631,22 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P5.1: PageLoading primitive; 16 duplicated blocks replaced — DONE
+- Changed: new `src/components/ui/PageState.tsx` (`PageLoading`, optional
+  `message` prop) + RTL test (LoadingSpinner mocked — it's the canvas d20,
+  jsdom can't render it) + barrel export. All 16 full-page spinner blocks
+  replaced across 12 files (incl. delete-account's captioned "Deleting your
+  account…" variant); per-file imports pruned where LoadingSpinner became
+  unused.
+- Decision: **PageError NOT created.** The only error-shaped candidates are
+  in-tab error divs (admin) and bespoke pages (NotFound dice) — zero clear
+  full-page adopters. Shipping an unused primitive would recreate the
+  withOptimistic 1-of-7 problem; revisit if a real second adopter appears.
+- Verification: residual grep for the old block → 0 outside PageState; lint
+  clean; typecheck clean; 609/609 unit tests pass (2 new).
+- Notes: single-child flex-col+gap is render-identical to the old single-child
+  flex row; the captioned variant matches delete-account's old markup exactly.
 
 ### 2026-07-09 — P4.2: API contract types single-sourced — DONE
 - Changed: new `src/types/api.ts` owns the cross-boundary shapes

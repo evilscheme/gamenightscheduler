@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dice6, Frown } from 'lucide-react';
-import { Button, Card, CardContent, LoadingSpinner } from '@/components/ui';
+import { Button, Card, CardContent, PageLoading } from '@/components/ui';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { DAY_LABELS, USAGE_LIMITS } from '@/lib/constants';
 import { joinGame } from '@/lib/data';
@@ -107,9 +107,7 @@ export default function JoinGamePage() {
 
   if (authStatus === 'loading' || loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 

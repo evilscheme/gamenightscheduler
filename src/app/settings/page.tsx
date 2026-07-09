@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import Link from 'next/link';
-import { Button, EyebrowLabel, Input, LoadingSpinner, Panel } from '@/components/ui';
+import { Button, EyebrowLabel, Input, Panel, PageLoading } from '@/components/ui';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { updateUserProfile } from '@/lib/data/users';
 import { TEXT_LIMITS, TIMEZONE_GROUPS } from '@/lib/constants';
@@ -88,9 +88,7 @@ export default function SettingsPage() {
 
   if (authStatus === 'loading') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 

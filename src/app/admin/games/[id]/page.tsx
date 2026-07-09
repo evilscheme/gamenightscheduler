@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { useGameDerivedState } from '@/hooks/useGameDerivedState';
-import { LoadingSpinner } from '@/components/ui';
+import { PageLoading } from '@/components/ui';
 import { OverviewTabContent } from '@/components/games/overview/OverviewTabContent';
 import { AvailabilityTabContent } from '@/components/games/availability/AvailabilityTabContent';
 import { ScheduleTabContent } from '@/components/games/schedule/ScheduleTabContent';
@@ -107,17 +107,13 @@ export default function AdminGamePeekPage() {
 
   if (authStatus === 'loading' || !profile?.is_admin) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 

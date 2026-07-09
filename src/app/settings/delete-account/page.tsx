@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
+import { Button, Card, CardContent, CardHeader, PageLoading } from '@/components/ui';
 
 import type { OwnedGame, DeletePreview } from '@/types/api';
 
@@ -124,9 +124,7 @@ export default function DeleteAccountPage() {
 
   if (authStatus === 'loading' || step === 'loading') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 
@@ -152,10 +150,7 @@ export default function DeleteAccountPage() {
 
   if (step === 'deleting') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center gap-4">
-        <LoadingSpinner size="lg" />
-        <p className="text-muted-foreground">Deleting your account&hellip;</p>
-      </div>
+      <PageLoading message="Deleting your account&hellip;" />
     );
   }
 

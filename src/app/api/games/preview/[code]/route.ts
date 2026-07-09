@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { GameWithGMNameResult } from '@/types';
 import { serverError } from '@/lib/apiError';
 
 /**
@@ -36,15 +35,11 @@ export async function GET(
       );
     }
 
-    // TypeScript infers FK relations as arrays, but at runtime Supabase
-    // returns single objects for one-to-one relations
-    const typedGame = game as unknown as GameWithGMNameResult;
-
     return NextResponse.json({
-      name: typedGame.name,
-      description: typedGame.description,
-      play_days: typedGame.play_days,
-      gm_name: typedGame.gm?.name || 'Unknown',
+      name: game.name,
+      description: game.description,
+      play_days: game.play_days,
+      gm_name: game.gm?.name || 'Unknown',
     });
   } catch (error) {
     return serverError(error, { route: '/api/games/preview/[code]' });

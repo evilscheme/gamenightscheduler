@@ -15,6 +15,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:status": "supabase status",
+    "db:types": "supabase gen types typescript --local > src/types/database.ts",
     "db:backup": "./scripts/backup-db.sh",
     "setup": "./scripts/workspace-setup.sh",
     "test": "vitest",

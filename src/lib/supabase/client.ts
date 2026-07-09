@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
+import type { Database } from '@/types/database';
 
 // --- Backend status callback registry ---
 
@@ -75,7 +76,7 @@ function createMonitoredFetch(): typeof fetch {
 // --- Client factory ---
 
 export function createClient() {
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     supabaseUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {

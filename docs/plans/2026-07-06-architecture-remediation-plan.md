@@ -336,7 +336,7 @@ Order matters: characterization tests land BEFORE any refactor they protect.
 
 ## Phase 4 — Type safety at the DB boundary (T2)
 
-### P4.1 `[ ]` Generate Supabase types and thread `Database` through clients
+### P4.1 `[x]` Generate Supabase types and thread `Database` through clients
 - **Files:** new `src/types/database.ts` (generated), `package.json` (script),
   `src/lib/supabase/client.ts`, `server.ts`, `admin.ts`, `src/lib/data/*`.
 - **Do:** Attempt `npx supabase gen types typescript --local > src/types/database.ts`
@@ -619,12 +619,39 @@ Each loop iteration:
   the page title — decide desired behavior before fixing.
 - (from review, deliberately not planned) Server-side prefetch/hydration for the
   `games/[id]` hook waterfall (review T7) — worthwhile but needs a design pass.
+- (from P4.1) Schema hardening: `users.is_gm/is_admin/time_format/week_start_day`
+  and every table's `created_at`/`updated_at` (and `sessions.status`) have
+  DEFAULTs but no NOT NULL, so generated types are `| null` and one cast in
+  `lib/data/memberships.ts` survives. Adding NOT NULL to defaulted columns
+  (Phase 6-style change, prod SQL required) would delete the cast and
+  un-nullable the app types.
 - (from review, deliberately not planned) `wipe-data.sql`/`wipe-database.ts` omit
   `user_availability_defaults` and `game_play_dates` (rely on CASCADE).
 
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P4.1: Supabase type codegen + Database threading — DONE
+- Changed: new generated `src/types/database.ts` (512 lines); `db:types` npm
+  script added for future regeneration (`supabase gen types typescript --local`).
+  `<Database>` threaded through all three client factories and every
+  `lib/data`/`dashboardData` signature. Drift the codegen exposed and fixed:
+  `created_at`/`updated_at` and `sessions.status` are nullable in the schema —
+  `src/types/index.ts` now matches; `paginate()`'s table param is now
+  `keyof Database['public']['Tables']`; `gameHealth` call site null-guards
+  `created_at`. Casts: 2 of 3 `as unknown as` deleted (relation inference now
+  correct); the `memberships.ts` survivor has a justification comment (users
+  flag/pref columns are nullable in schema vs non-null app types → Discovered
+  Work: NOT NULL hardening).
+- Generation method (no Docker in this env, CLI requires it): stood up a
+  throwaway Postgres 16 (`initdb` + stub `auth` schema/roles), applied
+  schema.sql cleanly, and ran the SAME `@supabase/postgres-meta` typescript
+  template the CLI uses (`detectOneToOneRelationships: true`). Output is
+  CLI-equivalent; regenerate with `npm run db:types` against local Supabase to
+  confirm zero diff when convenient.
+- Verification: lint clean; typecheck clean; 607/607 unit tests pass.
+- Notes: none.
 
 ### 2026-07-09 — P3.3: renderHook tests for usePlayDates + useSessions — DONE
 - Changed: new `usePlayDates.test.tsx` (4 tests: optimistic temp-row add +

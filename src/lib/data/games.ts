@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
 import type { GameWithGM } from '@/types';
 
-export async function fetchGameWithGM(supabase: SupabaseClient, gameId: string) {
+export async function fetchGameWithGM(supabase: SupabaseClient<Database>, gameId: string) {
   return supabase
     .from('games')
     .select('*, gm:users!games_gm_id_fkey(*)')
@@ -9,7 +10,7 @@ export async function fetchGameWithGM(supabase: SupabaseClient, gameId: string) 
     .single<GameWithGM>();
 }
 
-export async function fetchUserGmGames(supabase: SupabaseClient, userId: string) {
+export async function fetchUserGmGames(supabase: SupabaseClient<Database>, userId: string) {
   return supabase
     .from('games')
     .select('*, gm:users!games_gm_id_fkey(*), game_memberships(count)')
@@ -21,7 +22,7 @@ export async function fetchUserGmGames(supabase: SupabaseClient, userId: string)
  * Used for the dashboard's "member" games — the ones the user belongs to but
  * doesn't GM — resolved from the id list returned by fetchUserMemberships.
  */
-export async function fetchGamesWithGMByIds(supabase: SupabaseClient, gameIds: string[]) {
+export async function fetchGamesWithGMByIds(supabase: SupabaseClient<Database>, gameIds: string[]) {
   return supabase
     .from('games')
     .select('*, gm:users!games_gm_id_fkey(*), game_memberships(count)')
@@ -29,12 +30,12 @@ export async function fetchGamesWithGMByIds(supabase: SupabaseClient, gameIds: s
 }
 
 /** Minimal name lookup for page-title metadata (generateMetadata layouts). */
-export async function fetchGameName(supabase: SupabaseClient, gameId: string) {
+export async function fetchGameName(supabase: SupabaseClient<Database>, gameId: string) {
   return supabase.from('games').select('name').eq('id', gameId).single<{ name: string }>();
 }
 
 /** Invite-preview shape for the join page's OG/social metadata. */
-export async function fetchGameInviteMetaByCode(supabase: SupabaseClient, code: string) {
+export async function fetchGameInviteMetaByCode(supabase: SupabaseClient<Database>, code: string) {
   return supabase
     .from('games')
     .select('name, description, play_days, gm:users!games_gm_id_fkey(name)')
@@ -42,7 +43,7 @@ export async function fetchGameInviteMetaByCode(supabase: SupabaseClient, code: 
     .single();
 }
 
-export async function fetchUserGameCount(supabase: SupabaseClient, userId: string) {
+export async function fetchUserGameCount(supabase: SupabaseClient<Database>, userId: string) {
   return supabase
     .from('games')
     .select('*', { count: 'exact', head: true })
@@ -50,7 +51,7 @@ export async function fetchUserGameCount(supabase: SupabaseClient, userId: strin
 }
 
 export async function createGame(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   params: {
     name: string;
     description: string | null;
@@ -83,7 +84,7 @@ export async function createGame(
 }
 
 export async function updateGame(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   params: {
     name: string;
@@ -102,12 +103,12 @@ export async function updateGame(
   return supabase.from('games').update(params).eq('id', gameId);
 }
 
-export async function deleteGame(supabase: SupabaseClient, gameId: string) {
+export async function deleteGame(supabase: SupabaseClient<Database>, gameId: string) {
   return supabase.from('games').delete().eq('id', gameId);
 }
 
 export async function regenerateInviteCode(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   newCode: string
 ) {

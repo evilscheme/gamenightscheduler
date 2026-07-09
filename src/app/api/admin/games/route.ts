@@ -8,7 +8,7 @@ import { getTodayLocalDate } from '@/lib/date';
 interface GameWithEngagement {
   id: string;
   name: string;
-  created_at: string;
+  created_at: string | null;
   gm: { id: string; name: string; email: string } | null;
   playerCount: number;
   sessionCount: number;
@@ -132,7 +132,7 @@ export async function GET(): Promise<Response> {
         futureSessionCount: sessionStats.future,
         availabilityFillRate: fillRate,
         lastActivity,
-        createdAt: game.created_at,
+        createdAt: game.created_at ?? getTodayLocalDate(),
       });
 
       return {

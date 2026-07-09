@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { Database } from '@/types/database';
 
 export type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -51,7 +52,7 @@ interface PaginateOptions {
  */
 export async function paginate<T>(
   client: AdminClient,
-  table: string,
+  table: keyof Database['public']['Tables'] & string,
   columns: string,
   opts: PaginateOptions = {}
 ): Promise<T[]> {

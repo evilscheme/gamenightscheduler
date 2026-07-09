@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
 import type { MemberWithRole, MembershipWithUser } from '@/types';
 
-export async function fetchGameMembers(supabase: SupabaseClient, gameId: string) {
+export async function fetchGameMembers(supabase: SupabaseClient<Database>, gameId: string) {
   const { data: memberships, error } = await supabase
     .from('game_memberships')
     .select('user_id, is_co_gm, users(*)')
@@ -9,6 +10,9 @@ export async function fetchGameMembers(supabase: SupabaseClient, gameId: string)
 
   if (error) return { data: [] as MemberWithRole[], error };
 
+  // Cast justified: users.is_gm/is_admin/time_format/week_start_day are
+  // nullable in the schema (DEFAULT without NOT NULL) but the app-level User
+  // type treats them as always-set; see Discovered Work re: NOT NULL hardening.
   const typedMemberships = memberships as unknown as MembershipWithUser[] | null;
   const members: MemberWithRole[] =
     typedMemberships
@@ -21,7 +25,7 @@ export async function fetchGameMembers(supabase: SupabaseClient, gameId: string)
   return { data: members, error: null };
 }
 
-export async function fetchUserMemberships(supabase: SupabaseClient, userId: string) {
+export async function fetchUserMemberships(supabase: SupabaseClient<Database>, userId: string) {
   return supabase
     .from('game_memberships')
     .select('game_id, is_co_gm')
@@ -33,7 +37,7 @@ export async function fetchUserMemberships(supabase: SupabaseClient, userId: str
  * Callers filter out the current game themselves so the result is cacheable
  * per user rather than per (user, game) pair.
  */
-export async function fetchMyGamesLite(supabase: SupabaseClient, userId: string) {
+export async function fetchMyGamesLite(supabase: SupabaseClient<Database>, userId: string) {
   const [memberRes, gmRes] = await Promise.all([
     supabase.from('game_memberships').select('game_id, games(id, name)').eq('user_id', userId),
     supabase.from('games').select('id, name').eq('gm_id', userId),
@@ -42,8 +46,7 @@ export async function fetchMyGamesLite(supabase: SupabaseClient, userId: string)
   const gameMap = new Map<string, string>();
   gmRes.data?.forEach((g) => gameMap.set(g.id, g.name));
   memberRes.data?.forEach((m) => {
-    const g = m.games as unknown as { id: string; name: string } | null;
-    if (g) gameMap.set(g.id, g.name);
+    if (m.games) gameMap.set(m.games.id, m.games.name);
   });
 
   return Array.from(gameMap.entries()).map(([id, name]) => ({ id, name }));
@@ -56,11 +59,11 @@ export async function fetchMyGamesLite(supabase: SupabaseClient, userId: string)
  * verifies the invite code, enforces the player cap, and always joins as a
  * regular player (never co-GM). Returns the joined game's id in `data`.
  */
-export async function joinGame(supabase: SupabaseClient, inviteCode: string) {
+export async function joinGame(supabase: SupabaseClient<Database>, inviteCode: string) {
   return supabase.rpc('join_game_by_invite', { invite_code_param: inviteCode });
 }
 
-export async function leaveGame(supabase: SupabaseClient, gameId: string, userId: string) {
+export async function leaveGame(supabase: SupabaseClient<Database>, gameId: string, userId: string) {
   return supabase
     .from('game_memberships')
     .delete()
@@ -72,7 +75,7 @@ export async function leaveGame(supabase: SupabaseClient, gameId: string, userId
 export const removePlayer = leaveGame;
 
 export async function toggleCoGm(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   userId: string,
   isCoGm: boolean
@@ -85,7 +88,7 @@ export async function toggleCoGm(
 }
 
 export async function checkCoGmStatus(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   userId: string
 ) {

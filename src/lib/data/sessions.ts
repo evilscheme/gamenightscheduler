@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
 import type { GameSession } from '@/types';
 
-export async function fetchGameSessions(supabase: SupabaseClient, gameId: string) {
+export async function fetchGameSessions(supabase: SupabaseClient<Database>, gameId: string) {
   return supabase
     .from('sessions')
     .select('*')
@@ -10,7 +11,7 @@ export async function fetchGameSessions(supabase: SupabaseClient, gameId: string
 }
 
 export async function confirmSession(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   params: {
     game_id: string;
     date: string;
@@ -32,7 +33,7 @@ export async function confirmSession(
 }
 
 export async function cancelSession(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   date: string
 ) {
@@ -40,7 +41,7 @@ export async function cancelSession(
 }
 
 export async function fetchFutureSessions(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   fromDate: string
 ) {
@@ -52,7 +53,7 @@ export async function fetchFutureSessions(
 }
 
 export async function fetchUpcomingSessionsForGames(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameIds: string[],
   fromDate: string
 ) {
@@ -68,7 +69,7 @@ export async function fetchUpcomingSessionsForGames(
 }
 
 export async function updateSession(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   sessionId: string,
   patch: {
     start_time?: string;

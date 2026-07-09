@@ -1,8 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
 import type { AvailabilityStatus } from '@/types';
 
 export async function fetchUserAvailability(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   userId: string
 ) {
@@ -13,12 +14,12 @@ export async function fetchUserAvailability(
     .eq('user_id', userId);
 }
 
-export async function fetchAllAvailability(supabase: SupabaseClient, gameId: string) {
+export async function fetchAllAvailability(supabase: SupabaseClient<Database>, gameId: string) {
   return supabase.from('availability').select('*').eq('game_id', gameId);
 }
 
 export async function upsertAvailability(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   params: {
     user_id: string;
     game_id: string;
@@ -35,7 +36,7 @@ export async function upsertAvailability(
 }
 
 export async function batchUpsertAvailability(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   rows: {
     user_id: string;
     game_id: string;

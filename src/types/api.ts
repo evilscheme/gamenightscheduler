@@ -31,6 +31,29 @@ export interface DeletePreview {
   playerMembershipGames: PlayerMembershipGame[];
 }
 
+// --- /api/admin/stats ---
+
+export interface AdminStats {
+  totalUsers: number;
+  totalGames: number;
+  totalSessions: number;
+  recentUsers: Array<{
+    id: string;
+    name: string;
+    email: string;
+    avatar_url: string | null;
+    is_gm: boolean;
+    is_admin: boolean;
+    created_at: string;
+  }>;
+  recentGames: Array<{
+    id: string;
+    name: string;
+    created_at: string;
+    gm: { name: string } | null;
+  }>;
+}
+
 // --- /api/admin/games ---
 
 export interface GameWithEngagement {

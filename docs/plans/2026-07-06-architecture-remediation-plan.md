@@ -422,7 +422,7 @@ Order matters: characterization tests land BEFORE any refactor they protect.
   `fixed inset-0` hand-rolled overlay remains in `src/components/calendar/`
   (grep); e2e availability specs pass (or deferred-noted); lint/typecheck/unit pass.
 
-### P5.4 `[ ]` Refactor admin page to the TabContent pattern
+### P5.4 `[x]` Refactor admin page to the TabContent pattern
 - **Files:** `src/app/admin/page.tsx`; new files under `src/components/admin/`
   (`OverviewTab.tsx`, `GamesTab.tsx`, `TopUsersTab.tsx`, `ActivityTab.tsx`,
   `UpcomingGamesTab.tsx`, `AdminTable.tsx`); optionally new
@@ -631,6 +631,23 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P5.4: admin page → TabContent pattern — DONE
+- Changed: `admin/page.tsx` 783 → 124 lines (auth gate + tab switcher). New in
+  `src/components/admin/`: OverviewTab (40), GamesTab (190), TopUsersTab (159),
+  ActivityTab (86), UpcomingGamesTab (150), AdminTable (49 — only the honestly
+  shared pieces: overflow wrapper, plain th, empty-row; sorting and
+  expand/collapse stayed tab-local rather than growing a generic-columns
+  abstraction). New `src/hooks/useAdminResource.ts` (+6-test renderHook suite)
+  used by UpcomingGamesTab; `AdminStats` hoisted into `src/types/api.ts`.
+- Deliberate: the page-level stats/games/top-users `Promise.all` triad was NOT
+  split into three hook calls — combined loading/error and the is_admin gate
+  are load-bearing behavior; three independent fetches would change
+  partial-failure semantics. Preserved inline, exactly as before.
+- Verification (independent re-run): lint clean; typecheck clean; 633/633 unit
+  tests (6 new). e2e deferred: `e2e/tests/admin` (no local Supabase) — run
+  before merge.
+- Notes: none.
 
 ### 2026-07-09 — P5.3: AvailabilityCalendar split — DONE
 - Changed: AvailabilityCalendar.tsx 1,101 → 314 lines. New:

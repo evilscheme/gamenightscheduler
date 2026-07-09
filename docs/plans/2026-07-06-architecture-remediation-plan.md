@@ -551,7 +551,7 @@ overlaps P6.4 — coordinate, don't duplicate.
 - **Done when:** moves complete, one time-window formatter remains, all tests pass,
   lint/typecheck pass.
 
-### P7.3 `[ ]` E2E + unit-test hygiene
+### P7.3 `[x]` E2E + unit-test hygiene
 - **Files:** `e2e/helpers/seed.ts` (~:251), `e2e/README.md` (create if absent),
   `src/lib/suggestions.test.ts` (~:156-178, ~:291-313),
   `src/app/api/test-auth/route.ts` (only if P2.4 didn't already add the comment).
@@ -643,6 +643,47 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — FINAL SUMMARY — plan complete
+**Status: 26 of 27 work items `[x]`, 1 `[B]` (P6.4, by its own escape hatch),
+1 `[D]` (P0.2, owner decision).** Final verification: lint clean, typecheck
+clean, 644/644 unit tests (61 added net of the plan), `next build` passes.
+Suite grew from 584 tests (pre-plan) to 644 while deleting withOptimistic's 6.
+
+**Run before merging this branch** (no local Supabase in the loop's
+environment): full e2e suite — the Work Log flags per-item specs
+(delete-account, test-auth-security, availability, admin, scheduling,
+rls/function-grants). Also eyeball the two visual deltas from P5.3 (Modal
+popover width, dropped × button) at both breakpoints.
+
+**HUMAN ACTION REQUIRED — all pending prod SQL in one place** (full blocks in
+each item's Work Log entry above; apply in this order):
+1. P6.1 — `2026-07-09-p6-1-handle-new-user-resilience-prod.sql`: widened
+   avatar-host CHECK + sanitizing handle_new_user(). No pre-flight needed.
+2. P6.2 — `2026-07-09-p6-2-game-today-cutoffs-prod.sql`: game_today()
+   (+ grant lockdown), count_future_sessions, sessions INSERT policy
+   recreate. No pre-flight needed.
+3. P6.3 — `2026-07-09-p6-3-play-days-check-prod.sql`: play_days CHECK.
+   RUN THE PRE-FLIGHT first (must return 0 rows).
+
+**Blocked item:** P6.4 (caps → typed errors) — unblock recipe in its entry;
+needs a session with local Supabase.
+
+**Decisions waiting on the owner:** the five in
+`docs/plans/2026-07-09-prod-migration-strategy-design.md`, plus the
+Discovered Work list below (metadata name leak, server-side prefetch, NOT
+NULL hardening, time-window CHECKs behind client validation, calendar
+bidirectional window guard, wipe-script table omissions).
+
+### 2026-07-09 — P7.3: e2e + unit-test hygiene — DONE
+- Changed: dead `cleanDatabase()` deleted from `e2e/helpers/seed.ts`; new
+  `e2e/README.md` documents the actual isolation contract (unique per-test
+  data + RLS; never assert global aggregates; `cleanTestUsers()` covers auth
+  teardown). The verbatim-duplicated `makeSuggestion` factory in
+  `suggestions.test.ts` hoisted to one file-scope copy. (P2.4 already added
+  the test-auth NODE_ENV coupling comment, so that sub-task was a no-op.)
+- Verification: lint clean; typecheck clean; 644/644 unit tests.
+- Notes: none.
 
 ### 2026-07-09 — P7.2: schedule + admin clusters foldered; formatter core shared — DONE
 - Changed: `src/lib/schedule/` ← suggestions, scheduling, scheduleView,

@@ -41,6 +41,30 @@ const makeAvailability = (
   updated_at: "2025-01-01",
 });
 
+const makeSuggestion = (
+  date: string,
+  available: number,
+  maybe: number,
+  unavailable: number,
+  pending: number,
+  meetsThreshold = true
+): DateSuggestion => ({
+  date,
+  dayOfWeek: 5, // Friday
+  availableCount: available,
+  maybeCount: maybe,
+  unavailableCount: unavailable,
+  pendingCount: pending,
+  totalPlayers: available + maybe + unavailable + pending,
+  availablePlayers: [],
+  maybePlayers: [],
+  unavailablePlayers: [],
+  pendingPlayers: [],
+  earliestStartTime: null,
+  latestEndTime: null,
+  meetsThreshold,
+});
+
 describe("categorizePlayers", () => {
   const player1 = makeUser("1", "Alice");
   const player2 = makeUser("2", "Bob");
@@ -153,30 +177,6 @@ describe("categorizePlayers", () => {
 });
 
 describe("sortSuggestions", () => {
-  const makeSuggestion = (
-    date: string,
-    available: number,
-    maybe: number,
-    unavailable: number,
-    pending: number,
-    meetsThreshold = true
-  ): DateSuggestion => ({
-    date,
-    dayOfWeek: 5, // Friday
-    availableCount: available,
-    maybeCount: maybe,
-    unavailableCount: unavailable,
-    pendingCount: pending,
-    totalPlayers: available + maybe + unavailable + pending,
-    availablePlayers: [],
-    maybePlayers: [],
-    unavailablePlayers: [],
-    pendingPlayers: [],
-    earliestStartTime: null,
-    latestEndTime: null,
-    meetsThreshold,
-  });
-
   it("sorts by available count (descending)", () => {
     const suggestions = [
       makeSuggestion("2025-01-20", 2, 0, 0, 0),
@@ -288,30 +288,6 @@ describe("sortSuggestions", () => {
 });
 
 describe("sortSuggestionsChronologically", () => {
-  const makeSuggestion = (
-    date: string,
-    available: number,
-    maybe: number,
-    unavailable: number,
-    pending: number,
-    meetsThreshold = true
-  ): DateSuggestion => ({
-    date,
-    dayOfWeek: 5,
-    availableCount: available,
-    maybeCount: maybe,
-    unavailableCount: unavailable,
-    pendingCount: pending,
-    totalPlayers: available + maybe + unavailable + pending,
-    availablePlayers: [],
-    maybePlayers: [],
-    unavailablePlayers: [],
-    pendingPlayers: [],
-    earliestStartTime: null,
-    latestEndTime: null,
-    meetsThreshold,
-  });
-
   it("sorts by date ascending", () => {
     const suggestions = [
       makeSuggestion("2025-01-22", 4, 0, 0, 0),

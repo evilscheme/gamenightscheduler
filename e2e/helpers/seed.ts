@@ -245,31 +245,6 @@ export async function getGameByInviteCode(
 }
 
 /**
- * Delete all data from the database (for cleanup between tests).
- * Deletes in reverse dependency order.
- */
-export async function cleanDatabase(): Promise<void> {
-  const admin = getAdminClient();
-
-  // Delete in dependency order (reverse of creation)
-  const tables = [
-    'game_play_dates',
-    'sessions',
-    'availability',
-    'game_memberships',
-    'games',
-    // Note: Don't delete users here - they're managed by auth
-  ];
-
-  for (const table of tables) {
-    const { error } = await admin.from(table).delete().neq('id', '');
-    if (error) {
-      console.warn(`Warning: Failed to clean ${table}: ${error.message}`);
-    }
-  }
-}
-
-/**
  * Delete all test auth users (emails containing 'test').
  * Call this in global teardown.
  */

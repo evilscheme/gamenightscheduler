@@ -24,6 +24,7 @@ import {
 } from "@/lib/availabilityStatus";
 import { filterDatesForBulkSet } from "@/lib/bulkAvailability";
 import { formatTimeShort } from "@/lib/formatting";
+import { calendarCellState } from "@/lib/calendarCellState";
 import { getTimeOptions } from "@/lib/timeOptions";
 import {
   formatSessionTimeWindow,
@@ -647,77 +648,16 @@ function MonthCalendar({
           // Can GM remove this extra play date?
           const canRemoveExtra = isGmOrCoGm && isExtraPlayDate && !isPast;
 
-          // Non-play day in-range: diagonal stripes (matches schedule mini-calendar).
-          // Out-of-range: dimmer stripe utility class. Both override below for play/scheduled cells.
-          let bgColor = isOutOfRange
-            ? "cal-out-of-range"
-            : "bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)]";
-          let textColor = "text-cal-disabled-text";
-          let cursor = "cursor-default";
-          const extraStyles = "";
           const isTodayDate = isToday(date);
-
-          // Confirmed sessions show availability color with star overlay
-          // (so players can see + change their status even after a session is confirmed)
-          if (isConfirmed && !isPast) {
-            cursor = "cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-transform";
-            if (avail?.status === "available") {
-              bgColor = "bg-cal-available-bg";
-              textColor = "text-cal-available-text font-semibold";
-            } else if (avail?.status === "maybe") {
-              bgColor = "bg-cal-maybe-bg";
-              textColor = "text-cal-maybe-text font-semibold";
-            } else if (avail?.status === "unavailable") {
-              bgColor = "bg-cal-unavailable-bg/60";
-              textColor = "text-cal-unavailable-text font-semibold";
-            } else {
-              // Unset - use unset styling so player knows they haven't responded
-              if (isTodayDate) {
-                bgColor = "bg-cal-unset-bg";
-              } else {
-                bgColor = "bg-cal-unset-bg border-2 border-dashed border-cal-unset-border";
-              }
-              textColor = "text-cal-unset-text font-semibold";
-            }
-          } else if (isConfirmed && isPast) {
-            if (avail?.status === "available") {
-              bgColor = "bg-cal-available-bg";
-            } else if (avail?.status === "maybe") {
-              bgColor = "bg-cal-maybe-bg";
-            } else if (avail?.status === "unavailable") {
-              bgColor = "bg-cal-unavailable-bg/60";
-            } else {
-              bgColor = "bg-cal-unset-bg";
-            }
-            textColor = "text-cal-disabled-text/50 font-semibold";
-          } else if (isPlayDay && !isPast) {
-            cursor = "cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-transform";
-            if (avail?.status === "available") {
-              bgColor = "bg-cal-available-bg";
-              textColor = "text-cal-available-text font-medium";
-            } else if (avail?.status === "maybe") {
-              bgColor = "bg-cal-maybe-bg";
-              textColor = "text-cal-maybe-text font-medium";
-            } else if (avail?.status === "unavailable") {
-              bgColor = "bg-cal-unavailable-bg/60";
-              textColor = "text-cal-unavailable-text font-medium";
-            } else {
-              // Unset play day - but not if it's today (today gets solid styling)
-              if (isTodayDate) {
-                bgColor = "bg-cal-unset-bg";
-              } else {
-                bgColor = "bg-cal-unset-bg border-2 border-dashed border-cal-unset-border";
-              }
-              textColor = "text-cal-unset-text";
-            }
-          } else if (isPast) {
-            textColor = "text-cal-disabled-text/50";
-          }
-
-          // Today indicator - bold shadow ring effect (doesn't conflict with borders)
-          const todayStyles = isTodayDate
-            ? "shadow-[0_0_0_3px_var(--primary)] font-bold z-10"
-            : "";
+          const { bgColor, textColor, cursor, todayStyles, dataStatus } =
+            calendarCellState({
+              isOutOfRange,
+              isConfirmed,
+              isPast,
+              isPlayDay,
+              isToday: isTodayDate,
+              status: avail?.status,
+            });
 
           const hasComment = !!avail?.comment;
           const hasTimeConstraint = !!(avail?.available_after || avail?.available_until);
@@ -776,22 +716,6 @@ function MonthCalendar({
           }
           const cellTooltip = tooltipParts.join("\n");
 
-          // Data attribute for testing - represents the cell state
-          const dataStatus = isOutOfRange
-            ? "out-of-range"
-            : isConfirmed
-              ? "scheduled"
-              : isPast
-                ? "past"
-                : !isPlayDay
-                  ? "disabled"
-                  : avail?.status === "available"
-                    ? "available"
-                    : avail?.status === "unavailable"
-                      ? "unavailable"
-                      : avail?.status === "maybe"
-                        ? "maybe"
-                        : "unset";
 
           return (
             <button
@@ -811,7 +735,7 @@ function MonthCalendar({
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
               disabled={(!isPlayDay && !canAddAsExtra) || isPast || isOutOfRange}
-              className={`group relative w-full aspect-square min-h-9 rounded-sm flex items-center justify-center font-mono text-xl transition-all select-none ${bgColor} ${textColor} ${cursor} ${extraStyles} ${todayStyles}`}
+              className={`group relative w-full aspect-square min-h-9 rounded-sm flex items-center justify-center font-mono text-xl transition-all select-none ${bgColor} ${textColor} ${cursor} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}
               data-status={dataStatus}

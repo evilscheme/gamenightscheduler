@@ -385,7 +385,7 @@ Order matters: characterization tests land BEFORE any refactor they protect.
 - **Done when:** the duplicated block appears 0 times outside the primitive
   (re-run the grep); lint/typecheck/unit pass.
 
-### P5.2 `[ ]` **[G1]** Extract pure `calendarCellState` from AvailabilityCalendar
+### P5.2 `[x]` **[G1]** Extract pure `calendarCellState` from AvailabilityCalendar
 - **Files:** new `src/lib/calendarCellState.ts` + test;
   `src/components/calendar/AvailabilityCalendar.tsx` (post-#133 anchors: the
   `bgColor`/`textColor` cascade starts ~:652 inside `MonthCalendar` (function at
@@ -631,6 +631,19 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P5.2: pure calendarCellState extracted — DONE
+- Changed: new `src/lib/calendarCellState.ts` — the cell's
+  bgColor/textColor/cursor/todayStyles/data-status derivation moved verbatim
+  from the MonthCalendar render loop into a pure function of six inputs
+  (isOutOfRange/isConfirmed/isPast/isPlayDay/isToday/status). 18 unit tests pin
+  every branch's exact class strings. AvailabilityCalendar now destructures the
+  result (1,177 → 1,101 lines); the dead `extraStyles` const (always "") and
+  its empty className slot were removed — class tokens unchanged.
+- Verification: 18/18 new tests; lint clean; typecheck clean; 627/627 unit
+  tests pass. e2e deferred: `e2e/tests/availability` (no local Supabase) — the
+  data-status contract the specs select on is pinned by the new unit tests.
+- Notes: none.
 
 ### 2026-07-09 — P5.1: PageLoading primitive; 16 duplicated blocks replaced — DONE
 - Changed: new `src/components/ui/PageState.tsx` (`PageLoading`, optional

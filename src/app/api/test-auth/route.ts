@@ -19,6 +19,33 @@ if (process.env.NODE_ENV !== 'development') {
   console.warn('test-auth route loaded outside development - all requests will return 404');
 }
 
+/**
+ * Shared triple gate for every handler. Returns a 404 (not 403, to avoid
+ * revealing the route exists) unless ALL of:
+ *   1. NODE_ENV === 'development' — note the e2e suite relies on this
+ *      deliberately: Playwright starts `next dev`, which forces NODE_ENV to
+ *      'development' even though playwright.config sets NODE_ENV=test. Do NOT
+ *      "fix" this gate to also accept NODE_ENV === 'test'; a production build
+ *      must keep 404ing.
+ *   2. The Supabase URL points at local Supabase (exact-hostname check), so
+ *      this can never mint an admin against cloud creds even if NODE_ENV is
+ *      misconfigured.
+ *   3. The request carries the shared test secret header.
+ * Returns null when the request is allowed.
+ */
+function assertTestEnv(request: Request): Response | null {
+  if (process.env.NODE_ENV !== 'development' || !isLocalSupabase()) {
+    return new Response('Not found', { status: 404 });
+  }
+
+  const secret = process.env.TEST_AUTH_SECRET;
+  if (!secret || request.headers.get('x-test-auth-secret') !== secret) {
+    return new Response('Not found', { status: 404 });
+  }
+
+  return null;
+}
+
 interface TestUserRequest {
   email: string;
   name: string;
@@ -35,17 +62,8 @@ interface TestUserResponse {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  // SECURITY: Only allow in development (not 403 to avoid revealing route exists)
-  // Defense in depth: dev-only AND only against local Supabase, so this can
-  // never mint an admin against cloud creds even if NODE_ENV is misconfigured.
-  if (process.env.NODE_ENV !== 'development' || !isLocalSupabase()) {
-    return new Response('Not found', { status: 404 });
-  }
-
-  const secret = process.env.TEST_AUTH_SECRET;
-  if (!secret || request.headers.get('x-test-auth-secret') !== secret) {
-    return new Response('Not found', { status: 404 });
-  }
+  const blocked = assertTestEnv(request);
+  if (blocked) return blocked;
 
   try {
     const body = (await request.json()) as TestUserRequest;
@@ -188,16 +206,8 @@ export async function POST(request: Request): Promise<Response> {
 
 // Also support DELETE to clean up test users
 export async function DELETE(request: Request): Promise<Response> {
-  // Defense in depth: dev-only AND only against local Supabase, so this can
-  // never mint an admin against cloud creds even if NODE_ENV is misconfigured.
-  if (process.env.NODE_ENV !== 'development' || !isLocalSupabase()) {
-    return new Response('Not found', { status: 404 });
-  }
-
-  const secret = process.env.TEST_AUTH_SECRET;
-  if (!secret || request.headers.get('x-test-auth-secret') !== secret) {
-    return new Response('Not found', { status: 404 });
-  }
+  const blocked = assertTestEnv(request);
+  if (blocked) return blocked;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -242,16 +252,8 @@ export async function DELETE(request: Request): Promise<Response> {
 
 // Sign out the current user
 export async function PUT(request: Request): Promise<Response> {
-  // Defense in depth: dev-only AND only against local Supabase, so this can
-  // never mint an admin against cloud creds even if NODE_ENV is misconfigured.
-  if (process.env.NODE_ENV !== 'development' || !isLocalSupabase()) {
-    return new Response('Not found', { status: 404 });
-  }
-
-  const secret = process.env.TEST_AUTH_SECRET;
-  if (!secret || request.headers.get('x-test-auth-secret') !== secret) {
-    return new Response('Not found', { status: 404 });
-  }
+  const blocked = assertTestEnv(request);
+  if (blocked) return blocked;
 
   try {
     const cookieStore = await cookies();

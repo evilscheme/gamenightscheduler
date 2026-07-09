@@ -269,7 +269,7 @@ settings pages, and CLAUDE.md are touched by both #133 and untagged items P1.1/P
 - **Done when:** `npm run lint` passes on the clean tree and fails on a deliberate
   violation (verified locally, noted in Work Log).
 
-### P2.4 `[ ]` test-auth route: extract the shared gate
+### P2.4 `[x]` test-auth route: extract the shared gate
 - **Files:** `src/app/api/test-auth/route.ts`.
 - **Do:** The triple gate (NODE_ENV === 'development' + `isLocalSupabase()` + secret
   header) is copy-pasted into POST (~:41-48), DELETE (~:193-199), PUT (~:247-253).
@@ -625,6 +625,17 @@ Each loop iteration:
 ## Work Log
 
 (Append entries below; never rewrite existing entries.)
+
+### 2026-07-09 — P2.4: test-auth shared gate extraction — DONE
+- Changed: `src/app/api/test-auth/route.ts` — the triple gate (NODE_ENV +
+  isLocalSupabase + secret header) copy-pasted in POST/DELETE/PUT is now one
+  `assertTestEnv(request)` helper; its doc comment records the deliberate
+  coupling to `next dev` forcing NODE_ENV='development' (do not accept 'test').
+  Behavior identical: 404 on every rejection path.
+- Verification: lint clean; typecheck clean; 596/596 unit tests pass. e2e
+  deferred: `e2e/tests/api/test-auth-security.spec.ts` (no local Supabase here)
+  — should be run before merge.
+- Notes: none.
 
 ### 2026-07-09 — P2.3: ESLint data-layer boundary rule — DONE
 - Changed: `eslint.config.mjs` gains a `no-restricted-syntax` rule (selector

@@ -644,6 +644,19 @@ Each loop iteration:
 
 (Append entries below; never rewrite existing entries.)
 
+### 2026-07-10 — Post-plan: pre-merge e2e gate PASSED + LCP warning fix
+- Owner ran the full e2e suite: **306/306 pass** — clears the deferred-e2e gate
+  from the Final Summary (delete-account, test-auth-security, availability,
+  admin, scheduling, function-grants all covered).
+- Two warning classes observed during the run: (1) Node DEP0205
+  (`module.register()` deprecated) — emitted once per Playwright worker by
+  Playwright's own ESM loader on newer Node; not our code, harmless, resolves
+  with a future @playwright/test release. (2) Next.js LCP warnings for
+  `/logo.png` — fixed: `priority` added to the two above-the-fold hero logos
+  that lacked it (`login/page.tsx`, `WelcomeEmptyState.tsx`; SplashPage
+  already had it). Small logos (Navbar, OnboardingBanner) left lazy on
+  purpose. Styling/perf-attribute-only change.
+
 ### 2026-07-09 — FINAL SUMMARY — plan complete
 **Status: 26 of 27 work items `[x]`, 1 `[B]` (P6.4, by its own escape hatch),
 1 `[D]` (P0.2, owner decision).** Final verification: lint clean, typecheck

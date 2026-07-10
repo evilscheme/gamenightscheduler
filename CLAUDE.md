@@ -150,17 +150,19 @@ Client-side reads go through TanStack Query (React Query v5); the `QueryClientPr
 - `src/hooks/useUserPreferences.ts` - Single source of truth for user i18n preferences (time format, week start)
 - `src/lib/constants.ts` - Shared constants (day labels, timeouts, session defaults, usage limits, text limits, query stale time)
 - `src/lib/queryKeys.ts` - Central registry of React Query cache keys (all queries/invalidations build keys here)
-- `src/lib/dashboardData.ts` - Dashboard fetch (2-stage parallel, embedded member counts) + pure merge helper
-- `src/lib/availability.ts` - Player completion percentage calculations
-- `src/lib/scheduling.ts` - Scheduling window calculation (`getSchedulingWindow()`) for campaign date bounds
-- `src/lib/availabilityStatus.ts` - Availability state cycling (available → unavailable → maybe)
-- `src/lib/suggestions.ts` - Date suggestion ranking algorithm
+- **Domain folders** (each with an `index.ts` barrel — import from the folder, e.g. `@/lib/availability`):
+  - `src/lib/availability/` - Availability domain logic: completion percentages (`availability.ts`), status cycling (`availabilityStatus.ts`), bulk marking (`bulkAvailability.ts`), copy-between-games (`copyAvailability.ts`), weekday defaults (`defaultAvailability.ts`), and the ONE shared `isEligiblePlayDate()` predicate (`eligibleDates.ts`) — never re-implement the play-day/extra/past eligibility rule
+  - `src/lib/schedule/` - Scheduling domain: suggestion ranking (`suggestions.ts`), scheduling window (`scheduling.ts`), schedule view helpers + shared `joinTimeWindow` formatter core (`scheduleView.ts`), upcoming sessions (`upcomingSessions.ts`), cross-game sessions (`otherGameSessions.ts`), game health scoring (`gameHealth.ts`), dashboard fetch (`dashboardData.ts`)
+  - `src/lib/admin/` - Admin analytics: engagement charts data (`adminEngagement.ts`), top-users leaderboard (`topUsers.ts`)
+- `src/lib/date.ts` - Canonical local-date helpers (`toLocalDateString`, `getTodayLocalDate`) — never use `toISOString().split('T')[0]` (UTC "today" bug)
+- `src/lib/calendarCellState.ts` - Pure per-cell styling/state derivation for the availability calendar (every branch unit-tested)
 - `src/lib/ics.ts` - ICS (iCalendar) file generation for calendar export
 - `src/lib/formatting.ts` - Time formatting utilities (24h to 12h conversion, compact `formatTimeShort`)
 - `src/lib/gameValidation.ts` - Game form validation
-- `src/lib/bulkAvailability.ts` - Bulk availability marking logic
-- `src/lib/copyAvailability.ts` - Copy/filter availability entries between games
-- `src/lib/timezone.ts` - Timezone detection, display formatting, and conversion
+- `src/lib/timezone.ts` - Timezone detection, display formatting, and conversion (`getDateInTimezone` for "date at an instant in a specific zone")
+- `src/lib/apiError.ts` - `serverError()`/`logServerError()` — canonical errorId-correlated 500s for ALL API routes
+- `src/lib/api/` - Route guards (`requireAdmin`, `requireUser`) and admin pagination
+- `src/types/database.ts` - GENERATED Supabase types (regenerate via `npm run db:types` after schema changes); `src/types/api.ts` - shared API contract types (never re-declare route response shapes locally)
 - `src/lib/quat.ts` - Dependency-free quaternion/vector math for the 3D dice
 - `src/lib/d20Geometry.ts` - Icosahedron vertices/faces/numbers shared by dice physics and rendering
 - `src/lib/diceConfig.ts` - Die/tray sizing shared by physics and renderer
@@ -170,7 +172,7 @@ Client-side reads go through TanStack Query (React Query v5); the `QueryClientPr
 - `src/lib/themes.ts` - Theme configuration and utilities
 - `src/lib/url.ts` - URL validation (`safeCallbackUrl`) for open-redirect prevention
 - `src/contexts/ThemeContext.tsx` - Theme context (uses next-themes)
-- `src/components/ui/` - Reusable components: Button, Card, Input, Textarea, LoadingSpinner, EmptyState
+- `src/components/ui/` - Reusable components: Button, Card, Modal, Input, Textarea, LoadingSpinner, PageLoading, EmptyState
 
 ### Calendar Components
 

@@ -1,8 +1,15 @@
 # Production Migration Strategy — Design Proposal
 
-**Status:** proposal only (plan item P6.5). Nothing here is implemented; the open
-decisions at the bottom need the owner's call before any workflow or schema
-change lands.
+**Status:** DECIDED and implemented (2026-07-10). Owner's decisions: (1) prod
+SQL is committed to `supabase/prod-migrations/`; (2) drift detection is an
+on-demand CLI (`npm run db:drift`), not CI; (3) applying is a manually-run,
+confirm-gated CLI (`npm run db:migrate`), not CI; (4) no backfill — the chain
+starts 2026-07-09 with the three Phase 6 migrations. The runner records
+applied files in `public._applied_migrations` (Option B). The chain was
+verified equivalent to schema.sql: a pre-Phase-6 database plus the three
+migration files produces a byte-identical public schema to a fresh
+schema.sql install. The rest of this document is the original proposal, kept
+for rationale.
 
 ## Problem
 

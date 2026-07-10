@@ -121,7 +121,9 @@ Key tables:
 
 RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_participant()` and `is_game_gm_or_co_gm()` to avoid recursion issues.
 
-**Migrations:** The `supabase/migrations/00000000000000_initial_schema.sql` is a symlink to `schema.sql`. When adding new columns, tables, policies, or indexes, modify `schema.sql` directly — do NOT create a separate migration file. The symlink ensures schema changes are applied automatically. A separate migration file will fail CI because the initial schema already created the object (e.g., "column already exists", "policy already exists" SQLSTATE 42710). Only create a standalone migration file for production deployment (never committed to the repo alongside the schema.sql change).
+**Migrations:** The `supabase/migrations/00000000000000_initial_schema.sql` is a symlink to `schema.sql`. When adding new columns, tables, policies, or indexes, modify `schema.sql` directly — do NOT create a separate migration file there. The symlink ensures schema changes are applied automatically to fresh databases; a second file in `supabase/migrations/` will fail CI because the initial schema already created the object (e.g., "column already exists", SQLSTATE 42710).
+
+**Production migrations:** every `schema.sql` change must land WITH a matching timestamped file in `supabase/prod-migrations/` (committed, append-only — see its README for conventions). Apply to prod with `npm run db:migrate` (confirm-gated; tracks applied files in `public._applied_migrations`); check prod↔schema.sql parity anytime with `npm run db:drift` (local Supabase after `db:reset` vs prod).
 
 ### Key Patterns
 

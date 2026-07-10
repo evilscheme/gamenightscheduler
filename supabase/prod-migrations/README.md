@@ -18,10 +18,16 @@ e2e, `db:reset`) and must stay as-is.
   editing an applied one.
 - **Name format:** `YYYYMMDDTNN_short_description.sql` (lexicographic order is
   application order).
-- **Write transactionally and idempotently where cheap** (`BEGIN/COMMIT`,
-  `CREATE OR REPLACE`, `DROP ... IF EXISTS`): the runner records success AFTER
-  a file applies, so a crash between apply and record means the file may run
-  again.
+- **Do NOT include `BEGIN`/`COMMIT`** — the runner wraps each file, its
+  ledger record, and an advisory lock in ONE transaction, so apply-and-record
+  is atomic and concurrent runners serialize. The runner rejects files that
+  contain their own transaction statements. (If you ever apply a file by hand
+  in a SQL editor, wrap it in a transaction yourself.)
+- **Checksums are enforced.** The runner records each file's SHA-256 in the
+  ledger and refuses to proceed if an applied file has been edited —
+  immutability is checked, not just documented. Prefer `CREATE OR REPLACE` /
+  `DROP ... IF EXISTS` forms anyway so a file is cheap to re-apply if a run
+  is ever interrupted before it starts.
 - **Pre-flights live inside the file** as a `DO` block that raises a clear
   error (see `20260709T03_play_days_check.sql`), so a violating database
   fails loudly and rolls back rather than half-applying.

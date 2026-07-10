@@ -3,13 +3,19 @@
 # Compare supabase/schema.sql against a live database (default: PROD).
 #
 # Default mode builds a THROWAWAY reference database from schema.sql on the
-# local Supabase cluster — the reference is always exactly schema.sql, never a
+# local Supabase cluster (uniquely named per invocation; only that database is
+# dropped afterwards) — the reference is always exactly schema.sql, never a
 # possibly-stale dev database — then compares two things:
 #   1. Structure: pg_dump --schema-only --schema=public, normalized.
-#   2. Privileges: anon/authenticated EXECUTE on every public function and
-#      table-level rights on every public table (catalog queries), because the
-#      structural dump deliberately omits ACLs and this app's security posture
-#      depends on function grant lockdown.
+#   2. Privileges: for anon/authenticated/service_role — schema USAGE/CREATE,
+#      all seven table privileges (incl. TRUNCATE/REFERENCES/TRIGGER),
+#      sequence privileges, and function EXECUTE, via catalog queries (the
+#      structural dump deliberately omits ACLs, and this app's security
+#      posture depends on function grant lockdown).
+#      NOT covered: object ownership and default privileges (pg_default_acl) —
+#      owners legitimately differ between local and hosted Supabase, and
+#      default ACLs only affect future objects, whose actual privileges this
+#      check catches once they exist.
 #
 # Usage:
 #   npm run db:drift                        # schema.sql vs prod (DATABASE_URL)
@@ -22,10 +28,11 @@
 set -euo pipefail
 
 CLUSTER_URL="${DRIFT_CLUSTER_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
-TEMP_DB="_schema_drift_ref"
+TEMP_DB="_drift_ref_$$_${RANDOM}"
 
 cleanup() {
   if [ "${BUILT_REF:-}" = "1" ]; then
+    # Only ever drops the uniquely-named database THIS invocation created.
     psql "$CLUSTER_URL" -X -q -c "DROP DATABASE IF EXISTS $TEMP_DB WITH (FORCE);" >/dev/null 2>&1 || true
   fi
   rm -f "${TMP_A:-}" "${TMP_B:-}" "${PRIV_A:-}" "${PRIV_B:-}"
@@ -46,8 +53,7 @@ else
   LABEL_B="prod (DATABASE_URL)"
   LABEL_A="schema.sql (fresh reference)"
 
-  echo "Building reference database from supabase/schema.sql ..."
-  psql "$CLUSTER_URL" -X -q -v ON_ERROR_STOP=1 -c "DROP DATABASE IF EXISTS $TEMP_DB WITH (FORCE);"
+  echo "Building reference database from supabase/schema.sql ($TEMP_DB) ..."
   psql "$CLUSTER_URL" -X -q -v ON_ERROR_STOP=1 -c "CREATE DATABASE $TEMP_DB;"
   BUILT_REF=1
   URL_A="${CLUSTER_URL%/*}/$TEMP_DB"
@@ -81,11 +87,18 @@ dump_structure() {
 
 dump_privileges() {
   psql "$1" -X -q -v ON_ERROR_STOP=1 -At <<'SQL'
-SELECT 'function ' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
-       || ' anon=' || has_function_privilege('anon', p.oid, 'EXECUTE')::text
-       || ' authenticated=' || has_function_privilege('authenticated', p.oid, 'EXECUTE')::text
+WITH roles(role) AS (VALUES ('anon'), ('authenticated'), ('service_role'))
+SELECT 'schema public ' || role || '='
+       || concat_ws(',',
+            CASE WHEN has_schema_privilege(role, 'public', 'USAGE') THEN 'usage' END,
+            CASE WHEN has_schema_privilege(role, 'public', 'CREATE') THEN 'create' END)
+FROM roles
+UNION ALL
+SELECT 'function ' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ') ' || r.role
+       || '=' || CASE WHEN has_function_privilege(r.role, p.oid, 'EXECUTE') THEN 'execute' ELSE '-' END
 FROM pg_proc p
 JOIN pg_namespace n ON n.oid = p.pronamespace
+CROSS JOIN roles r
 WHERE n.nspname = 'public'
 UNION ALL
 SELECT 'table ' || c.relname || ' ' || r.role || '='
@@ -93,11 +106,24 @@ SELECT 'table ' || c.relname || ' ' || r.role || '='
             CASE WHEN has_table_privilege(r.role, c.oid, 'SELECT') THEN 'select' END,
             CASE WHEN has_table_privilege(r.role, c.oid, 'INSERT') THEN 'insert' END,
             CASE WHEN has_table_privilege(r.role, c.oid, 'UPDATE') THEN 'update' END,
-            CASE WHEN has_table_privilege(r.role, c.oid, 'DELETE') THEN 'delete' END)
+            CASE WHEN has_table_privilege(r.role, c.oid, 'DELETE') THEN 'delete' END,
+            CASE WHEN has_table_privilege(r.role, c.oid, 'TRUNCATE') THEN 'truncate' END,
+            CASE WHEN has_table_privilege(r.role, c.oid, 'REFERENCES') THEN 'references' END,
+            CASE WHEN has_table_privilege(r.role, c.oid, 'TRIGGER') THEN 'trigger' END)
 FROM pg_class c
 JOIN pg_namespace n2 ON n2.oid = c.relnamespace
-CROSS JOIN (VALUES ('anon'), ('authenticated')) AS r(role)
+CROSS JOIN roles r
 WHERE n2.nspname = 'public' AND c.relkind = 'r' AND c.relname <> '_applied_migrations'
+UNION ALL
+SELECT 'sequence ' || c.relname || ' ' || r.role || '='
+       || concat_ws(',',
+            CASE WHEN has_sequence_privilege(r.role, c.oid, 'USAGE') THEN 'usage' END,
+            CASE WHEN has_sequence_privilege(r.role, c.oid, 'SELECT') THEN 'select' END,
+            CASE WHEN has_sequence_privilege(r.role, c.oid, 'UPDATE') THEN 'update' END)
+FROM pg_class c
+JOIN pg_namespace n3 ON n3.oid = c.relnamespace
+CROSS JOIN roles r
+WHERE n3.nspname = 'public' AND c.relkind = 'S'
 ORDER BY 1;
 SQL
 }
@@ -114,7 +140,7 @@ dump_privileges "$URL_B" > "$PRIV_B"
 
 drift=0
 echo ""
-echo "── Structure ──"
+echo "── Structure (public schema, ownership/ACLs excluded) ──"
 if diff -u --label "$LABEL_A" --label "$LABEL_B" "$TMP_A" "$TMP_B"; then
   echo "identical."
 else
@@ -122,7 +148,7 @@ else
 fi
 
 echo ""
-echo "── Privileges (anon/authenticated) ──"
+echo "── Privileges (anon/authenticated/service_role: schema, tables, sequences, functions) ──"
 if diff -u --label "$LABEL_A" --label "$LABEL_B" "$PRIV_A" "$PRIV_B"; then
   echo "identical."
 else
@@ -131,7 +157,8 @@ fi
 
 echo ""
 if [ "$drift" -eq 0 ]; then
-  echo "No drift: structure and privileges match."
+  echo "No drift within the compared surface (structure + role privileges above;"
+  echo "ownership and default ACLs are not compared — see header comment)."
 else
   echo "DRIFT DETECTED (see diffs above)."
   echo "If prod is behind, run: npm run db:migrate"

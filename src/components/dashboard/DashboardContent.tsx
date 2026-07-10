@@ -4,21 +4,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Users, Calendar } from "lucide-react";
-import { Button, LoadingSpinner } from "@/components/ui";
-import { createClient } from "@/lib/supabase/client";
+import { Button, PageLoading } from "@/components/ui";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import { DAY_LABELS } from "@/lib/constants";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
-import { fetchDashboardData, type DashboardGame } from "@/lib/dashboardData";
+import {
+  fetchDashboardData,
+  type DashboardGame,
+  buildUpcomingSessionRows,
+} from "@/lib/schedule";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
-import { buildUpcomingSessionRows } from "@/lib/upcomingSessions";
 import { WelcomeEmptyState } from "./WelcomeEmptyState";
 import { UpcomingSessionsPanel } from "./UpcomingSessionsPanel";
 
 export function DashboardContent() {
   const { user, profile, authStatus } = useAuth();
   const { use24h, timezone: userTimezone } = useUserPreferences();
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const userId = user?.id ?? '';
 
   const queryClient = useQueryClient();
@@ -55,9 +58,7 @@ export function DashboardContent() {
 
   if (authStatus === 'loading' || (!!userId && isPending)) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 

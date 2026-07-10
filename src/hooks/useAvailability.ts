@@ -4,18 +4,17 @@ import {
   startOfDay,
   parseISO,
   isAfter,
-  isBefore,
   eachDayOfInterval,
   format,
 } from 'date-fns';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import type {
   Availability,
   AvailabilityStatus,
   GameWithMembers,
 } from '@/types';
-import type { AvailabilityEntry } from '@/lib/availabilityStatus';
+import type { AvailabilityEntry } from '@/lib/availability';
 import {
   fetchUserAvailability,
   fetchAllAvailability,
@@ -24,12 +23,17 @@ import {
   fetchUserDefaults,
 } from '@/lib/data';
 import { queryKeys } from '@/lib/queryKeys';
-import { filterAvailabilityForCopy, applyCopyConflicts, type CopyConflict } from '@/lib/copyAvailability';
-import { buildBulkUpsertEntries } from '@/lib/bulkAvailability';
-import { computeDefaultEntries, type WeekdayDefault } from '@/lib/defaultAvailability';
-import { getSchedulingWindow } from '@/lib/scheduling';
+import {
+  filterAvailabilityForCopy,
+  applyCopyConflicts,
+  type CopyConflict,
+  buildBulkUpsertEntries,
+  computeDefaultEntries,
+  type WeekdayDefault,
+} from '@/lib/availability';
+import { getSchedulingWindow } from '@/lib/schedule';
 
-const supabase = createClient();
+const supabase = getSupabaseClient();
 
 const EMPTY_AVAILABILITY: Availability[] = [];
 
@@ -268,9 +272,6 @@ export function useAvailability(
         destinationExtraPlayDates: extraDateStrings,
         today,
         windowEndDate: windowEnd,
-        getDayOfWeek: getDay,
-        isBefore,
-        isAfter,
         parseDate: (s) => parseISO(s),
       });
 
@@ -336,7 +337,6 @@ export function useAvailability(
         today,
         formatDate: (d) => format(d, 'yyyy-MM-dd'),
         getDayOfWeek: getDay,
-        isBefore,
       });
 
       if (entries.length === 0) return { hadDefaults: true, filled: 0 };

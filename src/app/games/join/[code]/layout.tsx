@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { fetchGameInviteMetaByCode } from '@/lib/data/games';
 import { DAY_LABELS } from '@/lib/constants';
 import { GameWithGMNameResult } from '@/types';
 
@@ -14,11 +15,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
   try {
     const admin = createAdminClient();
 
-    const { data: game, error } = await admin
-      .from('games')
-      .select('name, description, play_days, gm:users!games_gm_id_fkey(name)')
-      .eq('invite_code', code)
-      .single();
+    const { data: game, error } = await fetchGameInviteMetaByCode(admin, code);
 
     if (error || !game) {
       return {

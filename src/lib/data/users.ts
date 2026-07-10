@@ -1,7 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
+
+export async function fetchUserProfile(supabase: SupabaseClient<Database>, userId: string) {
+  return supabase.from('users').select('*').eq('id', userId).single();
+}
 
 export async function updateUserProfile(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
   params: {
     name: string;

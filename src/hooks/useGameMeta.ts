@@ -1,9 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { nanoid } from 'nanoid';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 
-const supabase = createClient();
+const supabase = getSupabaseClient();
 import type { GameWithMembers } from '@/types';
 import {
   fetchGameWithGM,
@@ -16,7 +16,6 @@ import {
   toggleCoGm as toggleCoGmQuery,
 } from '@/lib/data';
 import { invalidateGamesLists, queryKeys } from '@/lib/queryKeys';
-import { withOptimistic } from './withOptimistic';
 
 export interface UseGameMetaReturn {
   game: GameWithMembers | null;
@@ -87,12 +86,14 @@ export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
     if (!game || !gameId) return;
     const newCode = nanoid(10);
     const oldCode = game.invite_code;
-    await withOptimistic({
-      apply: () => setGame((prev) => (prev ? { ...prev, invite_code: newCode } : prev)),
-      revert: () => setGame((prev) => (prev ? { ...prev, invite_code: oldCode } : prev)),
-      mutation: () => regenerateInviteCode(supabase, gameId, newCode),
-    });
-  }, [game, gameId, setGame]);
+    // Standard optimistic pattern: cache write, revert + reconcile on failure.
+    setGame((prev) => (prev ? { ...prev, invite_code: newCode } : prev));
+    const { error } = await regenerateInviteCode(supabase, gameId, newCode);
+    if (error) {
+      setGame((prev) => (prev ? { ...prev, invite_code: oldCode } : prev));
+      queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
+    }
+  }, [game, gameId, setGame, queryClient]);
 
   const leaveGame = useCallback(async (): Promise<boolean> => {
     if (!userId || !gameId) return false;

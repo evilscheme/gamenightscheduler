@@ -13,7 +13,7 @@ import { SessionDetailsModal } from './SessionDetailsModal';
 import { CancelSessionModal } from './CancelSessionModal';
 import { CalendarHoverPopover } from './CalendarHoverPopover';
 import { generateICS, slugifyGameName, triggerICSDownload, composeIcsDescription } from '@/lib/ics';
-import { splitUpcomingPast } from '@/lib/scheduleView';
+import { splitUpcomingPast } from '@/lib/schedule';
 import { useToast } from '@/components/ui/Toast';
 import { CalendarSubscribeButton } from '@/components/games/CalendarSubscribeButton';
 

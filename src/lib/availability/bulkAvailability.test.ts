@@ -1,0 +1,323 @@
+import { describe, it, expect } from "vitest";
+import { filterDatesForBulkSet, buildBulkUpsertEntries } from "./bulkAvailability";
+import { AvailabilityEntry } from "./availabilityStatus";
+
+// Helper functions matching date-fns behavior
+const formatDate = (date: Date) => date.toISOString().split("T")[0];
+const getDayOfWeek = (date: Date) => date.getDay();
+const isBefore = (date: Date, compare: Date) => date < compare;
+
+// Create dates with fixed time to avoid timezone issues
+const makeDate = (dateStr: string) => new Date(`${dateStr}T12:00:00`);
+
+describe("filterDatesForBulkSet", () => {
+  // Fixed "today" for deterministic tests: 2025-01-15 (Wednesday)
+  const today = makeDate("2025-01-15");
+
+  // Sample dates in the window (Jan 15-31, 2025)
+  const dates = [
+    makeDate("2025-01-15"), // Wed (today)
+    makeDate("2025-01-16"), // Thu
+    makeDate("2025-01-17"), // Fri
+    makeDate("2025-01-18"), // Sat
+    makeDate("2025-01-19"), // Sun
+    makeDate("2025-01-20"), // Mon
+    makeDate("2025-01-21"), // Tue
+    makeDate("2025-01-22"), // Wed
+    makeDate("2025-01-23"), // Thu
+    makeDate("2025-01-24"), // Fri
+    makeDate("2025-01-25"), // Sat
+  ];
+
+  it('filters "remaining" - only unset dates', () => {
+    const playDays = [5, 6]; // Fri, Sat
+    const existingAvailability: Record<string, AvailabilityEntry> = {
+      "2025-01-17": { status: "available", comment: null, available_after: null, available_until: null },
+    };
+
+    const result = filterDatesForBulkSet({
+      filter: "remaining",
+      dates,
+      playDays,
+      extraPlayDates: [],
+      existingAvailability,
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    // Should include Fri 24, Sat 18, Sat 25 (not Fri 17 - already set)
+    expect(result).toContain("2025-01-18");
+    expect(result).toContain("2025-01-24");
+    expect(result).toContain("2025-01-25");
+    expect(result).not.toContain("2025-01-17"); // already has availability
+  });
+
+  it("filters specific day of week (e.g., Fridays)", () => {
+    const playDays = [5, 6]; // Fri, Sat
+
+    const result = filterDatesForBulkSet({
+      filter: "5", // Fridays
+      dates,
+      playDays,
+      extraPlayDates: [],
+      existingAvailability: {},
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    // Should only include Fridays
+    expect(result).toEqual(["2025-01-17", "2025-01-24"]);
+  });
+
+  it("excludes past dates", () => {
+    const playDays = [3]; // Wednesdays
+    const pastDates = [
+      makeDate("2025-01-08"), // Past Wed
+      makeDate("2025-01-15"), // Today (Wed)
+      makeDate("2025-01-22"), // Future Wed
+    ];
+
+    const result = filterDatesForBulkSet({
+      filter: "remaining",
+      dates: pastDates,
+      playDays,
+      extraPlayDates: [],
+      existingAvailability: {},
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    expect(result).not.toContain("2025-01-08"); // past
+    expect(result).toContain("2025-01-15"); // today (not before today)
+    expect(result).toContain("2025-01-22"); // future
+  });
+
+  it("includes extra play dates", () => {
+    const playDays = [5]; // Only Fridays normally
+    const extraPlayDates = ["2025-01-20"]; // Monday as extra
+
+    const result = filterDatesForBulkSet({
+      filter: "remaining",
+      dates,
+      playDays,
+      extraPlayDates,
+      existingAvailability: {},
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    expect(result).toContain("2025-01-17"); // Friday
+    expect(result).toContain("2025-01-20"); // Extra play date (Monday)
+    expect(result).toContain("2025-01-24"); // Friday
+    expect(result).not.toContain("2025-01-21"); // Tuesday, not extra
+  });
+
+  it("excludes non-play days", () => {
+    const playDays = [5]; // Only Fridays
+
+    const result = filterDatesForBulkSet({
+      filter: "remaining",
+      dates,
+      playDays,
+      extraPlayDates: [],
+      existingAvailability: {},
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    // Should only include Fridays
+    expect(result).toEqual(["2025-01-17", "2025-01-24"]);
+  });
+
+  it('returns all play dates for "remaining" with empty availability', () => {
+    const playDays = [5, 6]; // Fri, Sat
+
+    const result = filterDatesForBulkSet({
+      filter: "remaining",
+      dates,
+      playDays,
+      extraPlayDates: [],
+      existingAvailability: {},
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    expect(result).toEqual([
+      "2025-01-17",
+      "2025-01-18",
+      "2025-01-24",
+      "2025-01-25",
+    ]);
+  });
+
+  it('returns empty array for "remaining" when all dates are set', () => {
+    const playDays = [5]; // Only Fridays
+    const existingAvailability: Record<string, AvailabilityEntry> = {
+      "2025-01-17": { status: "available", comment: null, available_after: null, available_until: null },
+      "2025-01-24": { status: "unavailable", comment: null, available_after: null, available_until: null },
+    };
+
+    const result = filterDatesForBulkSet({
+      filter: "remaining",
+      dates,
+      playDays,
+      extraPlayDates: [],
+      existingAvailability,
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it("handles empty dates array", () => {
+    const result = filterDatesForBulkSet({
+      filter: "remaining",
+      dates: [],
+      playDays: [5],
+      extraPlayDates: [],
+      existingAvailability: {},
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it("handles empty play days", () => {
+    const result = filterDatesForBulkSet({
+      filter: "remaining",
+      dates,
+      playDays: [],
+      extraPlayDates: [],
+      existingAvailability: {},
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it("specific day filter still respects play days configuration", () => {
+    const playDays = [5]; // Only Fridays
+    // Trying to filter by Saturdays (6) but Saturdays aren't play days
+    const result = filterDatesForBulkSet({
+      filter: "6", // Saturdays
+      dates,
+      playDays,
+      extraPlayDates: [],
+      existingAvailability: {},
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    // No Saturdays because they're not in playDays
+    expect(result).toEqual([]);
+  });
+
+  it("specific day filter works when day is a play day", () => {
+    const playDays = [5, 6]; // Fridays and Saturdays
+
+    const result = filterDatesForBulkSet({
+      filter: "6", // Saturdays
+      dates,
+      playDays,
+      extraPlayDates: [],
+      existingAvailability: {},
+      today,
+      formatDate,
+      getDayOfWeek,
+      isBefore,
+    });
+
+    expect(result).toEqual(["2025-01-18", "2025-01-25"]);
+  });
+});
+
+describe("buildBulkUpsertEntries", () => {
+  it("sets the given status on every date", () => {
+    const dates = ["2025-01-17", "2025-01-18", "2025-01-24"];
+
+    const result = buildBulkUpsertEntries(dates, "available", {});
+
+    expect(result.every((r) => r.entry.status === "available")).toBe(true);
+  });
+
+  it("preserves existing comment/available_after/available_until for dates present in existingAvailability", () => {
+    const dates = ["2025-01-17"];
+    const existingAvailability: Record<string, AvailabilityEntry> = {
+      "2025-01-17": {
+        status: "unavailable",
+        comment: "Depends on work",
+        available_after: "18:00:00",
+        available_until: "23:00:00",
+      },
+    };
+
+    const result = buildBulkUpsertEntries(dates, "maybe", existingAvailability);
+
+    expect(result).toEqual([
+      {
+        date: "2025-01-17",
+        entry: {
+          status: "maybe",
+          comment: "Depends on work",
+          available_after: "18:00:00",
+          available_until: "23:00:00",
+        },
+      },
+    ]);
+  });
+
+  it("nulls comment/available_after/available_until for dates without an entry", () => {
+    const dates = ["2025-01-20"];
+
+    const result = buildBulkUpsertEntries(dates, "unavailable", {});
+
+    expect(result).toEqual([
+      {
+        date: "2025-01-20",
+        entry: {
+          status: "unavailable",
+          comment: null,
+          available_after: null,
+          available_until: null,
+        },
+      },
+    ]);
+  });
+
+  it("returns entries in input date order", () => {
+    const dates = ["2025-01-24", "2025-01-17", "2025-01-20"];
+
+    const result = buildBulkUpsertEntries(dates, "available", {});
+
+    expect(result.map((r) => r.date)).toEqual(["2025-01-24", "2025-01-17", "2025-01-20"]);
+  });
+
+  it("returns an empty array for empty input", () => {
+    const result = buildBulkUpsertEntries([], "available", {});
+
+    expect(result).toEqual([]);
+  });
+});

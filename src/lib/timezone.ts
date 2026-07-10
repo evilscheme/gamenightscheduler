@@ -1,6 +1,7 @@
 /**
  * Timezone utilities for browser detection, display formatting, and conversion
  */
+import { toLocalDateString } from './date';
 
 /**
  * Get the user's browser timezone
@@ -188,10 +189,7 @@ export function getSessionInstantMs(
 export function getDateInTimezone(ms: number, timezone: string | null): string {
   const date = new Date(ms);
   if (!timezone) {
-    const y = date.getFullYear();
-    const mo = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${mo}-${d}`;
+    return toLocalDateString(date);
   }
   // en-CA formats as YYYY-MM-DD, which sorts lexicographically.
   return new Intl.DateTimeFormat('en-CA', {

@@ -5,6 +5,7 @@ export { ToggleSwitch } from './ToggleSwitch';
 export { EmptyState } from './EmptyState';
 export { Input } from './Input';
 export { LoadingSpinner } from './LoadingSpinner';
+export { PageLoading } from './PageState';
 export { Textarea } from './Textarea';
 export { Avatar, type AvatarRingState } from './Avatar';
 export { StatePill, type PillState } from './StatePill';

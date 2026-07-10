@@ -1,7 +1,7 @@
 // Database types
 
 import type { SchedulingWindowMonths } from "@/lib/constants";
-import type { UpcomingSessionRow } from "@/lib/upcomingSessions";
+import type { UpcomingSessionRow } from "@/lib/schedule";
 
 export interface User {
   id: string;
@@ -13,7 +13,7 @@ export interface User {
   timezone: string | null;
   week_start_day: number;
   time_format: string;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface Game {
@@ -31,7 +31,7 @@ export interface Game {
   ad_hoc_only: boolean;
   campaign_start_date: string | null;
   campaign_end_date: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface GamePlayDate {
@@ -39,7 +39,7 @@ export interface GamePlayDate {
   game_id: string;
   date: string; // ISO date string (YYYY-MM-DD)
   note: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export type AvailabilityStatus = 'available' | 'unavailable' | 'maybe';
@@ -53,8 +53,8 @@ export interface Availability {
   comment: string | null;
   available_after: string | null; // HH:MM:SS
   available_until: string | null; // HH:MM:SS
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface UserAvailabilityDefault {
@@ -65,8 +65,8 @@ export interface UserAvailabilityDefault {
   comment: string | null;
   available_after: string | null; // HH:MM:SS
   available_until: string | null; // HH:MM:SS
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 // Note: Sessions are always created as 'confirmed' and cancelled by deletion.
@@ -79,11 +79,11 @@ export interface GameSession {
   date: string; // ISO date string
   start_time: string | null; // HH:MM:SS format
   end_time: string | null; // HH:MM:SS format
-  status: SessionStatus;
+  status: SessionStatus | null;
   confirmed_by: string | null;
   location: string | null;
   notes: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 // Extended types with relations

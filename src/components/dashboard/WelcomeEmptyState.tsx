@@ -45,6 +45,7 @@ export function WelcomeEmptyState() {
           width={80}
           height={80}
           className="mx-auto mb-4"
+          priority
         />
         <h2 className="text-2xl font-bold text-foreground mb-2">
           Can We Play?

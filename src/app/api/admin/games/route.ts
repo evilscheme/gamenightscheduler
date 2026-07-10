@@ -1,24 +1,11 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
 import { calculateGameFillRate } from '@/lib/availability';
-import { calculateGameHealth, type HealthBreakdown, type HealthGrade } from '@/lib/gameHealth';
+import { calculateGameHealth } from '@/lib/schedule';
 import { serverError } from '@/lib/apiError';
+import { getTodayLocalDate } from '@/lib/date';
 
-interface GameWithEngagement {
-  id: string;
-  name: string;
-  created_at: string;
-  gm: { id: string; name: string; email: string } | null;
-  playerCount: number;
-  sessionCount: number;
-  futureSessionCount: number;
-  availabilityFillRate: number;
-  lastActivity: string | null;
-  healthScore: number;
-  healthGrade: HealthGrade;
-  healthLabel: string;
-  healthBreakdown: HealthBreakdown;
-}
+import type { GameWithEngagement } from '@/types/api';
 
 export async function GET(): Promise<Response> {
   try {
@@ -51,7 +38,7 @@ export async function GET(): Promise<Response> {
       membershipsByGame.get(m.game_id)!.add(m.user_id);
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayLocalDate();
     const sessionsByGame = new Map<string, { total: number; future: number; lastActivity: string | null }>();
     for (const s of sessions) {
       if (!sessionsByGame.has(s.game_id)) {
@@ -131,7 +118,7 @@ export async function GET(): Promise<Response> {
         futureSessionCount: sessionStats.future,
         availabilityFillRate: fillRate,
         lastActivity,
-        createdAt: game.created_at,
+        createdAt: game.created_at ?? getTodayLocalDate(),
       });
 
       return {

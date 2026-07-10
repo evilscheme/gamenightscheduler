@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
-import { LoadingSpinner } from '@/components/ui';
+import { PageLoading } from '@/components/ui';
 import { safeCallbackUrl } from '@/lib/url';
 
 function LoginContent() {
@@ -23,9 +23,7 @@ function LoginContent() {
 
   if (authStatus === 'loading' || authStatus === 'authenticated') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 
@@ -34,7 +32,7 @@ function LoginContent() {
       <div className="max-w-md w-full">
         <div className="bg-card rounded-xl shadow-lg border border-border p-8">
           <div className="text-center mb-8">
-            <Image src="/logo.png" alt="Can We Play?" width={64} height={64} className="mx-auto" />
+            <Image src="/logo.png" alt="Can We Play?" width={64} height={64} className="mx-auto" priority />
             <h1 className="text-2xl font-bold text-card-foreground mt-4">Can We Play?</h1>
             <p className="text-muted-foreground mt-2">Sign in to start scheduling your game nights</p>
           </div>
@@ -83,9 +81,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-          <LoadingSpinner size="lg" />
-        </div>
+        <PageLoading />
       }
     >
       <LoginContent />

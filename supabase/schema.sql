@@ -18,7 +18,7 @@ CREATE TABLE users (
   name TEXT NOT NULL CHECK (char_length(name) <= 50),
   avatar_url TEXT CHECK (
     avatar_url IS NULL
-    OR avatar_url ~ '^https://(lh3\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/'
+    OR avatar_url ~ '^https://(lh[0-9]+\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/'
   ),
   is_gm BOOLEAN DEFAULT TRUE,
   is_admin BOOLEAN DEFAULT FALSE,
@@ -34,7 +34,7 @@ CREATE TABLE games (
   name TEXT NOT NULL CHECK (char_length(name) <= 100),
   description TEXT CHECK (description IS NULL OR char_length(description) <= 1000),
   gm_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  play_days INTEGER[] NOT NULL DEFAULT '{}',
+  play_days INTEGER[] NOT NULL DEFAULT '{}' CHECK (play_days <@ ARRAY[0, 1, 2, 3, 4, 5, 6]),
   invite_code TEXT UNIQUE NOT NULL,
   scheduling_window_months INTEGER DEFAULT 2 CHECK (scheduling_window_months IN (1, 2, 3, 6, 12)),
   default_start_time TIME DEFAULT '18:00',
@@ -157,23 +157,32 @@ $$ LANGUAGE plpgsql SET search_path = '';
 -- Auto-create user profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.users (id, email, name, avatar_url, is_gm, is_admin)
-  VALUES (
-    NEW.id,
-    NEW.email,
+DECLARE
+  -- Sanitize inputs instead of letting public.users CHECK constraints reject
+  -- the row: this trigger runs inside the auth signup transaction, so a
+  -- constraint violation here turns a validation rule into a signup outage
+  -- (OAuth name >50 chars, avatar from an unexpected host).
+  v_name TEXT := left(
     COALESCE(
       NEW.raw_user_meta_data->>'full_name',
       NEW.raw_user_meta_data->>'name',
       split_part(NEW.email, '@', 1)
     ),
-    COALESCE(
-      NEW.raw_user_meta_data->>'avatar_url',
-      NEW.raw_user_meta_data->>'picture'
-    ),
-    true,
-    false
+    50
   );
+  v_avatar TEXT := COALESCE(
+    NEW.raw_user_meta_data->>'avatar_url',
+    NEW.raw_user_meta_data->>'picture'
+  );
+BEGIN
+  -- Must mirror the users.avatar_url CHECK; drop rather than reject.
+  IF v_avatar IS NOT NULL
+     AND v_avatar !~ '^https://(lh[0-9]+\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/' THEN
+    v_avatar := NULL;
+  END IF;
+
+  INSERT INTO public.users (id, email, name, avatar_url, is_gm, is_admin)
+  VALUES (NEW.id, NEW.email, v_name, v_avatar, true, false);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
@@ -249,6 +258,26 @@ END;
 -- VOLATILE (not STABLE): count-based limit guard; see count_user_games above.
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
+-- "Today" as observed in the game's own timezone. Session dates are calendar
+-- dates in the game's locale, so cutoffs computed with CURRENT_DATE (UTC on
+-- Supabase) misclassify evenings near the UTC day boundary — "tonight" in a US
+-- timezone was rejected as past after 00:00 UTC.
+CREATE OR REPLACE FUNCTION public.game_today(game_id_param UUID)
+RETURNS DATE AS $$
+DECLARE
+  tz TEXT;
+BEGIN
+  SELECT timezone INTO tz FROM public.games WHERE id = game_id_param;
+  BEGIN
+    RETURN (now() AT TIME ZONE COALESCE(tz, 'UTC'))::date;
+  EXCEPTION WHEN OTHERS THEN
+    -- Invalid IANA name stored on the game: fall back to UTC rather than
+    -- making every session insert fail.
+    RETURN (now() AT TIME ZONE 'UTC')::date;
+  END;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+
 -- Count how many future sessions exist for a game (used by RLS to enforce limit)
 CREATE OR REPLACE FUNCTION public.count_future_sessions(game_id_param UUID)
 RETURNS INTEGER AS $$
@@ -258,7 +287,7 @@ BEGIN
   SELECT COUNT(*) INTO session_count
   FROM public.sessions
   WHERE game_id = game_id_param
-    AND date >= CURRENT_DATE;
+    AND date >= public.game_today(game_id_param);
   RETURN session_count;
 END;
 -- VOLATILE (not STABLE): count-based limit guard; see count_user_games above.
@@ -540,7 +569,7 @@ CREATE POLICY "Game participants can view sessions" ON sessions
 CREATE POLICY "GMs and co-GMs can insert sessions" ON sessions
   FOR INSERT WITH CHECK (
     public.is_game_gm_or_co_gm(game_id, (select auth.uid()))
-    AND date >= CURRENT_DATE
+    AND date >= public.game_today(game_id)
     AND public.count_future_sessions(game_id) < 100
   );
 CREATE POLICY "GMs and co-GMs can update sessions" ON sessions

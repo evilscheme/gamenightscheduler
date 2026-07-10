@@ -3,7 +3,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo, ReactNode } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
-import { createClient, onSupabaseStatus } from '@/lib/supabase/client';
+import { getSupabaseClient, onSupabaseStatus } from '@/lib/supabase/client';
+import { fetchUserProfile } from '@/lib/data/users';
 import { User } from '@/types';
 import { TIMEOUTS } from '@/lib/constants';
 import { deriveAuthStatus, type AuthStatus } from './authStatus';
@@ -23,14 +24,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Create a singleton supabase client to avoid recreating on each render
-let supabaseClient: ReturnType<typeof createClient> | null = null;
-function getSupabaseClient() {
-  if (!supabaseClient) {
-    supabaseClient = createClient();
-  }
-  return supabaseClient;
-}
 
 // Check for stored Supabase auth tokens (cookies or localStorage).
 // Used to detect returning users and prevent flash of unauthenticated UI
@@ -131,11 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async (userId: string) => {
     try {
       // Add timeout to prevent hanging
-      const fetchPromise = supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const fetchPromise = fetchUserProfile(supabase, userId);
 
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Profile fetch timeout')), TIMEOUTS.PROFILE_FETCH)

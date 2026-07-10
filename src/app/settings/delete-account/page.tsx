@@ -4,29 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Button, Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
+import { Button, Card, CardContent, CardHeader, PageLoading } from '@/components/ui';
 
-interface OwnedGameMember {
-  id: string;
-  name: string;
-}
-
-interface OwnedGame {
-  id: string;
-  name: string;
-  members: OwnedGameMember[];
-}
-
-interface PlayerMembershipGame {
-  id: string;
-  name: string;
-}
-
-interface DeletePreview {
-  ownedGames: OwnedGame[];
-  playerMembershipCount: number;
-  playerMembershipGames: PlayerMembershipGame[];
-}
+import type { OwnedGame, DeletePreview } from '@/types/api';
 
 type GameDecision =
   | { action: 'delete' }
@@ -144,9 +124,7 @@ export default function DeleteAccountPage() {
 
   if (authStatus === 'loading' || step === 'loading') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 
@@ -155,7 +133,7 @@ export default function DeleteAccountPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardContent className="py-8 text-center space-y-4">
-            <p className="text-destructive font-medium">{errorMessage}</p>
+            <p className="text-danger font-medium">{errorMessage}</p>
             <div className="flex justify-center gap-4">
               <Button variant="secondary" onClick={() => { setStep('loading'); setErrorMessage(''); }}>
                 Try again
@@ -172,10 +150,7 @@ export default function DeleteAccountPage() {
 
   if (step === 'deleting') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center gap-4">
-        <LoadingSpinner size="lg" />
-        <p className="text-muted-foreground">Deleting your account&hellip;</p>
-      </div>
+      <PageLoading message="Deleting your account&hellip;" />
     );
   }
 
@@ -326,7 +301,7 @@ export default function DeleteAccountPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-destructive/40">
+          <Card className="border-danger/40">
             <CardContent className="pt-6 space-y-4">
               <p className="text-sm font-medium text-foreground">
                 Type <span className="font-mono font-bold">{CONFIRM_WORD}</span> to confirm
@@ -336,7 +311,7 @@ export default function DeleteAccountPage() {
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 placeholder={CONFIRM_WORD}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-destructive focus:border-destructive"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-danger focus:border-danger"
                 autoComplete="off"
                 aria-label="Type DELETE to confirm"
               />

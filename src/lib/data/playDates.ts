@@ -1,12 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
 import type { GamePlayDate } from '@/types';
 
-export async function fetchGamePlayDates(supabase: SupabaseClient, gameId: string) {
+export async function fetchGamePlayDates(supabase: SupabaseClient<Database>, gameId: string) {
   return supabase.from('game_play_dates').select('*').eq('game_id', gameId);
 }
 
 export async function addPlayDate(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   date: string
 ) {
@@ -18,7 +19,7 @@ export async function addPlayDate(
 }
 
 export async function removePlayDate(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   date: string
 ) {
@@ -30,7 +31,7 @@ export async function removePlayDate(
 }
 
 export async function updatePlayDateNote(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   date: string,
   note: string | null
@@ -43,7 +44,7 @@ export async function updatePlayDateNote(
 }
 
 export async function upsertPlayDate(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   gameId: string,
   date: string,
   note: string | null

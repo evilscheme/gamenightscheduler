@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
-import { Button, LoadingSpinner, Modal, OnboardingBanner, useToast } from "@/components/ui";
+import { Button, Modal, OnboardingBanner, useToast, PageLoading } from "@/components/ui";
 import { shouldShowAvailabilityNudge } from "@/lib/onboarding";
 import { OverviewTabContent } from "@/components/games/overview/OverviewTabContent";
 import { User } from "@/types";
@@ -158,7 +158,7 @@ export default function GameDetailPage() {
 
   const copyFromGame = (
     sourceGameId: string,
-    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+    conflict: import('@/lib/availability').CopyConflict | null,
   ) => copyFromGameRaw(sourceGameId, extraDateStrings, conflict);
 
   const confirmSession = (
@@ -171,9 +171,7 @@ export default function GameDetailPage() {
 
   if (authStatus === 'loading' || loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireUser } from '@/lib/api/auth';
+import { serverError } from '@/lib/apiError';
 
 interface GameAction {
   gameId: string;
@@ -13,15 +14,9 @@ interface DeleteRequest {
 }
 
 export async function POST(req: NextRequest): Promise<Response> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (auth instanceof NextResponse) return auth;
+  const { user } = auth;
 
   let body: DeleteRequest;
   try {
@@ -62,7 +57,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       .in('id', gameIds);
 
     if (verifyError) {
-      return NextResponse.json({ error: 'Failed to verify game ownership' }, { status: 500 });
+      return serverError(verifyError, { route: 'account/delete', step: 'verify-ownership' });
     }
 
     if ((verifiedGames?.length ?? 0) !== gameIds.length) {
@@ -77,7 +72,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     .eq('gm_id', user.id);
 
   if (ownedError) {
-    return NextResponse.json({ error: 'Failed to fetch owned games' }, { status: 500 });
+    return serverError(ownedError, { route: 'account/delete', step: 'fetch-owned-games' });
   }
 
   // Every game that has members must have an explicit action
@@ -104,7 +99,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       .maybeSingle();
 
     if (memberError) {
-      return NextResponse.json({ error: 'Failed to verify transfer target' }, { status: 500 });
+      return serverError(memberError, { route: 'account/delete', step: 'verify-transfer-target' });
     }
     if (!membership) {
       return NextResponse.json(
@@ -125,8 +120,11 @@ export async function POST(req: NextRequest): Promise<Response> {
       .eq('gm_id', user.id); // safety: only update if still owned by this user
 
     if (updateError) {
-      console.error('delete: failed to transfer game', action.gameId, updateError);
-      return NextResponse.json({ error: 'Failed to transfer game ownership' }, { status: 500 });
+      return serverError(updateError, {
+        route: 'account/delete',
+        step: 'transfer-game',
+        gameId: action.gameId,
+      });
     }
 
     // Remove the new GM from the membership table (they're now the owner, not a player)
@@ -137,29 +135,25 @@ export async function POST(req: NextRequest): Promise<Response> {
       .eq('user_id', action.newGmId!);
   }
 
-  // 2. Delete public.users — cascades:
+  // 2. Delete the auth user. public.users REFERENCES auth.users ON DELETE
+  //    CASCADE, so this single delete cascades through the profile to:
   //    - All remaining owned games (those not transferred, including solo ones)
   //    - Their sessions, memberships, availability, play dates
   //    - User's own memberships in other games
   //    - User's own availability in other games
   //    - sessions.confirmed_by set to NULL (ON DELETE SET NULL)
-  const { error: deleteProfileError } = await admin
-    .from('users')
-    .delete()
-    .eq('id', user.id);
-
-  if (deleteProfileError) {
-    console.error('delete: failed to delete user profile', deleteProfileError);
-    return NextResponse.json({ error: 'Failed to delete user profile' }, { status: 500 });
-  }
-
-  // 3. Delete from auth.users (must come after public.users due to FK direction)
+  //    Deleting ONLY auth.users means a failure here leaves the account fully
+  //    intact — no orphan window where the profile is gone but the login still
+  //    works (the signup trigger only fires on INSERT, so a lost profile would
+  //    never regenerate).
   const { error: deleteAuthError } = await admin.auth.admin.deleteUser(user.id);
 
   if (deleteAuthError) {
-    // Profile is already deleted — log for manual recovery but don't fail the response
-    console.error('delete: profile deleted but auth user deletion failed', user.id, deleteAuthError);
-    return NextResponse.json({ error: 'Failed to delete auth account' }, { status: 500 });
+    return serverError(deleteAuthError, {
+      route: 'account/delete',
+      step: 'delete-auth-user',
+      userId: user.id,
+    });
   }
 
   return NextResponse.json({ success: true });

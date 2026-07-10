@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
+import type { Database } from '@/types/database';
 
 // --- Backend status callback registry ---
 
@@ -75,7 +76,7 @@ function createMonitoredFetch(): typeof fetch {
 // --- Client factory ---
 
 export function createClient() {
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     supabaseUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -84,4 +85,18 @@ export function createClient() {
       },
     }
   );
+}
+
+// --- Shared browser client singleton ---
+
+// Multiple GoTrueClient instances in one tab race on token refresh, so every
+// browser-side consumer (hooks, pages, AuthContext) must share this instance.
+// Only tests should call createClient() directly.
+let browserClient: ReturnType<typeof createClient> | null = null;
+
+export function getSupabaseClient() {
+  if (!browserClient) {
+    browserClient = createClient();
+  }
+  return browserClient;
 }

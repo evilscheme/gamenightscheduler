@@ -4,15 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui';
 import { DAY_LABELS } from '@/lib/constants';
 import { queryKeys } from '@/lib/queryKeys';
-import type { WeekdayDefault } from '@/lib/defaultAvailability';
+import type { WeekdayDefault } from '@/lib/availability';
 import { fetchUserDefaults, upsertUserDefault, deleteUserDefault } from '@/lib/data';
 import { DefaultDayRow } from './DefaultDayRow';
 
-const supabase = createClient();
+const supabase = getSupabaseClient();
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6];
 

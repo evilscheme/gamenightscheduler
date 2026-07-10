@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import Link from 'next/link';
-import { Button, EyebrowLabel, Input, LoadingSpinner, Panel } from '@/components/ui';
-import { createClient } from '@/lib/supabase/client';
+import { Button, EyebrowLabel, Input, Panel, PageLoading } from '@/components/ui';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { updateUserProfile } from '@/lib/data/users';
 import { TEXT_LIMITS, TIMEZONE_GROUPS } from '@/lib/constants';
 import { ThemePicker } from '@/components/settings/ThemePicker';
 import { getBrowserTimezone, isValidTimezone } from '@/lib/timezone';
@@ -20,7 +21,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<{ text: string; tone: 'success' | 'danger' } | null>(
     null
   );
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
 
   useAuthRedirect();
 
@@ -61,15 +62,12 @@ export default function SettingsPage() {
     setSaving(true);
     setMessage(null);
 
-    const { error } = await supabase
-      .from('users')
-      .update({
-        name: name.trim(),
-        timezone: userTimezone || null,
-        week_start_day: weekStartDay,
-        time_format: timeFormat,
-      })
-      .eq('id', profile.id);
+    const { error } = await updateUserProfile(supabase, profile.id, {
+      name: name.trim(),
+      timezone: userTimezone || null,
+      week_start_day: weekStartDay,
+      time_format: timeFormat,
+    });
 
     if (error) {
       if (error.code === '23514') {
@@ -90,9 +88,7 @@ export default function SettingsPage() {
 
   if (authStatus === 'loading') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 
@@ -255,7 +251,7 @@ export default function SettingsPage() {
         </Panel>
 
         {/* ── Danger Zone ──────────────────────────────────────────────── */}
-        <section className="mt-2 rounded-xl border border-destructive/40 bg-card p-4 sm:p-6">
+        <section className="mt-2 rounded-xl border border-danger/40 bg-card p-4 sm:p-6">
           <EyebrowLabel variant="danger" className="mb-4 block">Danger Zone</EyebrowLabel>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="sm:max-w-md">

@@ -4,7 +4,7 @@ import { format, parseISO, startOfDay, isBefore } from 'date-fns';
 import type { User, MemberWithRole, GameSession } from '@/types';
 import { useToast } from '@/components/ui';
 import { generateICS, slugifyGameName, triggerICSDownload } from '@/lib/ics';
-import { splitUpcomingPast } from '@/lib/scheduleView';
+import { splitUpcomingPast } from '@/lib/schedule';
 import { OverviewHeader } from './OverviewHeader';
 import { PartyPanel } from './PartyPanel';
 import { GameDetailsPanel } from './GameDetailsPanel';

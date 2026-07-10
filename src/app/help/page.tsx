@@ -168,15 +168,15 @@ export default function HelpPage() {
               </p>
               <ul className="space-y-2 ml-1">
                 <li className="flex items-center gap-2">
-                  <span className="inline-block size-3 rounded-sm bg-green-500 shrink-0" />
+                  <span className="inline-block size-3 rounded-sm bg-cal-available-bg shrink-0" />
                   <span><strong className="text-foreground">Available</strong>: you can play this date</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="inline-block size-3 rounded-sm bg-red-500 shrink-0" />
+                  <span className="inline-block size-3 rounded-sm bg-cal-unavailable-bg shrink-0" />
                   <span><strong className="text-foreground">Unavailable</strong>: you can&apos;t make it</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="inline-block size-3 rounded-sm bg-yellow-500 shrink-0" />
+                  <span className="inline-block size-3 rounded-sm bg-cal-maybe-bg shrink-0" />
                   <span><strong className="text-foreground">Maybe</strong>: you might be able to play</span>
                 </li>
               </ul>

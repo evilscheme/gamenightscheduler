@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
-import { buildRollingEngagement } from '@/lib/adminEngagement';
+import { buildRollingEngagement } from '@/lib/admin';
 import { startOfDay, subDays, format } from 'date-fns';
 import { serverError } from '@/lib/apiError';
 

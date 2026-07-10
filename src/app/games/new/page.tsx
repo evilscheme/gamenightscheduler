@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { LoadingSpinner } from '@/components/ui';
-import { createClient } from '@/lib/supabase/client';
+import { PageLoading } from '@/components/ui';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
 import { fetchUserGameCount, createGame } from '@/lib/data';
 import { invalidateGamesLists } from '@/lib/queryKeys';
@@ -31,7 +31,7 @@ export default function NewGamePage() {
   const { profile, authStatus } = useAuth();
   const { timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const queryClient = useQueryClient();
 
   const [creating, setCreating] = useState(false);
@@ -132,9 +132,7 @@ export default function NewGamePage() {
 
   if (authStatus === 'loading') {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 

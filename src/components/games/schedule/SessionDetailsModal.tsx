@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Modal, Button, Input, Textarea, EyebrowLabel } from '@/components/ui';
 import type { DateSuggestion, GameSession } from '@/types';
-import { computeDefaultSessionTimes } from '@/lib/scheduleView';
+import { computeDefaultSessionTimes } from '@/lib/schedule';
 import { SESSION_DEFAULTS, TEXT_LIMITS } from '@/lib/constants';
 
 export type SessionDetailsMode = 'schedule' | 'edit';
@@ -110,11 +110,11 @@ export function SessionDetailsModal({
     : busy ? 'Saving…' : 'Save changes';
 
   const locationCounterClass =
-    location.length > LOCATION_MAX ? 'text-destructive'
+    location.length > LOCATION_MAX ? 'text-danger'
       : location.length >= LOCATION_WARN ? 'text-primary'
       : 'text-muted-foreground';
   const notesCounterClass =
-    notes.length > NOTES_MAX ? 'text-destructive'
+    notes.length > NOTES_MAX ? 'text-danger'
       : notes.length >= NOTES_WARN ? 'text-primary'
       : 'text-muted-foreground';
 
@@ -197,7 +197,7 @@ export function SessionDetailsModal({
         )}
       </div>
 
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
     </Modal>
   );
 }

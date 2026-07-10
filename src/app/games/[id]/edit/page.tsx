@@ -9,11 +9,11 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import {
   Button,
   EyebrowLabel,
-  LoadingSpinner,
+  PageLoading,
   Modal,
   useToast,
 } from '@/components/ui';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabaseClient } from '@/lib/supabase/client';
 import { Game } from '@/types';
 import {
   fetchGameWithGM,
@@ -28,6 +28,7 @@ import { SESSION_DEFAULTS, DEFAULT_TIMEZONE } from '@/lib/constants';
 import { validateGameForm } from '@/lib/gameValidation';
 import { nanoid } from 'nanoid';
 import { GameForm, type GameFormState } from '@/components/games/forms/GameForm';
+import { getTodayLocalDate } from '@/lib/date';
 
 function gameToFormState(game: Game): GameFormState {
   return {
@@ -52,7 +53,7 @@ export default function EditGamePage() {
   const router = useRouter();
   const params = useParams();
   const gameId = params.id as string;
-  const supabase = createClient();
+  const supabase = getSupabaseClient();
   const queryClient = useQueryClient();
 
   const [game, setGame] = useState<Game | null>(null);
@@ -119,7 +120,7 @@ export default function EditGamePage() {
     setConversionMessage(null);
 
     if (state.adHocOnly && !game.ad_hoc_only) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayLocalDate();
       const { data: futureSessions } = await fetchFutureSessions(supabase, gameId, today);
       if (futureSessions && futureSessions.length > 0) {
         const sessionDates = futureSessions.map((s) => s.date);
@@ -193,9 +194,7 @@ export default function EditGamePage() {
 
   if (authStatus === 'loading' || loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <PageLoading />
     );
   }
 
@@ -222,7 +221,7 @@ export default function EditGamePage() {
         onCancel={() => router.push(`/games/${gameId}`)}
       />
 
-      <section className="mt-6 rounded-xl border border-destructive/40 bg-card p-4 sm:p-6">
+      <section className="mt-6 rounded-xl border border-danger/40 bg-card p-4 sm:p-6">
         <EyebrowLabel variant="danger" className="mb-4 block">Danger Zone</EyebrowLabel>
         <div className="space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -247,7 +246,7 @@ export default function EditGamePage() {
 
           {isOwner && (
             <>
-              <div className="border-t border-destructive/20" />
+              <div className="border-t border-danger/20" />
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="sm:max-w-md">
                   <p className="text-sm font-medium text-foreground">Delete game</p>

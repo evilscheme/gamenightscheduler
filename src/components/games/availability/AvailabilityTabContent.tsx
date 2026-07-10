@@ -7,7 +7,7 @@ import { AvailabilityCalendar } from '@/components/calendar/AvailabilityCalendar
 import { AvailabilityHeader } from './AvailabilityHeader';
 import { ApplyDefaultsButton } from './ApplyDefaultsButton';
 import type { ApplyDefaultsResult } from '@/hooks/useAvailability';
-import type { OtherGameSessionInfo } from '@/lib/otherGameSessions';
+import type { OtherGameSessionInfo } from '@/lib/schedule';
 
 export interface AvailabilityTabContentProps {
   // Header
@@ -38,7 +38,7 @@ export interface AvailabilityTabContentProps {
   otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   onCopyFromGame: (
     sourceGameId: string,
-    conflict: import('@/lib/copyAvailability').CopyConflict | null,
+    conflict: import('@/lib/availability').CopyConflict | null,
   ) => Promise<{ copied: number; overridden: number }>;
   onApplyDefaults?: () => Promise<ApplyDefaultsResult>;
   hasDefaults?: boolean | null;

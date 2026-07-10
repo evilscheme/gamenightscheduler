@@ -6,7 +6,7 @@ import { parseISO } from 'date-fns';
 import { CalendarClock, MapPin, StickyNote } from 'lucide-react';
 import { formatTimeShort } from '@/lib/formatting';
 import { convertTimeForDisplay } from '@/lib/timezone';
-import type { UpcomingSessionRow } from '@/lib/upcomingSessions';
+import type { UpcomingSessionRow } from '@/lib/schedule';
 
 const SOFT_CAP = 5;
 

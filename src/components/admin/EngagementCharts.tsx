@@ -7,7 +7,7 @@ import {
   ResponsiveContainer, Cell,
 } from 'recharts';
 import { Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
-import type { HealthGrade } from '@/lib/gameHealth';
+import type { HealthGrade } from '@/lib/schedule';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -140,7 +140,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
           <LoadingSpinner size="lg" />
         </div>
       ) : error ? (
-        <div className="text-destructive text-center py-12">{error}</div>
+        <div className="text-danger text-center py-12">{error}</div>
       ) : (
         <>
           {/* Hero: Platform Growth line chart */}

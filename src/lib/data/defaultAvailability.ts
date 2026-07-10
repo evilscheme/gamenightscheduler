@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
 import type { AvailabilityStatus } from '@/types';
 
-export async function fetchUserDefaults(supabase: SupabaseClient, userId: string) {
+export async function fetchUserDefaults(supabase: SupabaseClient<Database>, userId: string) {
   return supabase
     .from('user_availability_defaults')
     .select('*')
@@ -9,7 +10,7 @@ export async function fetchUserDefaults(supabase: SupabaseClient, userId: string
 }
 
 export async function upsertUserDefault(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   params: {
     user_id: string;
     day_of_week: number;
@@ -25,7 +26,7 @@ export async function upsertUserDefault(
 }
 
 export async function deleteUserDefault(
-  supabase: SupabaseClient,
+  supabase: SupabaseClient<Database>,
   userId: string,
   dayOfWeek: number
 ) {

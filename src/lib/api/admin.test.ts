@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { paginate, requireAdmin, type AdminClient } from './admin';
 
 const authMocks = vi.hoisted(() => {

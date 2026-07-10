@@ -5,7 +5,7 @@ import { ChevronRight, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { DateSuggestion } from '@/types';
 import { Button, EyebrowLabel, RankCircle } from '@/components/ui';
-import { formatTimeWindow } from '@/lib/scheduleView';
+import { formatTimeWindow } from '@/lib/schedule';
 import { PartyBreakdown } from './PartyBreakdown';
 import { PlayerAvatarCluster, type PlayerAvatarItem } from './PlayerAvatarCluster';
 import { useHoverSync } from './HoverSyncContext';

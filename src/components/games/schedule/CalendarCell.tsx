@@ -1,6 +1,6 @@
 'use client';
 
-import { CellTintTier } from '@/lib/scheduleView';
+import { CellTintTier } from '@/lib/schedule';
 import { useHoverSync } from './HoverSyncContext';
 import { CALENDAR_STYLES } from './calendarStyles';
 

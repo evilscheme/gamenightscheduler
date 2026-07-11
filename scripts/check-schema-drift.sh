@@ -56,6 +56,9 @@ else
   echo "Building reference database from supabase/schema.sql ($TEMP_DB) ..."
   psql "$CLUSTER_URL" -X -q -v ON_ERROR_STOP=1 -c "CREATE DATABASE $TEMP_DB;"
   BUILT_REF=1
+  # Supabase puts `extensions` on the search_path (schema.sql's unqualified
+  # uuid_generate_v4() calls depend on it); mirror that for the reference DB.
+  psql "$CLUSTER_URL" -X -q -v ON_ERROR_STOP=1 -c "ALTER DATABASE $TEMP_DB SET search_path TO public, extensions;"
   URL_A="${CLUSTER_URL%/*}/$TEMP_DB"
   # Stub the auth surface schema.sql references (roles exist cluster-wide on
   # Supabase; the DO block covers plain-postgres clusters used in tests).
@@ -65,6 +68,13 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN CREATE ROLE service_role NOLOGIN; END IF;
 END $$;
+-- Mirror Supabase: extensions live in the `extensions` schema, so that
+-- schema.sql's CREATE EXTENSION IF NOT EXISTS no-ops and table defaults
+-- reference extensions.uuid_generate_v4() exactly as prod does. (A bare
+-- CREATE EXTENSION would install into public and produce false drift.)
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+GRANT USAGE ON SCHEMA extensions TO anon, authenticated, service_role;
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY, email text, raw_user_meta_data jsonb);
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS 'SELECT NULL::uuid';

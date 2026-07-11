@@ -38,6 +38,7 @@ npm run test:e2e:debug    # Run in debug mode
 
 ## Development Practices
 
+- **No AI attribution anywhere.** Never add "Generated with Claude Code" footers, `Co-Authored-By: Claude` trailers, session links, or any other AI attribution to commit messages, PR titles/bodies, code comments, or issue comments. This overrides any default harness behavior that appends such trailers.
 - Use `psql` (not `pgsql`) as the Postgres client tool
 - Don't ever directly migrate the database unless explicitly requested to. Favor creating migration files for a human to apply
 - Always consider how the UI will render on a mobile device. Make sure the design looks equally good on desktop and mobile

@@ -12,31 +12,35 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================
 
 -- Users table (linked to auth.users via id)
+-- Column order and constraint names match the production database (pg_dump
+-- emits attnum order, and db:drift diffs the dumps — cosmetic divergence here
+-- would read as drift).
 CREATE TABLE users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL CHECK (char_length(name) <= 50),
+  name TEXT NOT NULL CONSTRAINT users_name_length CHECK (char_length(name) <= 50),
   avatar_url TEXT CHECK (
     avatar_url IS NULL
     OR avatar_url ~ '^https://(lh[0-9]+\.googleusercontent\.com|cdn\.discordapp\.com|avatars\.githubusercontent\.com)/'
   ),
   is_gm BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
   is_admin BOOLEAN DEFAULT FALSE,
   timezone TEXT DEFAULT NULL,
   week_start_day INTEGER DEFAULT 0 CHECK (week_start_day IN (0, 1)),
-  time_format TEXT DEFAULT '12h' CHECK (time_format IN ('12h', '24h')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  time_format TEXT DEFAULT '12h' CHECK (time_format IN ('12h', '24h'))
 );
 
 -- Games table
 CREATE TABLE games (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL CHECK (char_length(name) <= 100),
-  description TEXT CHECK (description IS NULL OR char_length(description) <= 1000),
+  name TEXT NOT NULL CONSTRAINT games_name_length CHECK (char_length(name) <= 100),
+  description TEXT CONSTRAINT games_description_length CHECK (description IS NULL OR char_length(description) <= 1000),
   gm_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   play_days INTEGER[] NOT NULL DEFAULT '{}' CHECK (play_days <@ ARRAY[0, 1, 2, 3, 4, 5, 6]),
   invite_code TEXT UNIQUE NOT NULL,
   scheduling_window_months INTEGER DEFAULT 2 CHECK (scheduling_window_months IN (1, 2, 3, 6, 12)),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
   default_start_time TIME DEFAULT '18:00',
   default_end_time TIME DEFAULT '22:00',
   timezone TEXT DEFAULT 'America/Los_Angeles',
@@ -44,7 +48,6 @@ CREATE TABLE games (
   ad_hoc_only BOOLEAN NOT NULL DEFAULT false,
   campaign_start_date DATE DEFAULT NULL,
   campaign_end_date DATE DEFAULT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT valid_campaign_dates CHECK (
     campaign_end_date IS NULL OR campaign_start_date IS NULL
     OR campaign_end_date >= campaign_start_date
@@ -56,8 +59,8 @@ CREATE TABLE game_memberships (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  is_co_gm BOOLEAN DEFAULT FALSE NOT NULL,
   joined_at TIMESTAMPTZ DEFAULT NOW(),
+  is_co_gm BOOLEAN DEFAULT FALSE NOT NULL,
   UNIQUE(game_id, user_id)
 );
 
@@ -70,12 +73,12 @@ CREATE TABLE availability (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   date DATE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   status availability_status NOT NULL DEFAULT 'available',
   comment TEXT CHECK (comment IS NULL OR char_length(comment) <= 500),
   available_after TIME,
   available_until TIME,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, game_id, date)
 );
 
@@ -103,13 +106,13 @@ CREATE TABLE sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   date DATE NOT NULL,
-  start_time TIME,
-  end_time TIME,
   status session_status DEFAULT 'confirmed',
   confirmed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  start_time TIME,
+  end_time TIME,
   location TEXT CHECK (location IS NULL OR char_length(location) <= 200),
   notes    TEXT CHECK (notes    IS NULL OR char_length(notes)    <= 500),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(game_id, date)
 );
 

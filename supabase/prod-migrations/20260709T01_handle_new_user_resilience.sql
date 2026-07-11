@@ -7,8 +7,6 @@
 --
 -- Pre-flight: none needed — the new CHECK is strictly weaker than the old one.
 
-BEGIN;
-
 ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_avatar_url_check;
 ALTER TABLE public.users ADD CONSTRAINT users_avatar_url_check CHECK (
   avatar_url IS NULL
@@ -47,4 +45,3 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
-COMMIT;

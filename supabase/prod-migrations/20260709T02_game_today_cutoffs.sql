@@ -7,8 +7,6 @@
 --
 -- Pre-flight: none needed.
 
-BEGIN;
-
 CREATE OR REPLACE FUNCTION public.game_today(game_id_param UUID)
 RETURNS DATE AS $$
 DECLARE
@@ -51,4 +49,3 @@ CREATE POLICY "GMs and co-GMs can insert sessions" ON public.sessions
     AND public.count_future_sessions(game_id) < 100
   );
 
-COMMIT;

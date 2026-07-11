@@ -4,8 +4,6 @@
 -- Pre-flight is built in: the DO block raises with the offending rows before
 -- the ALTER would fail opaquely, and the transaction rolls back.
 
-BEGIN;
-
 DO $$
 DECLARE
   bad_count INTEGER;
@@ -22,4 +20,3 @@ $$;
 ALTER TABLE public.games ADD CONSTRAINT games_play_days_check
   CHECK (play_days <@ ARRAY[0, 1, 2, 3, 4, 5, 6]);
 
-COMMIT;

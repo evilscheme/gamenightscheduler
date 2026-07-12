@@ -45,9 +45,8 @@ function HeroSection() {
           Track availability. Find the best night. Play more games.
         </p>
         <p className="text-sm sm:text-base text-muted-foreground mb-8 max-w-xl mx-auto">
-          A free scheduler for D&amp;D and Pathfinder campaigns, board game groups, and other
-          recurring get-togethers. Set up your game once &mdash; no new poll to send before
-          every session.
+          A free scheduler for D&amp;D campaigns, board game groups, and any other recurring
+          get-together. Set up your game once &mdash; no new poll to send before every session.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/login">

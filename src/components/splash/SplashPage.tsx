@@ -45,7 +45,7 @@ function HeroSection() {
           Track availability. Find the best night. Play more games.
         </p>
         <p className="text-sm sm:text-base text-muted-foreground mb-8 max-w-xl mx-auto">
-          A free scheduler for D&amp;D campaigns, board game groups, and any other recurring
+          A free scheduler for TTRPG campaigns, board game groups, and any other recurring
           get-together. Set up your game once &mdash; no new poll to send before every session.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -164,7 +164,7 @@ function HowItWorksSection() {
             num={1}
             icon={<Users className="size-6" />}
             title="Invite your party"
-            desc="Create a game and share the invite link. Players sign in with Google or Discord and they're in."
+            desc="Create a game and share the invite link. Players sign in with Google or Discord."
           />
           <Step
             num={2}
@@ -222,7 +222,7 @@ function FeaturesSection() {
           <Feature
             icon={<Calendar className="size-5" />}
             title="Calendar Sync"
-            desc="Subscribe once and confirmed sessions appear in Google Calendar, Apple Calendar, or any calendar app that supports .ics feeds."
+            desc="Subscribe once and confirmed sessions appear in Apple, Google, or any other calendar app."
           />
           <Feature
             icon={<Shield className="size-5" />}

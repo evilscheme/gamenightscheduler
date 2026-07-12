@@ -17,6 +17,9 @@ const DEV_USERS: Record<string, DevUser> = {
   player1: { email: 'dev-player1@dev.local', name: 'Dev Player 1', is_gm: true, is_admin: false },
   player2: { email: 'dev-player2@dev.local', name: 'Dev Player 2', is_gm: true, is_admin: false },
   admin: { email: 'dev-admin@dev.local', name: 'Dev Admin', is_gm: true, is_admin: true },
+  // Themed DM host for marketing screenshots; owns the seeded "Curse of Strahd" showcase game
+  // (see scripts/seed-showcase.ts). Name must match the seeded account so login re-upserts the same name.
+  showcase: { email: 'dev-showcase@dev.local', name: 'Withers', is_gm: true, is_admin: false },
 };
 
 export async function loginAsDevUser(persona: string): Promise<{ success: boolean; error?: string; user?: DevUser }> {

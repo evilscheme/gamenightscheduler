@@ -10,6 +10,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "db:wipe": "tsx scripts/wipe-database.ts",
+    "db:seed-showcase": "tsx scripts/seed-showcase.ts",
     "db:delete-user": "env-cmd -f .env.local tsx scripts/delete-user.ts",
     "db:start": "supabase start",
     "db:stop": "supabase stop",

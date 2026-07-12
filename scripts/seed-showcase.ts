@@ -9,7 +9,7 @@
  * (availability is generated from a seeded PRNG, so the calendar is reproducible).
  *
  * Run against LOCAL Supabase only:
- *   npx tsx scripts/seed-showcase.ts
+ *   npm run db:seed-showcase        (or: npx tsx scripts/seed-showcase.ts)
  *
  * All dates are relative to today, so the game is always freshly populated. Set
  * SEED_TODAY=YYYY-MM-DD to simulate a different run date (handy for verifying the

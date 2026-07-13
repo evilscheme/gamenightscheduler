@@ -32,7 +32,6 @@ test.describe('Landing page SEO', () => {
     // the page (not "calendar", which already appears via "Calendar Sync") and
     // free of HTML-escaping ambiguity (avoid "D&D" → "D&amp;D").
     expect(html).toContain('TTRPG');
-    expect(html).toContain('Pathfinder');
     expect(html).toContain('board game');
 
     // Decorative dice are client-only (rendered after mount), so they must NOT

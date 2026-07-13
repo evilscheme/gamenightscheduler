@@ -12,6 +12,7 @@ const PERSONAS = [
   { key: 'player1', label: 'Dev Player 1', description: 'Join games', badge: 'P1' },
   { key: 'player2', label: 'Dev Player 2', description: 'Join games', badge: 'P2' },
   { key: 'admin', label: 'Dev Admin', description: 'Admin access', badge: 'A' },
+  { key: 'showcase', label: 'Withers', description: 'Showcase DM', badge: 'W' },
 ] as const;
 
 export function DevLoginClient() {

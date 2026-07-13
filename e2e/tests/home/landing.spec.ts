@@ -20,13 +20,21 @@ test.describe('Landing Page', () => {
     // "How it works" section should be visible
     await expect(page.getByRole('heading', { name: /how it works/i })).toBeVisible();
 
+    // Product screenshots should be present
+    await expect(
+      page.getByRole('img', { name: /availability calendar/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('img', { name: /scheduling suggestions/i })
+    ).toBeVisible();
+
     // Steps should be present
     await expect(page.getByRole('heading', { name: 'Invite your party' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Mark availability' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Book sessions' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Confirm sessions' })).toBeVisible();
 
     // Features should be present
-    await expect(page.getByRole('heading', { name: 'Multi-Game' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Multiple Games' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Calendar Sync' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Co-GM Support' })).toBeVisible();
   });

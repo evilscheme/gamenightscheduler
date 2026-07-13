@@ -80,8 +80,9 @@ export default function HelpPage() {
 
             <HelpSection title="Inviting Players">
               <p>
-                Every game has a unique invite link. Share it with your players and they can join
-                with one click. You&apos;ll find the invite link on your game&apos;s detail page.
+                Every game has a unique invite link. Share it with your players &mdash; they sign
+                in with Google or Discord and join from the link. You&apos;ll find the invite link
+                on your game&apos;s detail page.
               </p>
             </HelpSection>
 

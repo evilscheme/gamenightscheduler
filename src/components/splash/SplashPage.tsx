@@ -18,6 +18,7 @@ export function SplashPage() {
     <div className="min-h-[calc(100vh-4rem)]">
       <HeroSection />
       <WhySection />
+      <ShowcaseSection />
       <HowItWorksSection />
       <FeaturesSection />
     </div>
@@ -44,9 +45,8 @@ function HeroSection() {
           Track availability. Find the best night. Play more games.
         </p>
         <p className="text-sm sm:text-base text-muted-foreground mb-8 max-w-xl mx-auto">
-          A free tool for organizing recurring get-togethers, such as game nights, TTRPG
-          campaigns (D&amp;D, Daggerheart, etc.), board game nights, or any group that
-          needs to find a date that works for everyone.
+          A free scheduler for TTRPG campaigns, board game groups, and any other recurring
+          get-together. Set up your game once &mdash; no new poll to send before every session.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/login">
@@ -70,16 +70,81 @@ function WhySection() {
     <div className="py-16 sm:py-24 bg-background">
       <div className="max-w-3xl mx-auto px-4 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-6">
-          Scheduling, without the endless back-and-forth
+          Built for groups that play again and again
         </h2>
         <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Finding a night when everyone&apos;s free is the hardest part of keeping a regular game
-          going. Can We Play? replaces lengthy message threads with a simple interface:
-          each person marks the dates they can make, and the app highlights the days that work
-          for the most people. Whether you&apos;re running a long D&amp;D or Pathfinder campaign,
-          hosting a board game night, or organizing any recurring meetup, you can confirm a date
-          and export it straight to everyone&apos;s calendar. It&apos;s easy, ad-free, and costs nothing. Get playing!
+          One-off polls work for one-off events. A TTRPG campaign or a monthly board game
+          night needs something that sticks around.
+          In Can We Play?, your game and your players stay set up between sessions: everyone
+          keeps a running calendar of the dates they can make, the app highlights the nights
+          that work for the most people, and confirmed sessions live in one shared place. When
+          it&apos;s time to schedule the next session, the answers are already there. It&apos;s
+          free and ad-free.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Showcase ───────────────────────────────────────────────────────────────
+
+function ShowcaseSection() {
+  return (
+    <div className="py-16 sm:py-24 bg-secondary/30">
+      <div className="max-w-5xl mx-auto px-4 space-y-16 sm:space-y-24">
+        <ShowcaseRow
+          title="One calendar for the whole party"
+          desc="Players mark upcoming dates as available, maybe, or unavailable — with notes
+            and time constraints when life gets complicated. Plans changed? Update a date and
+            everyone sees it."
+          src="/screenshots/availability.png"
+          alt="Availability calendar showing players' available, maybe, and unavailable dates"
+        />
+        <ShowcaseRow
+          title="The best nights rise to the top"
+          desc="Upcoming dates are ranked by who can make it, so you can see at a glance when
+            the group is free. Confirm a date and it becomes a session on everyone's calendar."
+          src="/screenshots/scheduling.png"
+          alt="Scheduling suggestions ranking dates by availability, with a confirmed session"
+          reverse
+        />
+      </div>
+    </div>
+  );
+}
+
+function ShowcaseRow({
+  title,
+  desc,
+  src,
+  alt,
+  reverse,
+}: {
+  title: string;
+  desc: string;
+  src: string;
+  alt: string;
+  reverse?: boolean;
+}) {
+  return (
+    <div
+      className={`flex flex-col ${
+        reverse ? 'sm:flex-row-reverse' : 'sm:flex-row'
+      } items-center gap-8 sm:gap-12`}
+    >
+      <div className="sm:w-2/5 text-center sm:text-left">
+        <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3">{title}</h3>
+        <p className="text-muted-foreground leading-relaxed">{desc}</p>
+      </div>
+      <div className="sm:w-3/5 w-full">
+        <Image
+          src={src}
+          alt={alt}
+          width={1600}
+          height={1000}
+          sizes="(min-width: 640px) 60vw, 100vw"
+          className="w-full h-auto rounded-xl border border-border shadow-lg"
+        />
       </div>
     </div>
   );
@@ -89,7 +154,7 @@ function WhySection() {
 
 function HowItWorksSection() {
   return (
-    <div id="how-it-works" className="py-16 sm:py-24 bg-secondary/30">
+    <div id="how-it-works" className="py-16 sm:py-24 bg-background">
       <div className="max-w-4xl mx-auto px-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-12">
           How it works
@@ -99,19 +164,19 @@ function HowItWorksSection() {
             num={1}
             icon={<Users className="size-6" />}
             title="Invite your party"
-            desc="Create a game and share an invite link. Players join with one click."
+            desc="Create a game and share the invite link. Players sign in with Google or Discord."
           />
           <Step
             num={2}
             icon={<CalendarCheck className="size-6" />}
             title="Mark availability"
-            desc="Each player marks when they can play — available, maybe, or unavailable."
+            desc="Each player marks upcoming dates — available, maybe, or unavailable — and updates them as plans change."
           />
           <Step
             num={3}
             icon={<CalendarSearch className="size-6" />}
-            title="Book sessions"
-            desc="See which dates work best for the whole group and schedule in the shared calendar."
+            title="Confirm sessions"
+            desc="See which nights work for the whole group, confirm a date, and it shows up on everyone's calendar."
           />
         </div>
       </div>
@@ -146,18 +211,18 @@ function Step({
 
 function FeaturesSection() {
   return (
-    <div className="py-16 sm:py-24 bg-background">
+    <div className="py-16 sm:py-24 bg-secondary/30">
       <div className="max-w-3xl mx-auto px-4">
         <div className="grid sm:grid-cols-3 gap-6 mb-12">
           <Feature
             icon={<Layers className="size-5" />}
-            title="Multi-Game"
-            desc="Manage several games at once, each with its own players and schedule."
+            title="Multiple Games"
+            desc="Run several games at once, each with its own players and schedule."
           />
           <Feature
             icon={<Calendar className="size-5" />}
             title="Calendar Sync"
-            desc="Auto-export confirmed sessions to Google Calendar, Apple, or any app."
+            desc="Subscribe once and confirmed sessions appear in Apple, Google, or any other calendar app."
           />
           <Feature
             icon={<Shield className="size-5" />}

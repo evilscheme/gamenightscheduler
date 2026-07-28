@@ -65,7 +65,6 @@ export function DefaultAvailabilityEditor() {
         available_until: d.available_until,
       };
     });
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration of editable state from the first fetch
     setDefaults(map);
     setSaved(map);
   }, [defaultsQuery.data]);

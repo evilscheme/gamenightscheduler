@@ -30,15 +30,42 @@ export const queryKeys = {
   /** Upcoming sessions across a set of games (order-insensitive). */
   otherGameSessions: (gameIds: string[]) =>
     ['otherGameSessions', [...gameIds].sort().join('|')] as const,
+  /** How many games the user hosts (drives the 20-game limit gate). */
+  userGameCount: (userId: string) => ['userGameCount', userId] as const,
+  /** Prefix matching every user's game count (for invalidation). */
+  userGameCountAll: ['userGameCount'] as const,
+  /** Invite-code preview for the join page. */
+  gameInvite: (code: string) => ['gameInvite', code] as const,
+
+  // ── Admin ────────────────────────────────────────────────
+  // Admin reads are a separate namespace on purpose: they return
+  // admin-shaped payloads (e.g. GameSnapshot) that must never share a key
+  // with the player-facing equivalents above, or the two would clobber each
+  // other whenever an admin views a game they also play in.
+
+  /** Admin engagement analytics for a rolling window ('8' | '12' | '26' | 'all'). */
+  adminEngagement: (weeks: string) => ['adminEngagement', weeks] as const,
+  /** Platform-wide admin counters. */
+  adminStats: () => ['adminStats'] as const,
+  /** Admin list of every game with health grades. */
+  adminGames: () => ['adminGames'] as const,
+  /** Admin top-users leaderboard. */
+  adminTopUsers: () => ['adminTopUsers'] as const,
+  /** One page of the admin upcoming-sessions table. */
+  adminUpcomingSessions: (page: number) => ['adminUpcomingSessions', page] as const,
+  /** Full admin snapshot of a single game (NOT the same shape as `game`). */
+  adminGame: (gameId: string) => ['adminGame', gameId] as const,
 } as const;
 
 /**
- * Invalidate every cached view of "which games am I in" — the dashboard bundle
- * and the my-games list. Call after any mutation that changes game membership
- * or a game's existence/summary fields (create, join, leave, delete, edit,
- * member removal, session changes shown on the dashboard).
+ * Invalidate every cached view of "which games am I in" — the dashboard bundle,
+ * the my-games list, and the hosted-game count behind the usage limit. Call
+ * after any mutation that changes game membership or a game's
+ * existence/summary fields (create, join, leave, delete, edit, member removal,
+ * session changes shown on the dashboard).
  */
 export function invalidateGamesLists(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.dashboardAll });
   queryClient.invalidateQueries({ queryKey: queryKeys.myGamesLiteAll });
+  queryClient.invalidateQueries({ queryKey: queryKeys.userGameCountAll });
 }

@@ -244,25 +244,31 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
           </aside>
         </div>
 
-        <SessionDetailsModal
-          open={scheduleFor !== null}
-          date={scheduleFor}
-          mode="schedule"
-          suggestion={scheduleFor ? suggestions.find((s) => s.date === scheduleFor) : undefined}
-          gameDefaultStart={defaultStartTime}
-          gameDefaultEnd={defaultEndTime}
-          onClose={() => setScheduleFor(null)}
-          onSubmit={handleConfirm}
-        />
+        {scheduleFor !== null && (
+          <SessionDetailsModal
+            key={`schedule-${scheduleFor}`}
+            open
+            date={scheduleFor}
+            mode="schedule"
+            suggestion={suggestions.find((s) => s.date === scheduleFor)}
+            gameDefaultStart={defaultStartTime}
+            gameDefaultEnd={defaultEndTime}
+            onClose={() => setScheduleFor(null)}
+            onSubmit={handleConfirm}
+          />
+        )}
 
-        <SessionDetailsModal
-          open={editFor !== null}
-          date={editFor?.date ?? null}
-          mode="edit"
-          session={editFor ?? undefined}
-          onClose={() => setEditFor(null)}
-          onSubmit={handleEdit}
-        />
+        {editFor !== null && (
+          <SessionDetailsModal
+            key={`edit-${editFor.id}`}
+            open
+            date={editFor.date}
+            mode="edit"
+            session={editFor}
+            onClose={() => setEditFor(null)}
+            onSubmit={handleEdit}
+          />
+        )}
 
         <CancelSessionModal
           open={cancelFor !== null}

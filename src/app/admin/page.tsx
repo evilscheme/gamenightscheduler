@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { LoadingSpinner, PageLoading } from '@/components/ui';
@@ -9,6 +10,7 @@ import { GamesTab } from '@/components/admin/GamesTab';
 import { TopUsersTab } from '@/components/admin/TopUsersTab';
 import { ActivityTab } from '@/components/admin/ActivityTab';
 import { UpcomingGamesTab } from '@/components/admin/UpcomingGamesTab';
+import { queryKeys } from '@/lib/queryKeys';
 import type { AdminStats, GameWithEngagement } from '@/types/api';
 import type { TopUsersResult } from '@/lib/admin';
 
@@ -25,48 +27,46 @@ const TABS: { id: Tab; label: string }[] = [
 export default function AdminPage() {
   const { authStatus, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [games, setGames] = useState<GameWithEngagement[]>([]);
-  const [topUsers, setTopUsers] = useState<TopUsersResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useAuthRedirect({ requireAdmin: true });
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!profile?.is_admin) return;
+  const statsQuery = useQuery({
+    queryKey: queryKeys.adminStats(),
+    queryFn: async (): Promise<AdminStats> => {
+      const res = await fetch('/api/admin/stats');
+      if (!res.ok) throw new Error('Failed to fetch admin data');
+      return res.json();
+    },
+    enabled: !!profile?.is_admin,
+  });
 
-      setLoading(true);
-      setError(null);
+  const gamesQuery = useQuery({
+    queryKey: queryKeys.adminGames(),
+    queryFn: async (): Promise<GameWithEngagement[]> => {
+      const res = await fetch('/api/admin/games');
+      if (!res.ok) throw new Error('Failed to fetch admin data');
+      const data = await res.json();
+      return data.games;
+    },
+    enabled: !!profile?.is_admin,
+  });
 
-      try {
-        const [statsRes, gamesRes, topUsersRes] = await Promise.all([
-          fetch('/api/admin/stats'),
-          fetch('/api/admin/games'),
-          fetch('/api/admin/top-users'),
-        ]);
+  const topUsersQuery = useQuery({
+    queryKey: queryKeys.adminTopUsers(),
+    queryFn: async (): Promise<TopUsersResult> => {
+      const res = await fetch('/api/admin/top-users');
+      if (!res.ok) throw new Error('Failed to fetch admin data');
+      return res.json();
+    },
+    enabled: !!profile?.is_admin,
+  });
 
-        if (!statsRes.ok || !gamesRes.ok || !topUsersRes.ok) {
-          throw new Error('Failed to fetch admin data');
-        }
-
-        const statsData = await statsRes.json();
-        const gamesData = await gamesRes.json();
-        const topUsersData = await topUsersRes.json();
-
-        setStats(statsData);
-        setGames(gamesData.games);
-        setTopUsers(topUsersData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-  }, [profile?.is_admin]);
+  const stats = statsQuery.data ?? null;
+  const games = gamesQuery.data ?? [];
+  const topUsers = topUsersQuery.data ?? null;
+  const loading = statsQuery.isPending || gamesQuery.isPending || topUsersQuery.isPending;
+  const error =
+    statsQuery.error?.message ?? gamesQuery.error?.message ?? topUsersQuery.error?.message ?? null;
 
   if (authStatus === 'loading') {
     return (

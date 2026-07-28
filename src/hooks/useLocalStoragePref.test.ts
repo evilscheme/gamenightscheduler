@@ -64,4 +64,55 @@ describe('useLocalStoragePref', () => {
     expect(result.current[0]).toBe('a');
     spy.mockRestore();
   });
+
+  // Each test below uses a distinct key: the hook's in-memory fallback layer is
+  // module-scoped and intentionally outlives a single component.
+
+  it('picks up a write made in another tab (storage event)', () => {
+    const { result } = renderHook(() => useLocalStoragePref('x-tab', 'a', isMode));
+    expect(result.current[0]).toBe('a');
+
+    act(() => {
+      window.localStorage.setItem('x-tab', 'b');
+      window.dispatchEvent(new StorageEvent('storage', { key: 'x-tab' }));
+    });
+    expect(result.current[0]).toBe('b');
+  });
+
+  it('falls back to the default when another tab clears the whole store', () => {
+    window.localStorage.setItem('x-clear', 'b');
+    const { result } = renderHook(() => useLocalStoragePref('x-clear', 'a', isMode));
+    expect(result.current[0]).toBe('b');
+
+    act(() => {
+      window.localStorage.clear();
+      // A null key means "entire store cleared".
+      window.dispatchEvent(new StorageEvent('storage', { key: null }));
+    });
+    expect(result.current[0]).toBe('a');
+  });
+
+  it('keeps two instances of the same key in sync within one tab', () => {
+    const first = renderHook(() => useLocalStoragePref('x-shared', 'a', isMode));
+    const second = renderHook(() => useLocalStoragePref('x-shared', 'a', isMode));
+
+    act(() => {
+      first.result.current[1]('b');
+    });
+    expect(first.result.current[0]).toBe('b');
+    expect(second.result.current[0]).toBe('b');
+  });
+
+  it('still reflects the new value when the storage write fails', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota exceeded');
+    });
+    const { result } = renderHook(() => useLocalStoragePref('x-quota', 'a', isMode));
+
+    act(() => {
+      result.current[1]('b');
+    });
+    expect(result.current[0]).toBe('b');
+    spy.mockRestore();
+  });
 });

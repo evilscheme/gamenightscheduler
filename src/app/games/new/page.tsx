@@ -2,14 +2,14 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { PageLoading } from '@/components/ui';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { nanoid } from 'nanoid';
 import { fetchUserGameCount, createGame } from '@/lib/data';
-import { invalidateGamesLists } from '@/lib/queryKeys';
+import { invalidateGamesLists, queryKeys } from '@/lib/queryKeys';
 import {
   SESSION_DEFAULTS,
   USAGE_LIMITS,
@@ -28,27 +28,26 @@ function resolveInitialTimezone(userTimezone: string | null | undefined): string
 }
 
 export default function NewGamePage() {
-  const { profile, authStatus } = useAuth();
+  const { user, profile, authStatus } = useAuth();
   const { timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
   const supabase = getSupabaseClient();
   const queryClient = useQueryClient();
+  const userId = user?.id ?? '';
 
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
-  const [gameCount, setGameCount] = useState<number | null>(null);
 
   useAuthRedirect({ requireGM: true });
 
-  useEffect(() => {
-    async function fetchGameCount() {
-      if (!profile?.id) return;
-      const { count } = await fetchUserGameCount(supabase, profile.id);
-      setGameCount(count ?? 0);
-    }
-    fetchGameCount();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
-  }, [profile?.id]);
+  const { data: gameCount } = useQuery({
+    queryKey: queryKeys.userGameCount(userId),
+    enabled: !!userId,
+    queryFn: async () => {
+      const { count } = await fetchUserGameCount(supabase, userId);
+      return count ?? 0;
+    },
+  });
 
   const initial: GameFormState = {
     name: '',
@@ -66,7 +65,7 @@ export default function NewGamePage() {
     minPlayersNeeded: 0,
   };
 
-  const atGameLimit = gameCount !== null && gameCount >= USAGE_LIMITS.MAX_GAMES_PER_USER;
+  const atGameLimit = gameCount !== undefined && gameCount >= USAGE_LIMITS.MAX_GAMES_PER_USER;
 
   const handleCreate = async (state: GameFormState) => {
     if (!profile?.id) return;

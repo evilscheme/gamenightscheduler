@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { parseISO } from 'date-fns';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
-import { useAdminResource } from '@/hooks/useAdminResource';
 import { Button, Card, CardContent, CardHeader, EmptyState, LoadingSpinner } from '@/components/ui';
 import { formatTimeShort } from '@/lib/formatting';
+import { queryKeys } from '@/lib/queryKeys';
 import type { AdminUpcomingSessionRow } from '@/types';
 import { AdminTable, AdminTh } from './AdminTable';
 
@@ -30,9 +31,16 @@ function formatUpcomingSessionDate(dateStr: string): string {
 export function UpcomingGamesTab() {
   const { use24h } = useUserPreferences();
   const [page, setPage] = useState(1);
-  const { data, loading, error } = useAdminResource<UpcomingSessionsResponse>(
-    `/api/admin/upcoming-sessions?page=${page}`
-  );
+  const { data, isPending: loading, error } = useQuery({
+    queryKey: queryKeys.adminUpcomingSessions(page),
+    queryFn: async (): Promise<UpcomingSessionsResponse> => {
+      const url = `/api/admin/upcoming-sessions?page=${page}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+      return res.json();
+    },
+    placeholderData: keepPreviousData,
+  });
 
   if (loading) {
     return (
@@ -43,7 +51,7 @@ export function UpcomingGamesTab() {
   }
 
   if (error) {
-    return <div className="text-danger text-center py-12">{error}</div>;
+    return <div className="text-danger text-center py-12">{error.message}</div>;
   }
 
   if (!data || data.total === 0) {

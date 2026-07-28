@@ -76,7 +76,6 @@ export function RankedList({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const sortModeMountedRef = useRef(false);
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!sortModeMountedRef.current) {
       sortModeMountedRef.current = true;
@@ -84,7 +83,6 @@ export function RankedList({
     }
     setShowBelow(false);
   }, [sortMode]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (suggestions.length === 0) {
     return (

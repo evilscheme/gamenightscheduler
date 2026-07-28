@@ -3,13 +3,13 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dice6, Frown } from 'lucide-react';
 import { Button, Card, CardContent, PageLoading } from '@/components/ui';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { DAY_LABELS, USAGE_LIMITS } from '@/lib/constants';
 import { joinGame } from '@/lib/data';
-import { invalidateGamesLists } from '@/lib/queryKeys';
+import { invalidateGamesLists, queryKeys } from '@/lib/queryKeys';
 
 interface GamePreview {
   id: string;
@@ -23,6 +23,12 @@ interface GamePreview {
   };
 }
 
+interface GameInviteResponse {
+  game: GamePreview;
+  isMember: boolean;
+  playerCount: number;
+}
+
 export default function JoinGamePage() {
   const { profile, authStatus } = useAuth();
   const router = useRouter();
@@ -31,12 +37,8 @@ export default function JoinGamePage() {
   const supabase = getSupabaseClient();
   const queryClient = useQueryClient();
 
-  const [game, setGame] = useState<GamePreview | null>(null);
-  const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
-  const [alreadyMember, setAlreadyMember] = useState(false);
-  const [playerCount, setPlayerCount] = useState<number>(0);
 
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
@@ -44,30 +46,27 @@ export default function JoinGamePage() {
     }
   }, [authStatus, router, code]);
 
-  useEffect(() => {
-    async function fetchGame() {
-      if (!code || !profile?.id) return;
-
+  const {
+    data,
+    isPending: loading,
+    error: fetchError,
+  } = useQuery({
+    queryKey: queryKeys.gameInvite(code),
+    enabled: !!code && !!profile?.id,
+    queryFn: async (): Promise<GameInviteResponse> => {
       // Use API route to fetch game by invite code (bypasses RLS)
       const response = await fetch(`/api/games/invite/${code}`);
-
       if (!response.ok) {
-        setError('Game not found. Please check the invite link.');
-        setLoading(false);
-        return;
+        throw new Error('Game not found. Please check the invite link.');
       }
+      return response.json();
+    },
+  });
 
-      const data = await response.json();
-      setGame(data.game);
-      setAlreadyMember(data.isMember);
-      setPlayerCount(data.playerCount ?? 0);
-      setLoading(false);
-    }
-
-    if (profile?.id) {
-      fetchGame();
-    }
-  }, [code, profile?.id]);
+  const game = data?.game ?? null;
+  const alreadyMember = data?.isMember ?? false;
+  const playerCount = data?.playerCount ?? 0;
+  const loadError = fetchError ? fetchError.message : error;
 
   const isGameFull = playerCount >= USAGE_LIMITS.MAX_PLAYERS_PER_GAME;
 
@@ -101,6 +100,9 @@ export default function JoinGamePage() {
 
     // The cached games lists don't include the just-joined game yet.
     invalidateGamesLists(queryClient);
+    // Navigating back to this invite link should no longer show the stale
+    // "You've been invited!" state now that the user is a member.
+    queryClient.invalidateQueries({ queryKey: queryKeys.gameInvite(code) });
 
     router.push(`/games/${game.id}`);
   };
@@ -113,12 +115,12 @@ export default function JoinGamePage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      {error ? (
+      {loadError ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Frown className="size-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold text-card-foreground mb-2">Invite Not Found</h2>
-            <p className="text-muted-foreground mb-6">{error}</p>
+            <p className="text-muted-foreground mb-6">{loadError}</p>
             <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
           </CardContent>
         </Card>

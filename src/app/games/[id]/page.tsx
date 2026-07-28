@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { Button, Modal, OnboardingBanner, useToast, PageLoading } from "@/components/ui";
 import { shouldShowAvailabilityNudge } from "@/lib/onboarding";
@@ -20,11 +20,16 @@ import { useOtherGameSessions } from "@/hooks/useOtherGameSessions";
 
 type Tab = "overview" | "availability" | "schedule";
 
-export default function GameDetailPage() {
+function initialTabFromParam(tabParam: string | null): Tab {
+  return tabParam === "availability" || tabParam === "schedule" ? tabParam : "overview";
+}
+
+function GameDetailContent() {
   const { user, authStatus } = useAuth();
   const { weekStartDay, use24h, timezone: userTimezone } = useUserPreferences();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const gameId = params.id as string;
 
   // The auth session's user id is available one round trip before the profile
@@ -61,21 +66,16 @@ export default function GameDetailPage() {
   };
 
   // UI state
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  // Honor a `?tab=` hint so deep links land on the right tab — e.g. returning
+  // from the default-availability editor sends you back to the Availability tab
+  // you came from, not Overview. Read as lazy initial state so it's correct on
+  // the very first render (SSR-safe, no post-mount flash to Overview).
+  const [activeTab, setActiveTab] = useState<Tab>(() =>
+    initialTabFromParam(searchParams.get("tab")),
+  );
   const [playerToRemove, setPlayerToRemove] = useState<User | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
-
-  // Honor a `?tab=` hint so deep links land on the right tab — e.g. returning
-  // from the default-availability editor sends you back to the Availability tab
-  // you came from, not Overview. The loading spinner masks this initial set.
-  useEffect(() => {
-    const tab = new URLSearchParams(window.location.search).get("tab");
-    if (tab === "availability" || tab === "schedule") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time deep-link tab hint
-      setActiveTab(tab);
-    }
-  }, []);
 
   const isGm = !!userId && game?.gm_id === userId;
   const isCoGm =
@@ -105,13 +105,16 @@ export default function GameDetailPage() {
 
   const { otherGameSessionsByDate } = useOtherGameSessions(otherGames, userId);
 
-  const [subscribeUrl, setSubscribeUrl] = useState('');
-  useEffect(() => {
-    if (typeof window !== 'undefined' && game?.invite_code) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- window.location is only known client-side
-      setSubscribeUrl(`webcal://${window.location.host}/api/games/calendar/${game.invite_code}`);
-    }
-  }, [game?.invite_code]);
+  // window.location.host is only known client-side; read it as an external
+  // store and derive the URL during render (empty string during SSR/hydration,
+  // consumers already treat that as "not ready yet").
+  const host = useSyncExternalStore(
+    () => () => {},
+    () => window.location.host,
+    () => '',
+  );
+  const subscribeUrl =
+    host && game?.invite_code ? `webcal://${host}/api/games/calendar/${game.invite_code}` : '';
 
   useAuthRedirect();
 
@@ -418,5 +421,13 @@ export default function GameDetailPage() {
       </Modal>
 
     </div>
+  );
+}
+
+export default function GameDetailPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <GameDetailContent />
+    </Suspense>
   );
 }

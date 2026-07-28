@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
@@ -12,6 +13,7 @@ import { PageLoading } from '@/components/ui';
 import { OverviewTabContent } from '@/components/games/overview/OverviewTabContent';
 import { AvailabilityTabContent } from '@/components/games/availability/AvailabilityTabContent';
 import { ScheduleTabContent } from '@/components/games/schedule/ScheduleTabContent';
+import { queryKeys } from '@/lib/queryKeys';
 import type { AvailabilityEntry } from '@/components/calendar/AvailabilityCalendar';
 import type {
   Availability,
@@ -41,41 +43,33 @@ export default function AdminGamePeekPage() {
   const params = useParams();
   const gameId = params.id as string;
 
-  const [snapshot, setSnapshot] = useState<GameSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [viewAsUserId, setViewAsUserId] = useState<string>('');
+  const [viewAsUserId, setViewAsUserId] = useState<string | null>(null);
 
   useAuthRedirect({ requireAdmin: true });
 
-  useEffect(() => {
-    async function fetchSnapshot() {
-      if (!profile?.is_admin || !gameId) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/admin/games/${gameId}`);
-        if (res.status === 404) {
-          setError('Game not found');
-          return;
-        }
-        if (!res.ok) {
-          throw new Error('Failed to fetch game');
-        }
-        const data: GameSnapshot = await res.json();
-        setSnapshot(data);
-        setViewAsUserId(data.game.gm_id);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+  const {
+    data: snapshot,
+    isPending: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: queryKeys.adminGame(gameId),
+    queryFn: async (): Promise<GameSnapshot> => {
+      const res = await fetch(`/api/admin/games/${gameId}`);
+      if (res.status === 404) {
+        throw new Error('Game not found');
       }
-    }
-    fetchSnapshot();
-  }, [profile?.is_admin, gameId]);
+      if (!res.ok) {
+        throw new Error('Failed to fetch game');
+      }
+      return res.json();
+    },
+    enabled: !!profile?.is_admin && !!gameId,
+  });
+  const error = queryError?.message ?? null;
 
   const game = snapshot?.game ?? null;
+  const effectiveUserId = viewAsUserId ?? game?.gm_id ?? '';
   const allAvailability = useMemo(() => snapshot?.availability ?? [], [snapshot]);
   const sessions = useMemo(() => snapshot?.sessions ?? [], [snapshot]);
   const playDates = useMemo(() => snapshot?.playDates ?? [], [snapshot]);
@@ -94,7 +88,7 @@ export default function AdminGamePeekPage() {
   const viewAsAvailability = useMemo(() => {
     const map: Record<string, AvailabilityEntry> = {};
     for (const a of allAvailability) {
-      if (a.user_id !== viewAsUserId) continue;
+      if (a.user_id !== effectiveUserId) continue;
       map[a.date] = {
         status: a.status,
         comment: a.comment,
@@ -103,7 +97,7 @@ export default function AdminGamePeekPage() {
       };
     }
     return map;
-  }, [allAvailability, viewAsUserId]);
+  }, [allAvailability, effectiveUserId]);
 
   if (authStatus === 'loading' || !profile?.is_admin) {
     return (
@@ -212,7 +206,7 @@ export default function AdminGamePeekPage() {
             </label>
             <select
               id="view-as-player"
-              value={viewAsUserId}
+              value={effectiveUserId}
               onChange={(e) => setViewAsUserId(e.target.value)}
               className="h-8 px-2 rounded-md border border-border bg-card text-card-foreground text-sm"
               data-testid="peek-view-as-select"
@@ -229,7 +223,7 @@ export default function AdminGamePeekPage() {
           <AvailabilityTabContent
             windowStart={windowStart}
             windowEnd={windowEnd}
-            currentUserId={viewAsUserId}
+            currentUserId={effectiveUserId}
             completionByUserId={completionByUserId}
             playDays={game.play_days}
             availability={viewAsAvailability}

@@ -1,260 +1,109 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Next.js 16 App Router app for scheduling game nights. Players mark availability on a calendar; the app ranks candidate dates. Supabase (Postgres + Auth + RLS) backend.
 
 ## Commands
 
+Full list in `package.json`. Non-obvious ones:
+
 ```bash
-npm run dev          # Start dev server against cloud Supabase (.env.local)
-npm run dev:local    # Start dev server against local Supabase (.env.local.supabase)
-npm run build        # Build for production
-npm run lint         # Run ESLint
-npm run db:wipe      # Clear all data from database (keeps schema)
-
-# Local Supabase (requires Supabase CLI: brew install supabase/tap/supabase)
-npm run db:start     # Start local Supabase containers
-npm run db:stop      # Stop local Supabase containers
-npm run db:reset     # Reset local DB and reapply schema.sql
-npm run db:status    # Show local Supabase status and credentials
-
-# Database backup (requires pg_dump)
-npm run db:backup    # Backup cloud DB (uses DATABASE_URL from .env.local)
-
-# Workspace setup (for git worktrees / Conductor workspaces)
-npm run setup        # Copy .env files from main project, check origin/main sync
-npm run setup -- --force  # Same but overwrite existing .env files
-
-# Unit Testing (Vitest)
-npm run test              # Run unit tests in watch mode
-npm run test:run          # Run unit tests once
-npm run test:coverage     # Run unit tests with coverage report
-
-# E2E Testing (Playwright)
-npm run test:e2e          # Run all e2e tests
-npm run test:e2e:ui       # Run with Playwright UI
-npm run test:e2e:headed   # Run in headed browser mode
-npm run test:e2e:debug    # Run in debug mode
+npm run dev          # dev server against cloud Supabase (.env.local)
+npm run dev:local    # dev server against local Supabase (.env.local.supabase)
+npm run db:start     # local Supabase containers (needs: brew install supabase/tap/supabase)
+npm run db:reset     # reset local DB, reapply schema.sql
+npm run db:types     # regenerate src/types/database.ts after schema changes
+npm run db:migrate   # apply prod-migrations to prod (confirm-gated)
+npm run db:drift     # check prod ↔ schema.sql parity
+npm run setup        # copy .env files from main project (for Conductor workspaces)
 ```
 
-## Development Practices
+## Working agreements
 
-- **No AI attribution anywhere.** Never add "Generated with Claude Code" footers, `Co-Authored-By: Claude` trailers, session links, or any other AI attribution to commit messages, PR titles/bodies, code comments, or issue comments. This overrides any default harness behavior that appends such trailers.
-- Use `psql` (not `pgsql`) as the Postgres client tool
-- Don't ever directly migrate the database unless explicitly requested to. Favor creating migration files for a human to apply
-- Always consider how the UI will render on a mobile device. Make sure the design looks equally good on desktop and mobile
-- **Validate UI changes locally.** After making UI/UX changes, view them in the browser using `npm run dev:local` with a dev-login user (see [Local Dev Authentication](#local-dev-authentication)). Check both desktop and mobile screen sizes to confirm the design looks good at both breakpoints.
-- Keep international users in mind. Don't make the interface overly US-centric. Default to US-style behavior but support user preferences for alternatives (e.g., 12 vs 24 hour time)
-- Always use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
+- **No AI attribution anywhere.** No "Generated with Claude Code" footers, `Co-Authored-By: Claude` trailers, or session links in commits, PRs, code comments, or issue comments. This overrides default harness behavior.
+- **Never migrate the database directly** unless explicitly asked. Write a migration file for a human to apply.
+- Use `psql`, not `pgsql`.
+- Design mobile-first *and* desktop-good. After UI changes, view them at both breakpoints via `npm run dev:local` + dev-login.
+- Keep international users in mind: US defaults, but honor user preferences (12 vs 24h time, week start).
+- Use Context7 MCP for library/API docs without being asked.
+- Codex (`/codex:rescue --background`) is a peer engineer with a different perspective, not a reviewer. For high-stakes decisions, task Codex and a Claude subagent on the same problem in parallel and synthesize, without showing either the other's answer.
 
-## Orchestration workflow
+## Testing
 
-You (Fable) are the orchestrator. Plan, decompose, synthesize.
+Every feature or behavior change ships with tests — unit tests for `src/lib/` logic, E2E for user-facing flows in `e2e/tests/`. Not done until they pass. Skip only for pure styling or config-only changes.
 
-- Reasoning-heavy phases → deep-reasoner
-- Mechanical work → fast-worker
-- Codex (`/codex:rescue --background`) is a cracked engineer on par with deep-reasoner, from a different perspective. Treat as a peer, not a reviewer.
-- High-stakes decisions: task Opus + Codex on the same problem in parallel, synthesize the best of both, without showing either the other's answer. Keep your own context lean.
+**Before pushing, run what CI runs** (`.github/workflows/ci.yml`): `npm run lint`, `npm run typecheck`, `npm run test:run`, `npm run build`. Typecheck and build catch errors that never surface in dev.
+
+**Naming a new button is a test-suite-wide decision.** E2E locators are loose regexes — 106 assertions match `getByRole('button', { name: /availability/i })` and 90 match `/schedule/i`. A new control whose label contains "availability" or "schedule" breaks all of them at once with "resolved to N elements". Same failure mode from rendering a panel twice for responsive layouts (`lg:hidden` + `hidden lg:block`) — that duplicates DOM text and breaks `getByText`; render once and reposition with CSS instead. After any UI change touching these words or layouts, run the full E2E suite, not just the file you're working on.
+
+E2E harness: `e2e/fixtures/auth.fixture.ts` (authed page), `e2e/helpers/seed.ts`, `e2e/helpers/test-auth.ts`. Requires `.env.test.local`; CI in `.github/workflows/e2e.yml`.
+
+When fixing failures, run tests individually, not the full suite:
+
+```bash
+npx playwright test e2e/tests/settings/profile.spec.ts --project=chromium
+npx playwright test "e2e/tests/settings/profile.spec.ts:46" --project=chromium
+```
 
 ## Styling
 
-- **Never use hardcoded color classes** (e.g., `bg-blue-500`, `text-blue-700`, `dark:text-blue-300`). The app supports multiple color themes, so always use semantic theme classes instead.
-- For info callouts/highlights: `bg-primary/10 border border-primary/30 rounded-lg` with `text-primary`
-- For badges: `bg-primary/10 text-primary`
-- Available semantic color classes: `primary`, `secondary`, `muted`, `accent`, `card`, `danger` (plus `danger-muted`), `foreground`, `border`, `ring` (each with `-foreground` variant where applicable). There is no `destructive` token — use `danger`.
+- **Never use hardcoded color classes** (`bg-blue-500`, `dark:text-blue-300`). The app has multiple themes — always use semantic tokens.
+- Available: `primary`, `secondary`, `muted`, `accent`, `card`, `danger` (+ `danger-muted`), `foreground`, `border`, `ring`, each with a `-foreground` variant where applicable. There is no `destructive` token — use `danger`.
+- Info callouts: `bg-primary/10 border border-primary/30 rounded-lg` + `text-primary`. Badges: `bg-primary/10 text-primary`.
+- Use `public/logo.png` (via next/image) for branding, not emojis.
 
-## Testing Requirements
+## Database
 
-**IMPORTANT: Every feature or behavior change MUST include tests.**
+Schema in `supabase/schema.sql`. Core tables: `users`, `games` (host GM, play days, invite code, scheduling window, session defaults, min players), `game_memberships` (`is_co_gm`), `availability` (available/unavailable/maybe + optional comment and `available_after`/`available_until`), `sessions`.
 
-Before marking any implementation task as complete:
-1. Identify what tests are needed (unit tests for logic in `src/lib/`, E2E tests for user-facing flows in `e2e/tests/`)
-2. Propose the test plan to the user
-3. Write and run the tests
-4. Do NOT consider the task done until tests pass
+**Every user is a GM by default** (`is_gm BOOLEAN DEFAULT TRUE`, set by the signup trigger) — there is no role gate on creating a game. Don't assume the usual "must be granted GM" model.
 
-This applies to: new features, bug fixes, refactors that change behavior, new API routes, and new utility functions. Skip tests only for pure styling/cosmetic changes or config-only changes.
+**The host GM has no `game_memberships` row.** Membership is players-only; the host is `games.host_id`. So `isMember`, `game.members`, and any membership count exclude the host — participant checks need `isMember || isGm` (see `src/app/games/[id]/page.tsx`), and player counts add 1 (`count_game_players()` in schema.sql). This one silently produces off-by-one counts and hides features from the GM.
 
-## Architecture
+**`join_game_by_invite()` is the only sanctioned way to insert a membership.** There is deliberately no INSERT policy on `game_memberships` — the SECURITY DEFINER function looks the game up *by invite code* (which lives on `games`, so a row policy can't check it) and hard-codes `is_co_gm = false`. If a join path hits an RLS wall, route it through this function; don't add an INSERT policy, which reopens both holes. Co-GM is granted later via UPDATE.
 
-This is a Next.js 16 App Router application for scheduling game nights. Players mark availability on a calendar, and the app suggests optimal dates. Key features include three-state availability (available/unavailable/maybe), co-GM support, calendar subscription feeds, and special play dates.
+RLS uses `auth.uid()` plus SECURITY DEFINER helpers (`is_game_participant()`, `is_game_gm_or_co_gm()`) to avoid recursion. Usage limits are enforced in RLS: 20 games/user, 50 players/game, 100 future sessions/game.
 
-### Authentication
+**Schema changes:** edit `schema.sql` directly. `supabase/migrations/00000000000000_initial_schema.sql` is a symlink to it — adding a second file in `supabase/migrations/` fails CI, because the initial schema already created the object (SQLSTATE 42710).
 
-Uses Supabase Auth with Google and Discord OAuth. OAuth providers are configured in the Supabase Dashboard (not env vars).
+**Production:** every `schema.sql` change lands WITH a matching timestamped file in `supabase/prod-migrations/` (committed, append-only — see its README). Applied files are tracked in `public._applied_migrations`.
 
-- `src/contexts/AuthContext.tsx` - Auth context providing `useAuth()` hook
-- `src/lib/supabase/client.ts` - Browser client (uses anon key)
-- `src/lib/supabase/server.ts` - Server client for server components
-- `src/lib/supabase/admin.ts` - Admin client (service role key, bypasses RLS)
-- `src/app/auth/callback/route.ts` - OAuth callback handler
+## Auth
 
-The `useAuth()` hook provides user, session, profile, loading state, OAuth sign-in methods, and sign-out.
+Supabase Auth with Google and Discord OAuth, configured in the Supabase Dashboard (not env vars). `useAuth()` from `src/contexts/AuthContext.tsx` provides user, session, profile, loading, sign-in/out.
 
-**Gotcha:** Supabase Redirect URLs must use `/**` wildcard suffix or query parameters (e.g., `?next=/games/join/ABC`) get stripped.
+Three Supabase clients, pick deliberately: `src/lib/supabase/client.ts` (browser, anon key), `server.ts` (server components), `admin.ts` (service role, bypasses RLS).
 
-### Local Dev Authentication
+**Gotcha:** Supabase Redirect URLs need a `/**` wildcard suffix or query params get stripped (e.g. `?next=/games/join/ABC`).
 
-A dev-login page (`src/app/dev-login/`) allows bypassing OAuth for local development. It only works when `NODE_ENV === 'development'` and the Supabase URL points to localhost — it returns a 404 in production.
+**Local dev login:** `src/app/dev-login/` bypasses OAuth. Only works when `NODE_ENV === 'development'` and Supabase points at localhost; 404s in production. Run `npm run db:start` + `npm run dev:local`, then open `/dev-login`. Users (`src/app/dev-login/actions.ts`): `dev-gm@`, `dev-player1@`, `dev-player2@`, `dev-admin@dev.local`, auto-created on first login. Supports `?callbackUrl=`.
 
-**Setup:**
-1. Start local Supabase: `npm run db:start`
-2. Start dev server: `npm run dev:local`
-3. Navigate to http://localhost:3000/dev-login (or click "Dev Login" on the login page)
+## Data fetching & caching
 
-**Dev users** (defined in `src/app/dev-login/actions.ts`):
-- **Dev GM** (`dev-gm@dev.local`) — standard GM user
-- **Dev Player 1** (`dev-player1@dev.local`) — standard player
-- **Dev Player 2** (`dev-player2@dev.local`) — standard player
-- **Dev Admin** (`dev-admin@dev.local`) — admin user
+Client reads go through TanStack Query v5; `QueryClientProvider` is in `src/components/layout/Providers.tsx` with a default `staleTime` of `QUERY_STALE_TIME` (45s).
 
-Users are auto-created in the local Supabase on first login and persist across sessions. You can switch between personas instantly from the dev-login page. The page supports a `callbackUrl` query parameter to redirect after login (e.g., `/dev-login?callbackUrl=/games/abc`).
+- **Every cache key is built via `src/lib/queryKeys.ts`** — never inline key arrays. Prefix invalidation is deliberate (`['dashboard']` invalidates all users' entries).
+- **Mutations write to the cache** (`setQueryData`) with optimistic updates and surgical rollback, then invalidate *other* keys whose data changed. When adding a mutation, ask which cached views show its data.
+- Dashboard loads via `fetchDashboardData` (`src/lib/schedule/dashboardData.ts`): two parallel stages with membership counts embedded via `game_memberships(count)` — don't reintroduce per-game count queries.
+- Game-page hooks (`useGameMeta`, `useAvailability`, `useSessions`, `usePlayDates`, `useOtherGameSessions`) each own one key and fire in parallel as soon as `gameId`/`userId` are known. Don't gate one hook on another's result; RLS already returns nothing for non-participants.
+- The current user's availability map is **derived** from the all-players availability cache, not fetched separately.
+- Key fetches off `session.user.id` (immediate), not `profile.id` (needs a round trip) — same value.
+- Bulk availability goes through `batchUpsertAvailability` / `useAvailability().bulkSetStatus`: one round trip for N dates. Never loop single-row upserts.
 
-### Database
+## Code conventions
 
-Supabase PostgreSQL with Row Level Security. Schema in `supabase/schema.sql`.
+- Page components are `'use client'`.
+- Protected pages use `useAuthRedirect()` (`src/hooks/useAuthRedirect.ts`) — handles the unauthenticated → `/login` redirect, with `requireGM` / `requireAdmin` options that bounce to `/dashboard`. Never hand-roll redirect logic in a page.
+- Domain folders have an `index.ts` barrel — import from the folder (`@/lib/availability`, `@/lib/schedule`, `@/lib/admin`, `@/components/ui`).
+- `src/lib/date.ts` — canonical local-date helpers (`toLocalDateString`, `getTodayLocalDate`). Never `toISOString().split('T')[0]` (UTC "today" bug).
+- `src/lib/availability/eligibleDates.ts` — the ONE `isEligiblePlayDate()` predicate. Never re-implement the play-day/extra/past rule.
+- `src/lib/apiError.ts` — `serverError()`/`logServerError()` for errorId-correlated 500s in ALL API routes. Route guards live in `src/lib/api/` (`requireAdmin`, `requireUser`).
+- `src/types/database.ts` is GENERATED (`npm run db:types`). `src/types/api.ts` holds shared API contract types — never re-declare route response shapes locally.
+- Supabase queries with embedded joins don't infer cleanly against the generated types; the established fix is `as unknown as T` at the query boundary (~23 uses). Cast once where the data enters, then stay typed.
+- `src/hooks/useUserPreferences.ts` is the single source of truth for i18n prefs; `src/lib/constants.ts` for shared constants.
+- `src/lib/url.ts` — `safeCallbackUrl()` for open-redirect prevention on any user-supplied redirect.
 
-Key tables:
-- `users` - Profiles linked to `auth.users` via id (auto-created on signup via trigger)
-- `games` - Games with host (GM), play days array, invite code, scheduling window (1/2/3/6/12 months), default session times, special play dates, minimum players needed, optional campaign start/end dates
-- `game_memberships` - Players in each game (includes `is_co_gm` flag)
-- `availability` - Available/unavailable/maybe dates per player per game (with optional comment, optional `available_after`/`available_until` time constraints)
-- `sessions` - Scheduled game nights (confirmed status with start/end times)
+## Environment files
 
-RLS uses `auth.uid()` and helper functions (SECURITY DEFINER) like `is_game_participant()` and `is_game_gm_or_co_gm()` to avoid recursion issues.
-
-**Migrations:** The `supabase/migrations/00000000000000_initial_schema.sql` is a symlink to `schema.sql`. When adding new columns, tables, policies, or indexes, modify `schema.sql` directly — do NOT create a separate migration file there. The symlink ensures schema changes are applied automatically to fresh databases; a second file in `supabase/migrations/` will fail CI because the initial schema already created the object (e.g., "column already exists", SQLSTATE 42710).
-
-**Production migrations:** every `schema.sql` change must land WITH a matching timestamped file in `supabase/prod-migrations/` (committed, append-only — see its README for conventions). Apply to prod with `npm run db:migrate` (confirm-gated; tracks applied files in `public._applied_migrations`); check prod↔schema.sql parity anytime with `npm run db:drift` (local Supabase after `db:reset` vs prod).
-
-### Key Patterns
-
-- All page components use `'use client'` directive
-- All users have GM capabilities by default (`is_gm: true`)
-- Games use invite codes (nanoid-10) for players to join
-- GMs can promote members to co-GMs who can edit games and confirm sessions
-- Availability has three states: available, unavailable, maybe (with optional comment and optional time-of-day constraints on available/maybe)
-- GMs/co-GMs can add special play dates for one-off sessions outside regular play days
-
-### Data Fetching & Caching
-
-Client-side reads go through TanStack Query (React Query v5); the `QueryClientProvider` lives in `src/components/layout/Providers.tsx` with a default `staleTime` of `QUERY_STALE_TIME` (45s), so navigating between pages within that window reuses the cache instead of refetching.
-
-- **Every cache key is built via `src/lib/queryKeys.ts`** — never write inline key arrays. Prefix invalidation is used deliberately (e.g. `['dashboard']` invalidates all users' dashboard entries).
-- **Mutations write to the cache** (`queryClient.setQueryData`) with optimistic updates and surgical rollback, then invalidate any *other* keys whose data changed (e.g. confirming a session invalidates `['dashboard']` so the upcoming-sessions panel refreshes). When adding a mutation, ask which cached views its data appears in and invalidate those keys.
-- The dashboard loads via `fetchDashboardData` (`src/lib/dashboardData.ts`): two parallel stages with membership counts embedded in the games queries (`game_memberships(count)`) — do not reintroduce per-game count queries.
-- Game-page hooks (`useGameMeta`, `useAvailability`, `useSessions`, `usePlayDates`, `useOtherGameSessions`) each own one query key and fire in parallel as soon as `gameId`/`userId` are known — don't gate one hook's fetch on another's result; RLS already returns nothing for non-participants.
-- The current user's availability map is **derived** from the all-players availability cache (one query), not fetched separately.
-- Key data fetches off `session.user.id` (available immediately) rather than `profile.id` (needs a round trip); the two are the same value.
-- Bulk availability changes go through `batchUpsertAvailability` / `useAvailability().bulkSetStatus` — one round trip for N dates. Never loop single-row upserts.
-
-### Shared Utilities
-
-- `src/hooks/useAuthRedirect.ts` - Hook for protected pages (redirects to login, optionally requires GM)
-- `src/hooks/useUserPreferences.ts` - Single source of truth for user i18n preferences (time format, week start)
-- `src/lib/constants.ts` - Shared constants (day labels, timeouts, session defaults, usage limits, text limits, query stale time)
-- `src/lib/queryKeys.ts` - Central registry of React Query cache keys (all queries/invalidations build keys here)
-- **Domain folders** (each with an `index.ts` barrel — import from the folder, e.g. `@/lib/availability`):
-  - `src/lib/availability/` - Availability domain logic: completion percentages (`availability.ts`), status cycling (`availabilityStatus.ts`), bulk marking (`bulkAvailability.ts`), copy-between-games (`copyAvailability.ts`), weekday defaults (`defaultAvailability.ts`), and the ONE shared `isEligiblePlayDate()` predicate (`eligibleDates.ts`) — never re-implement the play-day/extra/past eligibility rule
-  - `src/lib/schedule/` - Scheduling domain: suggestion ranking (`suggestions.ts`), scheduling window (`scheduling.ts`), schedule view helpers + shared `joinTimeWindow` formatter core (`scheduleView.ts`), upcoming sessions (`upcomingSessions.ts`), cross-game sessions (`otherGameSessions.ts`), game health scoring (`gameHealth.ts`), dashboard fetch (`dashboardData.ts`)
-  - `src/lib/admin/` - Admin analytics: engagement charts data (`adminEngagement.ts`), top-users leaderboard (`topUsers.ts`)
-- `src/lib/date.ts` - Canonical local-date helpers (`toLocalDateString`, `getTodayLocalDate`) — never use `toISOString().split('T')[0]` (UTC "today" bug)
-- `src/lib/calendarCellState.ts` - Pure per-cell styling/state derivation for the availability calendar (every branch unit-tested)
-- `src/lib/ics.ts` - ICS (iCalendar) file generation for calendar export
-- `src/lib/formatting.ts` - Time formatting utilities (24h to 12h conversion, compact `formatTimeShort`)
-- `src/lib/gameValidation.ts` - Game form validation
-- `src/lib/timezone.ts` - Timezone detection, display formatting, and conversion (`getDateInTimezone` for "date at an instant in a specific zone")
-- `src/lib/apiError.ts` - `serverError()`/`logServerError()` — canonical errorId-correlated 500s for ALL API routes
-- `src/lib/api/` - Route guards (`requireAdmin`, `requireUser`) and admin pagination
-- `src/types/database.ts` - GENERATED Supabase types (regenerate via `npm run db:types` after schema changes); `src/types/api.ts` - shared API contract types (never re-declare route response shapes locally)
-- `src/lib/quat.ts` - Dependency-free quaternion/vector math for the 3D dice
-- `src/lib/d20Geometry.ts` - Icosahedron vertices/faces/numbers shared by dice physics and rendering
-- `src/lib/diceConfig.ts` - Die/tray sizing shared by physics and renderer
-- `src/lib/dieRenderer.ts` - Canvas-2D d20 renderer (`D20Renderer`) driven by quaternion poses
-- `src/lib/dicePhysics.ts` - Headless cannon-es d20 roll simulation + playback (lazy-loaded; only the 404 roll needs the physics engine)
-- `src/lib/diceTumble.ts` - Perpetual tumble motion for the loading spinner (no physics engine)
-- `src/lib/themes.ts` - Theme configuration and utilities
-- `src/lib/url.ts` - URL validation (`safeCallbackUrl`) for open-redirect prevention
-- `src/contexts/ThemeContext.tsx` - Theme context (uses next-themes)
-- `src/components/ui/` - Reusable components: Button, Card, Modal, Input, Textarea, LoadingSpinner, PageLoading, EmptyState
-
-### Calendar Components
-
-- `src/components/calendar/AvailabilityCalendar.tsx` - Interactive multi-month calendar
-  - Click dates to cycle: available → unavailable → maybe
-  - Long-press/hover for notes and time-of-day constraints on any date
-  - Bulk actions: "Mark all remaining/[day] as [status]"
-  - GMs can add special play dates on non-play days
-  - Visual indicators: play days, confirmed sessions, today
-
-### Game Components
-
-- `src/components/games/overview/OverviewTabContent.tsx` - Overview tab orchestrator (header + party panel + details sidebar)
-- `src/components/games/overview/PartyPanel.tsx` - Player list and management
-- `src/components/games/overview/GameDetailsPanel.tsx` - Game settings and info display
-- `src/components/games/availability/AvailabilityTabContent.tsx` - Availability tab orchestrator (header + calendar + response-status sidebar)
-- `src/components/games/availability/AvailabilityHeader.tsx` - Availability tab header with progress meta line
-- `src/components/games/SchedulingSuggestions.tsx` - Date suggestions ranked by availability
-  - Shows player breakdown (available/maybe/unavailable/pending) with time annotations
-  - Displays computed time window (earliest start / latest end) from player constraints
-  - Minimum player threshold: GMs can set a minimum, dates below threshold show "X/Y needed" and are ranked lower
-  - Confirm modal pre-fills times based on player constraints and game defaults
-  - Separates upcoming vs past sessions
-  - Export to calendar (.ics download or webcal://)
-
-### Account Deletion
-
-Self-service account deletion is accessed from Settings > Danger Zone. The flow is a multi-step wizard:
-
-1. **Preview** — `/api/account/delete-preview` fetches owned games (with members), and games the user is a player in
-2. **Decisions** — For games with other players, the user chooses to delete or transfer each game to another member
-3. **Confirmation** — Summary of actions with `DELETE` confirmation word
-4. **Execution** — `/api/account/delete` processes transfers, deletes `public.users` (cascading to games, memberships, availability, sessions), then deletes `auth.users`
-
-Key files:
-- `src/app/settings/delete-account/page.tsx` — Deletion wizard UI
-- `src/app/api/account/delete-preview/route.ts` — Preview API
-- `src/app/api/account/delete/route.ts` — Deletion API
-- `scripts/delete-user.ts` — Admin CLI tool (`npx tsx scripts/delete-user.ts <email-or-uuid>`)
-- `e2e/tests/settings/delete-account.spec.ts` — E2E tests
-
-### E2E Testing
-
-Tests are in `e2e/tests/` organized by feature. The test harness uses:
-- `e2e/fixtures/auth.fixture.ts` - Authenticated page fixture
-- `e2e/helpers/seed.ts` - Database seeding utilities
-- `e2e/helpers/test-auth.ts` - Test user authentication
-
-Tests require `.env.test.local` with test database credentials. CI runs via GitHub Actions (`.github/workflows/e2e.yml`).
-
-**Testing workflow:** When fixing failing tests, run them individually rather than the full suite:
-```bash
-# Run a specific test file
-npx playwright test e2e/tests/settings/profile.spec.ts --project=chromium
-
-# Run a specific test by line number
-npx playwright test "e2e/tests/settings/profile.spec.ts:46" --project=chromium
-
-# Run all tests in a directory
-npx playwright test e2e/tests/multi-user --project=chromium
-```
-
-### Usage Limits
-
-Enforced via RLS policies in the database:
-- 20 games per user (as GM)
-- 50 players per game
-- 100 future sessions per game
-
-### Environment Files
-
-- `.env.local` - Cloud Supabase credentials (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, DATABASE_URL)
-- `.env.local.supabase` - Local Supabase credentials (same keys, local values)
-- `.env.test.local` - Test database credentials for E2E tests
-
-### Other Key Files
-
-- `public/logo.png` - App logo (use instead of emojis for branding; import with Next.js `Image`)
-- `src/components/layout/Providers.tsx` - Wraps app with ThemeProvider and AuthProvider
-- `src/components/layout/Navbar.tsx` - Navigation bar with user menu and help dropdown
-- `src/app/opengraph-image.png` - Default OG image (static PNG)
-- `src/app/games/join/[code]/opengraph-image.tsx` - Dynamic OG image for invite links
+- `.env.local` — cloud Supabase (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, DATABASE_URL)
+- `.env.local.supabase` — local Supabase, same keys
+- `.env.test.local` — E2E test database

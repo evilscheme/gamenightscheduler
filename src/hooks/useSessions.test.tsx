@@ -20,6 +20,7 @@ const dataMocks = vi.hoisted(() => ({
 vi.mock('@/lib/data', () => dataMocks);
 
 const GAME_ID = 'game-1';
+const USER_ID = 'user-1';
 
 function row(overrides: Partial<GameSession>): GameSession {
   return {
@@ -37,7 +38,7 @@ function row(overrides: Partial<GameSession>): GameSession {
   } as GameSession;
 }
 
-function setup(seed: GameSession[]) {
+function setup(seed: GameSession[], userId = USER_ID) {
   dataMocks.fetchGameSessions.mockResolvedValue({ data: seed, error: null });
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -46,12 +47,22 @@ function setup(seed: GameSession[]) {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  const utils = renderHook(() => useSessions(GAME_ID), { wrapper });
+  const utils = renderHook(() => useSessions(GAME_ID, userId), { wrapper });
   return { ...utils, invalidateSpy };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe('useSessions — auth gating', () => {
+  // Signed-out visitors reach /games/[id] from a shared link. Querying then
+  // sends the request as the `anon` Postgres role, which has no EXECUTE on
+  // is_game_participant() — the RLS policy errors instead of returning [].
+  it('does not fetch until a user id is known', () => {
+    setup([], '');
+    expect(dataMocks.fetchGameSessions).not.toHaveBeenCalled();
+  });
 });
 
 describe('useSessions — confirmSession', () => {

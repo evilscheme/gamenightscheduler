@@ -136,6 +136,38 @@ test.describe('Game Detail Page', () => {
     await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible();
   });
 
+  test('?tab= deep link lands on the requested tab', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-tab-deeplink-${Date.now()}@e2e.local`,
+      name: 'Tab Deep Link GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Tab Deep Link Campaign',
+      play_days: [5, 6],
+    });
+
+    await loginTestUser(page, {
+      email: gm.email,
+      name: gm.name,
+      is_gm: true,
+    });
+
+    // Navigate directly with the deep-link query param instead of clicking the
+    // tab button, so this exercises the initial-tab hint rather than a click.
+    await page.goto(`/games/${game.id}?tab=availability`);
+
+    // Should land on the Availability tab content, not Overview. This text is
+    // unique to the Availability tab header, so it's a precise stand-in for
+    // "the tab landed correctly" without relying on the ambiguous
+    // getByRole('button', { name: /availability/i }) locator used elsewhere.
+    await expect(page.getByText(/mark your availability/i)).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+  });
+
   test('shows member list', async ({ page, request }) => {
     const gm = await createTestUser(request, {
       email: `gm-members-${Date.now()}@e2e.local`,

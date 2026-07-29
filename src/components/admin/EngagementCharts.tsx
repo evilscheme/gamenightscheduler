@@ -1,12 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, Cell,
 } from 'recharts';
 import { Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
+import { queryKeys } from '@/lib/queryKeys';
 import type { HealthGrade } from '@/lib/schedule';
 
 // ── Types ──────────────────────────────────────────────────
@@ -74,29 +76,20 @@ function ChartTooltip({ active, payload, label }: {
 // ── Main Component ─────────────────────────────────────────
 
 export default function EngagementCharts({ games }: EngagementChartsProps) {
-  const [data, setData] = useState<EngagementData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('12');
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const {
+    data,
+    isPending: loading,
+    error,
+  } = useQuery({
+    queryKey: queryKeys.adminEngagement(timeRange),
+    queryFn: async (): Promise<EngagementData> => {
       const res = await fetch(`/api/admin/engagement?weeks=${timeRange}`);
       if (!res.ok) throw new Error('Failed to fetch engagement data');
-      const json = await res.json();
-      setData(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  }, [timeRange]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+      return res.json();
+    },
+  });
 
   const chartData = data?.weeklyData.map((w) => ({
     ...w,
@@ -140,7 +133,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
           <LoadingSpinner size="lg" />
         </div>
       ) : error ? (
-        <div className="text-danger text-center py-12">{error}</div>
+        <div className="text-danger text-center py-12">{error.message}</div>
       ) : (
         <>
           {/* Hero: Platform Growth line chart */}

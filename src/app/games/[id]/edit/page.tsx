@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateGamesLists, queryKeys } from '@/lib/queryKeys';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
+import { useGameMeta } from '@/hooks/useGameMeta';
 import {
   Button,
   EyebrowLabel,
@@ -14,10 +15,8 @@ import {
   useToast,
 } from '@/components/ui';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { Game } from '@/types';
+import { Game, GameWithMembers } from '@/types';
 import {
-  fetchGameWithGM,
-  checkCoGmStatus,
   fetchFutureSessions,
   upsertPlayDate,
   updateGame,
@@ -56,8 +55,6 @@ export default function EditGamePage() {
   const supabase = getSupabaseClient();
   const queryClient = useQueryClient();
 
-  const [game, setGame] = useState<Game | null>(null);
-  const [loading, setLoading] = useState(true);
   const [conversionMessage, setConversionMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -69,34 +66,32 @@ export default function EditGamePage() {
   const toast = useToast();
   useAuthRedirect();
 
+  // Reuses the same cached game (queryKeys.game(gameId)) the game detail page
+  // just fetched, instead of re-requesting it here.
+  const { game, loading: gameLoading } = useGameMeta(gameId, profile?.id ?? '');
+  const loading = authStatus === 'loading' || gameLoading;
+
+  const isGm = !!profile?.id && game?.gm_id === profile.id;
+  // The host GM owns the game via gm_id and is intentionally not a
+  // game_memberships row (see schema.sql), so co-GM status is derived from
+  // the members list fetchGameMembers() already returned as part of `game`.
+  const isCoGm =
+    game?.members.some((m) => m.id === profile?.id && m.is_co_gm) ?? false;
+  const canEditGame = isGm || isCoGm;
+
+  // Not found (or not a participant, which RLS reports the same way).
   useEffect(() => {
-    async function fetchGame() {
-      if (!gameId || !profile?.id) return;
-
-      const { data, error: fetchError } = await fetchGameWithGM(supabase, gameId);
-      if (fetchError || !data) {
-        router.push('/dashboard');
-        return;
-      }
-
-      const isGm = data.gm_id === profile.id;
-      if (!isGm) {
-        const { data: isCoGm } = await checkCoGmStatus(supabase, gameId, profile.id);
-        if (!isCoGm) {
-          router.push(`/games/${gameId}`);
-          return;
-        }
-      }
-
-      setGame(data);
-      setLoading(false);
+    if (!gameLoading && !game && profile?.id) {
+      router.push('/dashboard');
     }
+  }, [gameLoading, game, profile?.id, router]);
 
-    if (profile?.id) {
-      fetchGame();
+  // Participant, but lacks GM/co-GM permission to edit this game.
+  useEffect(() => {
+    if (!gameLoading && game && !canEditGame) {
+      router.push(`/games/${gameId}`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- supabase is stable
-  }, [gameId, profile?.id, router]);
+  }, [gameLoading, game, canEditGame, gameId, router]);
 
   const handleSave = async (state: GameFormState) => {
     if (!profile?.id || !game) return;
@@ -173,8 +168,9 @@ export default function EditGamePage() {
       toast.show('Could not regenerate invite code. Please try again.', 'danger');
       return;
     }
-    setGame({ ...game, invite_code: newCode });
-    queryClient.invalidateQueries({ queryKey: queryKeys.game(gameId) });
+    queryClient.setQueryData<GameWithMembers | null>(queryKeys.game(gameId), (prev) =>
+      prev ? { ...prev, invite_code: newCode } : prev
+    );
     toast.show('Invite code regenerated. The old link no longer works.');
   };
 
@@ -192,15 +188,16 @@ export default function EditGamePage() {
     router.push('/dashboard');
   };
 
-  if (authStatus === 'loading' || loading) {
+  if (loading) {
     return (
       <PageLoading />
     );
   }
 
-  if (!game) return null;
+  // Not found or not permitted — the effects above are redirecting away.
+  if (!game || !canEditGame) return null;
 
-  const isOwner = game.gm_id === profile?.id;
+  const isOwner = isGm;
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -60,13 +60,25 @@ export function useGameDerivedState(
     [playDateEntries]
   );
 
+  // `getSchedulingWindow` reads exactly these three fields (see its
+  // SchedulingWindowGame parameter). Depending on them rather than the whole
+  // `game` object keeps windowStart/windowEnd referentially stable across
+  // refetches — they're passed as props deep into the calendar, so churning
+  // them on every `game` identity change would cascade re-renders.
+  const schedulingWindowMonths = game?.scheduling_window_months;
+  const campaignStartDate = game?.campaign_start_date ?? null;
+  const campaignEndDate = game?.campaign_end_date ?? null;
+
   const { start: windowStart, end: windowEnd } = useMemo(
     () =>
-      game
-        ? getSchedulingWindow(game)
+      schedulingWindowMonths !== undefined
+        ? getSchedulingWindow({
+            scheduling_window_months: schedulingWindowMonths,
+            campaign_start_date: campaignStartDate,
+            campaign_end_date: campaignEndDate,
+          })
         : { start: startOfDay(new Date()), end: endOfMonth(addMonths(new Date(), 2)) },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally depends on specific fields, not the full game object, to prevent re-render loops
-    [game?.scheduling_window_months, game?.campaign_start_date, game?.campaign_end_date]
+    [schedulingWindowMonths, campaignStartDate, campaignEndDate]
   );
 
   const specialPlayDatesSet = useMemo(

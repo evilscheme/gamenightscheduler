@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Modal, Button, Input, Textarea, EyebrowLabel } from '@/components/ui';
 import type { DateSuggestion, GameSession } from '@/types';
@@ -38,40 +38,53 @@ function normalize(value: string): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
+interface InitialSessionValues {
+  start: string;
+  end: string;
+  location: string;
+  notes: string;
+}
+
+// Pure computation of the form's starting values, shared by both modes. The
+// caller is expected to mount a fresh SessionDetailsModal instance (via a
+// stable per-target `key`) whenever `session`/`suggestion` change, so this
+// only needs to run once, as a lazy useState initializer.
+function computeInitialValues(
+  mode: SessionDetailsMode,
+  session: GameSession | undefined,
+  suggestion: DateSuggestion | undefined,
+  gameDefaultStart: string | null | undefined,
+  gameDefaultEnd: string | null | undefined,
+): InitialSessionValues {
+  if (mode === 'edit' && session) {
+    return {
+      start: (session.start_time ?? SESSION_DEFAULTS.START_TIME).slice(0, 5),
+      end: (session.end_time ?? SESSION_DEFAULTS.END_TIME).slice(0, 5),
+      location: session.location ?? '',
+      notes: session.notes ?? '',
+    };
+  }
+  const defaults = computeDefaultSessionTimes({
+    earliestStartTime: suggestion?.earliestStartTime ?? null,
+    latestEndTime: suggestion?.latestEndTime ?? null,
+    gameDefaultStart: gameDefaultStart?.slice(0, 5) || SESSION_DEFAULTS.START_TIME,
+    gameDefaultEnd: gameDefaultEnd?.slice(0, 5) || SESSION_DEFAULTS.END_TIME,
+  });
+  return { start: defaults.start, end: defaults.end, location: '', notes: '' };
+}
+
 export function SessionDetailsModal({
   open, date, mode, suggestion, gameDefaultStart, gameDefaultEnd, session, onClose, onSubmit,
 }: SessionDetailsModalProps) {
-  const [start, setStart] = useState<string>(SESSION_DEFAULTS.START_TIME);
-  const [end, setEnd] = useState<string>(SESSION_DEFAULTS.END_TIME);
-  const [location, setLocation] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
+  const [initial] = useState(() =>
+    computeInitialValues(mode, session, suggestion, gameDefaultStart, gameDefaultEnd)
+  );
+  const [start, setStart] = useState<string>(initial.start);
+  const [end, setEnd] = useState<string>(initial.end);
+  const [location, setLocation] = useState<string>(initial.location);
+  const [notes, setNotes] = useState<string>(initial.notes);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Compute initial values whenever the modal opens or its key inputs change.
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (!open || !date) return;
-    if (mode === 'edit' && session) {
-      setStart((session.start_time ?? SESSION_DEFAULTS.START_TIME).slice(0, 5));
-      setEnd((session.end_time ?? SESSION_DEFAULTS.END_TIME).slice(0, 5));
-      setLocation(session.location ?? '');
-      setNotes(session.notes ?? '');
-    } else {
-      const defaults = computeDefaultSessionTimes({
-        earliestStartTime: suggestion?.earliestStartTime ?? null,
-        latestEndTime: suggestion?.latestEndTime ?? null,
-        gameDefaultStart: gameDefaultStart?.slice(0, 5) || SESSION_DEFAULTS.START_TIME,
-        gameDefaultEnd: gameDefaultEnd?.slice(0, 5) || SESSION_DEFAULTS.END_TIME,
-      });
-      setStart(defaults.start);
-      setEnd(defaults.end);
-      setLocation('');
-      setNotes('');
-    }
-    setError(null);
-  }, [open, date, mode, session, suggestion, gameDefaultStart, gameDefaultEnd]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // In edit mode, the submit button is disabled until at least one field differs.
   const hasChanges = useMemo(() => {

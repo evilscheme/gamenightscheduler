@@ -1,9 +1,10 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, ReactNode } from 'react';
 import { useTheme as useNextTheme } from 'next-themes';
 import { DEFAULT_THEME_ID, themes, getThemeById, type Theme } from '@/lib/themes';
 import { useLocalStoragePref } from '@/hooks/useLocalStoragePref';
+import { useHydrated } from '@/hooks/useHydrated';
 
 const THEME_STORAGE_KEY = 'color-theme';
 
@@ -33,7 +34,7 @@ export function ThemeContextProvider({ children }: { children: ReactNode }) {
     DEFAULT_THEME_ID,
     isValidThemeId
   );
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
   // Mirror the current colorTheme onto the root `data-theme` attribute so CSS
   // theme variables apply. The inline script in app/layout.tsx handles the
@@ -41,12 +42,6 @@ export function ThemeContextProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', colorTheme);
   }, [colorTheme]);
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const setColorTheme = useCallback(
     (themeId: string) => {

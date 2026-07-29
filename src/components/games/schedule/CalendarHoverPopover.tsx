@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { format, parseISO } from 'date-fns';
 import type { DateSuggestion } from '@/types';
@@ -11,19 +11,41 @@ interface CalendarHoverPopoverProps {
   scheduledDates: Set<string>;
 }
 
+// Lazily created so it's only constructed in browser environments (and once
+// per module load, not per component instance).
+let hoverCapableMql: MediaQueryList | null | undefined;
+
+function getHoverCapableMql(): MediaQueryList | null {
+  if (hoverCapableMql === undefined) {
+    hoverCapableMql =
+      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(hover: hover) and (pointer: fine)')
+        : null;
+  }
+  return hoverCapableMql;
+}
+
+function subscribeHoverCapable(onChange: () => void): () => void {
+  const mql = getHoverCapableMql();
+  if (!mql) return () => {};
+  mql.addEventListener('change', onChange);
+  return () => mql.removeEventListener('change', onChange);
+}
+
+function getHoverCapableSnapshot(): boolean {
+  return getHoverCapableMql()?.matches ?? false;
+}
+
+function getHoverCapableServerSnapshot(): boolean {
+  return false;
+}
+
 function useHoverCapable(): boolean {
-  const [capable, setCapable] = useState(false);
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mql = window.matchMedia('(hover: hover) and (pointer: fine)');
-    setCapable(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setCapable(e.matches);
-    mql.addEventListener('change', handler);
-    return () => mql.removeEventListener('change', handler);
-  }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
-  return capable;
+  return useSyncExternalStore(
+    subscribeHoverCapable,
+    getHoverCapableSnapshot,
+    getHoverCapableServerSnapshot
+  );
 }
 
 const POPOVER_HEIGHT_HINT = 140;
@@ -32,13 +54,6 @@ export function CalendarHoverPopover({ suggestions, scheduledDates }: CalendarHo
   const { hoveredDate, hoveredFrom } = useHoverSync();
   const hoverCapable = useHoverCapable();
   const [coords, setCoords] = useState<{ x: number; y: number; placeBelow: boolean } | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const activeDate = hoveredFrom === 'cell' ? hoveredDate : null;
 
@@ -69,7 +84,7 @@ export function CalendarHoverPopover({ suggestions, scheduledDates }: CalendarHo
   }, [activeDate]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  if (!mounted || !hoverCapable || !activeDate || !coords) return null;
+  if (!hoverCapable || !activeDate || !coords) return null;
 
   const suggestion = suggestions.find((s) => s.date === activeDate);
   const isScheduled = scheduledDates.has(activeDate);

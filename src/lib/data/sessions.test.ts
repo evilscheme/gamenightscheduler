@@ -106,34 +106,60 @@ describe("updateSession", () => {
   });
 });
 
-describe("fetchUpcomingSessionsForGames", () => {
-  function makeSelectMock() {
-    const order = vi.fn().mockResolvedValue({ data: [], error: null });
-    const gte = vi.fn().mockReturnValue({ order });
-    const inFn = vi.fn().mockReturnValue({ gte });
-    const select = vi.fn().mockReturnValue({ in: inFn });
-    const from = vi.fn().mockReturnValue({ select });
-    return { from, select, inFn, gte, order };
-  }
+/**
+ * Chainable Supabase mock terminating at `.range()` (the paginated reads end in
+ * `.range(from, to)` rather than an awaited `.order()`). By default `.range()`
+ * resolves to an empty page, so `fetchAllPages` stops after one call.
+ */
+function makeChainMock(rangeResult: { data: unknown[]; error: unknown } = { data: [], error: null }) {
+  const range = vi.fn().mockResolvedValue(rangeResult);
+  const builder = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    range,
+  };
+  const from = vi.fn().mockReturnValue(builder);
+  return { from, ...builder };
+}
 
-  it("queries sessions for the given game IDs from the given date, ordered by date asc", async () => {
+describe("fetchUpcomingSessionsForGames", () => {
+  it("queries sessions for the given game IDs from the given date, in a stable paginated order", async () => {
     const { fetchUpcomingSessionsForGames } = await import("./sessions");
-    const mock = makeSelectMock();
+    const mock = makeChainMock();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await fetchUpcomingSessionsForGames(mock as any, ["g1", "g2"], "2026-06-01");
     expect(mock.from).toHaveBeenCalledWith("sessions");
     expect(mock.select).toHaveBeenCalledWith("*");
-    expect(mock.inFn).toHaveBeenCalledWith("game_id", ["g1", "g2"]);
+    expect(mock.in).toHaveBeenCalledWith("game_id", ["g1", "g2"]);
     expect(mock.gte).toHaveBeenCalledWith("date", "2026-06-01");
     expect(mock.order).toHaveBeenCalledWith("date", { ascending: true });
+    expect(mock.order).toHaveBeenCalledWith("id", { ascending: true });
+    expect(mock.range).toHaveBeenCalledWith(0, 999);
   });
 
   it("returns an empty result without querying when there are no game IDs", async () => {
     const { fetchUpcomingSessionsForGames } = await import("./sessions");
-    const mock = makeSelectMock();
+    const mock = makeChainMock();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await fetchUpcomingSessionsForGames(mock as any, [], "2026-06-01");
     expect(mock.from).not.toHaveBeenCalled();
     expect(result).toEqual({ data: [], error: null });
+  });
+});
+
+describe("fetchGameSessions", () => {
+  it("reads all of a game's sessions in a stable paginated order", async () => {
+    const { fetchGameSessions } = await import("./sessions");
+    const mock = makeChainMock();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await fetchGameSessions(mock as any, "g1");
+    expect(mock.from).toHaveBeenCalledWith("sessions");
+    expect(mock.eq).toHaveBeenCalledWith("game_id", "g1");
+    expect(mock.order).toHaveBeenCalledWith("date", { ascending: true });
+    expect(mock.order).toHaveBeenCalledWith("id", { ascending: true });
+    expect(mock.range).toHaveBeenCalledWith(0, 999);
   });
 });

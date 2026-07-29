@@ -1,3 +1,4 @@
+export * from './paginate';
 export * from './games';
 export * from './memberships';
 export * from './availability';

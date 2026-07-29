@@ -1,6 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { generateICS, composeIcsDescription } from '@/lib/ics';
+import { fetchAllPages } from '@/lib/data';
 import type { Game, GameSession } from '@/types';
+import type { Database } from '@/types/database';
 import { serverError } from '@/lib/apiError';
 
 /**
@@ -44,13 +46,24 @@ export async function GET(
 
     const typedGame = game as Pick<Game, 'id' | 'name' | 'description' | 'default_start_time' | 'default_end_time' | 'timezone'>;
 
-    // Fetch confirmed sessions for this game
-    const { data: sessions, error: sessionsError } = await admin
-      .from('sessions')
-      .select('id, date, start_time, end_time, status, location, notes')
-      .eq('game_id', typedGame.id)
-      .eq('status', 'confirmed')
-      .order('date', { ascending: true });
+    // Fetch confirmed sessions for this game. Paginated because a long-lived
+    // campaign's confirmed sessions can exceed Supabase's 1000-row cap, which
+    // would silently drop events from the ICS feed.
+    type CalendarSession = Pick<
+      Database['public']['Tables']['sessions']['Row'],
+      'id' | 'date' | 'start_time' | 'end_time' | 'status' | 'location' | 'notes'
+    >;
+    const { data: sessions, error: sessionsError } = await fetchAllPages<CalendarSession>(
+      (from, to) =>
+        admin
+          .from('sessions')
+          .select('id, date, start_time, end_time, status, location, notes')
+          .eq('game_id', typedGame.id)
+          .eq('status', 'confirmed')
+          .order('date', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)
+    );
 
     if (sessionsError) {
       console.error('Error fetching sessions:', sessionsError);

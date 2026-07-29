@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
-import type { AvailabilityStatus } from '@/types';
+import type { Availability, AvailabilityStatus } from '@/types';
+import { fetchAllPages } from './paginate';
 
 export async function fetchUserAvailability(
   supabase: SupabaseClient<Database>,
@@ -14,8 +15,31 @@ export async function fetchUserAvailability(
     .eq('user_id', userId);
 }
 
-export async function fetchAllAvailability(supabase: SupabaseClient<Database>, gameId: string) {
-  return supabase.from('availability').select('*').eq('game_id', gameId);
+/**
+ * Every player's availability for a game. Paginated because a long-running
+ * game accumulates far more than Supabase's 1000-row cap (one row per player
+ * per date) — without paging, rows past the first 1000 silently vanish, and a
+ * player's marks appear to "revert" on reload. `fromDate` scopes out stale
+ * past dates (the calendar only ever shows the scheduling window); pass the
+ * local "today" so the payload stays small on top of the paging.
+ */
+export async function fetchAllAvailability(
+  supabase: SupabaseClient<Database>,
+  gameId: string,
+  fromDate?: string
+) {
+  return fetchAllPages<Availability>((from, to) => {
+    let query = supabase
+      .from('availability')
+      .select('*')
+      .eq('game_id', gameId)
+      // Stable total order so pages don't skip/duplicate; (date, user_id) is
+      // unique within a single game.
+      .order('date', { ascending: true })
+      .order('user_id', { ascending: true });
+    if (fromDate) query = query.gte('date', fromDate);
+    return query.range(from, to);
+  });
 }
 
 export async function upsertAvailability(

@@ -32,6 +32,7 @@ import {
   type WeekdayDefault,
 } from '@/lib/availability';
 import { getSchedulingWindow } from '@/lib/schedule';
+import { getTodayLocalDate } from '@/lib/date';
 
 const supabase = getSupabaseClient();
 
@@ -82,7 +83,12 @@ export function useAvailability(
   const allQuery = useQuery({
     queryKey: queryKeys.availability(gameId),
     enabled: !!gameId && !!userId,
-    queryFn: async () => (await fetchAllAvailability(supabase, gameId)).data ?? [],
+    // Scope out stale past dates: the calendar only shows today-forward, and a
+    // long game's back-catalog of availability otherwise bloats the (paged)
+    // fetch. `getTodayLocalDate()` is always <= the scheduling-window start, so
+    // this never drops a date the UI can display.
+    queryFn: async () =>
+      (await fetchAllAvailability(supabase, gameId, getTodayLocalDate())).data ?? [],
   });
   const allAvailability = allQuery.data ?? EMPTY_AVAILABILITY;
 

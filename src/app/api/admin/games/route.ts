@@ -13,14 +13,28 @@ export async function GET(): Promise<Response> {
     if (result instanceof NextResponse) return result;
     const { admin } = result;
 
-    const { data: games, error: gamesError } = await admin
-      .from('games')
-      .select('id, name, created_at, play_days, scheduling_window_months, campaign_start_date, campaign_end_date, gm_id, gm:users!games_gm_id_fkey(id, name, email)')
-      .order('created_at', { ascending: false });
+    type GmRef = { id: string; name: string | null; email: string };
+    type GameRow = {
+      id: string;
+      name: string;
+      created_at: string | null;
+      play_days: number[] | null;
+      scheduling_window_months: number | null;
+      campaign_start_date: string | null;
+      campaign_end_date: string | null;
+      gm_id: string;
+      gm: GmRef | GmRef[] | null;
+    };
 
-    if (gamesError) {
-      throw gamesError;
-    }
+    // Paginated: platform-wide games list grows unbounded, so a plain select
+    // would silently truncate at Supabase's 1000-row cap. Sort in JS since
+    // paginate() reads in primary-key order.
+    const games = await paginate<GameRow>(
+      admin,
+      'games',
+      'id, name, created_at, play_days, scheduling_window_months, campaign_start_date, campaign_end_date, gm_id, gm:users!games_gm_id_fkey(id, name, email)'
+    );
+    games.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
 
     const [memberships, sessions, availabilityRecords, gamePlayDates] = await Promise.all([
       paginate<{ game_id: string; user_id: string }>(admin, 'game_memberships', 'game_id, user_id'),
@@ -73,7 +87,7 @@ export async function GET(): Promise<Response> {
     }
 
     // Build game list with engagement metrics
-    const gamesWithEngagement: GameWithEngagement[] = (games ?? []).map((game) => {
+    const gamesWithEngagement: GameWithEngagement[] = games.map((game) => {
       const members = membershipsByGame.get(game.id) ?? new Set();
       const totalPlayers = members.size + 1; // +1 for GM
       const sessionStats = sessionsByGame.get(game.id) ?? { total: 0, future: 0, lastActivity: null };

@@ -8,6 +8,7 @@ import {
   fetchGamePlayDates,
 } from '@/lib/data';
 import { serverError } from '@/lib/apiError';
+import { getTodayLocalDate } from '@/lib/date';
 
 /**
  * Read-only snapshot of a game for the admin peek view. Uses the service-role
@@ -33,7 +34,10 @@ export async function GET(
 
     const [membersRes, availabilityRes, sessionsRes, playDatesRes] = await Promise.all([
       fetchGameMembers(admin, id),
-      fetchAllAvailability(admin, id),
+      // Paginated + today-scoped, mirroring the player calendar (which only
+      // renders the scheduling window). Without paging the peek view silently
+      // truncated at 1000 rows on large games.
+      fetchAllAvailability(admin, id, getTodayLocalDate()),
       fetchGameSessions(admin, id),
       fetchGamePlayDates(admin, id),
     ]);

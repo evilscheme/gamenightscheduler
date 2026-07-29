@@ -1,13 +1,21 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 import type { GameSession } from '@/types';
+import { fetchAllPages } from './paginate';
 
 export async function fetchGameSessions(supabase: SupabaseClient<Database>, gameId: string) {
-  return supabase
-    .from('sessions')
-    .select('*')
-    .eq('game_id', gameId)
-    .order('date', { ascending: true });
+  // Paginated: `sessions` has no date filter here (past + future), so a
+  // long-lived campaign can exceed Supabase's 1000-row cap. `id` is the stable
+  // tiebreaker since multiple sessions can share a date.
+  return fetchAllPages<GameSession>((from, to) =>
+    supabase
+      .from('sessions')
+      .select('*')
+      .eq('game_id', gameId)
+      .order('date', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, to)
+  );
 }
 
 export async function confirmSession(
@@ -60,12 +68,18 @@ export async function fetchUpcomingSessionsForGames(
   if (gameIds.length === 0) {
     return { data: [] as GameSession[], error: null };
   }
-  return supabase
-    .from('sessions')
-    .select('*')
-    .in('game_id', gameIds)
-    .gte('date', fromDate)
-    .order('date', { ascending: true });
+  // Paginated: up to (20 games/user × 100 future sessions/game) structurally
+  // exceeds the 1000-row cap for a heavy user. `id` is the stable tiebreaker.
+  return fetchAllPages<GameSession>((from, to) =>
+    supabase
+      .from('sessions')
+      .select('*')
+      .in('game_id', gameIds)
+      .gte('date', fromDate)
+      .order('date', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, to)
+  );
 }
 
 export async function updateSession(

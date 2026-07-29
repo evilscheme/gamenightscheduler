@@ -44,10 +44,10 @@ function GameDetailContent() {
   const availabilityHook = useAvailability(gameId, userId, game);
   const { availability, allAvailability, changeAvailability, bulkSetStatus, copyFromGame: copyFromGameRaw, applyDefaults, removePlayerData, hasDefaults } = availabilityHook;
 
-  const sessionsHook = useSessions(gameId);
+  const sessionsHook = useSessions(gameId, userId);
   const { sessions, confirmSession: confirmSessionRaw, updateSession, cancelSession } = sessionsHook;
 
-  const playDatesHook = usePlayDates(gameId);
+  const playDatesHook = usePlayDates(gameId, userId);
   const { gamePlayDates, toggleExtraDate: toggleExtraDateRaw, updatePlayDateNote } = playDatesHook;
 
   const loading =

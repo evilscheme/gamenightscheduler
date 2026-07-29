@@ -109,3 +109,34 @@ test.describe('Trigger-function EXECUTE lockdown', () => {
     });
   });
 });
+
+/**
+ * The flip side of the anon lockdown above. Because anon holds no EXECUTE on
+ * is_game_participant(), an anon SELECT on any table whose RLS policy calls it
+ * does NOT return an empty set — it raises `42501 permission denied for
+ * function is_game_participant`. So "RLS returns nothing for non-participants"
+ * is only true for authenticated callers, and every client query must be gated
+ * on a known user id.
+ *
+ * Signed-out visitors do land on /games/<id> (shared links, stale bookmarks).
+ * Regression guard: that page must issue no table reads before auth resolves.
+ */
+const RLS_TABLES = ['games', 'sessions', 'game_play_dates', 'availability', 'game_memberships'];
+
+test.describe('Anon page loads issue no RLS-protected reads', () => {
+  test('signed-out /games/<id> makes no PostgREST table requests', async ({ page }) => {
+    const tableRequests: string[] = [];
+    page.on('request', (req) => {
+      const url = req.url();
+      const hit = RLS_TABLES.find((t) => url.includes(`/rest/v1/${t}`));
+      if (hit) tableRequests.push(url);
+    });
+
+    await page.goto('/games/00000000-0000-0000-0000-000000000000');
+    // useAuthRedirect bounces signed-out visitors; wait for it so the page has
+    // had its full mount-and-redirect lifecycle to fire any stray query.
+    await expect(page).toHaveURL(/\/login/);
+
+    expect(tableRequests, 'signed-out game page must not query RLS-protected tables').toEqual([]);
+  });
+});

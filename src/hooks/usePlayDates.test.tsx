@@ -19,6 +19,7 @@ const dataMocks = vi.hoisted(() => ({
 vi.mock('@/lib/data', () => dataMocks);
 
 const GAME_ID = 'game-1';
+const USER_ID = 'user-1';
 
 function row(overrides: Partial<GamePlayDate>): GamePlayDate {
   return {
@@ -37,7 +38,7 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function setup(seed: GamePlayDate[]) {
+function setup(seed: GamePlayDate[], userId = USER_ID) {
   dataMocks.fetchGamePlayDates.mockResolvedValue({ data: seed, error: null });
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -45,11 +46,21 @@ function setup(seed: GamePlayDate[]) {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  return renderHook(() => usePlayDates(GAME_ID), { wrapper });
+  return renderHook(() => usePlayDates(GAME_ID, userId), { wrapper });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe('usePlayDates — auth gating', () => {
+  // Signed-out visitors reach /games/[id] from a shared link. Querying then
+  // sends the request as the `anon` Postgres role, which has no EXECUTE on
+  // is_game_participant() — the RLS policy errors instead of returning [].
+  it('does not fetch until a user id is known', () => {
+    setup([], '');
+    expect(dataMocks.fetchGamePlayDates).not.toHaveBeenCalled();
+  });
 });
 
 describe('usePlayDates — toggleExtraDate (add)', () => {

@@ -40,14 +40,17 @@ export interface UseSessionsReturn {
   refresh: () => Promise<void>;
 }
 
-export function useSessions(gameId: string): UseSessionsReturn {
+export function useSessions(gameId: string, userId: string): UseSessionsReturn {
   const queryClient = useQueryClient();
 
-  // Fires as soon as the gameId is known (no need to wait for the game fetch);
-  // RLS returns an empty list for non-participants.
+  // Fires as soon as the gameId and the session's user id are known (no need to
+  // wait for the game fetch); RLS returns an empty list for non-participants.
+  // The userId gate is not cosmetic: without a session the request goes out as
+  // the `anon` Postgres role, which holds no EXECUTE on is_game_participant(),
+  // so the RLS policy raises 42501 instead of returning zero rows.
   const sessionsQuery = useQuery({
     queryKey: queryKeys.sessions(gameId),
-    enabled: !!gameId,
+    enabled: !!gameId && !!userId,
     queryFn: async () => (await fetchGameSessions(supabase, gameId)).data ?? [],
   });
   const sessions = sessionsQuery.data ?? EMPTY_SESSIONS;

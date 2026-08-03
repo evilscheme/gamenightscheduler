@@ -61,6 +61,46 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL('/settings');
   });
 
+  // Supabase Auth sends provider failures back to /auth/callback as query
+  // params rather than a code. Dropping them leaves the user bouncing off the
+  // login page with no explanation — the failure mode a Discord account with
+  // no email address hits every single time.
+  test('explains a provider sign-in failure instead of silently returning to login', async ({ page }) => {
+    await page.goto(
+      '/auth/callback?provider=discord&error=server_error&error_code=unexpected_failure' +
+        '&error_description=Error+getting+user+email+from+external+provider'
+    );
+
+    await expect(page).toHaveURL(/\/login\?error=provider_no_email&provider=discord/);
+    await expect(page.getByText(/your discord account has no email address/i)).toBeVisible();
+  });
+
+  // The provider tag rides along on the callback URL we hand Supabase. If it
+  // ever gets stripped, the message must stay neutral rather than blame a
+  // provider the user did not use.
+  test('stays provider-neutral when the callback is not tagged with a provider', async ({ page }) => {
+    await page.goto(
+      '/auth/callback?error=server_error' +
+        '&error_description=Error+getting+user+email+from+external+provider'
+    );
+
+    await expect(page.getByText(/no email address/i)).toBeVisible();
+    await expect(page.getByText(/your discord account/i)).toHaveCount(0);
+  });
+
+  test('keeps the intended destination when a provider sign-in fails', async ({ page }) => {
+    await page.goto('/auth/callback?next=%2Fsettings&error=access_denied&error_description=denied');
+
+    await expect(page).toHaveURL(/callbackUrl=%2Fsettings/);
+    await expect(page.getByText(/sign-in was cancelled/i)).toBeVisible();
+  });
+
+  test('shows a generic message for an unrecognized sign-in error', async ({ page }) => {
+    await page.goto('/login?error=auth_failed');
+
+    await expect(page.getByText(/something went wrong while signing you in/i)).toBeVisible();
+  });
+
   // Note: "Create New Game" button tests removed - all users are now GMs by default
 
   test('user can sign out and session is properly cleared', async ({ page }) => {

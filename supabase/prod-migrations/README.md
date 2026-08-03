@@ -14,6 +14,12 @@ e2e, `db:reset`) and must stay as-is.
 - **Every `schema.sql` change lands in the same PR as its prod-migration file.**
   `schema.sql` stays the canonical fresh-install artifact; the file here is how
   the same change reaches the already-running production database.
+- **Copy function bodies verbatim from `schema.sql`.** Postgres stores
+  everything between `$$ ... $$` in `pg_proc.prosrc` and `pg_dump` reproduces
+  it byte for byte, so a comment that sits inside the body in `schema.sql` but
+  not in the migration is real drift that `db:drift` will flag. Put the
+  migration's own rationale ABOVE the `CREATE` statement and leave the body
+  untouched. (`20260802T02` exists only to repair exactly this mistake.)
 - **Files are immutable once merged.** Fix mistakes with a new file, never by
   editing an applied one.
 - **Name format:** `YYYYMMDDTNN_short_description.sql` (lexicographic order is

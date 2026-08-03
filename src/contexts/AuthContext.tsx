@@ -7,6 +7,7 @@ import { getSupabaseClient, onSupabaseStatus } from '@/lib/supabase/client';
 import { fetchUserProfile } from '@/lib/data/users';
 import { User } from '@/types';
 import { TIMEOUTS } from '@/lib/constants';
+import { buildOAuthRedirectUrl, type AuthProvider } from '@/lib/authCallback';
 import { deriveAuthStatus, type AuthStatus } from './authStatus';
 
 interface AuthContextType {
@@ -229,30 +230,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase, fetchProfile, queryClient]);
 
-  async function signInWithGoogle(redirectTo?: string) {
-    const redirectUrl = `${window.location.origin}/auth/callback${
-      redirectTo ? `?next=${encodeURIComponent(redirectTo)}` : ''
-    }`;
+  // The callback URL is tagged with the provider so a failed sign-in can name
+  // it: the error path has no session to read it from (see authCallback.ts).
+  async function signInWithProvider(provider: AuthProvider, redirectTo?: string) {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider,
       options: {
-        redirectTo: redirectUrl,
+        redirectTo: buildOAuthRedirectUrl(window.location.origin, provider, redirectTo),
       },
     });
     if (error) reportBackendError(true);
   }
 
+  async function signInWithGoogle(redirectTo?: string) {
+    await signInWithProvider('google', redirectTo);
+  }
+
   async function signInWithDiscord(redirectTo?: string) {
-    const redirectUrl = `${window.location.origin}/auth/callback${
-      redirectTo ? `?next=${encodeURIComponent(redirectTo)}` : ''
-    }`;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: {
-        redirectTo: redirectUrl,
-      },
-    });
-    if (error) reportBackendError(true);
+    await signInWithProvider('discord', redirectTo);
   }
 
   async function signOut() {

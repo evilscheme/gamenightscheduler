@@ -161,15 +161,27 @@ $$ LANGUAGE plpgsql SET search_path = '';
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
-  -- Sanitize inputs instead of letting public.users CHECK constraints reject
-  -- the row: this trigger runs inside the auth signup transaction, so a
-  -- constraint violation here turns a validation rule into a signup outage
-  -- (OAuth name >50 chars, avatar from an unexpected host).
+  -- Sanitize inputs instead of letting public.users constraints reject the
+  -- row: this trigger runs inside the auth signup transaction, so a violation
+  -- here turns a validation rule into a signup outage (OAuth name >50 chars,
+  -- avatar from an unexpected host, provider sending a blank display name).
+  --
+  -- NULLIF on each candidate matters: COALESCE only skips NULL, so a provider
+  -- that sends "full_name": "" (or an address with no local part) otherwise
+  -- lands an empty string in users.name, which NOT NULL happily accepts.
+  --
+  -- email is deliberately NOT defended here. Supabase Auth guarantees it:
+  -- the Discord provider's "allow users without email" setting is off, so
+  -- GoTrue rejects an email-less OAuth account before this trigger runs. That
+  -- guarantee lives in dashboard config that neither this file nor db:drift
+  -- can see — if signups start failing on users_email_key or a NOT NULL
+  -- violation, check that setting before looking anywhere else.
   v_name TEXT := left(
     COALESCE(
-      NEW.raw_user_meta_data->>'full_name',
-      NEW.raw_user_meta_data->>'name',
-      split_part(NEW.email, '@', 1)
+      NULLIF(NEW.raw_user_meta_data->>'full_name', ''),
+      NULLIF(NEW.raw_user_meta_data->>'name', ''),
+      NULLIF(split_part(COALESCE(NEW.email, ''), '@', 1), ''),
+      'Player'
     ),
     50
   );

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
 import { PageLoading } from '@/components/ui';
+import { getAuthErrorMessage } from '@/lib/authCallback';
 import { safeCallbackUrl } from '@/lib/url';
 
 function LoginContent() {
@@ -13,6 +14,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'));
+  const authError = getAuthErrorMessage(searchParams.get('error'), searchParams.get('provider'));
 
   useEffect(() => {
     // Redirect if user is already authenticated
@@ -36,6 +38,15 @@ function LoginContent() {
             <h1 className="text-2xl font-bold text-card-foreground mt-4">Can We Play?</h1>
             <p className="text-muted-foreground mt-2">Sign in to start scheduling your game nights</p>
           </div>
+
+          {authError && (
+            <div
+              role="alert"
+              className="mb-6 rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
+            >
+              {authError}
+            </div>
+          )}
 
           <div className="space-y-4">
             <button

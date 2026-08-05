@@ -6,8 +6,12 @@ import {
   splitUpcomingPast,
   computeDefaultSessionTimes,
   getTopNDates,
+  resolveDateState,
+  DATE_STATE_RANK,
+  showsPendingMark,
 } from './scheduleView';
 import type { DateSuggestion, GameSession } from '@/types';
+import type { DateState } from './scheduleView';
 
 const mkSuggestion = (overrides: Partial<DateSuggestion>): DateSuggestion => ({
   date: '2026-05-01',
@@ -180,5 +184,120 @@ describe('getTopNDates', () => {
       mkSuggestion({ date: '2026-05-03' }),
     ];
     expect(getTopNDates(viable, 2)).toEqual(['2026-05-01', '2026-05-02']);
+  });
+});
+
+describe('resolveDateState', () => {
+  // 6 players, threshold 4 — the running example from the design
+  const six = (o: Partial<DateSuggestion>) => mkSuggestion({ totalPlayers: 6, ...o });
+
+  it('resolves all seven states', () => {
+    expect(resolveDateState(six({ availableCount: 1, unavailableCount: 3, pendingCount: 2 }), 4))
+      .toBe('not-enough');
+    expect(resolveDateState(six({ availableCount: 1, pendingCount: 5 }), 4))
+      .toBe('unknown');
+    expect(resolveDateState(six({ availableCount: 2, maybeCount: 2, pendingCount: 2 }), 4))
+      .toBe('enough-if-maybes');
+    expect(resolveDateState(six({ availableCount: 3, maybeCount: 3 }), 4))
+      .toBe('everyone-if-maybes');
+    expect(resolveDateState(six({ availableCount: 4, unavailableCount: 2 }), 4))
+      .toBe('enough');
+    expect(resolveDateState(six({ availableCount: 4, maybeCount: 2 }), 4))
+      .toBe('enough-maybe-everyone');
+    expect(resolveDateState(six({ availableCount: 6 }), 4))
+      .toBe('everyone');
+  });
+
+  it('declares a date dead only when silent players cannot save it', () => {
+    // 2 no of 6, threshold 4 → optimistic ceiling 4, still alive
+    expect(resolveDateState(six({ unavailableCount: 2, pendingCount: 4 }), 4)).toBe('unknown');
+    // 3 no of 6 → optimistic ceiling 3 < 4, dead at only 50% response
+    expect(resolveDateState(six({ unavailableCount: 3, pendingCount: 3 }), 4)).toBe('not-enough');
+  });
+
+  it('never lets pending responses support a positive claim', () => {
+    // 3 yes + 3 silent could become everyone, but nothing is evidenced yet
+    expect(resolveDateState(six({ availableCount: 3, pendingCount: 3 }), 4)).toBe('unknown');
+  });
+
+  it('is gray when nobody has answered, not red and not green', () => {
+    expect(resolveDateState(six({ pendingCount: 6 }), 4)).toBe('unknown');
+  });
+
+  it('treats a full house as "everyone" even when the threshold is lower', () => {
+    expect(resolveDateState(six({ availableCount: 6 }), 3)).toBe('everyone');
+  });
+
+  it('returns unknown for a game with no players', () => {
+    expect(resolveDateState(mkSuggestion({ totalPlayers: 0 }), 0)).toBe('unknown');
+  });
+
+  it('reddens every date when the GM minimum exceeds the roster', () => {
+    expect(resolveDateState(mkSuggestion({ totalPlayers: 5, availableCount: 5 }), 8))
+      .toBe('not-enough');
+  });
+});
+
+describe('date state invariants', () => {
+  // Exhaustive sweep over every reachable response split for a 6-player game.
+  const splits: DateSuggestion[] = [];
+  for (let a = 0; a <= 6; a++)
+    for (let m = 0; a + m <= 6; m++)
+      for (let u = 0; a + m + u <= 6; u++)
+        splits.push(mkSuggestion({
+          totalPlayers: 6,
+          availableCount: a,
+          maybeCount: m,
+          unavailableCount: u,
+          pendingCount: 6 - a - m - u,
+        }));
+
+  it('never shows an "everyone"-flavoured state while someone is still silent', () => {
+    const everyoneish: DateState[] = ['everyone', 'enough-maybe-everyone', 'everyone-if-maybes'];
+    for (const s of splits) {
+      if (everyoneish.includes(resolveDateState(s, 4))) {
+        expect(s.pendingCount).toBe(0);
+      }
+    }
+  });
+
+  it('always has someone still silent when the state is unknown', () => {
+    for (const s of splits) {
+      if (resolveDateState(s, 4) === 'unknown') {
+        expect(s.pendingCount).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('never shows a badge and a pending mark on the same cell', () => {
+    const badged: DateState[] = ['everyone', 'enough-maybe-everyone', 'everyone-if-maybes'];
+    for (const s of splits) {
+      const state = resolveDateState(s, 4);
+      expect(badged.includes(state) && showsPendingMark(s, state)).toBe(false);
+    }
+  });
+
+  it('marks pending only on the two states where it is actionable', () => {
+    for (const s of splits) {
+      const state = resolveDateState(s, 4);
+      if (showsPendingMark(s, state)) {
+        expect(['enough', 'enough-if-maybes']).toContain(state);
+      }
+    }
+  });
+});
+
+describe('DATE_STATE_RANK', () => {
+  it('ranks a guaranteed game above a possible full house', () => {
+    expect(DATE_STATE_RANK['enough']).toBeGreaterThan(DATE_STATE_RANK['everyone-if-maybes']);
+  });
+
+  it('orders the whole ladder best to worst', () => {
+    const order: DateState[] = [
+      'everyone', 'enough-maybe-everyone', 'enough',
+      'everyone-if-maybes', 'enough-if-maybes', 'unknown', 'not-enough',
+    ];
+    const ranks = order.map((s) => DATE_STATE_RANK[s]);
+    expect(ranks).toEqual([...ranks].sort((a, b) => b - a));
   });
 });

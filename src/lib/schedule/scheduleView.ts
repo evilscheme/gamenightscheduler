@@ -20,6 +20,75 @@ export function getCellTintTier(s: DateSuggestion): CellTintTier {
   return 'empty';
 }
 
+/**
+ * The seven states a play date can be in, worst to best. See
+ * docs/superpowers/specs/2026-08-05-calendar-availability-color-scheme-design.md
+ */
+export type DateState =
+  | 'not-enough'
+  | 'unknown'
+  | 'enough-if-maybes'
+  | 'everyone-if-maybes'
+  | 'enough'
+  | 'enough-maybe-everyone'
+  | 'everyone';
+
+type Tier = 'below' | 'enough' | 'everyone';
+
+/**
+ * Resolves a date to one of seven states.
+ *
+ * The asymmetry is the point: positive claims read off `respondedCeiling`, which
+ * EXCLUDES pending players, so silence never counts as good news. The negative
+ * claim reads off `optimisticCeiling`, which INCLUDES them, so a date is called
+ * dead only when it cannot be saved even if every silent player says yes.
+ *
+ * "We don't know yet" therefore falls out of the arithmetic — there is no
+ * response-rate cutoff anywhere.
+ */
+export function resolveDateState(s: DateSuggestion, threshold: number): DateState {
+  const total = s.totalPlayers;
+  if (total === 0) return 'unknown';
+
+  const optimisticCeiling = total - s.unavailableCount;
+  if (optimisticCeiling < threshold) return 'not-enough';
+
+  const tier = (n: number): Tier =>
+    n === total ? 'everyone' : n >= threshold ? 'enough' : 'below';
+
+  const ceiling = tier(s.availableCount + s.maybeCount);
+  if (ceiling === 'below') return 'unknown';
+
+  const floor = tier(s.availableCount);
+  if (floor === 'everyone') return 'everyone';
+  if (floor === 'enough') {
+    return ceiling === 'everyone' ? 'enough-maybe-everyone' : 'enough';
+  }
+  return ceiling === 'everyone' ? 'everyone-if-maybes' : 'enough-if-maybes';
+}
+
+/** Higher is better. Used for ranking and for ordering the legend. */
+export const DATE_STATE_RANK: Record<DateState, number> = {
+  'everyone': 7,
+  'enough-maybe-everyone': 6,
+  'enough': 5,
+  'everyone-if-maybes': 4,
+  'enough-if-maybes': 3,
+  'unknown': 2,
+  'not-enough': 1,
+};
+
+/**
+ * Whether to draw the "someone still hasn't answered" pip.
+ *
+ * Suppressed on `unknown` (gray already implies pending) and on `not-enough`
+ * (the date cannot be saved, so the fact is misleading). That leaves exactly the
+ * two states where "this verdict may still improve" is actionable.
+ */
+export function showsPendingMark(s: DateSuggestion, state: DateState): boolean {
+  return (state === 'enough' || state === 'enough-if-maybes') && s.pendingCount > 0;
+}
+
 export function partitionByThreshold(items: DateSuggestion[]): {
   viable: DateSuggestion[];
   belowThreshold: DateSuggestion[];

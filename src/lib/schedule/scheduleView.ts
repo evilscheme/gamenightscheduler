@@ -1,25 +1,6 @@
 import type { DateSuggestion, GameSession } from '@/types';
 import { formatTimeShort } from '@/lib/formatting';
 
-export type CellTintTier = 'high' | 'medium' | 'maybe' | 'warning' | 'empty';
-
-/**
- * Returns the colour tier for a mini-calendar cell.
- * - Score weights "maybe" responses as half a yes: `(available + 0.5 * maybe) / total`.
- * - Red ("warning") is reserved for majority-unavailable dates. Cells dominated
- *   by pending responses fall through to "empty" (gray) rather than red, since
- *   "unknown" is not the same signal as "definitely not".
- */
-export function getCellTintTier(s: DateSuggestion): CellTintTier {
-  if (s.totalPlayers === 0) return 'empty';
-  const score = (s.availableCount + 0.5 * s.maybeCount) / s.totalPlayers;
-  if (score >= 0.8) return 'high';
-  if (score >= 0.6) return 'medium';
-  if (score >= 0.4) return 'maybe';
-  if (s.unavailableCount / s.totalPlayers >= 0.5) return 'warning';
-  return 'empty';
-}
-
 /**
  * The seven states a play date can be in, worst to best. See
  * docs/superpowers/specs/2026-08-05-calendar-availability-color-scheme-design.md

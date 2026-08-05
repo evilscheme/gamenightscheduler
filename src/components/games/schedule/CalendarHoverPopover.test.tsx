@@ -80,7 +80,9 @@ describe('CalendarHoverPopover', () => {
           isPlayDay
           isScheduled={false}
           isPast={false}
-          tier="empty"
+          state="unknown"
+          showPending={false}
+          title=""
         />
         <CalendarHoverPopover suggestions={suggestions} scheduledDates={new Set()} />
       </HoverSyncProvider>

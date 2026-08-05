@@ -5,8 +5,8 @@ import { addMonths, startOfMonth, differenceInCalendarMonths, startOfDay } from 
 import type { DateSuggestion, GameSession } from '@/types';
 import { CalendarMonth } from './CalendarMonth';
 import { EyebrowLabel, Panel } from '@/components/ui';
-import { getCellTintTier, CellTintTier } from '@/lib/schedule';
-import { CALENDAR_STYLES, LEGEND_ORDER } from './calendarStyles';
+import { resolveDateState, showsPendingMark, describeDateState, type DateState } from '@/lib/schedule';
+import { LEGEND } from './calendarStyles';
 
 interface MiniCalendarProps {
   windowStart: Date;
@@ -39,9 +39,14 @@ export function MiniCalendar({
   }, [windowStart, windowEnd]);
 
   const suggestionsByDate = useMemo(() => {
-    const m = new Map<string, { tier: CellTintTier }>();
+    const m = new Map<string, { state: DateState; showPending: boolean; title: string }>();
     suggestions.forEach((s) => {
-      m.set(s.date, { tier: getCellTintTier(s) });
+      const state = resolveDateState(s, s.threshold);
+      m.set(s.date, {
+        state,
+        showPending: showsPendingMark(s, state),
+        title: describeDateState(s, s.threshold),
+      });
     });
     return m;
   }, [suggestions]);
@@ -59,26 +64,38 @@ export function MiniCalendar({
         <EyebrowLabel>Calendar</EyebrowLabel>
         {subscribeLink}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {months.map((m) => (
-          <CalendarMonth
-            key={m.toISOString()}
-            monthStart={m}
-            suggestionsByDate={suggestionsByDate}
-            scheduledDates={scheduledDates}
-            playDayWeekdays={playDayWeekdays}
-            specialPlayDates={specialPlayDates}
-            weekStartDay={weekStartDay}
-            today={today}
-            onCellActivate={onCellActivate}
-          />
-        ))}
+      <div className="@container">
+        <div className="grid grid-cols-1 @lg:grid-cols-2 gap-2">
+          {months.map((m) => (
+            <CalendarMonth
+              key={m.toISOString()}
+              monthStart={m}
+              suggestionsByDate={suggestionsByDate}
+              scheduledDates={scheduledDates}
+              playDayWeekdays={playDayWeekdays}
+              specialPlayDates={specialPlayDates}
+              weekStartDay={weekStartDay}
+              today={today}
+              onCellActivate={onCellActivate}
+            />
+          ))}
+        </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
-        {LEGEND_ORDER.map((state) => (
-          <span key={state} className="inline-flex items-center gap-1">
-            <span className={`size-2 rounded-sm ${CALENDAR_STYLES[state].className}`} />
-            {CALENDAR_STYLES[state].label}
+        {LEGEND.map((entry) => (
+          <span key={entry.label} className="inline-flex items-center gap-1">
+            <span className={`relative size-4 rounded-sm ${entry.swatch}`}>
+              {entry.pip === 'gold-solid' && (
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] w-[20%] aspect-square rounded-full bg-cal-everyone" />
+              )}
+              {entry.pip === 'gold-hollow' && (
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] w-[20%] aspect-square rounded-full border-[1.5px] border-cal-everyone" />
+              )}
+              {entry.pip === 'gray' && (
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] w-[20%] aspect-square rounded-full bg-cal-pending-on-fill" />
+              )}
+            </span>
+            {entry.label}
           </span>
         ))}
       </div>

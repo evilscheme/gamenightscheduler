@@ -162,9 +162,16 @@ export function calculateDateSuggestions({
       }
     }
 
-    // Check if this date meets the minimum player threshold
-    // Only count confirmed available players (not maybe or pending)
-    const meetsThreshold = threshold <= 0 || available.length >= threshold;
+    // Check if this date meets the minimum player threshold.
+    // Deliberately uses the raw GM-set minPlayersNeeded, NOT the derived
+    // `threshold` above. `threshold` answers "how promising is this date?"
+    // (informational, drives mini-calendar coloring); meetsThreshold answers
+    // "does this date meet the GM's stated requirement?" (structural, drives
+    // partitionByThreshold / the below-threshold collapse). A GM who never
+    // set a minimum has stated no requirement, so nothing should be hidden
+    // on that basis — do not "simplify" this back to using `threshold`.
+    const meetsThreshold =
+      minPlayersNeeded <= 0 || available.length >= minPlayersNeeded;
 
     return {
       date: dateStr,

@@ -36,6 +36,7 @@ const renderList = (
         gmId="g"
         coGmIds={new Set()}
         use24h={false}
+        minPlayersNeeded={0}
         onLockIn={() => {}}
         autoExpandDate={opts.autoExpandDate ?? null}
       />

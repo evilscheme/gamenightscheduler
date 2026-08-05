@@ -19,6 +19,7 @@ interface RankedRowProps {
   use24h: boolean;
   belowThreshold: boolean;
   defaultExpanded: boolean;
+  minPlayersNeeded: number;
   playDateNote?: string | null;
   onLockIn: (date: string) => void;
   autoScrollTrigger?: string | null;
@@ -35,6 +36,7 @@ export function RankedRow({
   use24h,
   belowThreshold,
   defaultExpanded,
+  minPlayersNeeded,
   playDateNote,
   onLockIn,
   autoScrollTrigger,
@@ -105,10 +107,10 @@ export function RankedRow({
           <div className="mt-1 flex items-center gap-2">
             <PlayerAvatarCluster avatars={visibleAvatars} />
             <span className="font-mono text-[11px] text-muted-foreground">
-              {suggestion.threshold > 0 && (
+              {minPlayersNeeded > 0 && (
                 <>
                   <span className="whitespace-nowrap">
-                    {suggestion.availableCount}/{suggestion.threshold} needed
+                    {suggestion.availableCount}/{minPlayersNeeded} needed
                   </span>
                   {' · '}
                 </>

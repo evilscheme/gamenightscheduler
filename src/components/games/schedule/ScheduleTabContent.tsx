@@ -58,7 +58,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     suggestions, sessions, members, gmId, isGm, gameName, gameDescription,
     playDays, windowStart, windowEnd, specialPlayDates, playDateNotes,
     defaultStartTime, defaultEndTime, timezone, userTimezone,
-    use24h = false, weekStartDay,
+    use24h = false, weekStartDay, minPlayersNeeded = 0,
     completionByUserId, subscribeUrl, onConfirm, onUpdateSession, onCancel,
   } = props;
 
@@ -230,6 +230,7 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               gmId={gmId}
               coGmIds={coGmIds}
               use24h={use24h}
+              minPlayersNeeded={minPlayersNeeded}
               playDateNotes={playDateNotes}
               onLockIn={(d) => setScheduleFor(d)}
               autoExpandDate={autoExpandDate}

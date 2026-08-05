@@ -18,6 +18,7 @@ interface RankedListProps {
   gmId: string;
   coGmIds: Set<string>;
   use24h: boolean;
+  minPlayersNeeded: number;
   playDateNotes?: Map<string, string>;
   onLockIn: (date: string) => void;
   autoExpandDate: string | null;
@@ -29,6 +30,7 @@ export function RankedList({
   gmId,
   coGmIds,
   use24h,
+  minPlayersNeeded,
   playDateNotes,
   onLockIn,
   autoExpandDate,
@@ -155,6 +157,7 @@ export function RankedList({
               use24h={use24h}
               belowThreshold={!s.meetsThreshold}
               defaultExpanded={false}
+              minPlayersNeeded={minPlayersNeeded}
               playDateNote={playDateNotes?.get(s.date) ?? null}
               onLockIn={onLockIn}
               autoScrollTrigger={autoExpandDate}
@@ -176,6 +179,7 @@ export function RankedList({
                 use24h={use24h}
                 belowThreshold={false}
                 defaultExpanded={idx === 0}
+                minPlayersNeeded={minPlayersNeeded}
                 playDateNote={playDateNotes?.get(s.date) ?? null}
                 onLockIn={onLockIn}
                 autoScrollTrigger={autoExpandDate}
@@ -209,6 +213,7 @@ export function RankedList({
                       use24h={use24h}
                       belowThreshold={true}
                       defaultExpanded={false}
+                      minPlayersNeeded={minPlayersNeeded}
                       playDateNote={playDateNotes?.get(s.date) ?? null}
                       onLockIn={onLockIn}
                       autoScrollTrigger={autoExpandDate}

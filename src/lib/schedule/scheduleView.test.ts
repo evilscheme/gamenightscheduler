@@ -9,6 +9,7 @@ import {
   resolveDateState,
   DATE_STATE_RANK,
   showsPendingMark,
+  describeDateState,
 } from './scheduleView';
 import type { DateSuggestion, GameSession } from '@/types';
 import type { DateState } from './scheduleView';
@@ -299,5 +300,54 @@ describe('DATE_STATE_RANK', () => {
     ];
     const ranks = order.map((s) => DATE_STATE_RANK[s]);
     expect(ranks).toEqual([...ranks].sort((a, b) => b - a));
+  });
+});
+
+describe('describeDateState', () => {
+  const six = (o: Partial<DateSuggestion>) => mkSuggestion({ totalPlayers: 6, ...o });
+
+  it('explains a roster smaller than the GM minimum', () => {
+    expect(describeDateState(mkSuggestion({ totalPlayers: 5, availableCount: 5 }), 8))
+      .toBe('This game needs 8 players but only 5 have joined');
+  });
+
+  it('names a full house', () => {
+    expect(describeDateState(six({ availableCount: 6 }), 4))
+      .toBe('All 6 players are available');
+  });
+
+  it('mentions the upside when maybes could make it everyone', () => {
+    expect(describeDateState(six({ availableCount: 4, maybeCount: 2 }), 4))
+      .toBe('4 of 6 available — everyone, if both maybes work out');
+  });
+
+  it('mentions who is still silent on an otherwise settled date', () => {
+    expect(describeDateState(six({ availableCount: 4, pendingCount: 2 }), 4))
+      .toBe('4 available, 4 needed — 2 still haven’t answered');
+  });
+
+  it('does not mention silence when everyone has answered', () => {
+    expect(describeDateState(six({ availableCount: 4, unavailableCount: 2 }), 4))
+      .toBe('4 available, 4 needed');
+  });
+
+  it('explains a date that is only viable via maybes', () => {
+    expect(describeDateState(six({ availableCount: 2, maybeCount: 2, pendingCount: 2 }), 4))
+      .toBe('2 available, 4 needed — enough only if both maybes work out');
+  });
+
+  it('explains why a date is greyed out', () => {
+    expect(describeDateState(six({ availableCount: 1, pendingCount: 5 }), 4))
+      .toBe('Not enough responses yet — 5 of 6 haven’t answered');
+  });
+
+  it('explains why a date is dead', () => {
+    expect(describeDateState(six({ unavailableCount: 3, pendingCount: 3 }), 4))
+      .toBe('Can’t happen — 3 of 6 can’t make it, and 4 are needed');
+  });
+
+  it('uses singular wording for a single maybe', () => {
+    expect(describeDateState(six({ availableCount: 4, maybeCount: 1, pendingCount: 1 }), 4))
+      .toBe('4 available, 4 needed — 1 still hasn’t answered');
   });
 });

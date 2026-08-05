@@ -89,6 +89,50 @@ export function showsPendingMark(s: DateSuggestion, state: DateState): boolean {
   return (state === 'enough' || state === 'enough-if-maybes') && s.pendingCount > 0;
 }
 
+/** For a single maybe, "the maybe" reads better than "1 maybe". */
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+/**
+ * A plain-language sentence for the cell's tooltip.
+ *
+ * The roster-too-small case is called out by name: an explicit GM minimum is
+ * honoured as entered (a new game may not have everyone joined yet), which turns
+ * the whole calendar red, and that needs an explanation the GM can actually find.
+ */
+export function describeDateState(s: DateSuggestion, threshold: number): string {
+  const total = s.totalPlayers;
+  if (total === 0) return 'No players in this game yet';
+  if (threshold > total) {
+    return `This game needs ${threshold} players but only ${total} have joined`;
+  }
+
+  const state = resolveDateState(s, threshold);
+  const maybes = `${s.maybeCount} ${plural(s.maybeCount, 'maybe', 'maybes')}`;
+  const bothMaybes = s.maybeCount === 1 ? 'the maybe works' : `${s.maybeCount === 2 ? 'both' : 'all'} maybes work`;
+  const silent = s.pendingCount === 1
+    ? '1 still hasn’t answered'
+    : `${s.pendingCount} still haven’t answered`;
+
+  switch (state) {
+    case 'everyone':
+      return `All ${total} players are available`;
+    case 'enough-maybe-everyone':
+      return `${s.availableCount} of ${total} available — everyone, if ${bothMaybes} out`;
+    case 'everyone-if-maybes':
+      return `${s.availableCount} available and ${maybes} — everyone, if ${bothMaybes} out`;
+    case 'enough': {
+      const base = `${s.availableCount} available, ${threshold} needed`;
+      return s.pendingCount > 0 ? `${base} — ${silent}` : base;
+    }
+    case 'enough-if-maybes':
+      return `${s.availableCount} available, ${threshold} needed — enough only if ${bothMaybes} out`;
+    case 'unknown':
+      return `Not enough responses yet — ${s.pendingCount} of ${total} haven’t answered`;
+    case 'not-enough':
+      return `Can’t happen — ${s.unavailableCount} of ${total} can’t make it, and ${threshold} are needed`;
+  }
+}
+
 export function partitionByThreshold(items: DateSuggestion[]): {
   viable: DateSuggestion[];
   belowThreshold: DateSuggestion[];

@@ -44,6 +44,8 @@
   --cal-disabled-text: #cbd5e1;
   --cal-scheduled-bg: #0ea5e9;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #f59e0b;
+  --cal-pending-on-fill: #f1f5f9;
 
   --avatar-1: #3b82f6;
   --avatar-2: #a855f7;
@@ -104,6 +106,8 @@
   --cal-disabled-text: #1e3a4f;
   --cal-scheduled-bg: #0284c7;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #fbbf24;
+  --cal-pending-on-fill: #334155;
 
   --avatar-1: #60a5fa;
   --avatar-2: #c084fc;
@@ -166,6 +170,8 @@
   --cal-disabled-text: #d4d0e0;
   --cal-scheduled-bg: #7c3aed;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #f59e0b;
+  --cal-pending-on-fill: #f1f5f9;
 }
 
 [data-theme="purple"].dark {
@@ -208,6 +214,8 @@
   --cal-disabled-text: #2a2235;
   --cal-scheduled-bg: #7c3aed;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #fbbf24;
+  --cal-pending-on-fill: #334155;
 }
 
 /* ============================================
@@ -253,6 +261,8 @@
   --cal-disabled-text: #c8e6cf;
   --cal-scheduled-bg: #16a34a;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #f59e0b;
+  --cal-pending-on-fill: #f1f5f9;
 }
 
 [data-theme="forest"].dark {
@@ -295,6 +305,8 @@
   --cal-disabled-text: #132c1b;
   --cal-scheduled-bg: #15803d;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #fbbf24;
+  --cal-pending-on-fill: #334155;
 }
 
 /* ============================================
@@ -340,6 +352,8 @@
   --cal-disabled-text: #cbd5e1;
   --cal-scheduled-bg: #475569;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #f59e0b;
+  --cal-pending-on-fill: #f1f5f9;
 }
 
 [data-theme="slate"].dark {
@@ -382,6 +396,8 @@
   --cal-disabled-text: #1e293b;
   --cal-scheduled-bg: #64748b;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #fbbf24;
+  --cal-pending-on-fill: #334155;
 }
 
 /* ============================================
@@ -427,6 +443,8 @@
   --cal-disabled-text: #e8d0d3;
   --cal-scheduled-bg: #e11d48;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #f59e0b;
+  --cal-pending-on-fill: #f1f5f9;
 }
 
 [data-theme="rose"].dark {
@@ -469,6 +487,8 @@
   --cal-disabled-text: #3d1520;
   --cal-scheduled-bg: #be123c;
   --cal-scheduled-text: #ffffff;
+  --cal-everyone: #fbbf24;
+  --cal-pending-on-fill: #334155;
 }
 
 @theme inline {
@@ -512,6 +532,8 @@
   --color-cal-disabled-text: var(--cal-disabled-text);
   --color-cal-scheduled-bg: var(--cal-scheduled-bg);
   --color-cal-scheduled-text: var(--cal-scheduled-text);
+  --color-cal-everyone: var(--cal-everyone);
+  --color-cal-pending-on-fill: var(--cal-pending-on-fill);
 
   /* Avatar colors */
   --color-avatar-1: var(--avatar-1);

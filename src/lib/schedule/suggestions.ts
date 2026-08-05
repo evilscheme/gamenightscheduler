@@ -1,4 +1,5 @@
 import { User, Availability, DateSuggestion, PlayerWithComment } from "@/types";
+import { effectiveThreshold } from "./threshold";
 
 interface CategorizedPlayers {
   available: PlayerWithComment[];
@@ -132,6 +133,7 @@ export function calculateDateSuggestions({
   minPlayersNeeded = 0,
 }: CalculateSuggestionsParams): DateSuggestion[] {
   const availabilityIndex = buildAvailabilityIndex(availability);
+  const threshold = effectiveThreshold(minPlayersNeeded, players.length);
 
   const suggestions: DateSuggestion[] = playDates.map((date) => {
     const dateStr = formatDate(date);
@@ -162,7 +164,7 @@ export function calculateDateSuggestions({
 
     // Check if this date meets the minimum player threshold
     // Only count confirmed available players (not maybe or pending)
-    const meetsThreshold = minPlayersNeeded <= 0 || available.length >= minPlayersNeeded;
+    const meetsThreshold = threshold <= 0 || available.length >= threshold;
 
     return {
       date: dateStr,
@@ -179,6 +181,7 @@ export function calculateDateSuggestions({
       earliestStartTime,
       latestEndTime,
       meetsThreshold,
+      threshold,
     };
   });
 

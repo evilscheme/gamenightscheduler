@@ -29,6 +29,7 @@ const mkSuggestion = (overrides: Partial<DateSuggestion>): DateSuggestion => ({
   earliestStartTime: null,
   latestEndTime: null,
   meetsThreshold: true,
+  threshold: 3,
   ...overrides,
 });
 

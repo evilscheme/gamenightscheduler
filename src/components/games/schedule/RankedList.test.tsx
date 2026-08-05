@@ -20,6 +20,7 @@ const mk = (overrides: Partial<DateSuggestion>): DateSuggestion => ({
   earliestStartTime: null,
   latestEndTime: null,
   meetsThreshold: true,
+  threshold: 3,
   ...overrides,
 });
 
@@ -35,7 +36,6 @@ const renderList = (
         gmId="g"
         coGmIds={new Set()}
         use24h={false}
-        minPlayersNeeded={3}
         onLockIn={() => {}}
         autoExpandDate={opts.autoExpandDate ?? null}
       />

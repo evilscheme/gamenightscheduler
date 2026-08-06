@@ -49,22 +49,6 @@ export function resolveDateState(s: DateSuggestion, threshold: number): DateStat
 }
 
 /**
- * Higher is better. Defines the intended best-to-worst ordering of the seven
- * states. Currently consumed only by tests — the legend is a hand-ordered
- * array in `calendarStyles.ts`, and the ranked list still sorts by raw counts
- * in `suggestions.ts`, independently of this ranking.
- */
-export const DATE_STATE_RANK: Record<DateState, number> = {
-  'everyone': 7,
-  'enough-maybe-everyone': 6,
-  'enough': 5,
-  'everyone-if-maybes': 4,
-  'enough-if-maybes': 3,
-  'unknown': 2,
-  'not-enough': 1,
-};
-
-/**
  * Whether to draw the "someone still hasn't answered" pip.
  *
  * Suppressed on `unknown` (gray already implies pending) and on `not-enough`

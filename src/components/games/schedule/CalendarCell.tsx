@@ -25,19 +25,24 @@ interface CalendarCellProps {
 function Pip({ kind, onFill }: { kind: PipKind | 'pending'; onFill: boolean }) {
   if (kind === 'none') return null;
   const shape = 'absolute left-1/2 -translate-x-1/2 bottom-[9%] w-[20%] aspect-square rounded-full z-20';
-  // Adaptive gold: on a filled cell the badge sits on the green fill and can use the
-  // bright brand gold; on an outlined cell there is no fill, so the badge sits directly
-  // on the page background and needs the darker/higher-contrast ink value instead.
+  // Bright gold can't clear 3:1 against a near-white card at any saturation, so on an
+  // outlined cell (no fill) the badge can't stay a gold ring — hue-darkening it away from
+  // gold isn't the right lever either. Instead it becomes a solid gold disc with a thin
+  // neutral-ink ring for contrast; the hollow/solid distinction is redundant here anyway,
+  // since the dashed outline already conveys "tentative" on its own.
   if (kind === 'gold-solid') {
-    return <span aria-hidden className={`${shape} ${onFill ? 'bg-cal-everyone' : 'bg-cal-everyone-ink'}`} />;
-  }
-  if (kind === 'gold-hollow') {
     return (
       <span
         aria-hidden
-        className={`${shape} border-[1.5px] ${onFill ? 'border-cal-everyone' : 'border-cal-everyone-ink'}`}
+        className={`${shape} bg-cal-everyone ${onFill ? '' : 'ring-1 ring-cal-empty-text'}`}
       />
     );
+  }
+  if (kind === 'gold-hollow') {
+    if (!onFill) {
+      return <span aria-hidden className={`${shape} bg-cal-everyone ring-1 ring-cal-empty-text`} />;
+    }
+    return <span aria-hidden className={`${shape} border-[1.5px] border-cal-everyone`} />;
   }
   // Adaptive grey: the blank cell's background on a filled cell, its ink on an outlined one.
   return (

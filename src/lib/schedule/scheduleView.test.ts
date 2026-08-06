@@ -6,7 +6,6 @@ import {
   computeDefaultSessionTimes,
   getTopNDates,
   resolveDateState,
-  DATE_STATE_RANK,
   showsPendingMark,
   describeDateState,
 } from './scheduleView';
@@ -237,21 +236,6 @@ describe('date state invariants', () => {
         expect(['enough', 'enough-if-maybes']).toContain(state);
       }
     }
-  });
-});
-
-describe('DATE_STATE_RANK', () => {
-  it('ranks a guaranteed game above a possible full house', () => {
-    expect(DATE_STATE_RANK['enough']).toBeGreaterThan(DATE_STATE_RANK['everyone-if-maybes']);
-  });
-
-  it('orders the whole ladder best to worst', () => {
-    const order: DateState[] = [
-      'everyone', 'enough-maybe-everyone', 'enough',
-      'everyone-if-maybes', 'enough-if-maybes', 'unknown', 'not-enough',
-    ];
-    const ranks = order.map((s) => DATE_STATE_RANK[s]);
-    expect(ranks).toEqual([...ranks].sort((a, b) => b - a));
   });
 });
 

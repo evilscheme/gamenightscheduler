@@ -151,7 +151,7 @@ export function MonthCalendar({
           const canRemoveExtra = isGmOrCoGm && isExtraPlayDate && !isPast;
 
           const isTodayDate = isToday(date);
-          const { bgColor, textColor, cursor, todayStyles, dataStatus } =
+          const { bgColor, textColor, cursor, todayStyles, starFill, dataStatus } =
             calendarCellState({
               isOutOfRange,
               isConfirmed,
@@ -248,20 +248,12 @@ export function MonthCalendar({
             >
               {/* Scheduled game star decoration */}
               {isConfirmed && (
-                <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className={`absolute inset-0 pointer-events-none ${isPast ? "opacity-50" : ""}`}>
                   <svg
-                    className="size-[85%]"
+                    className={`size-full ${starFill}`}
                     viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="1.5"
-                    opacity="0.4"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-                    />
+                    <path d="M12 1.6l3.09 6.9 7.41.72-5.6 5.05 1.62 7.33L12 17.9l-6.52 3.7 1.62-7.33-5.6-5.05 7.41-.72z" />
                   </svg>
                 </span>
               )}
@@ -280,7 +272,7 @@ export function MonthCalendar({
                   <CalendarDays className="size-2.5" />
                 </span>
               )}
-              {format(date, "d")}
+              <span className="relative z-10">{format(date, "d")}</span>
               {/* Extra date indicator - corner triangle (hidden for ad-hoc games,
                   and yielded to the other-game badge when both want the top-right) */}
               {isExtraPlayDate && !isPast && playDays.length > 0 && !showOtherGameBadge && (

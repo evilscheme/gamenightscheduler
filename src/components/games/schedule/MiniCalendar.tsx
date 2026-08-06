@@ -6,6 +6,7 @@ import type { DateSuggestion, GameSession } from '@/types';
 import { CalendarMonth } from './CalendarMonth';
 import { EyebrowLabel, Panel } from '@/components/ui';
 import { resolveDateState, showsPendingMark, describeDateState, type DateState } from '@/lib/schedule';
+import { SCHEDULED_STAR_PATH } from '@/lib/constants';
 import { LEGEND } from './calendarStyles';
 
 interface MiniCalendarProps {
@@ -86,6 +87,11 @@ export function MiniCalendar({
           <span key={entry.label} className="inline-flex items-center gap-1">
             {entry.swatches.map((swatch, i) => (
               <span key={i} className={`relative size-5 rounded-sm ${swatch.swatch}`}>
+                {swatch.star && (
+                  <svg viewBox="0 0 24 24" className={`size-full ${swatch.star}`}>
+                    <path d={SCHEDULED_STAR_PATH} />
+                  </svg>
+                )}
                 {swatch.pip === 'gold-solid' && (
                   <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] size-1.75 rounded-full bg-cal-everyone" />
                 )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { CalendarDays } from 'lucide-react';
+import { SCHEDULED_STAR_PATH } from '@/lib/constants';
 
 interface CalendarLegendProps {
   /** Show the "Extra date" swatch — only meaningful when the game has regular play days. */
@@ -49,12 +50,12 @@ export function CalendarLegend({ hasPlayDays, hasCampaignDates }: CalendarLegend
         <div className="flex items-center gap-1">
           <div className="size-3.5">
             <svg className="size-full fill-cal-available-bg" viewBox="0 0 24 24">
-              <path d="M12 1.6l3.09 6.9 7.41.72-5.6 5.05 1.62 7.33L12 17.9l-6.52 3.7 1.62-7.33-5.6-5.05 7.41-.72z" />
+              <path d={SCHEDULED_STAR_PATH} />
             </svg>
           </div>
           <div className="size-3.5">
             <svg className="size-full fill-cal-unavailable-bg" viewBox="0 0 24 24">
-              <path d="M12 1.6l3.09 6.9 7.41.72-5.6 5.05 1.62 7.33L12 17.9l-6.52 3.7 1.62-7.33-5.6-5.05 7.41-.72z" />
+              <path d={SCHEDULED_STAR_PATH} />
             </svg>
           </div>
         </div>

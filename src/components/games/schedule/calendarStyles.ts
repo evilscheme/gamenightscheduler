@@ -49,6 +49,8 @@ export interface LegendSwatch {
   swatch: string;
   /** Optional pip drawn inside it. */
   pip?: PipKind | 'pending-on-fill' | 'pending-on-page';
+  /** Render the shared scheduled star, filled with this Tailwind fill-* class. */
+  star?: string;
 }
 
 export interface LegendEntry {
@@ -62,9 +64,9 @@ const OUTLINED_SWATCH = 'border-2 border-dashed border-cal-available-ink';
 
 /**
  * Teaches the three channels rather than the seven states, so a reader can
- * compose any cell they see instead of matching it against a list. The scheduled
- * star is deliberately omitted — it is self-evident, and including it would add
- * an eighth row.
+ * compose any cell they see instead of matching it against a list. State rows
+ * come first; the scheduled star and the non-play-day hatch are purely
+ * structural, so they trail at the end.
  */
 export const LEGEND: LegendEntry[] = [
   { swatches: [{ swatch: FILLED_SWATCH }],                                          label: 'Enough players' },
@@ -80,5 +82,6 @@ export const LEGEND: LegendEntry[] = [
   },
   { swatches: [{ swatch: 'bg-cal-empty-bg' }],                                      label: 'Waiting for responses' },
   { swatches: [{ swatch: 'bg-cal-unavailable-bg' }],                                label: "Can't happen" },
+  { swatches: [{ swatch: '', star: 'fill-primary' }],                               label: 'Scheduled' },
   { swatches: [{ swatch: NON_PLAY_DAY_FILL }],                                      label: 'Non-play day' },
 ];

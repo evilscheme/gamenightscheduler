@@ -42,8 +42,8 @@ describe('CELL_STYLES', () => {
 });
 
 describe('LEGEND', () => {
-  it('teaches the three channels plus non-play days in eight entries', () => {
-    expect(LEGEND).toHaveLength(8);
+  it('teaches the three channels plus scheduled and non-play days in nine entries', () => {
+    expect(LEGEND).toHaveLength(9);
     expect(LEGEND.map((e) => e.label)).toEqual([
       'Enough players',
       'Maybe enough players',
@@ -52,6 +52,7 @@ describe('LEGEND', () => {
       "Someone hasn't answered",
       'Waiting for responses',
       "Can't happen",
+      'Scheduled',
       'Non-play day',
     ]);
   });
@@ -59,5 +60,11 @@ describe('LEGEND', () => {
   it('shows both pending swatches under the waiting-on-someone entry', () => {
     const entry = LEGEND.find((e) => e.label === "Someone hasn't answered");
     expect(entry?.swatches).toHaveLength(2);
+  });
+
+  it('renders the scheduled entry as a primary-filled star', () => {
+    const entry = LEGEND.find((e) => e.label === 'Scheduled');
+    expect(entry?.swatches).toHaveLength(1);
+    expect(entry?.swatches[0].star).toBe('fill-primary');
   });
 });

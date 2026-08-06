@@ -1,6 +1,7 @@
 'use client';
 
 import type { DateState } from '@/lib/schedule';
+import { SCHEDULED_STAR_PATH } from '@/lib/constants';
 import { useHoverSync } from './HoverSyncContext';
 import { CELL_STYLES, PAST_STYLE, NON_PLAY_DAY_FILL, type PipKind } from './calendarStyles';
 
@@ -58,7 +59,7 @@ function ScheduledStar() {
       viewBox="0 0 24 24"
       className="absolute inset-0 size-full fill-primary z-0"
     >
-      <path d="M12 1.6l3.09 6.9 7.41.72-5.6 5.05 1.62 7.33L12 17.9l-6.52 3.7 1.62-7.33-5.6-5.05 7.41-.72z" />
+      <path d={SCHEDULED_STAR_PATH} />
     </svg>
   );
 }

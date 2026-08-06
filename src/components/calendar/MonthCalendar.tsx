@@ -13,6 +13,7 @@ import {
 import { CalendarDays, Clock, FileText, MessageSquare, Pencil, Plus, X } from 'lucide-react';
 import type { GameSession } from '@/types';
 import { AvailabilityEntry } from '@/lib/availability';
+import { SCHEDULED_STAR_PATH } from '@/lib/constants';
 import { formatTimeShort } from '@/lib/formatting';
 import { calendarCellState } from '@/lib/calendarCellState';
 import {
@@ -253,7 +254,7 @@ export function MonthCalendar({
                     className={`size-full ${starFill}`}
                     viewBox="0 0 24 24"
                   >
-                    <path d="M12 1.6l3.09 6.9 7.41.72-5.6 5.05 1.62 7.33L12 17.9l-6.52 3.7 1.62-7.33-5.6-5.05 7.41-.72z" />
+                    <path d={SCHEDULED_STAR_PATH} />
                   </svg>
                 </span>
               )}

@@ -48,7 +48,12 @@ export function resolveDateState(s: DateSuggestion, threshold: number): DateStat
   return ceiling === 'everyone' ? 'everyone-if-maybes' : 'enough-if-maybes';
 }
 
-/** Higher is better. Used for ranking and for ordering the legend. */
+/**
+ * Higher is better. Defines the intended best-to-worst ordering of the seven
+ * states. Currently consumed only by tests — the legend is a hand-ordered
+ * array in `calendarStyles.ts`, and the ranked list still sorts by raw counts
+ * in `suggestions.ts`, independently of this ranking.
+ */
 export const DATE_STATE_RANK: Record<DateState, number> = {
   'everyone': 7,
   'enough-maybe-everyone': 6,

@@ -27,8 +27,9 @@
   --danger-foreground: #ffffff;
   --scheduled: #0ea5e9;
 
-  --cal-available-bg: #22c55e;
+  --cal-available-bg: #15803d;
   --cal-available-text: #ffffff;
+  --cal-available-ink: #15803d;
   --cal-empty-bg: #cbd5e1;
   --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
@@ -40,7 +41,7 @@
   --cal-unset-border: #7dd3fc;
   --cal-disabled-bg: #f8fafc;
   --cal-disabled-text: #cbd5e1;
-  --cal-everyone: #f59e0b;
+  --cal-everyone: #fbbf24;
   --cal-pending-on-fill: #f1f5f9;
 
   --avatar-1: #3b82f6;
@@ -87,6 +88,7 @@
 
   --cal-available-bg: #15803d;
   --cal-available-text: #dcfce7;
+  --cal-available-ink: #4ade80;
   --cal-empty-bg: #334155;
   --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
@@ -99,7 +101,7 @@
   --cal-disabled-bg: #071422;
   --cal-disabled-text: #1e3a4f;
   --cal-everyone: #fbbf24;
-  --cal-pending-on-fill: #334155;
+  --cal-pending-on-fill: #f1f5f9;
 
   --avatar-1: #60a5fa;
   --avatar-2: #c084fc;
@@ -145,8 +147,9 @@
   --danger-foreground: #ffffff;
   --scheduled: #7c3aed;
 
-  --cal-available-bg: #22c55e;
+  --cal-available-bg: #15803d;
   --cal-available-text: #ffffff;
+  --cal-available-ink: #15803d;
   --cal-empty-bg: #cbd5e1;
   --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
@@ -158,7 +161,7 @@
   --cal-unset-border: #c4b5fd;
   --cal-disabled-bg: #f9f7fc;
   --cal-disabled-text: #d4d0e0;
-  --cal-everyone: #f59e0b;
+  --cal-everyone: #fbbf24;
   --cal-pending-on-fill: #f1f5f9;
 }
 
@@ -187,6 +190,7 @@
 
   --cal-available-bg: #15803d;
   --cal-available-text: #dcfce7;
+  --cal-available-ink: #4ade80;
   --cal-empty-bg: #334155;
   --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
@@ -199,7 +203,7 @@
   --cal-disabled-bg: #0a0810;
   --cal-disabled-text: #2a2235;
   --cal-everyone: #fbbf24;
-  --cal-pending-on-fill: #334155;
+  --cal-pending-on-fill: #f1f5f9;
 }
 
 /* ============================================
@@ -228,8 +232,9 @@
   --danger-foreground: #ffffff;
   --scheduled: #16a34a;
 
-  --cal-available-bg: #22c55e;
+  --cal-available-bg: #15803d;
   --cal-available-text: #ffffff;
+  --cal-available-ink: #15803d;
   --cal-empty-bg: #cbd5e1;
   --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
@@ -241,7 +246,7 @@
   --cal-unset-border: #86efac;
   --cal-disabled-bg: #f8fdf9;
   --cal-disabled-text: #c8e6cf;
-  --cal-everyone: #f59e0b;
+  --cal-everyone: #fbbf24;
   --cal-pending-on-fill: #f1f5f9;
 }
 
@@ -270,6 +275,7 @@
 
   --cal-available-bg: #15803d;
   --cal-available-text: #dcfce7;
+  --cal-available-ink: #4ade80;
   --cal-empty-bg: #334155;
   --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
@@ -282,7 +288,7 @@
   --cal-disabled-bg: #050f0a;
   --cal-disabled-text: #132c1b;
   --cal-everyone: #fbbf24;
-  --cal-pending-on-fill: #334155;
+  --cal-pending-on-fill: #f1f5f9;
 }
 
 /* ============================================
@@ -311,8 +317,9 @@
   --danger-foreground: #ffffff;
   --scheduled: #475569;
 
-  --cal-available-bg: #22c55e;
+  --cal-available-bg: #15803d;
   --cal-available-text: #ffffff;
+  --cal-available-ink: #15803d;
   --cal-empty-bg: #cbd5e1;
   --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
@@ -324,7 +331,7 @@
   --cal-unset-border: #94a3b8;
   --cal-disabled-bg: #fafbfc;
   --cal-disabled-text: #cbd5e1;
-  --cal-everyone: #f59e0b;
+  --cal-everyone: #fbbf24;
   --cal-pending-on-fill: #f1f5f9;
 }
 
@@ -353,6 +360,7 @@
 
   --cal-available-bg: #15803d;
   --cal-available-text: #dcfce7;
+  --cal-available-ink: #4ade80;
   --cal-empty-bg: #334155;
   --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
@@ -365,7 +373,7 @@
   --cal-disabled-bg: #0c1322;
   --cal-disabled-text: #1e293b;
   --cal-everyone: #fbbf24;
-  --cal-pending-on-fill: #334155;
+  --cal-pending-on-fill: #f1f5f9;
 }
 
 /* ============================================
@@ -394,8 +402,9 @@
   --danger-foreground: #ffffff;
   --scheduled: #e11d48;
 
-  --cal-available-bg: #22c55e;
+  --cal-available-bg: #15803d;
   --cal-available-text: #ffffff;
+  --cal-available-ink: #15803d;
   --cal-empty-bg: #cbd5e1;
   --cal-empty-text: #475569;
   --cal-maybe-bg: #f59e0b;
@@ -407,7 +416,7 @@
   --cal-unset-border: #fda4af;
   --cal-disabled-bg: #fef9f9;
   --cal-disabled-text: #e8d0d3;
-  --cal-everyone: #f59e0b;
+  --cal-everyone: #fbbf24;
   --cal-pending-on-fill: #f1f5f9;
 }
 
@@ -436,6 +445,7 @@
 
   --cal-available-bg: #15803d;
   --cal-available-text: #dcfce7;
+  --cal-available-ink: #4ade80;
   --cal-empty-bg: #334155;
   --cal-empty-text: #94a3b8;
   --cal-maybe-bg: #854d0e;
@@ -448,7 +458,7 @@
   --cal-disabled-bg: #100710;
   --cal-disabled-text: #3d1520;
   --cal-everyone: #fbbf24;
-  --cal-pending-on-fill: #334155;
+  --cal-pending-on-fill: #f1f5f9;
 }
 
 @theme inline {
@@ -477,6 +487,7 @@
   /* Calendar colors */
   --color-cal-available-bg: var(--cal-available-bg);
   --color-cal-available-text: var(--cal-available-text);
+  --color-cal-available-ink: var(--cal-available-ink);
   --color-cal-empty-bg: var(--cal-empty-bg);
   --color-cal-empty-text: var(--cal-empty-text);
   --color-cal-maybe-bg: var(--cal-maybe-bg);

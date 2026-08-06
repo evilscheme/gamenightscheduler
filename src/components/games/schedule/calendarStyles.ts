@@ -17,7 +17,7 @@ export interface CellStyle {
 }
 
 const GREEN_SOLID = 'bg-cal-available-bg text-cal-available-text';
-const GREEN_OUTLINE = 'border-2 border-dashed border-cal-available-bg text-cal-available-bg';
+const GREEN_OUTLINE = 'border-2 border-dashed border-cal-available-ink text-cal-available-ink';
 
 /**
  * Three independent channels: fill hue = outcome, fill style = whether confirmed

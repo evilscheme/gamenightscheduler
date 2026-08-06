@@ -283,6 +283,11 @@ describe('describeDateState', () => {
       .toBe('4 available, 4 needed');
   });
 
+  it('explains a date that would be everyone if the maybes work out', () => {
+    expect(describeDateState(six({ availableCount: 3, maybeCount: 3 }), 4))
+      .toBe('3 available and 3 maybes — everyone, if all maybes work out');
+  });
+
   it('explains a date that is only viable via maybes', () => {
     expect(describeDateState(six({ availableCount: 2, maybeCount: 2, pendingCount: 2 }), 4))
       .toBe('2 available, 4 needed — enough only if both maybes work out');

@@ -84,15 +84,15 @@ export function MiniCalendar({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
         {LEGEND.map((entry) => (
           <span key={entry.label} className="inline-flex items-center gap-1">
-            <span className={`relative size-4 rounded-sm ${entry.swatch}`}>
+            <span className={`relative size-5 rounded-sm ${entry.swatch}`}>
               {entry.pip === 'gold-solid' && (
-                <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] w-[20%] aspect-square rounded-full bg-cal-everyone" />
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] size-1.75 rounded-full bg-cal-everyone" />
               )}
               {entry.pip === 'gold-hollow' && (
-                <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] w-[20%] aspect-square rounded-full border-[1.5px] border-cal-everyone" />
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] size-1.75 rounded-full border-2 border-cal-everyone" />
               )}
               {entry.pip === 'gray' && (
-                <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] w-[20%] aspect-square rounded-full bg-cal-pending-on-fill" />
+                <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] size-1.75 rounded-full bg-cal-pending-on-fill" />
               )}
             </span>
             {entry.label}

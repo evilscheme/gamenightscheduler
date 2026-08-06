@@ -75,13 +75,13 @@ export function CalendarCell({
   // A locked-in date stops being a question about availability, so it replaces
   // the ladder rendering entirely rather than layering on top of it.
   if (isScheduled) {
+    const scheduledLabel = title ? `Scheduled on ${date} — ${title}` : `Scheduled on ${date}`;
     return (
       <button
         type="button"
         {...handlers}
         className={`${shell} ${ring} bg-transparent`}
-        title={`Scheduled — ${title}`}
-        aria-label={`Scheduled on ${date}`}
+        aria-label={scheduledLabel}
         data-testid="calendar-cell"
         data-date={date}
         data-state="scheduled"
@@ -106,14 +106,14 @@ export function CalendarCell({
   const resolved: DateState = state ?? 'unknown';
   const style = CELL_STYLES[resolved];
   const fill = isPast ? PAST_STYLE : style.fill;
+  const label = title ? `${date} — ${title}` : date;
 
   return (
     <button
       type="button"
       {...handlers}
       className={`${shell} ${fill} ${ring}`}
-      title={title}
-      aria-label={`${date} — ${title}`}
+      aria-label={label}
       data-testid="calendar-cell"
       data-date={date}
       data-state={isPast ? 'past' : resolved}

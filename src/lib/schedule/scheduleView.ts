@@ -78,7 +78,7 @@ export function describeDateState(s: DateSuggestion, threshold: number): string 
 
   const state = resolveDateState(s, threshold);
   const maybes = `${s.maybeCount} ${plural(s.maybeCount, 'maybe', 'maybes')}`;
-  const bothMaybes = s.maybeCount === 1 ? 'the maybe works' : `${s.maybeCount === 2 ? 'both' : 'all'} maybes work`;
+  const allMaybes = s.maybeCount === 1 ? 'the maybe works' : `${s.maybeCount === 2 ? 'both' : 'all'} maybes work`;
   const silent = s.pendingCount === 1
     ? '1 still hasn’t answered'
     : `${s.pendingCount} still haven’t answered`;
@@ -87,15 +87,23 @@ export function describeDateState(s: DateSuggestion, threshold: number): string 
     case 'everyone':
       return `All ${total} players are available`;
     case 'enough-maybe-everyone':
-      return `${s.availableCount} of ${total} available — everyone, if ${bothMaybes} out`;
+      return `${s.availableCount} of ${total} available — everyone, if ${allMaybes} out`;
     case 'everyone-if-maybes':
-      return `${s.availableCount} available and ${maybes} — everyone, if ${bothMaybes} out`;
+      return `${s.availableCount} available and ${maybes} — everyone, if ${allMaybes} out`;
     case 'enough': {
       const base = `${s.availableCount} available, ${threshold} needed`;
       return s.pendingCount > 0 ? `${base} — ${silent}` : base;
     }
-    case 'enough-if-maybes':
-      return `${s.availableCount} available, ${threshold} needed — enough only if ${bothMaybes} out`;
+    case 'enough-if-maybes': {
+      const needed = threshold - s.availableCount;
+      const clause =
+        needed === s.maybeCount
+          ? `enough only if ${allMaybes} out`
+          : needed === 1
+            ? `enough if 1 of the ${s.maybeCount} maybes works out`
+            : `enough if ${needed} of the ${s.maybeCount} maybes work out`;
+      return `${s.availableCount} available, ${threshold} needed — ${clause}`;
+    }
     case 'unknown':
       return `Not enough responses yet — ${s.pendingCount} of ${total} haven’t answered`;
     case 'not-enough':

@@ -277,6 +277,24 @@ describe('describeDateState', () => {
       .toBe('2 available, 4 needed — enough only if both maybes work out');
   });
 
+  it('names only the number of maybes actually needed', () => {
+    // 2 available, 3 maybe, 1 pending — only 2 of the 3 maybes are required
+    expect(describeDateState(six({ availableCount: 2, maybeCount: 3, pendingCount: 1 }), 4))
+      .toBe('2 available, 4 needed — enough if 2 of the 3 maybes work out');
+  });
+
+  it('uses a singular verb when a single maybe would do', () => {
+    // 3 available, 2 maybe, 1 unavailable — any one maybe gets there
+    expect(describeDateState(six({ availableCount: 3, maybeCount: 2, unavailableCount: 1 }), 4))
+      .toBe('3 available, 4 needed — enough if 1 of the 2 maybes works out');
+  });
+
+  it('still says "only if" when every maybe is required', () => {
+    // 3 available, 1 maybe, 2 unavailable — that single maybe is essential
+    expect(describeDateState(six({ availableCount: 3, maybeCount: 1, unavailableCount: 2 }), 4))
+      .toBe('3 available, 4 needed — enough only if the maybe works out');
+  });
+
   it('explains why a date is greyed out', () => {
     expect(describeDateState(six({ availableCount: 1, pendingCount: 5 }), 4))
       .toBe('Not enough responses yet — 5 of 6 haven’t answered');

@@ -2,7 +2,7 @@
 
 import type { DateState } from '@/lib/schedule';
 import { useHoverSync } from './HoverSyncContext';
-import { CELL_STYLES, PAST_STYLE, type PipKind } from './calendarStyles';
+import { CELL_STYLES, PAST_STYLE, NON_PLAY_DAY_FILL, type PipKind } from './calendarStyles';
 
 interface CalendarCellProps {
   date: string | null;
@@ -107,7 +107,7 @@ export function CalendarCell({
   if (!isPlayDay) {
     return (
       <div
-        className="aspect-square rounded-sm bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)] opacity-40 flex items-center justify-center text-[9px] text-muted-foreground"
+        className={`aspect-square rounded-sm ${NON_PLAY_DAY_FILL} flex items-center justify-center text-[9px] text-muted-foreground`}
         aria-hidden
       >
         {day}

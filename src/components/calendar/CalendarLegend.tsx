@@ -18,15 +18,15 @@ export function CalendarLegend({ hasPlayDays, hasCampaignDates }: CalendarLegend
         <span>Available</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="size-3.5 rounded-sm bg-cal-maybe-bg" />
+        <div className="size-3.5 rounded-sm border border-dashed border-cal-available-ink" />
         <span>Maybe</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="size-3.5 rounded-sm bg-cal-unavailable-bg/60" />
+        <div className="size-3.5 rounded-sm bg-cal-unavailable-bg" />
         <span>Unavailable</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="size-3.5 rounded-sm bg-cal-unset-bg border-2 border-dashed border-cal-unset-border" />
+        <div className="size-3.5 rounded-sm bg-cal-empty-bg" />
         <span>Not set</span>
       </div>
       <div className="flex items-center gap-1.5">
@@ -34,12 +34,12 @@ export function CalendarLegend({ hasPlayDays, hasCampaignDates }: CalendarLegend
         <span>Non-play day</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="size-3.5 rounded-sm bg-cal-unset-bg shadow-[0_0_0_2px_var(--primary)]" />
+        <div className="size-3.5 rounded-sm bg-cal-empty-bg shadow-[0_0_0_2px_var(--primary)]" />
         <span>Today</span>
       </div>
       {hasPlayDays && (
         <div className="flex items-center gap-1.5">
-          <div className="relative size-3.5 rounded-sm bg-cal-unset-bg border border-cal-unset-border">
+          <div className="relative size-3.5 rounded-sm bg-cal-empty-bg border border-cal-empty-text">
             <span className="absolute top-0 right-0 size-0 border-t-[6px] border-t-primary border-l-[6px] border-l-transparent" />
           </div>
           <span>Extra date</span>

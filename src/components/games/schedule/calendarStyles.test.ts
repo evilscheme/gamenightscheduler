@@ -42,8 +42,8 @@ describe('CELL_STYLES', () => {
 });
 
 describe('LEGEND', () => {
-  it('teaches the three channels in seven entries', () => {
-    expect(LEGEND).toHaveLength(7);
+  it('teaches the three channels plus non-play days in eight entries', () => {
+    expect(LEGEND).toHaveLength(8);
     expect(LEGEND.map((e) => e.label)).toEqual([
       'Enough players',
       'Maybe enough players',
@@ -52,6 +52,7 @@ describe('LEGEND', () => {
       "Someone hasn't answered",
       'Waiting for responses',
       "Can't happen",
+      'Non-play day',
     ]);
   });
 

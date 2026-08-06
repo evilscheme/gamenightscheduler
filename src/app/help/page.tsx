@@ -177,7 +177,7 @@ export default function HelpPage() {
                   <span><strong className="text-foreground">Unavailable</strong>: you can&apos;t make it</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="inline-block size-3 rounded-sm bg-cal-maybe-bg shrink-0" />
+                  <span className="inline-block size-3 rounded-sm border border-dashed border-cal-available-ink shrink-0" />
                   <span><strong className="text-foreground">Maybe</strong>: you might be able to play</span>
                 </li>
               </ul>

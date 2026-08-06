@@ -5,7 +5,7 @@ const STRIPES =
   'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)]';
 const CLICKABLE =
   'cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-transform';
-const UNSET_DASHED = 'bg-cal-unset-bg border-2 border-dashed border-cal-unset-border';
+const MAYBE_OUTLINE = 'border-2 border-dashed border-cal-available-ink';
 const TODAY_RING = 'shadow-[0_0_0_3px_var(--primary)] font-bold z-10';
 
 function cell(overrides: Partial<CalendarCellInputs>) {
@@ -61,8 +61,8 @@ describe('calendarCellState — base states', () => {
 describe('calendarCellState — future play day', () => {
   it.each([
     ['available', 'bg-cal-available-bg', 'text-cal-available-text font-medium'],
-    ['maybe', 'bg-cal-maybe-bg', 'text-cal-maybe-text font-medium'],
-    ['unavailable', 'bg-cal-unavailable-bg/60', 'text-cal-unavailable-text font-medium'],
+    ['maybe', MAYBE_OUTLINE, 'text-cal-available-ink font-medium'],
+    ['unavailable', 'bg-cal-unavailable-bg', 'text-cal-unavailable-text font-medium'],
   ] as const)('%s', (status, bg, text) => {
     expect(cell({ isPlayDay: true, status })).toEqual({
       bgColor: bg,
@@ -73,10 +73,10 @@ describe('calendarCellState — future play day', () => {
     });
   });
 
-  it('unset (not today) gets the dashed unset treatment', () => {
+  it('unset (not today) gets solid empty styling', () => {
     expect(cell({ isPlayDay: true })).toEqual({
-      bgColor: UNSET_DASHED,
-      textColor: 'text-cal-unset-text',
+      bgColor: 'bg-cal-empty-bg',
+      textColor: 'text-cal-empty-text',
       cursor: CLICKABLE,
       todayStyles: '',
       dataStatus: 'unset',
@@ -85,8 +85,8 @@ describe('calendarCellState — future play day', () => {
 
   it('unset today gets solid bg + today ring', () => {
     expect(cell({ isPlayDay: true, isToday: true })).toEqual({
-      bgColor: 'bg-cal-unset-bg',
-      textColor: 'text-cal-unset-text',
+      bgColor: 'bg-cal-empty-bg',
+      textColor: 'text-cal-empty-text',
       cursor: CLICKABLE,
       todayStyles: TODAY_RING,
       dataStatus: 'unset',
@@ -97,8 +97,8 @@ describe('calendarCellState — future play day', () => {
 describe('calendarCellState — confirmed sessions', () => {
   it.each([
     ['available', 'bg-cal-available-bg', 'text-cal-available-text font-semibold'],
-    ['maybe', 'bg-cal-maybe-bg', 'text-cal-maybe-text font-semibold'],
-    ['unavailable', 'bg-cal-unavailable-bg/60', 'text-cal-unavailable-text font-semibold'],
+    ['maybe', MAYBE_OUTLINE, 'text-cal-available-ink font-semibold'],
+    ['unavailable', 'bg-cal-unavailable-bg', 'text-cal-unavailable-text font-semibold'],
   ] as const)('future confirmed, %s', (status, bg, text) => {
     expect(cell({ isConfirmed: true, isPlayDay: true, status })).toEqual({
       bgColor: bg,
@@ -109,23 +109,23 @@ describe('calendarCellState — confirmed sessions', () => {
     });
   });
 
-  it('future confirmed, unset (not today) is dashed + semibold unset text', () => {
+  it('future confirmed, unset (not today) is solid empty + semibold text', () => {
     const s = cell({ isConfirmed: true, isPlayDay: true });
-    expect(s.bgColor).toBe(UNSET_DASHED);
-    expect(s.textColor).toBe('text-cal-unset-text font-semibold');
+    expect(s.bgColor).toBe('bg-cal-empty-bg');
+    expect(s.textColor).toBe('text-cal-empty-text font-semibold');
     expect(s.dataStatus).toBe('scheduled');
   });
 
   it('future confirmed, unset today is solid', () => {
     const s = cell({ isConfirmed: true, isPlayDay: true, isToday: true });
-    expect(s.bgColor).toBe('bg-cal-unset-bg');
+    expect(s.bgColor).toBe('bg-cal-empty-bg');
     expect(s.todayStyles).toBe(TODAY_RING);
   });
 
   it.each([
     ['available', 'bg-cal-available-bg'],
-    ['maybe', 'bg-cal-maybe-bg'],
-    ['unavailable', 'bg-cal-unavailable-bg/60'],
+    ['maybe', MAYBE_OUTLINE],
+    ['unavailable', 'bg-cal-unavailable-bg'],
   ] as const)('past confirmed keeps %s color but dims text', (status, bg) => {
     expect(cell({ isConfirmed: true, isPast: true, status })).toEqual({
       bgColor: bg,
@@ -136,9 +136,9 @@ describe('calendarCellState — confirmed sessions', () => {
     });
   });
 
-  it('past confirmed, unset uses solid unset bg', () => {
+  it('past confirmed, unset uses solid empty bg', () => {
     const s = cell({ isConfirmed: true, isPast: true });
-    expect(s.bgColor).toBe('bg-cal-unset-bg');
+    expect(s.bgColor).toBe('bg-cal-empty-bg');
     expect(s.dataStatus).toBe('scheduled');
   });
 });

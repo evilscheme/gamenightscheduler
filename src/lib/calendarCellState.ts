@@ -66,29 +66,25 @@ export function calendarCellState({
       bgColor = 'bg-cal-available-bg';
       textColor = 'text-cal-available-text font-semibold';
     } else if (status === 'maybe') {
-      bgColor = 'bg-cal-maybe-bg';
-      textColor = 'text-cal-maybe-text font-semibold';
+      bgColor = 'border-2 border-dashed border-cal-available-ink';
+      textColor = 'text-cal-available-ink font-semibold';
     } else if (status === 'unavailable') {
-      bgColor = 'bg-cal-unavailable-bg/60';
+      bgColor = 'bg-cal-unavailable-bg';
       textColor = 'text-cal-unavailable-text font-semibold';
     } else {
       // Unset - use unset styling so player knows they haven't responded
-      if (isToday) {
-        bgColor = 'bg-cal-unset-bg';
-      } else {
-        bgColor = 'bg-cal-unset-bg border-2 border-dashed border-cal-unset-border';
-      }
-      textColor = 'text-cal-unset-text font-semibold';
+      bgColor = 'bg-cal-empty-bg';
+      textColor = 'text-cal-empty-text font-semibold';
     }
   } else if (isConfirmed && isPast) {
     if (status === 'available') {
       bgColor = 'bg-cal-available-bg';
     } else if (status === 'maybe') {
-      bgColor = 'bg-cal-maybe-bg';
+      bgColor = 'border-2 border-dashed border-cal-available-ink';
     } else if (status === 'unavailable') {
-      bgColor = 'bg-cal-unavailable-bg/60';
+      bgColor = 'bg-cal-unavailable-bg';
     } else {
-      bgColor = 'bg-cal-unset-bg';
+      bgColor = 'bg-cal-empty-bg';
     }
     textColor = 'text-cal-disabled-text/50 font-semibold';
   } else if (isPlayDay && !isPast) {
@@ -97,19 +93,15 @@ export function calendarCellState({
       bgColor = 'bg-cal-available-bg';
       textColor = 'text-cal-available-text font-medium';
     } else if (status === 'maybe') {
-      bgColor = 'bg-cal-maybe-bg';
-      textColor = 'text-cal-maybe-text font-medium';
+      bgColor = 'border-2 border-dashed border-cal-available-ink';
+      textColor = 'text-cal-available-ink font-medium';
     } else if (status === 'unavailable') {
-      bgColor = 'bg-cal-unavailable-bg/60';
+      bgColor = 'bg-cal-unavailable-bg';
       textColor = 'text-cal-unavailable-text font-medium';
     } else {
-      // Unset play day - but not if it's today (today gets solid styling)
-      if (isToday) {
-        bgColor = 'bg-cal-unset-bg';
-      } else {
-        bgColor = 'bg-cal-unset-bg border-2 border-dashed border-cal-unset-border';
-      }
-      textColor = 'text-cal-unset-text';
+      // Unset play day
+      bgColor = 'bg-cal-empty-bg';
+      textColor = 'text-cal-empty-text';
     }
   } else if (isPast) {
     textColor = 'text-cal-disabled-text/50';

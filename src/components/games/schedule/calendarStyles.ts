@@ -36,6 +36,14 @@ export const CELL_STYLES: Record<DateState, CellStyle> = {
 
 export const PAST_STYLE = 'bg-cal-empty-bg/30 text-cal-empty-text/60';
 
+/**
+ * The diagonal hatch used for non-play-day cells. Exported so the legend swatch
+ * can copy it verbatim instead of duplicating the literal string, which would
+ * let the two drift apart.
+ */
+export const NON_PLAY_DAY_FILL =
+  'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)] opacity-40';
+
 export interface LegendSwatch {
   /** Classes for the swatch box itself. */
   swatch: string;
@@ -72,4 +80,5 @@ export const LEGEND: LegendEntry[] = [
   },
   { swatches: [{ swatch: 'bg-cal-empty-bg' }],                                      label: 'Waiting for responses' },
   { swatches: [{ swatch: 'bg-cal-unavailable-bg' }],                                label: "Can't happen" },
+  { swatches: [{ swatch: NON_PLAY_DAY_FILL }],                                      label: 'Non-play day' },
 ];

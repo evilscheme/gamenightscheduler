@@ -25,9 +25,19 @@ interface CalendarCellProps {
 function Pip({ kind, onFill }: { kind: PipKind | 'pending'; onFill: boolean }) {
   if (kind === 'none') return null;
   const shape = 'absolute left-1/2 -translate-x-1/2 bottom-[9%] w-[20%] aspect-square rounded-full z-20';
-  if (kind === 'gold-solid') return <span aria-hidden className={`${shape} bg-cal-everyone`} />;
+  // Adaptive gold: on a filled cell the badge sits on the green fill and can use the
+  // bright brand gold; on an outlined cell there is no fill, so the badge sits directly
+  // on the page background and needs the darker/higher-contrast ink value instead.
+  if (kind === 'gold-solid') {
+    return <span aria-hidden className={`${shape} ${onFill ? 'bg-cal-everyone' : 'bg-cal-everyone-ink'}`} />;
+  }
   if (kind === 'gold-hollow') {
-    return <span aria-hidden className={`${shape} border-[1.5px] border-cal-everyone`} />;
+    return (
+      <span
+        aria-hidden
+        className={`${shape} border-[1.5px] ${onFill ? 'border-cal-everyone' : 'border-cal-everyone-ink'}`}
+      />
+    );
   }
   // Adaptive grey: the blank cell's background on a filled cell, its ink on an outlined one.
   return (

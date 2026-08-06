@@ -50,7 +50,7 @@ export interface LegendEntry {
  */
 export const LEGEND: LegendEntry[] = [
   { swatch: 'bg-cal-available-bg',                                    label: 'Enough players' },
-  { swatch: 'border-2 border-dashed border-cal-available-bg',         label: '…if the maybes work out' },
+  { swatch: 'border-2 border-dashed border-cal-available-ink',        label: '…if the maybes work out' },
   { swatch: 'bg-cal-available-bg', pip: 'gold-solid',                 label: 'Everyone' },
   { swatch: 'bg-cal-available-bg', pip: 'gold-hollow',                label: 'Everyone, if the maybes work out' },
   { swatch: 'bg-cal-available-bg', pip: 'gray',                       label: "Someone hasn't answered" },

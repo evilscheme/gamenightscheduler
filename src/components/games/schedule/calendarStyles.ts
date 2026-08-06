@@ -36,11 +36,21 @@ export const CELL_STYLES: Record<DateState, CellStyle> = {
 
 export const PAST_STYLE = 'bg-cal-empty-bg/30 text-cal-empty-text/60';
 
-export interface LegendEntry {
+export interface LegendSwatch {
+  /** Classes for the swatch box itself. */
   swatch: string;
-  pip?: PipKind | 'gray';
+  /** Optional pip drawn inside it. */
+  pip?: PipKind | 'pending-on-fill' | 'pending-on-page';
+}
+
+export interface LegendEntry {
+  /** One or more swatches shown side by side under a single label. */
+  swatches: LegendSwatch[];
   label: string;
 }
+
+const FILLED_SWATCH = 'bg-cal-available-bg';
+const OUTLINED_SWATCH = 'border-2 border-dashed border-cal-available-ink';
 
 /**
  * Teaches the three channels rather than the seven states, so a reader can
@@ -49,11 +59,17 @@ export interface LegendEntry {
  * an eighth row.
  */
 export const LEGEND: LegendEntry[] = [
-  { swatch: 'bg-cal-available-bg',                                    label: 'Enough players' },
-  { swatch: 'border-2 border-dashed border-cal-available-ink',        label: '…if the maybes work out' },
-  { swatch: 'bg-cal-available-bg', pip: 'gold-solid',                 label: 'Everyone' },
-  { swatch: 'bg-cal-available-bg', pip: 'gold-hollow',                label: 'Everyone, if the maybes work out' },
-  { swatch: 'bg-cal-available-bg', pip: 'gray',                       label: "Someone hasn't answered" },
-  { swatch: 'bg-cal-empty-bg',                                        label: 'Not enough responses yet' },
-  { swatch: 'bg-cal-unavailable-bg',                                  label: "Can't happen" },
+  { swatches: [{ swatch: FILLED_SWATCH }],                                          label: 'Enough players' },
+  { swatches: [{ swatch: OUTLINED_SWATCH }],                                        label: 'Maybe enough players' },
+  { swatches: [{ swatch: FILLED_SWATCH, pip: 'gold-solid' }],                       label: 'Everyone' },
+  { swatches: [{ swatch: FILLED_SWATCH, pip: 'gold-hollow' }],                      label: 'Maybe everyone' },
+  {
+    swatches: [
+      { swatch: FILLED_SWATCH, pip: 'pending-on-fill' },
+      { swatch: OUTLINED_SWATCH, pip: 'pending-on-page' },
+    ],
+    label: "Someone hasn't answered",
+  },
+  { swatches: [{ swatch: 'bg-cal-empty-bg' }],                                      label: 'Waiting for responses' },
+  { swatches: [{ swatch: 'bg-cal-unavailable-bg' }],                                label: "Can't happen" },
 ];

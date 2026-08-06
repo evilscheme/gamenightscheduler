@@ -46,12 +46,17 @@ describe('LEGEND', () => {
     expect(LEGEND).toHaveLength(7);
     expect(LEGEND.map((e) => e.label)).toEqual([
       'Enough players',
-      '…if the maybes work out',
+      'Maybe enough players',
       'Everyone',
-      'Everyone, if the maybes work out',
+      'Maybe everyone',
       "Someone hasn't answered",
-      'Not enough responses yet',
+      'Waiting for responses',
       "Can't happen",
     ]);
+  });
+
+  it('shows both pending swatches under the waiting-on-someone entry', () => {
+    const entry = LEGEND.find((e) => e.label === "Someone hasn't answered");
+    expect(entry?.swatches).toHaveLength(2);
   });
 });

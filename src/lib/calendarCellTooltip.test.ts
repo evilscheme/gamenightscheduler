@@ -212,7 +212,7 @@ describe('tooltipModelToText', () => {
       isConfirmed: true,
       session: { date: '2026-09-04', start_time: '19:00', end_time: '23:00' } as never,
     }));
-    expect(text).toContain('Scheduled');
+    expect(text).toContain('Session confirmed');
     expect(text).toContain('7pm');
     expect(text).toContain('11pm');
     expect(text).toContain('Your status: Maybe');

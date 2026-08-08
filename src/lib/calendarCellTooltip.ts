@@ -168,7 +168,11 @@ export function tooltipModelToText(model: TooltipModel): string {
 
   if (model.isScheduled) {
     const session = model.rows.find((r) => r.label === 'Session');
-    lines.push(session ? `Scheduled: ${session.value}` : 'Scheduled');
+    // Deliberately NOT the word "Scheduled": this string becomes the day cell's
+    // accessible name, and ~94 E2E assertions use getByRole('button', { name:
+    // /schedule/i }), which substring-matches. "Scheduled" would make every
+    // confirmed cell collide with the Schedule tab button.
+    lines.push(session ? `Session confirmed: ${session.value}` : 'Session confirmed');
   }
 
   const { label, qualifier, tone } = model.band;

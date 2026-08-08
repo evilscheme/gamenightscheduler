@@ -14,12 +14,9 @@ import { CalendarDays, Clock, FileText, MessageSquare, Pencil, Plus, X } from 'l
 import type { GameSession } from '@/types';
 import { AvailabilityEntry } from '@/lib/availability';
 import { SCHEDULED_STAR_PATH } from '@/lib/constants';
-import { formatTimeShort } from '@/lib/formatting';
 import { calendarCellState } from '@/lib/calendarCellState';
-import {
-  formatSessionTimeWindow,
-  type OtherGameSessionInfo,
-} from '@/lib/schedule';
+import { type OtherGameSessionInfo } from '@/lib/schedule';
+import { describeCalendarCell, tooltipModelToText, type TooltipModel } from '@/lib/calendarCellTooltip';
 import { useLongPress } from '@/hooks/useLongPress';
 
 // Separate component for individual month to keep things clean
@@ -45,6 +42,7 @@ interface MonthCalendarProps {
   onOutOfRangeTap?: (message: string) => void;
   otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   readOnly?: boolean;
+  onHoverDate?: (hover: { date: string; model: TooltipModel } | null) => void;
 }
 
 export function MonthCalendar({
@@ -69,6 +67,7 @@ export function MonthCalendar({
   onOutOfRangeTap,
   otherGameSessionsByDate = new Map(),
   readOnly = false,
+  onHoverDate,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
     start: startOfMonth(month),
@@ -150,6 +149,7 @@ export function MonthCalendar({
             isGmOrCoGm && !isRegularPlayDay && !isExtraPlayDate && !isPast && !isOutOfRange;
           // Can GM remove this extra play date?
           const canRemoveExtra = isGmOrCoGm && isExtraPlayDate && !isPast;
+          const isInert = (!isPlayDay && !canAddAsExtra) || isPast || isOutOfRange;
 
           const isTodayDate = isToday(date);
           const { bgColor, textColor, cursor, todayStyles, starFill, dataStatus } =
@@ -173,57 +173,37 @@ export function MonthCalendar({
             (avail?.status === "available" || avail?.status === "maybe");
           const hasAvailability = !!avail;
 
-          // Build tooltip
-          const tooltipParts = [format(date, "EEEE, MMM d")];
-          if (isConfirmed) {
-            const session = confirmedSessionsByDate.get(dateStr);
-            const startStr = formatTimeShort(session?.start_time ?? null, use24h);
-            const endStr = formatTimeShort(session?.end_time ?? null, use24h);
-            if (startStr && endStr) {
-              tooltipParts.push(`Scheduled: ${startStr}–${endStr}`);
-            } else if (startStr) {
-              tooltipParts.push(`Scheduled: starts ${startStr}`);
-            } else if (endStr) {
-              tooltipParts.push(`Scheduled: ends ${endStr}`);
-            } else {
-              tooltipParts.push("Scheduled");
-            }
-            if (!isPast) {
-              const statusLabel = avail?.status === "available" ? "Available" : avail?.status === "maybe" ? "Maybe" : avail?.status === "unavailable" ? "Unavailable" : "Not set";
-              tooltipParts.push(`Your status: ${statusLabel}`);
-            }
-          }
-          if (showTimeConstraint) {
-            const after = formatTimeShort(avail?.available_after ?? null, use24h);
-            const until = formatTimeShort(avail?.available_until ?? null, use24h);
-            if (after && until) {
-              tooltipParts.push(`Available ${after}–${until}`);
-            } else if (after) {
-              tooltipParts.push(`Available after ${after}`);
-            } else if (until) {
-              tooltipParts.push(`Available until ${until}`);
-            }
-          }
-          if (hasComment) {
-            tooltipParts.push(`Note: ${avail!.comment}`);
-          }
-          if (otherSessions?.length) {
-            for (const os of otherSessions) {
-              const when = formatSessionTimeWindow(os.startTime, os.endTime, use24h);
-              tooltipParts.push(`Scheduled: ${os.gameName}${when ? ` ${when}` : ""}`);
-            }
-          }
-          const gmNote = playDateNotes?.get(dateStr);
-          if (gmNote) {
-            tooltipParts.push(`GM note: ${gmNote}`);
-          }
-          const cellTooltip = tooltipParts.join("\n");
-
+          const tooltipModel = describeCalendarCell({
+            date: dateStr,
+            isOutOfRange,
+            isConfirmed,
+            isPast,
+            isPlayDay,
+            isToday: isTodayDate,
+            status: avail?.status,
+            entry: avail,
+            session: confirmedSessionsByDate.get(dateStr),
+            gmNote: playDateNotes?.get(dateStr),
+            otherSessions: otherSessions ?? [],
+            isExtraDate: isExtraPlayDate,
+            isGmOrCoGm,
+            readOnly,
+            canAddAsExtra,
+            windowStart,
+            windowEnd,
+            use24h,
+          });
+          const cellAriaLabel = tooltipModelToText(tooltipModel);
 
           return (
             <button
               key={dateStr}
-              onClick={() => handleDayClickWithLongPressCheck(date)}
+              onClick={() => {
+                if (isInert) return;
+                handleDayClickWithLongPressCheck(date);
+              }}
+              onMouseEnter={() => onHoverDate?.({ date: dateStr, model: tooltipModel })}
+              onMouseLeave={() => onHoverDate?.(null)}
               onTouchStart={() => {
                 if (isOutOfRange && !isPast && onOutOfRangeTap) {
                   onOutOfRangeTap(
@@ -237,7 +217,11 @@ export function MonthCalendar({
               }}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}
-              disabled={(!isPlayDay && !canAddAsExtra) || isPast || isOutOfRange}
+              aria-disabled={isInert || undefined}
+              // aria-disabled keeps the cell in the a11y tree so its label can
+              // explain why it's dead, but a hover-only popover gives a keyboard
+              // user nothing to reach — so inert cells stay out of the tab order.
+              tabIndex={isInert ? -1 : 0}
               className={`group relative w-full aspect-square min-h-9 rounded-sm flex items-center justify-center font-mono text-xl transition-all select-none ${bgColor} ${textColor} ${cursor} ${todayStyles}`}
               style={{ WebkitTouchCallout: "none" }}
               data-date={dateStr}
@@ -245,7 +229,7 @@ export function MonthCalendar({
               data-availability={isConfirmed && !isPast ? (avail?.status ?? "unset") : undefined}
               data-extra={isExtraPlayDate ? "true" : undefined}
               data-other-game={showOtherGameBadge ? "true" : undefined}
-              title={cellTooltip}
+              aria-label={cellAriaLabel}
             >
               {/* Scheduled game star decoration */}
               {isConfirmed && (
@@ -266,9 +250,6 @@ export function MonthCalendar({
                 <span
                   className="absolute top-0.5 right-0.5 z-10 flex items-center rounded-sm bg-accent text-accent-foreground p-px leading-none"
                   data-testid="other-game-indicator"
-                  title={otherSessions!
-                    .map((os) => `Scheduled: ${os.gameName}`)
-                    .join("\n")}
                 >
                   <CalendarDays className="size-2.5" />
                 </span>
@@ -289,7 +270,7 @@ export function MonthCalendar({
                     if (consumeLongPress()) return;
                     onToggleExtraDate(dateStr);
                   }}
-                  title={playDays.length > 0 ? "Add extra date" : "Add play date"}
+                  aria-label={playDays.length > 0 ? "Add extra date" : "Add play date"}
                 >
                   <Plus className="size-2.5" />
                 </span>
@@ -304,7 +285,7 @@ export function MonthCalendar({
                     if (consumeLongPress()) return;
                     onToggleExtraDate(dateStr);
                   }}
-                  title={playDays.length > 0 ? "Remove extra date" : "Remove play date"}
+                  aria-label={playDays.length > 0 ? "Remove extra date" : "Remove play date"}
                 >
                   <X className="size-2.5" />
                 </span>
@@ -321,21 +302,12 @@ export function MonthCalendar({
                   }}
                 >
                   {showTimeConstraint && (
-                    <span
-                      data-testid="time-indicator"
-                      title={(() => {
-                        const after = formatTimeShort(avail?.available_after ?? null, use24h);
-                        const until = formatTimeShort(avail?.available_until ?? null, use24h);
-                        if (after && until) return `${after}–${until}`;
-                        if (after) return `After ${after}`;
-                        return `Until ${until}`;
-                      })()}
-                    >
+                    <span data-testid="time-indicator">
                       <Clock className="size-2.5" />
                     </span>
                   )}
                   {playDateNotes?.has(dateStr) && (
-                    <span data-testid="note-indicator" title={`GM note: ${playDateNotes.get(dateStr)}`}>
+                    <span data-testid="note-indicator">
                       <FileText className="size-2.5" />
                     </span>
                   )}
@@ -355,7 +327,7 @@ export function MonthCalendar({
                     if (consumeLongPress()) return;
                     onEditComment(dateStr);
                   }}
-                  title={
+                  aria-label={
                     hasComment
                       ? readOnly
                         ? `Note: ${avail!.comment}`

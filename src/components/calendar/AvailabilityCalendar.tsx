@@ -19,12 +19,14 @@ import {
   filterDatesForBulkSet,
 } from "@/lib/availability";
 import type { OtherGameSessionInfo } from "@/lib/schedule";
+import type { TooltipModel } from "@/lib/calendarCellTooltip";
 import { useNoteEditorState } from "@/hooks/useNoteEditorState";
 import { MonthCalendar } from "./MonthCalendar";
 import { CalendarLegend } from "./CalendarLegend";
 import { NoteEditorPopover } from "./NoteEditorPopover";
 import { DateActionMenu } from "./DateActionMenu";
 import { BulkActionsBar } from "./BulkActionsBar";
+import { DayTooltip } from "./DayTooltip";
 
 export type { AvailabilityEntry };
 
@@ -108,6 +110,7 @@ export function AvailabilityCalendar({
   } = useNoteEditorState({ readOnly, availability, playDateNotes, onToggle, onUpdatePlayDateNote });
   // Action menu for GM long-press on extra play dates
   const [actionMenuDate, setActionMenuDate] = useState<string | null>(null);
+  const [hover, setHover] = useState<{ date: string; model: TooltipModel } | null>(null);
   // Out-of-range toast state (mobile feedback)
   const [outOfRangeToast, setOutOfRangeToast] = useState<string | null>(null);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -254,9 +257,12 @@ export function AvailabilityCalendar({
             onOutOfRangeTap={showOutOfRangeToast}
             otherGameSessionsByDate={otherGameSessionsByDate}
             readOnly={readOnly}
+            onHoverDate={setHover}
           />
         ))}
       </div>
+
+      <DayTooltip hover={hover} />
 
       <CalendarLegend hasPlayDays={playDays.length > 0} hasCampaignDates={hasCampaignDates} />
 

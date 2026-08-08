@@ -1,0 +1,130 @@
+import { describe, it, expect } from 'vitest';
+import { describeCalendarCell, tooltipModelToText, type TooltipInputs } from './calendarCellTooltip';
+
+const base: TooltipInputs = {
+  date: '2026-09-04',
+  isOutOfRange: false,
+  isConfirmed: false,
+  isPast: false,
+  isPlayDay: true,
+  isToday: false,
+  status: undefined,
+  entry: undefined,
+  session: undefined,
+  gmNote: undefined,
+  otherSessions: [],
+  isExtraDate: false,
+  isGmOrCoGm: false,
+  readOnly: false,
+  canAddAsExtra: false,
+  windowStart: new Date(2026, 7, 1),
+  windowEnd: new Date(2026, 10, 20),
+  use24h: false,
+};
+
+const withEntry = (
+  status: 'available' | 'maybe' | 'unavailable',
+  extra: Partial<TooltipInputs['entry'] & object> = {},
+): TooltipInputs => ({
+  ...base,
+  status,
+  entry: { status, comment: null, available_after: null, available_until: null, ...extra },
+});
+
+describe('describeCalendarCell — header and badges', () => {
+  it('formats the date as a full weekday label', () => {
+    expect(describeCalendarCell(base).dateLabel).toBe('Friday, Sep 4');
+  });
+
+  it('badges a scheduled, extra, today cell', () => {
+    const m = describeCalendarCell({ ...base, isConfirmed: true, isExtraDate: true, isToday: true });
+    expect(m.badges).toEqual(['Scheduled', 'Extra date', 'Today']);
+    expect(m.isScheduled).toBe(true);
+  });
+
+  it('drops the extra-date badge on past cells', () => {
+    const m = describeCalendarCell({ ...base, isExtraDate: true, isPast: true });
+    expect(m.badges).not.toContain('Extra date');
+  });
+});
+
+describe('describeCalendarCell — band', () => {
+  it.each([
+    ['available', 'Available'],
+    ['maybe', 'Maybe'],
+    ['unavailable', 'Unavailable'],
+  ] as const)('labels a %s play day', (status, label) => {
+    const m = describeCalendarCell(withEntry(status));
+    expect(m.band).toMatchObject({ label, tone: status, qualifier: null });
+  });
+
+  it('labels an unanswered play day', () => {
+    expect(describeCalendarCell(base).band).toMatchObject({ label: 'Not set', tone: 'unset' });
+  });
+
+  it('labels a non-play day', () => {
+    expect(describeCalendarCell({ ...base, isPlayDay: false }).band)
+      .toMatchObject({ label: 'Not a play day', tone: 'non-play' });
+  });
+
+  it('recalls your answer on a past cell', () => {
+    const m = describeCalendarCell({ ...withEntry('available'), isPast: true });
+    expect(m.band).toMatchObject({ label: 'Past · you were Available', tone: 'past' });
+  });
+
+  it('says only "Past date" when you never answered', () => {
+    expect(describeCalendarCell({ ...base, isPast: true }).band.label).toBe('Past date');
+  });
+
+  it('names which campaign bound was crossed', () => {
+    const before = describeCalendarCell({ ...base, isOutOfRange: true, date: '2026-07-01' });
+    expect(before.band).toMatchObject({ label: 'Before campaign start', tone: 'out-of-range' });
+    const after = describeCalendarCell({ ...base, isOutOfRange: true, date: '2026-12-04' });
+    expect(after.band.label).toBe('After campaign end');
+  });
+
+  it('prefers past over non-play, matching calendarCellState precedence', () => {
+    const m = describeCalendarCell({ ...base, isPast: true, isPlayDay: false });
+    expect(m.band.tone).toBe('past');
+  });
+});
+
+describe('describeCalendarCell — time qualifier', () => {
+  it('renders a two-sided window as a range', () => {
+    const m = describeCalendarCell(withEntry('available', { available_after: '18:00', available_until: '22:00' }));
+    expect(m.band.qualifier).toBe('6pm–10pm');
+  });
+
+  it('renders an open-ended start', () => {
+    expect(describeCalendarCell(withEntry('maybe', { available_after: '18:00' })).band.qualifier)
+      .toBe('after 6pm');
+  });
+
+  it('renders an open-ended end', () => {
+    expect(describeCalendarCell(withEntry('available', { available_until: '22:00' })).band.qualifier)
+      .toBe('until 10pm');
+  });
+
+  it('suppresses the window on unavailable — the editor hides those fields', () => {
+    expect(describeCalendarCell(withEntry('unavailable', { available_after: '18:00' })).band.qualifier)
+      .toBeNull();
+  });
+
+  it('honours the 24h preference', () => {
+    const m = describeCalendarCell({ ...withEntry('available', { available_after: '18:00' }), use24h: true });
+    expect(m.band.qualifier).toBe('after 18:00');
+  });
+});
+
+describe('tooltipModelToText', () => {
+  it('folds the qualifier into the status line', () => {
+    const text = tooltipModelToText(describeCalendarCell(withEntry('available', { available_after: '14:00' })));
+    expect(text).toContain('Your status: Available after 2pm');
+  });
+
+  it('omits "Your status" for states you cannot answer', () => {
+    const text = tooltipModelToText(describeCalendarCell({ ...base, isPlayDay: false }));
+    expect(text).toContain('Not a play day');
+    expect(text).not.toContain('Your status');
+  });
+});

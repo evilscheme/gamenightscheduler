@@ -5,7 +5,10 @@ const STRIPES =
   'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)]';
 const CLICKABLE =
   'cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-transform';
+/** Scheduled cells stay transparent so the star carries the colour — outline only. */
 const MAYBE_OUTLINE = 'border-2 border-dashed border-cal-available-ink';
+/** Unscheduled play days add a wash so a maybe reads as answered, not as a gap. */
+const MAYBE_WASHED = `bg-cal-available-ink/15 ${MAYBE_OUTLINE}`;
 const TODAY_RING = 'shadow-[0_0_0_3px_var(--primary)] font-bold z-10';
 
 function cell(overrides: Partial<CalendarCellInputs>) {
@@ -64,7 +67,7 @@ describe('calendarCellState — base states', () => {
 describe('calendarCellState — future play day', () => {
   it.each([
     ['available', 'bg-cal-available-bg', 'text-cal-available-text font-medium'],
-    ['maybe', MAYBE_OUTLINE, 'text-cal-available-ink font-medium'],
+    ['maybe', MAYBE_WASHED, 'text-cal-available-ink font-medium'],
     ['unavailable', 'bg-cal-unavailable-bg', 'text-cal-unavailable-text font-medium'],
   ] as const)('%s', (status, bg, text) => {
     expect(cell({ isPlayDay: true, status })).toEqual({
@@ -114,6 +117,16 @@ describe('calendarCellState — confirmed sessions', () => {
       starFill: star,
       dataStatus: 'scheduled',
     });
+  });
+
+  it('scheduled maybes skip the wash so it cannot tint the area behind the star', () => {
+    for (const isPast of [false, true]) {
+      const s = cell({ isConfirmed: true, isPlayDay: true, isPast, status: 'maybe' });
+      expect(s.bgColor).toBe(MAYBE_OUTLINE);
+      expect(s.bgColor).not.toContain('bg-cal-available-ink');
+    }
+    // ...while the same status on an unscheduled play day does get it.
+    expect(cell({ isPlayDay: true, status: 'maybe' }).bgColor).toBe(MAYBE_WASHED);
   });
 
   it('future confirmed, unset (not today) inverts the pairing: dark star, light number', () => {

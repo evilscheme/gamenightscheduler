@@ -14,7 +14,7 @@ interface CopyConflictModalProps {
 
 const OPTIONS: { value: AvailabilityStatus; label: string; swatch: string }[] = [
   { value: 'unavailable', label: 'Unavailable', swatch: 'bg-cal-unavailable-bg' },
-  { value: 'maybe', label: 'Maybe', swatch: 'border-2 border-dashed border-cal-available-ink' },
+  { value: 'maybe', label: 'Maybe', swatch: 'bg-cal-available-ink/15 border-2 border-dashed border-cal-available-ink' },
   { value: 'available', label: 'Available', swatch: 'bg-cal-available-bg' },
 ];
 

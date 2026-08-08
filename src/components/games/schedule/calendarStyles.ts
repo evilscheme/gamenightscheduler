@@ -17,7 +17,14 @@ export interface CellStyle {
 }
 
 const GREEN_SOLID = 'bg-cal-available-bg text-cal-available-text';
-const GREEN_OUTLINE = 'border-2 border-dashed border-cal-available-ink text-cal-available-ink';
+/**
+ * The wash keeps an outlined cell reading as a filled-in state rather than a gap
+ * in the grid. It uses -ink rather than -bg because -bg (#15803d) is darker than
+ * the dark-mode panel and so lifts nothing there, while -ink is defined per mode
+ * as the green that reads against the page.
+ */
+const GREEN_OUTLINE =
+  'bg-cal-available-ink/15 border-2 border-dashed border-cal-available-ink text-cal-available-ink';
 
 /**
  * Three independent channels: fill hue = outcome, fill style = whether confirmed
@@ -60,7 +67,8 @@ export interface LegendEntry {
 }
 
 const FILLED_SWATCH = 'bg-cal-available-bg';
-const OUTLINED_SWATCH = 'border-2 border-dashed border-cal-available-ink';
+const OUTLINED_SWATCH =
+  'bg-cal-available-ink/15 border-2 border-dashed border-cal-available-ink';
 
 /**
  * Teaches the three channels rather than the seven states, so a reader can

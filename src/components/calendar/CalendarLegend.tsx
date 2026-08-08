@@ -19,7 +19,7 @@ export function CalendarLegend({ hasPlayDays, hasCampaignDates }: CalendarLegend
         <span>Available</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="size-3.5 rounded-sm border border-dashed border-cal-available-ink" />
+        <div className="size-3.5 rounded-sm bg-cal-available-ink/15 border-2 border-dashed border-cal-available-ink" />
         <span>Maybe</span>
       </div>
       <div className="flex items-center gap-1.5">

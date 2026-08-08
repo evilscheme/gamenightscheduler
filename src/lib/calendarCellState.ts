@@ -110,7 +110,11 @@ export function calendarCellState({
       bgColor = 'bg-cal-available-bg';
       textColor = 'text-cal-available-text font-medium';
     } else if (status === 'maybe') {
-      bgColor = 'border-2 border-dashed border-cal-available-ink';
+      // The wash is what keeps a maybe reading as *answered*. Without a fill it
+      // groups with the empty cells, and "have I answered everything?" is the
+      // question this tab exists to answer. Washed with -ink, not -bg: -bg is
+      // darker than the dark-mode panel, so it lifts nothing there.
+      bgColor = 'bg-cal-available-ink/15 border-2 border-dashed border-cal-available-ink';
       textColor = 'text-cal-available-ink font-medium';
     } else if (status === 'unavailable') {
       bgColor = 'bg-cal-unavailable-bg';

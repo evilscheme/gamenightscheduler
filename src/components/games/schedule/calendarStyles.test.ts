@@ -35,6 +35,18 @@ describe('CELL_STYLES', () => {
     expect(CELL_STYLES['enough-maybe-everyone'].filled).toBe(true);
   });
 
+  it('washes the outlined states so they read as filled-in rather than as gaps', () => {
+    for (const s of ['enough-if-maybes', 'everyone-if-maybes'] as const) {
+      expect(CELL_STYLES[s].fill).toContain('bg-cal-available-ink/15');
+    }
+  });
+
+  it('washes with -ink, never with -bg', () => {
+    // -bg is darker than the dark-mode panel, so a wash built from it lifts
+    // nothing there. -ink is the per-mode green that reads against the page.
+    for (const s of ALL) expect(CELL_STYLES[s].fill).not.toContain('bg-cal-available-bg/');
+  });
+
   it('never hardcodes a palette colour', () => {
     const banned = /\b(bg|text|border)-(red|green|amber|yellow|blue|slate|gray|emerald)-\d{2,3}\b/;
     for (const s of ALL) expect(CELL_STYLES[s].fill).not.toMatch(banned);
@@ -60,6 +72,16 @@ describe('LEGEND', () => {
   it('shows both pending swatches under the waiting-on-someone entry', () => {
     const entry = LEGEND.find((e) => e.label === "Someone hasn't answered");
     expect(entry?.swatches).toHaveLength(2);
+  });
+
+  it('draws the maybe swatch exactly like the cell it stands for', () => {
+    // The legend is the only place the dashed outline gets taught, so any drift
+    // between swatch and cell teaches the reader the wrong symbol.
+    const swatch = LEGEND.find((e) => e.label === 'Maybe enough players')!.swatches[0].swatch;
+    for (const cls of ['bg-cal-available-ink/15', 'border-2', 'border-dashed', 'border-cal-available-ink']) {
+      expect(swatch).toContain(cls);
+      expect(CELL_STYLES['enough-if-maybes'].fill).toContain(cls);
+    }
   });
 
   it('renders the scheduled entry as a primary-filled star', () => {

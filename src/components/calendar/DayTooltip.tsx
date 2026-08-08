@@ -6,10 +6,10 @@ import type { BandTone, TooltipModel } from '@/lib/calendarCellTooltip';
 import { useHoverPopover } from '@/hooks/useHoverPopover';
 
 /**
- * The 45° stripe from calendarCellState.ts:57-59. Past in-range cells keep this
- * fill too — their isPast branch only dims the text, it never repaints the
- * background — so `past` and `non-play` are deliberately identical here. The
- * band's label is what distinguishes them, exactly as it is on the calendar.
+ * The 45° stripe from calendarCellState.ts:57-59, used by non-play in-range
+ * cells. NOT used by `past` — a past date is out-of-range by construction
+ * (getSchedulingWindow clamps windowStart to today), so calendarCellState
+ * paints it with `cal-out-of-range`, not this stripe. See BAND_STYLES.past.
  */
 const MUTED_STRIPE =
   'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)]';
@@ -31,7 +31,7 @@ export const BAND_STYLES: Record<BandTone, string> = {
   unavailable: 'bg-cal-unavailable-bg text-cal-unavailable-text',
   unset: 'bg-cal-empty-bg text-cal-empty-text',
   'non-play': `${MUTED_STRIPE} text-muted-foreground`,
-  past: `${MUTED_STRIPE} text-muted-foreground`,
+  past: 'cal-out-of-range text-muted-foreground',
   'out-of-range': 'cal-out-of-range text-muted-foreground',
 };
 

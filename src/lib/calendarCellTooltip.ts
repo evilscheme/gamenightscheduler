@@ -78,21 +78,26 @@ function timeQualifier(entry: AvailabilityEntry | undefined, use24h: boolean): s
 }
 
 function resolveBand(i: TooltipInputs): TooltipModel['band'] {
-  // Precedence matches calendarCellState()'s dataStatus ladder.
-  if (i.isOutOfRange) {
-    const beforeStart = isBefore(parseISO(i.date), i.windowStart);
-    return {
-      label: beforeStart ? 'Before campaign start' : 'After campaign end',
-      qualifier: null,
-      tone: 'out-of-range',
-    };
-  }
+  // isPast is checked before isOutOfRange, which inverts calendarCellState's
+  // ladder deliberately. getSchedulingWindow clamps windowStart to >= today,
+  // so every past date is also "before the window" — checking out-of-range
+  // first would make a past date claim "Before campaign start", which is
+  // false about last Thursday. "Before campaign start" is only ever true of a
+  // future date waiting on a campaign that hasn't begun.
   if (i.isPast) {
     const answered = i.status ? STATUS_LABEL[i.status] : null;
     return {
       label: answered ? `Past · you were ${answered}` : 'Past date',
       qualifier: null,
       tone: 'past',
+    };
+  }
+  if (i.isOutOfRange) {
+    const beforeStart = isBefore(parseISO(i.date), i.windowStart);
+    return {
+      label: beforeStart ? 'Before campaign start' : 'After campaign end',
+      qualifier: null,
+      tone: 'out-of-range',
     };
   }
   if (!i.isPlayDay) {
@@ -119,7 +124,9 @@ function buildRows(i: TooltipInputs): TooltipRow[] {
   }
 
   // Only the bound that was actually crossed — naming both is noise.
-  if (i.isOutOfRange) {
+  // Past dates are out-of-range by construction (windowStart is clamped to
+  // today), so gate on !isPast or every past cell gains a bogus campaign row.
+  if (i.isOutOfRange && !i.isPast) {
     rows.push(
       isBefore(parseISO(i.date), i.windowStart)
         ? { label: 'Campaign starts', value: format(i.windowStart, 'MMM d') }

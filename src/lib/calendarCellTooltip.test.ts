@@ -83,9 +83,17 @@ describe('describeCalendarCell — band', () => {
     expect(after.band.label).toBe('After campaign end');
   });
 
-  it('prefers past over non-play, matching calendarCellState precedence', () => {
+  it('prefers past over non-play', () => {
     const m = describeCalendarCell({ ...base, isPast: true, isPlayDay: false });
     expect(m.band.tone).toBe('past');
+  });
+
+  it('calls a past date past, even though it is also before the clamped window', () => {
+    // getSchedulingWindow clamps windowStart to today, so every past date is
+    // also out-of-range. Saying "Before campaign start" about last week is wrong.
+    const m = describeCalendarCell({ ...base, isPast: true, isOutOfRange: true, date: '2026-07-01' });
+    expect(m.band).toMatchObject({ label: 'Past date', tone: 'past' });
+    expect(m.rows.some((r) => r.label.startsWith('Campaign'))).toBe(false);
   });
 });
 

@@ -85,14 +85,16 @@ describe('DayTooltip', () => {
       .toContain('bg-cal-available-ink/15 text-cal-available-ink border-y-2 border-dashed border-cal-available-ink');
   });
 
-  it('paints past and non-play bands with the same muted stripe the cells use', async () => {
+  it('paints the past band with the same out-of-range utility the cell uses', async () => {
     mountCell('2026-09-04');
     const DayTooltip = await loadTooltip();
     render(<DayTooltip hover={{ date: '2026-09-04', model }} />);
     const { BAND_STYLES } = await import('./DayTooltip');
-    expect(BAND_STYLES.past).toBe(BAND_STYLES['non-play']);
-    expect(BAND_STYLES.past).toContain('var(--muted)');
-    expect(BAND_STYLES.past).not.toContain('cal-out-of-range');
+    // A past cell is out-of-range by construction (windowStart is clamped to
+    // today), so calendarCellState paints it with cal-out-of-range.
+    expect(BAND_STYLES.past).toContain('cal-out-of-range');
+    expect(BAND_STYLES['non-play']).toContain('var(--muted)');
+    expect(BAND_STYLES.past).not.toBe(BAND_STYLES['non-play']);
   });
 
   it('paints the out-of-range band with the cell out-of-range utility', async () => {

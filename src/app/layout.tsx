@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { Geist, Geist_Mono } from 'next/font/google';
-import { Providers, Navbar, StatusBanner } from '@/components/layout';
+import { Providers, Navbar, ScrollToTopButton, StatusBanner } from '@/components/layout';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
@@ -72,6 +72,7 @@ export default function RootLayout({
           <Navbar />
           <StatusBanner />
           <main>{children}</main>
+          <ScrollToTopButton />
         </Providers>
         <Analytics />
         <SpeedInsights />

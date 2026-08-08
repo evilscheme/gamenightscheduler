@@ -205,20 +205,14 @@ export function MonthCalendar({
               onMouseEnter={() => onHoverDate?.({ date: dateStr, model: tooltipModel })}
               onMouseLeave={() => onHoverDate?.(null)}
               onTouchStart={() => {
-                if (isOutOfRange) {
-                  onInertTap?.(
-                    isBefore(date, windowStart) ? "Before campaign start" : "After campaign end"
-                  );
-                  return;
-                }
-                if (isPast) {
-                  onInertTap?.("Past date");
-                  return;
-                }
-                // A GM can long-press a non-play day to add it, so only the
-                // members who genuinely can't act get the toast.
-                if (!isPlayDay && !canAddAsExtra) {
-                  onInertTap?.("Not a play day");
+                // The band label already encodes the corrected precedence (past
+                // before out-of-range) and is the same string the hover popover
+                // shows, so the toast can't drift from the tooltip. isInert is
+                // exactly "the user cannot act on this cell" — a GM who can add
+                // this non-play day as an extra date is NOT inert, so their
+                // long-press still reaches handleTouchStart.
+                if (isInert) {
+                  onInertTap?.(tooltipModel.band.label);
                   return;
                 }
                 handleTouchStart(dateStr, isRegularPlayDay, isExtraPlayDate);

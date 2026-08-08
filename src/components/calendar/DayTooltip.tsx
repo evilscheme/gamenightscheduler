@@ -31,6 +31,10 @@ export const BAND_STYLES: Record<BandTone, string> = {
   unavailable: 'bg-cal-unavailable-bg text-cal-unavailable-text',
   unset: 'bg-cal-empty-bg text-cal-empty-text',
   'non-play': `${MUTED_STRIPE} text-muted-foreground`,
+  // past and out-of-range are intentionally identical strings, not a
+  // duplicate to merge: calendarCellState paints a past date with
+  // cal-out-of-range too (it's out-of-range by construction), so the two
+  // fills must match even though `tone` keeps them distinct for the label.
   past: 'cal-out-of-range text-muted-foreground',
   'out-of-range': 'cal-out-of-range text-muted-foreground',
 };

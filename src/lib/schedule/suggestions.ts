@@ -1,4 +1,5 @@
 import { User, Availability, DateSuggestion, PlayerWithComment } from "@/types";
+import { effectiveThreshold } from "./threshold";
 
 interface CategorizedPlayers {
   available: PlayerWithComment[];
@@ -132,6 +133,7 @@ export function calculateDateSuggestions({
   minPlayersNeeded = 0,
 }: CalculateSuggestionsParams): DateSuggestion[] {
   const availabilityIndex = buildAvailabilityIndex(availability);
+  const threshold = effectiveThreshold(minPlayersNeeded, players.length);
 
   const suggestions: DateSuggestion[] = playDates.map((date) => {
     const dateStr = formatDate(date);
@@ -160,9 +162,16 @@ export function calculateDateSuggestions({
       }
     }
 
-    // Check if this date meets the minimum player threshold
-    // Only count confirmed available players (not maybe or pending)
-    const meetsThreshold = minPlayersNeeded <= 0 || available.length >= minPlayersNeeded;
+    // Check if this date meets the minimum player threshold.
+    // Deliberately uses the raw GM-set minPlayersNeeded, NOT the derived
+    // `threshold` above. `threshold` answers "how promising is this date?"
+    // (informational, drives mini-calendar coloring); meetsThreshold answers
+    // "does this date meet the GM's stated requirement?" (structural, drives
+    // partitionByThreshold / the below-threshold collapse). A GM who never
+    // set a minimum has stated no requirement, so nothing should be hidden
+    // on that basis — do not "simplify" this back to using `threshold`.
+    const meetsThreshold =
+      minPlayersNeeded <= 0 || available.length >= minPlayersNeeded;
 
     return {
       date: dateStr,
@@ -179,6 +188,7 @@ export function calculateDateSuggestions({
       earliestStartTime,
       latestEndTime,
       meetsThreshold,
+      threshold,
     };
   });
 

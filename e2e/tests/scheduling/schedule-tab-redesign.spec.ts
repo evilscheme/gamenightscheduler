@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { loginTestUser, createTestUser } from '../../helpers/test-auth';
 import {
   createTestGame,
+  addPlayerToGame,
   setAvailability,
   getPlayDates,
   createTestSession,
@@ -256,5 +257,111 @@ test.describe('Schedule Tab Redesign', () => {
 
     // The old collapsible is gone.
     await expect(page.locator('[data-testid="mobile-calendar-collapsible"]')).toHaveCount(0);
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Test 5: calendar cells expose the resolved availability state
+  // ────────────────────────────────────────────────────────────────────────────
+  test('calendar cells expose the resolved availability state', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-redesign-everyone-${Date.now()}@e2e.local`,
+      name: 'Redesign Everyone GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Redesign Everyone Campaign',
+      play_days: [5, 6],
+    });
+
+    // GM + 2 members = 3 total players. With no explicit min_players_needed,
+    // effectiveThreshold(0, 3) = min(3, max(3, ceil(0.6*3))) = 3, so "enough"
+    // and "everyone" coincide at 3-for-3.
+    const player1 = await createTestUser(request, {
+      email: `player1-redesign-everyone-${Date.now()}@e2e.local`,
+      name: 'Redesign Everyone Player 1',
+      is_gm: false,
+    });
+    const player2 = await createTestUser(request, {
+      email: `player2-redesign-everyone-${Date.now()}@e2e.local`,
+      name: 'Redesign Everyone Player 2',
+      is_gm: false,
+    });
+    await addPlayerToGame(game.id, player1.id);
+    await addPlayerToGame(game.id, player2.id);
+
+    const playDates = getPlayDates([5, 6], 4);
+    const playDate = playDates[0];
+    await setAvailability(gm.id, game.id, [{ date: playDate, status: 'available' }]);
+    await setAvailability(player1.id, game.id, [{ date: playDate, status: 'available' }]);
+    await setAvailability(player2.id, game.id, [{ date: playDate, status: 'available' }]);
+
+    await loginTestUser(page, { email: gm.email, name: gm.name, is_gm: true });
+    await page.goto(`/games/${game.id}`);
+
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    const scheduleTab = page.locator('[data-testid="schedule-tab-content"]');
+    await expect(scheduleTab).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
+
+    const cell = scheduleTab
+      .locator(`[data-testid="calendar-cell"][data-date="${playDate}"]`)
+      .filter({ visible: true });
+    await expect(cell).toHaveAttribute('data-state', 'everyone');
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Test 6: an unanswered date reads as unknown, not as unavailable
+  // ────────────────────────────────────────────────────────────────────────────
+  test('a date nobody has answered reads as unknown, not as unavailable', async ({ page, request }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-redesign-unknown-${Date.now()}@e2e.local`,
+      name: 'Redesign Unknown GM',
+      is_gm: true,
+    });
+
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Redesign Unknown Campaign',
+      play_days: [5, 6],
+    });
+
+    const player1 = await createTestUser(request, {
+      email: `player1-redesign-unknown-${Date.now()}@e2e.local`,
+      name: 'Redesign Unknown Player 1',
+      is_gm: false,
+    });
+    const player2 = await createTestUser(request, {
+      email: `player2-redesign-unknown-${Date.now()}@e2e.local`,
+      name: 'Redesign Unknown Player 2',
+      is_gm: false,
+    });
+    await addPlayerToGame(game.id, player1.id);
+    await addPlayerToGame(game.id, player2.id);
+
+    // No availability rows at all for this date: floor 0, respondedCeiling
+    // 0 < threshold (3) -> 'unknown', not 'not-enough'.
+    const playDates = getPlayDates([5, 6], 4);
+    const playDate = playDates[0];
+
+    await loginTestUser(page, { email: gm.email, name: gm.name, is_gm: true });
+    await page.goto(`/games/${game.id}`);
+
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    const scheduleTab = page.locator('[data-testid="schedule-tab-content"]');
+    await expect(scheduleTab).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
+
+    const cell = scheduleTab
+      .locator(`[data-testid="calendar-cell"][data-date="${playDate}"]`)
+      .filter({ visible: true });
+    await expect(cell).toHaveAttribute('data-state', 'unknown');
   });
 });

@@ -1,23 +1,114 @@
 import type { DateSuggestion, GameSession } from '@/types';
 import { formatTimeShort } from '@/lib/formatting';
 
-export type CellTintTier = 'high' | 'medium' | 'maybe' | 'warning' | 'empty';
+/**
+ * The seven states a play date can be in, worst to best. See
+ * docs/superpowers/specs/2026-08-05-calendar-availability-color-scheme-design.md
+ */
+export type DateState =
+  | 'not-enough'
+  | 'unknown'
+  | 'enough-if-maybes'
+  | 'everyone-if-maybes'
+  | 'enough'
+  | 'enough-maybe-everyone'
+  | 'everyone';
+
+type Tier = 'below' | 'enough' | 'everyone';
 
 /**
- * Returns the colour tier for a mini-calendar cell.
- * - Score weights "maybe" responses as half a yes: `(available + 0.5 * maybe) / total`.
- * - Red ("warning") is reserved for majority-unavailable dates. Cells dominated
- *   by pending responses fall through to "empty" (gray) rather than red, since
- *   "unknown" is not the same signal as "definitely not".
+ * Resolves a date to one of seven states.
+ *
+ * The asymmetry is the point: positive claims read off `respondedCeiling`, which
+ * EXCLUDES pending players, so silence never counts as good news. The negative
+ * claim reads off `optimisticCeiling`, which INCLUDES them, so a date is called
+ * dead only when it cannot be saved even if every silent player says yes.
+ *
+ * "We don't know yet" therefore falls out of the arithmetic — there is no
+ * response-rate cutoff anywhere.
  */
-export function getCellTintTier(s: DateSuggestion): CellTintTier {
-  if (s.totalPlayers === 0) return 'empty';
-  const score = (s.availableCount + 0.5 * s.maybeCount) / s.totalPlayers;
-  if (score >= 0.8) return 'high';
-  if (score >= 0.6) return 'medium';
-  if (score >= 0.4) return 'maybe';
-  if (s.unavailableCount / s.totalPlayers >= 0.5) return 'warning';
-  return 'empty';
+export function resolveDateState(s: DateSuggestion, threshold: number): DateState {
+  const total = s.totalPlayers;
+  if (total === 0) return 'unknown';
+
+  const optimisticCeiling = total - s.unavailableCount;
+  if (optimisticCeiling < threshold) return 'not-enough';
+
+  const tier = (n: number): Tier =>
+    n === total ? 'everyone' : n >= threshold ? 'enough' : 'below';
+
+  const ceiling = tier(s.availableCount + s.maybeCount);
+  if (ceiling === 'below') return 'unknown';
+
+  const floor = tier(s.availableCount);
+  if (floor === 'everyone') return 'everyone';
+  if (floor === 'enough') {
+    return ceiling === 'everyone' ? 'enough-maybe-everyone' : 'enough';
+  }
+  return ceiling === 'everyone' ? 'everyone-if-maybes' : 'enough-if-maybes';
+}
+
+/**
+ * Whether to draw the "someone still hasn't answered" pip.
+ *
+ * Suppressed on `unknown` (gray already implies pending) and on `not-enough`
+ * (the date cannot be saved, so the fact is misleading). That leaves exactly the
+ * two states where "this verdict may still improve" is actionable.
+ */
+export function showsPendingMark(s: DateSuggestion, state: DateState): boolean {
+  return (state === 'enough' || state === 'enough-if-maybes') && s.pendingCount > 0;
+}
+
+/** For a single maybe, "the maybe" reads better than "1 maybe". */
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+/**
+ * A plain-language sentence for the cell's tooltip.
+ *
+ * The roster-too-small case is called out by name: an explicit GM minimum is
+ * honoured as entered (a new game may not have everyone joined yet), which turns
+ * the whole calendar red, and that needs an explanation the GM can actually find.
+ */
+export function describeDateState(s: DateSuggestion, threshold: number): string {
+  const total = s.totalPlayers;
+  if (total === 0) return 'No players in this game yet';
+  if (threshold > total) {
+    return `This game needs ${threshold} players but only ${total} have joined`;
+  }
+
+  const state = resolveDateState(s, threshold);
+  const maybes = `${s.maybeCount} ${plural(s.maybeCount, 'maybe', 'maybes')}`;
+  const allMaybes = s.maybeCount === 1 ? 'the maybe works' : `${s.maybeCount === 2 ? 'both' : 'all'} maybes work`;
+  const silent = s.pendingCount === 1
+    ? '1 still hasn’t answered'
+    : `${s.pendingCount} still haven’t answered`;
+
+  switch (state) {
+    case 'everyone':
+      return `All ${total} players are available`;
+    case 'enough-maybe-everyone':
+      return `${s.availableCount} of ${total} available — everyone, if ${allMaybes} out`;
+    case 'everyone-if-maybes':
+      return `${s.availableCount} available and ${maybes} — everyone, if ${allMaybes} out`;
+    case 'enough': {
+      const base = `${s.availableCount} available, ${threshold} needed`;
+      return s.pendingCount > 0 ? `${base} — ${silent}` : base;
+    }
+    case 'enough-if-maybes': {
+      const needed = threshold - s.availableCount;
+      const clause =
+        needed === s.maybeCount
+          ? `enough only if ${allMaybes} out`
+          : needed === 1
+            ? `enough if 1 of the ${s.maybeCount} maybes works out`
+            : `enough if ${needed} of the ${s.maybeCount} maybes work out`;
+      return `${s.availableCount} available, ${threshold} needed — ${clause}`;
+    }
+    case 'unknown':
+      return `Not enough responses yet — ${s.pendingCount} of ${total} haven’t answered`;
+    case 'not-enough':
+      return `Can’t happen — ${s.unavailableCount} of ${total} can’t make it, and ${threshold} are needed`;
+  }
 }
 
 export function partitionByThreshold(items: DateSuggestion[]): {

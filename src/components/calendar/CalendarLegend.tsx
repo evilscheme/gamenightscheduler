@@ -1,6 +1,7 @@
 'use client';
 
 import { CalendarDays } from 'lucide-react';
+import { SCHEDULED_STAR_PATH } from '@/lib/constants';
 
 interface CalendarLegendProps {
   /** Show the "Extra date" swatch — only meaningful when the game has regular play days. */
@@ -18,15 +19,15 @@ export function CalendarLegend({ hasPlayDays, hasCampaignDates }: CalendarLegend
         <span>Available</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="size-3.5 rounded-sm bg-cal-maybe-bg" />
+        <div className="size-3.5 rounded-sm bg-cal-available-ink/15 border-2 border-dashed border-cal-available-ink" />
         <span>Maybe</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="size-3.5 rounded-sm bg-cal-unavailable-bg/60" />
+        <div className="size-3.5 rounded-sm bg-cal-unavailable-bg" />
         <span>Unavailable</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="size-3.5 rounded-sm bg-cal-unset-bg border-2 border-dashed border-cal-unset-border" />
+        <div className="size-3.5 rounded-sm bg-cal-empty-bg" />
         <span>Not set</span>
       </div>
       <div className="flex items-center gap-1.5">
@@ -34,33 +35,29 @@ export function CalendarLegend({ hasPlayDays, hasCampaignDates }: CalendarLegend
         <span>Non-play day</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="size-3.5 rounded-sm bg-cal-unset-bg shadow-[0_0_0_2px_var(--primary)]" />
+        <div className="size-3.5 rounded-sm bg-cal-empty-bg shadow-[0_0_0_2px_var(--primary)]" />
         <span>Today</span>
       </div>
       {hasPlayDays && (
         <div className="flex items-center gap-1.5">
-          <div className="relative size-3.5 rounded-sm bg-cal-unset-bg border border-cal-unset-border">
+          <div className="relative size-3.5 rounded-sm bg-cal-empty-bg border border-cal-empty-text">
             <span className="absolute top-0 right-0 size-0 border-t-[6px] border-t-primary border-l-[6px] border-l-transparent" />
           </div>
           <span>Extra date</span>
         </div>
       )}
       <div className="flex items-center gap-1.5">
-        <div className="relative size-3.5 rounded-sm bg-cal-available-bg flex items-center justify-center">
-          <svg
-            className="size-2.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="1"
-            opacity="0.75"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-            />
-          </svg>
+        <div className="flex items-center gap-1">
+          <div className="size-3.5">
+            <svg className="size-full fill-cal-available-bg" viewBox="0 0 24 24">
+              <path d={SCHEDULED_STAR_PATH} />
+            </svg>
+          </div>
+          <div className="size-3.5">
+            <svg className="size-full fill-cal-unavailable-bg" viewBox="0 0 24 24">
+              <path d={SCHEDULED_STAR_PATH} />
+            </svg>
+          </div>
         </div>
         <span>Scheduled</span>
       </div>

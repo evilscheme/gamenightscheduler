@@ -15,7 +15,12 @@ const OPTIONS: { value: DefaultStatus; label: string }[] = [
 const SELECTED_STYLE: Record<AvailabilityStatus, CSSProperties> = {
   available: { backgroundColor: 'var(--cal-available-bg)', color: 'var(--cal-available-text)' },
   unavailable: { backgroundColor: 'var(--cal-unavailable-bg)', color: 'var(--cal-unavailable-text)' },
-  maybe: { backgroundColor: 'var(--cal-maybe-bg)', color: 'var(--cal-maybe-text)' },
+  maybe: {
+    backgroundColor: 'color-mix(in srgb, var(--cal-available-ink) 15%, transparent)',
+    color: 'var(--cal-available-ink)',
+    outline: '2px dashed var(--cal-available-ink)',
+    outlineOffset: '-2px',
+  },
 };
 
 interface StatusSelectorProps {

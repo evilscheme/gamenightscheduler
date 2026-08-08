@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import {
-  getCellTintTier,
   partitionByThreshold,
   formatTimeWindow,
   splitUpcomingPast,
   computeDefaultSessionTimes,
   getTopNDates,
+  resolveDateState,
+  showsPendingMark,
+  describeDateState,
 } from './scheduleView';
 import type { DateSuggestion, GameSession } from '@/types';
+import type { DateState } from './scheduleView';
 
 const mkSuggestion = (overrides: Partial<DateSuggestion>): DateSuggestion => ({
   date: '2026-05-01',
@@ -24,55 +27,8 @@ const mkSuggestion = (overrides: Partial<DateSuggestion>): DateSuggestion => ({
   earliestStartTime: null,
   latestEndTime: null,
   meetsThreshold: true,
+  threshold: 3,
   ...overrides,
-});
-
-describe('getCellTintTier', () => {
-  it('returns "high" when weighted score >= 80%', () => {
-    // 4/5 available = 0.8
-    expect(getCellTintTier(mkSuggestion({ availableCount: 4, unavailableCount: 1 }))).toBe('high');
-    // 3 available + 2 maybe = (3 + 1)/5 = 0.8
-    expect(getCellTintTier(mkSuggestion({ availableCount: 3, maybeCount: 2 }))).toBe('high');
-  });
-
-  it('returns "medium" when weighted score is 60-79%', () => {
-    // 3/5 available = 0.6
-    expect(getCellTintTier(mkSuggestion({ availableCount: 3, unavailableCount: 2 }))).toBe('medium');
-    // 2 available + 2 maybe = (2 + 1)/5 = 0.6
-    expect(getCellTintTier(mkSuggestion({ availableCount: 2, maybeCount: 2, unavailableCount: 1 }))).toBe('medium');
-  });
-
-  it('returns "maybe" when weighted score is 40-59%', () => {
-    // 2/5 available = 0.4
-    expect(getCellTintTier(mkSuggestion({ availableCount: 2, unavailableCount: 3 }))).toBe('maybe');
-    // 4 maybe = (0 + 2)/5 = 0.4
-    expect(getCellTintTier(mkSuggestion({ maybeCount: 4, unavailableCount: 1 }))).toBe('maybe');
-  });
-
-  it('treats one maybe as 0.5 of a yes (not auto-amber)', () => {
-    // 5 players, 1 maybe, 4 pending → score 0.1, no majority-no → empty (gray), NOT amber
-    expect(getCellTintTier(mkSuggestion({ maybeCount: 1, pendingCount: 4 }))).toBe('empty');
-    // 5 players, 2 maybe, 3 pending → score 0.2 → empty (gray)
-    expect(getCellTintTier(mkSuggestion({ maybeCount: 2, pendingCount: 3 }))).toBe('empty');
-  });
-
-  it('returns "warning" only when a majority said no', () => {
-    // 5 players, 3 unavailable, 2 pending → unavailableRatio 0.6 → red
-    expect(getCellTintTier(mkSuggestion({ unavailableCount: 3, pendingCount: 2 }))).toBe('warning');
-    // All 5 said no → red
-    expect(getCellTintTier(mkSuggestion({ unavailableCount: 5 }))).toBe('warning');
-  });
-
-  it('returns "empty" (gray) when responses are mostly pending', () => {
-    // 5 players, all pending → gray, not red
-    expect(getCellTintTier(mkSuggestion({ pendingCount: 5 }))).toBe('empty');
-    // 5 players, 1 unavailable, 4 pending → unavailableRatio 0.2 → gray, not red
-    expect(getCellTintTier(mkSuggestion({ unavailableCount: 1, pendingCount: 4 }))).toBe('empty');
-  });
-
-  it('returns "empty" when totalPlayers is 0', () => {
-    expect(getCellTintTier(mkSuggestion({ totalPlayers: 0 }))).toBe('empty');
-  });
 });
 
 describe('partitionByThreshold', () => {
@@ -180,5 +136,177 @@ describe('getTopNDates', () => {
       mkSuggestion({ date: '2026-05-03' }),
     ];
     expect(getTopNDates(viable, 2)).toEqual(['2026-05-01', '2026-05-02']);
+  });
+});
+
+describe('resolveDateState', () => {
+  // 6 players, threshold 4 — the running example from the design
+  const six = (o: Partial<DateSuggestion>) => mkSuggestion({ totalPlayers: 6, ...o });
+
+  it('resolves all seven states', () => {
+    expect(resolveDateState(six({ availableCount: 1, unavailableCount: 3, pendingCount: 2 }), 4))
+      .toBe('not-enough');
+    expect(resolveDateState(six({ availableCount: 1, pendingCount: 5 }), 4))
+      .toBe('unknown');
+    expect(resolveDateState(six({ availableCount: 2, maybeCount: 2, pendingCount: 2 }), 4))
+      .toBe('enough-if-maybes');
+    expect(resolveDateState(six({ availableCount: 3, maybeCount: 3 }), 4))
+      .toBe('everyone-if-maybes');
+    expect(resolveDateState(six({ availableCount: 4, unavailableCount: 2 }), 4))
+      .toBe('enough');
+    expect(resolveDateState(six({ availableCount: 4, maybeCount: 2 }), 4))
+      .toBe('enough-maybe-everyone');
+    expect(resolveDateState(six({ availableCount: 6 }), 4))
+      .toBe('everyone');
+  });
+
+  it('declares a date dead only when silent players cannot save it', () => {
+    // 2 no of 6, threshold 4 → optimistic ceiling 4, still alive
+    expect(resolveDateState(six({ unavailableCount: 2, pendingCount: 4 }), 4)).toBe('unknown');
+    // 3 no of 6 → optimistic ceiling 3 < 4, dead at only 50% response
+    expect(resolveDateState(six({ unavailableCount: 3, pendingCount: 3 }), 4)).toBe('not-enough');
+  });
+
+  it('never lets pending responses support a positive claim', () => {
+    // 3 yes + 3 silent could become everyone, but nothing is evidenced yet
+    expect(resolveDateState(six({ availableCount: 3, pendingCount: 3 }), 4)).toBe('unknown');
+  });
+
+  it('is gray when nobody has answered, not red and not green', () => {
+    expect(resolveDateState(six({ pendingCount: 6 }), 4)).toBe('unknown');
+  });
+
+  it('treats a full house as "everyone" even when the threshold is lower', () => {
+    expect(resolveDateState(six({ availableCount: 6 }), 3)).toBe('everyone');
+  });
+
+  it('returns unknown for a game with no players', () => {
+    expect(resolveDateState(mkSuggestion({ totalPlayers: 0 }), 0)).toBe('unknown');
+  });
+
+  it('reddens every date when the GM minimum exceeds the roster', () => {
+    expect(resolveDateState(mkSuggestion({ totalPlayers: 5, availableCount: 5 }), 8))
+      .toBe('not-enough');
+  });
+});
+
+describe('date state invariants', () => {
+  // Exhaustive sweep over every reachable response split for a 6-player game.
+  const splits: DateSuggestion[] = [];
+  for (let a = 0; a <= 6; a++)
+    for (let m = 0; a + m <= 6; m++)
+      for (let u = 0; a + m + u <= 6; u++)
+        splits.push(mkSuggestion({
+          totalPlayers: 6,
+          availableCount: a,
+          maybeCount: m,
+          unavailableCount: u,
+          pendingCount: 6 - a - m - u,
+        }));
+
+  it('never shows an "everyone"-flavoured state while someone is still silent', () => {
+    const everyoneish: DateState[] = ['everyone', 'enough-maybe-everyone', 'everyone-if-maybes'];
+    for (const s of splits) {
+      if (everyoneish.includes(resolveDateState(s, 4))) {
+        expect(s.pendingCount).toBe(0);
+      }
+    }
+  });
+
+  it('always has someone still silent when the state is unknown', () => {
+    for (const s of splits) {
+      if (resolveDateState(s, 4) === 'unknown') {
+        expect(s.pendingCount).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('never shows a badge and a pending mark on the same cell', () => {
+    const badged: DateState[] = ['everyone', 'enough-maybe-everyone', 'everyone-if-maybes'];
+    for (const s of splits) {
+      const state = resolveDateState(s, 4);
+      expect(badged.includes(state) && showsPendingMark(s, state)).toBe(false);
+    }
+  });
+
+  it('marks pending only on the two states where it is actionable', () => {
+    for (const s of splits) {
+      const state = resolveDateState(s, 4);
+      if (showsPendingMark(s, state)) {
+        expect(['enough', 'enough-if-maybes']).toContain(state);
+      }
+    }
+  });
+});
+
+describe('describeDateState', () => {
+  const six = (o: Partial<DateSuggestion>) => mkSuggestion({ totalPlayers: 6, ...o });
+
+  it('explains a roster smaller than the GM minimum', () => {
+    expect(describeDateState(mkSuggestion({ totalPlayers: 5, availableCount: 5 }), 8))
+      .toBe('This game needs 8 players but only 5 have joined');
+  });
+
+  it('names a full house', () => {
+    expect(describeDateState(six({ availableCount: 6 }), 4))
+      .toBe('All 6 players are available');
+  });
+
+  it('mentions the upside when maybes could make it everyone', () => {
+    expect(describeDateState(six({ availableCount: 4, maybeCount: 2 }), 4))
+      .toBe('4 of 6 available — everyone, if both maybes work out');
+  });
+
+  it('mentions who is still silent on an otherwise settled date', () => {
+    expect(describeDateState(six({ availableCount: 4, pendingCount: 2 }), 4))
+      .toBe('4 available, 4 needed — 2 still haven’t answered');
+  });
+
+  it('does not mention silence when everyone has answered', () => {
+    expect(describeDateState(six({ availableCount: 4, unavailableCount: 2 }), 4))
+      .toBe('4 available, 4 needed');
+  });
+
+  it('explains a date that would be everyone if the maybes work out', () => {
+    expect(describeDateState(six({ availableCount: 3, maybeCount: 3 }), 4))
+      .toBe('3 available and 3 maybes — everyone, if all maybes work out');
+  });
+
+  it('explains a date that is only viable via maybes', () => {
+    expect(describeDateState(six({ availableCount: 2, maybeCount: 2, pendingCount: 2 }), 4))
+      .toBe('2 available, 4 needed — enough only if both maybes work out');
+  });
+
+  it('names only the number of maybes actually needed', () => {
+    // 2 available, 3 maybe, 1 pending — only 2 of the 3 maybes are required
+    expect(describeDateState(six({ availableCount: 2, maybeCount: 3, pendingCount: 1 }), 4))
+      .toBe('2 available, 4 needed — enough if 2 of the 3 maybes work out');
+  });
+
+  it('uses a singular verb when a single maybe would do', () => {
+    // 3 available, 2 maybe, 1 unavailable — any one maybe gets there
+    expect(describeDateState(six({ availableCount: 3, maybeCount: 2, unavailableCount: 1 }), 4))
+      .toBe('3 available, 4 needed — enough if 1 of the 2 maybes works out');
+  });
+
+  it('still says "only if" when every maybe is required', () => {
+    // 3 available, 1 maybe, 2 unavailable — that single maybe is essential
+    expect(describeDateState(six({ availableCount: 3, maybeCount: 1, unavailableCount: 2 }), 4))
+      .toBe('3 available, 4 needed — enough only if the maybe works out');
+  });
+
+  it('explains why a date is greyed out', () => {
+    expect(describeDateState(six({ availableCount: 1, pendingCount: 5 }), 4))
+      .toBe('Not enough responses yet — 5 of 6 haven’t answered');
+  });
+
+  it('explains why a date is dead', () => {
+    expect(describeDateState(six({ unavailableCount: 3, pendingCount: 3 }), 4))
+      .toBe('Can’t happen — 3 of 6 can’t make it, and 4 are needed');
+  });
+
+  it('uses singular wording for a single maybe', () => {
+    expect(describeDateState(six({ availableCount: 4, maybeCount: 1, pendingCount: 1 }), 4))
+      .toBe('4 available, 4 needed — 1 still hasn’t answered');
   });
 });

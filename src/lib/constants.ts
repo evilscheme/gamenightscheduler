@@ -1,5 +1,13 @@
 // Shared constants for day-of-week labels and options
 
+/**
+ * Solid-fill star marking a date with a confirmed session. Shared by both
+ * calendars and both legends so a swatch can never drift from the cell it
+ * describes. viewBox is "0 0 24 24".
+ */
+export const SCHEDULED_STAR_PATH =
+  'M12 1.6l3.09 6.9 7.41.72-5.6 5.05 1.62 7.33L12 17.9l-6.52 3.7 1.62-7.33-5.6-5.05 7.41-.72z';
+
 export const DAY_LABELS = {
   full: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   short: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],

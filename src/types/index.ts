@@ -151,4 +151,9 @@ export interface DateSuggestion {
   earliestStartTime: string | null; // latest "available_after" among available players
   latestEndTime: string | null; // earliest "available_until" among available players
   meetsThreshold: boolean; // true if availableCount >= minPlayersNeeded (or no threshold set)
+  // Resolved minimum for this game — GM's value, or the derived default.
+  // Calendar colouring only. The below-threshold split intentionally uses
+  // `meetsThreshold` instead, which is keyed to the GM's raw setting, so a
+  // game with no stated minimum never hides dates.
+  threshold: number;
 }

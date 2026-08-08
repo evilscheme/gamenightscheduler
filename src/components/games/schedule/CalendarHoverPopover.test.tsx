@@ -57,6 +57,7 @@ const mk = (overrides: Partial<DateSuggestion> = {}): DateSuggestion => ({
   earliestStartTime: null,
   latestEndTime: null,
   meetsThreshold: true,
+  threshold: 3,
   ...overrides,
 });
 
@@ -79,7 +80,9 @@ describe('CalendarHoverPopover', () => {
           isPlayDay
           isScheduled={false}
           isPast={false}
-          tier="empty"
+          state="unknown"
+          showPending={false}
+          title=""
         />
         <CalendarHoverPopover suggestions={suggestions} scheduledDates={new Set()} />
       </HoverSyncProvider>

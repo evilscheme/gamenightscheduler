@@ -1,8 +1,9 @@
 'use client';
 
-import { CellTintTier } from '@/lib/schedule';
+import type { DateState } from '@/lib/schedule';
+import { SCHEDULED_STAR_PATH } from '@/lib/constants';
 import { useHoverSync } from './HoverSyncContext';
-import { CALENDAR_STYLES } from './calendarStyles';
+import { CELL_STYLES, PAST_STYLE, NON_PLAY_DAY_FILL, type PipKind } from './calendarStyles';
 
 interface CalendarCellProps {
   date: string | null;
@@ -10,11 +11,62 @@ interface CalendarCellProps {
   isPlayDay: boolean;
   isScheduled: boolean;
   isPast: boolean;
-  tier: CellTintTier | null;
+  state: DateState | null;
+  /** Someone in the group still hasn't answered for this date. */
+  showPending: boolean;
+  /** Plain-language explanation, shown on hover. From `describeDateState`. */
+  title: string;
   onActivate?: (date: string) => void;
 }
 
-export function CalendarCell({ date, day, isPlayDay, isScheduled, isPast, tier, onActivate }: CalendarCellProps) {
+/**
+ * Sized as a percentage of the cell so one rule holds from the 31.4px phone
+ * floor to the 61.9px tablet maximum.
+ */
+function Pip({ kind, onFill }: { kind: PipKind | 'pending'; onFill: boolean }) {
+  if (kind === 'none') return null;
+  const shape = 'absolute left-1/2 -translate-x-1/2 bottom-[9%] w-[20%] aspect-square rounded-full z-20';
+  if (kind === 'gold-solid') {
+    return (
+      <span
+        aria-hidden
+        className={`${shape} bg-cal-everyone`}
+      />
+    );
+  }
+  if (kind === 'gold-hollow') {
+    // On an outlined cell, a bright gold ring sits on the card rather than on green fill,
+    // where it measures about 1.67:1 against the card — below WCAG 1.4.11's 3:1 for non-text
+    // UI marks. Accepted knowingly: hue-darkening gold away from its hue or thickening the
+    // stroke doesn't improve readability, and every shade dark enough to clear 3:1 stops
+    // reading as gold. Revisit if the outlined cell ever gains a tinted background.
+    return <span aria-hidden className={`${shape} border-2 border-cal-everyone`} />;
+  }
+  // Adaptive grey: the blank cell's background on a filled cell, its ink on an outlined one.
+  return (
+    <span
+      aria-hidden
+      className={`${shape} ${onFill ? 'bg-cal-pending-on-fill' : 'bg-cal-empty-text'}`}
+    />
+  );
+}
+
+/** Fills the cell. */
+function ScheduledStar() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      className="absolute inset-0 size-full fill-primary z-0"
+    >
+      <path d={SCHEDULED_STAR_PATH} />
+    </svg>
+  );
+}
+
+export function CalendarCell({
+  date, day, isPlayDay, isScheduled, isPast, state, showPending, title, onActivate,
+}: CalendarCellProps) {
   const { hoveredDate, setHoveredDate } = useHoverSync();
   const hovered = !!date && hoveredDate === date;
 
@@ -22,19 +74,33 @@ export function CalendarCell({ date, day, isPlayDay, isScheduled, isPast, tier, 
     return <div aria-hidden className="aspect-square" />;
   }
 
+  const shell =
+    'relative aspect-square rounded-sm flex items-center justify-center font-mono ' +
+    'text-[10px] font-semibold overflow-hidden';
+  const ring = hovered ? 'outline outline-2 outline-primary' : '';
+
+  const handlers = {
+    onClick: () => onActivate?.(date),
+    onMouseEnter: () => setHoveredDate(date),
+    onMouseLeave: () => setHoveredDate(null),
+  };
+
+  // A locked-in date stops being a question about availability, so it replaces
+  // the ladder rendering entirely rather than layering on top of it.
   if (isScheduled) {
+    const scheduledLabel = title ? `Scheduled on ${date} — ${title}` : `Scheduled on ${date}`;
     return (
       <button
         type="button"
-        onClick={() => onActivate?.(date)}
-        onMouseEnter={() => setHoveredDate(date)}
-        onMouseLeave={() => setHoveredDate(null)}
-        className={`aspect-square rounded-sm flex items-center justify-center ${CALENDAR_STYLES.scheduled.className} font-mono text-[10px] font-bold ${hovered ? 'outline outline-2 outline-primary' : ''}`}
-        aria-label={`Scheduled on ${date}`}
+        {...handlers}
+        className={`${shell} ${ring} bg-transparent`}
+        aria-label={scheduledLabel}
         data-testid="calendar-cell"
         data-date={date}
+        data-state="scheduled"
       >
-        ★
+        <ScheduledStar />
+        <span className="relative z-10 font-bold text-primary-foreground">{day}</span>
       </button>
     );
   }
@@ -42,7 +108,7 @@ export function CalendarCell({ date, day, isPlayDay, isScheduled, isPast, tier, 
   if (!isPlayDay) {
     return (
       <div
-        className="aspect-square rounded-sm bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)] opacity-40 flex items-center justify-center text-[9px] text-muted-foreground"
+        className={`aspect-square rounded-sm ${NON_PLAY_DAY_FILL} flex items-center justify-center text-[9px] text-muted-foreground`}
         aria-hidden
       >
         {day}
@@ -50,22 +116,24 @@ export function CalendarCell({ date, day, isPlayDay, isScheduled, isPast, tier, 
     );
   }
 
-  const tintCls = isPast
-    ? CALENDAR_STYLES.past.className
-    : CALENDAR_STYLES[tier ?? 'empty'].className;
+  const resolved: DateState = state ?? 'unknown';
+  const style = CELL_STYLES[resolved];
+  const fill = isPast ? PAST_STYLE : style.fill;
+  const label = title ? `${date} — ${title}` : date;
 
   return (
     <button
       type="button"
-      onClick={() => onActivate?.(date)}
-      onMouseEnter={() => setHoveredDate(date)}
-      onMouseLeave={() => setHoveredDate(null)}
-      className={`relative aspect-square rounded-sm flex items-center justify-center font-mono text-[10px] font-semibold ${tintCls} ${hovered ? 'outline outline-2 outline-primary' : ''}`}
-      aria-label={date}
+      {...handlers}
+      className={`${shell} ${fill} ${ring}`}
+      aria-label={label}
       data-testid="calendar-cell"
       data-date={date}
+      data-state={isPast ? 'past' : resolved}
     >
-      {day}
+      {!isPast && <Pip kind={style.pip} onFill={style.filled} />}
+      {!isPast && showPending && <Pip kind="pending" onFill={style.filled} />}
+      <span className="relative z-10">{day}</span>
     </button>
   );
 }

@@ -63,6 +63,7 @@ const makeSuggestion = (
   earliestStartTime: null,
   latestEndTime: null,
   meetsThreshold,
+  threshold: 0,
 });
 
 describe("categorizePlayers", () => {
@@ -528,7 +529,7 @@ describe("calculateDateSuggestions", () => {
     expect(suggestions[0].latestEndTime).toBe("22:00:00");
   });
 
-  it("sets meetsThreshold to true when no minimum is specified", () => {
+  it("derives an implicit threshold for coloring, but meetsThreshold stays true with no GM minimum", () => {
     const playDates = [new Date("2025-01-20")];
     const suggestions = calculateDateSuggestions({
       playDates,
@@ -538,10 +539,15 @@ describe("calculateDateSuggestions", () => {
       formatDate,
     });
 
+    // 2 players, no GM minimum → effectiveThreshold(0, 2) = 2 (everyone).
+    // `threshold` is informational (mini-calendar coloring only). meetsThreshold
+    // is structural and tracks the raw minPlayersNeeded, which is unset here, so
+    // it stays true even though 0 available is below the derived threshold.
+    expect(suggestions[0].threshold).toBe(2);
     expect(suggestions[0].meetsThreshold).toBe(true);
   });
 
-  it("sets meetsThreshold to true when minPlayersNeeded is 0", () => {
+  it("derives an implicit threshold for coloring when minPlayersNeeded is 0, but meetsThreshold stays true", () => {
     const playDates = [new Date("2025-01-20")];
     const suggestions = calculateDateSuggestions({
       playDates,
@@ -552,6 +558,7 @@ describe("calculateDateSuggestions", () => {
       minPlayersNeeded: 0,
     });
 
+    expect(suggestions[0].threshold).toBe(2);
     expect(suggestions[0].meetsThreshold).toBe(true);
   });
 
@@ -645,5 +652,40 @@ describe("calculateDateSuggestions", () => {
     expect(suggestions[1].meetsThreshold).toBe(false);
     expect(suggestions[2].date).toBe("2025-01-22"); // 0 available
     expect(suggestions[2].meetsThreshold).toBe(false);
+  });
+});
+
+describe("calculateDateSuggestions threshold", () => {
+  it("derives a threshold from the roster when the GM set none, independent of meetsThreshold", () => {
+    const players = Array.from({ length: 6 }, (_, i) => ({ id: `p${i}` })) as User[];
+    const [s] = calculateDateSuggestions({
+      playDates: [new Date("2026-05-07T00:00:00")],
+      players,
+      availability: Array.from({ length: 4 }, (_, i) => ({
+        user_id: `p${i}`, date: "2026-05-07", status: "available",
+        comment: null, available_after: null, available_until: null,
+      })) as Availability[],
+      getDayOfWeek: (d) => d.getDay(),
+      formatDate: () => "2026-05-07",
+    });
+    // 6 players, no GM minimum → derived threshold = ceil(0.6 * 6) = 4 (informational only).
+    // meetsThreshold does NOT use that derived number — it follows the raw GM
+    // minimum, which is unset here, so it's true regardless of availableCount.
+    expect(s.threshold).toBe(4);
+    expect(s.availableCount).toBe(4);
+    expect(s.meetsThreshold).toBe(true);
+  });
+
+  it("prefers an explicit GM minimum over the derived one", () => {
+    const players = Array.from({ length: 6 }, (_, i) => ({ id: `p${i}` })) as User[];
+    const [s] = calculateDateSuggestions({
+      playDates: [new Date("2026-05-07T00:00:00")],
+      players,
+      availability: [],
+      getDayOfWeek: (d) => d.getDay(),
+      formatDate: () => "2026-05-07",
+      minPlayersNeeded: 2,
+    });
+    expect(s.threshold).toBe(2);
   });
 });

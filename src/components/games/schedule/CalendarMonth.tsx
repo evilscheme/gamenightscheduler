@@ -8,11 +8,11 @@ import {
   format,
 } from 'date-fns';
 import { CalendarCell } from './CalendarCell';
-import { CellTintTier } from '@/lib/schedule';
+import { DateState } from '@/lib/schedule';
 
 interface CalendarMonthProps {
   monthStart: Date;
-  suggestionsByDate: Map<string, { tier: CellTintTier }>;
+  suggestionsByDate: Map<string, { state: DateState; showPending: boolean; title: string }>;
   scheduledDates: Set<string>;
   playDayWeekdays: Set<number>;
   specialPlayDates: Set<string>;
@@ -51,7 +51,7 @@ export function CalendarMonth({
       </div>
       <div className="grid grid-cols-7 gap-0.75">
         {Array.from({ length: leadingBlanks }).map((_, i) => (
-          <CalendarCell key={`lead-${i}`} date={null} day={null} isPlayDay={false} isScheduled={false} isPast={false} tier={null} />
+          <CalendarCell key={`lead-${i}`} date={null} day={null} isPlayDay={false} isScheduled={false} isPast={false} state={null} showPending={false} title="" />
         ))}
         {days.map((d) => {
           const key = format(d, 'yyyy-MM-dd');
@@ -66,7 +66,9 @@ export function CalendarMonth({
               isPlayDay={isPlayDay}
               isScheduled={scheduledDates.has(key)}
               isPast={isPast}
-              tier={info?.tier ?? null}
+              state={info?.state ?? null}
+              showPending={info?.showPending ?? false}
+              title={info?.title ?? ''}
               onActivate={onCellActivate}
             />
           );

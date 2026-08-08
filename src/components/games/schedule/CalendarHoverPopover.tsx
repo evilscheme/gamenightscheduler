@@ -4,6 +4,7 @@ import { useLayoutEffect, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { format, parseISO } from 'date-fns';
 import type { DateSuggestion } from '@/types';
+import { describeDateState } from '@/lib/schedule';
 import { useHoverSync } from './HoverSyncContext';
 
 interface CalendarHoverPopoverProps {
@@ -102,6 +103,11 @@ export function CalendarHoverPopover({ suggestions, scheduledDates }: CalendarHo
       style={{ left: coords.x, top: coords.y }}
     >
       <p className="text-xs font-semibold text-card-foreground">{dateLabel}</p>
+      {suggestion && (
+        <p className="mt-1 text-muted-foreground text-xs">
+          {describeDateState(suggestion, suggestion.threshold)}
+        </p>
+      )}
       {isScheduled ? (
         <p className="mt-1 text-[11px] text-muted-foreground">Session scheduled</p>
       ) : suggestion ? (

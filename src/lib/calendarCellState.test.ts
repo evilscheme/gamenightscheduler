@@ -5,7 +5,10 @@ const STRIPES =
   'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)]';
 const CLICKABLE =
   'cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105 transition-transform';
-const UNSET_DASHED = 'bg-cal-unset-bg border-2 border-dashed border-cal-unset-border';
+/** Scheduled cells stay transparent so the star carries the colour — outline only. */
+const MAYBE_OUTLINE = 'border-2 border-dashed border-cal-available-ink';
+/** Unscheduled play days add a wash so a maybe reads as answered, not as a gap. */
+const MAYBE_WASHED = `bg-cal-available-ink/15 ${MAYBE_OUTLINE}`;
 const TODAY_RING = 'shadow-[0_0_0_3px_var(--primary)] font-bold z-10';
 
 function cell(overrides: Partial<CalendarCellInputs>) {
@@ -27,6 +30,7 @@ describe('calendarCellState — base states', () => {
       textColor: 'text-cal-disabled-text',
       cursor: 'cursor-default',
       todayStyles: '',
+      starFill: '',
       dataStatus: 'out-of-range',
     });
   });
@@ -37,6 +41,7 @@ describe('calendarCellState — base states', () => {
       textColor: 'text-cal-disabled-text',
       cursor: 'cursor-default',
       todayStyles: '',
+      starFill: '',
       dataStatus: 'disabled',
     });
   });
@@ -47,6 +52,7 @@ describe('calendarCellState — base states', () => {
       textColor: 'text-cal-disabled-text/50',
       cursor: 'cursor-default',
       todayStyles: '',
+      starFill: '',
       dataStatus: 'past',
     });
   });
@@ -61,34 +67,37 @@ describe('calendarCellState — base states', () => {
 describe('calendarCellState — future play day', () => {
   it.each([
     ['available', 'bg-cal-available-bg', 'text-cal-available-text font-medium'],
-    ['maybe', 'bg-cal-maybe-bg', 'text-cal-maybe-text font-medium'],
-    ['unavailable', 'bg-cal-unavailable-bg/60', 'text-cal-unavailable-text font-medium'],
+    ['maybe', MAYBE_WASHED, 'text-cal-available-ink font-medium'],
+    ['unavailable', 'bg-cal-unavailable-bg', 'text-cal-unavailable-text font-medium'],
   ] as const)('%s', (status, bg, text) => {
     expect(cell({ isPlayDay: true, status })).toEqual({
       bgColor: bg,
       textColor: text,
       cursor: CLICKABLE,
       todayStyles: '',
+      starFill: '',
       dataStatus: status,
     });
   });
 
-  it('unset (not today) gets the dashed unset treatment', () => {
+  it('unset (not today) gets solid empty styling', () => {
     expect(cell({ isPlayDay: true })).toEqual({
-      bgColor: UNSET_DASHED,
-      textColor: 'text-cal-unset-text',
+      bgColor: 'bg-cal-empty-bg',
+      textColor: 'text-cal-empty-text',
       cursor: CLICKABLE,
       todayStyles: '',
+      starFill: '',
       dataStatus: 'unset',
     });
   });
 
   it('unset today gets solid bg + today ring', () => {
     expect(cell({ isPlayDay: true, isToday: true })).toEqual({
-      bgColor: 'bg-cal-unset-bg',
-      textColor: 'text-cal-unset-text',
+      bgColor: 'bg-cal-empty-bg',
+      textColor: 'text-cal-empty-text',
       cursor: CLICKABLE,
       todayStyles: TODAY_RING,
+      starFill: '',
       dataStatus: 'unset',
     });
   });
@@ -96,49 +105,63 @@ describe('calendarCellState — future play day', () => {
 
 describe('calendarCellState — confirmed sessions', () => {
   it.each([
-    ['available', 'bg-cal-available-bg', 'text-cal-available-text font-semibold'],
-    ['maybe', 'bg-cal-maybe-bg', 'text-cal-maybe-text font-semibold'],
-    ['unavailable', 'bg-cal-unavailable-bg/60', 'text-cal-unavailable-text font-semibold'],
-  ] as const)('future confirmed, %s', (status, bg, text) => {
+    ['available', '', 'text-cal-available-text font-semibold', 'fill-cal-available-bg'],
+    ['maybe', MAYBE_OUTLINE, 'text-cal-available-text font-semibold', 'fill-cal-available-bg'],
+    ['unavailable', '', 'text-cal-unavailable-text font-semibold', 'fill-cal-unavailable-bg'],
+  ] as const)('future confirmed, %s', (status, bg, text, star) => {
     expect(cell({ isConfirmed: true, isPlayDay: true, status })).toEqual({
       bgColor: bg,
       textColor: text,
       cursor: CLICKABLE,
       todayStyles: '',
+      starFill: star,
       dataStatus: 'scheduled',
     });
   });
 
-  it('future confirmed, unset (not today) is dashed + semibold unset text', () => {
+  it('scheduled maybes skip the wash so it cannot tint the area behind the star', () => {
+    for (const isPast of [false, true]) {
+      const s = cell({ isConfirmed: true, isPlayDay: true, isPast, status: 'maybe' });
+      expect(s.bgColor).toBe(MAYBE_OUTLINE);
+      expect(s.bgColor).not.toContain('bg-cal-available-ink');
+    }
+    // ...while the same status on an unscheduled play day does get it.
+    expect(cell({ isPlayDay: true, status: 'maybe' }).bgColor).toBe(MAYBE_WASHED);
+  });
+
+  it('future confirmed, unset (not today) inverts the pairing: dark star, light number', () => {
     const s = cell({ isConfirmed: true, isPlayDay: true });
-    expect(s.bgColor).toBe(UNSET_DASHED);
-    expect(s.textColor).toBe('text-cal-unset-text font-semibold');
+    expect(s.bgColor).toBe('');
+    expect(s.textColor).toBe('text-cal-empty-bg font-semibold');
+    expect(s.starFill).toBe('fill-cal-empty-text');
     expect(s.dataStatus).toBe('scheduled');
   });
 
-  it('future confirmed, unset today is solid', () => {
+  it('future confirmed, unset today keeps the ring', () => {
     const s = cell({ isConfirmed: true, isPlayDay: true, isToday: true });
-    expect(s.bgColor).toBe('bg-cal-unset-bg');
+    expect(s.bgColor).toBe('');
     expect(s.todayStyles).toBe(TODAY_RING);
   });
 
   it.each([
-    ['available', 'bg-cal-available-bg'],
-    ['maybe', 'bg-cal-maybe-bg'],
-    ['unavailable', 'bg-cal-unavailable-bg/60'],
-  ] as const)('past confirmed keeps %s color but dims text', (status, bg) => {
+    ['available', '', 'fill-cal-available-bg'],
+    ['maybe', MAYBE_OUTLINE, 'fill-cal-available-bg'],
+    ['unavailable', '', 'fill-cal-unavailable-bg'],
+  ] as const)('past confirmed keeps %s star color but dims text', (status, bg, star) => {
     expect(cell({ isConfirmed: true, isPast: true, status })).toEqual({
       bgColor: bg,
       textColor: 'text-cal-disabled-text/50 font-semibold',
       cursor: 'cursor-default',
       todayStyles: '',
+      starFill: star,
       dataStatus: 'scheduled',
     });
   });
 
-  it('past confirmed, unset uses solid unset bg', () => {
+  it('past confirmed, unset uses the dark-ink star', () => {
     const s = cell({ isConfirmed: true, isPast: true });
-    expect(s.bgColor).toBe('bg-cal-unset-bg');
+    expect(s.bgColor).toBe('');
+    expect(s.starFill).toBe('fill-cal-empty-text');
     expect(s.dataStatus).toBe('scheduled');
   });
 });

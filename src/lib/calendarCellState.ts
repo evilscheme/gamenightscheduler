@@ -35,6 +35,8 @@ export interface CalendarCellState {
   textColor: string;
   cursor: string;
   todayStyles: string;
+  /** Tailwind fill-* class for the scheduled-session star, '' when not scheduled. */
+  starFill: string;
   /** Test hook: the cell's state as exposed via data-status. */
   dataStatus: CalendarCellDataStatus;
 }
@@ -57,38 +59,49 @@ export function calendarCellState({
     : 'bg-[repeating-linear-gradient(45deg,transparent,transparent_3px,var(--muted)_3px,var(--muted)_5px)]';
   let textColor = 'text-cal-disabled-text';
   let cursor = 'cursor-default';
+  let starFill = '';
 
-  // Confirmed sessions show availability color with star overlay
-  // (so players can see + change their status even after a session is confirmed)
+  // Confirmed sessions show a solid star colored by the player's own
+  // response, with the background left transparent so the star carries the
+  // color (so players can see + change their status even after a session is
+  // confirmed).
   if (isConfirmed && !isPast) {
     cursor = CLICKABLE;
     if (status === 'available') {
-      bgColor = 'bg-cal-available-bg';
+      bgColor = '';
       textColor = 'text-cal-available-text font-semibold';
+      starFill = 'fill-cal-available-bg';
     } else if (status === 'maybe') {
-      bgColor = 'bg-cal-maybe-bg';
-      textColor = 'text-cal-maybe-text font-semibold';
+      bgColor = 'border-2 border-dashed border-cal-available-ink';
+      textColor = 'text-cal-available-text font-semibold';
+      starFill = 'fill-cal-available-bg';
     } else if (status === 'unavailable') {
-      bgColor = 'bg-cal-unavailable-bg/60';
+      bgColor = '';
       textColor = 'text-cal-unavailable-text font-semibold';
+      starFill = 'fill-cal-unavailable-bg';
     } else {
-      // Unset - use unset styling so player knows they haven't responded
-      if (isToday) {
-        bgColor = 'bg-cal-unset-bg';
-      } else {
-        bgColor = 'bg-cal-unset-bg border-2 border-dashed border-cal-unset-border';
-      }
-      textColor = 'text-cal-unset-text font-semibold';
+      // Unset - invert the usual pairing: a light-grey star on a near-white
+      // card is nearly invisible (1.53:1), and "scheduled but you haven't
+      // answered" is exactly the case that should be noticeable. So the star
+      // takes the dark ink (7.58:1 against the card) and the number takes
+      // the light fill (5.10:1 against the star).
+      bgColor = '';
+      textColor = 'text-cal-empty-bg font-semibold';
+      starFill = 'fill-cal-empty-text';
     }
   } else if (isConfirmed && isPast) {
     if (status === 'available') {
-      bgColor = 'bg-cal-available-bg';
+      bgColor = '';
+      starFill = 'fill-cal-available-bg';
     } else if (status === 'maybe') {
-      bgColor = 'bg-cal-maybe-bg';
+      bgColor = 'border-2 border-dashed border-cal-available-ink';
+      starFill = 'fill-cal-available-bg';
     } else if (status === 'unavailable') {
-      bgColor = 'bg-cal-unavailable-bg/60';
+      bgColor = '';
+      starFill = 'fill-cal-unavailable-bg';
     } else {
-      bgColor = 'bg-cal-unset-bg';
+      bgColor = '';
+      starFill = 'fill-cal-empty-text';
     }
     textColor = 'text-cal-disabled-text/50 font-semibold';
   } else if (isPlayDay && !isPast) {
@@ -97,19 +110,19 @@ export function calendarCellState({
       bgColor = 'bg-cal-available-bg';
       textColor = 'text-cal-available-text font-medium';
     } else if (status === 'maybe') {
-      bgColor = 'bg-cal-maybe-bg';
-      textColor = 'text-cal-maybe-text font-medium';
+      // The wash is what keeps a maybe reading as *answered*. Without a fill it
+      // groups with the empty cells, and "have I answered everything?" is the
+      // question this tab exists to answer. Washed with -ink, not -bg: -bg is
+      // darker than the dark-mode panel, so it lifts nothing there.
+      bgColor = 'bg-cal-available-ink/15 border-2 border-dashed border-cal-available-ink';
+      textColor = 'text-cal-available-ink font-medium';
     } else if (status === 'unavailable') {
-      bgColor = 'bg-cal-unavailable-bg/60';
+      bgColor = 'bg-cal-unavailable-bg';
       textColor = 'text-cal-unavailable-text font-medium';
     } else {
-      // Unset play day - but not if it's today (today gets solid styling)
-      if (isToday) {
-        bgColor = 'bg-cal-unset-bg';
-      } else {
-        bgColor = 'bg-cal-unset-bg border-2 border-dashed border-cal-unset-border';
-      }
-      textColor = 'text-cal-unset-text';
+      // Unset play day
+      bgColor = 'bg-cal-empty-bg';
+      textColor = 'text-cal-empty-text';
     }
   } else if (isPast) {
     textColor = 'text-cal-disabled-text/50';
@@ -134,5 +147,5 @@ export function calendarCellState({
                 ? 'maybe'
                 : 'unset';
 
-  return { bgColor, textColor, cursor, todayStyles, dataStatus };
+  return { bgColor, textColor, cursor, todayStyles, starFill, dataStatus };
 }

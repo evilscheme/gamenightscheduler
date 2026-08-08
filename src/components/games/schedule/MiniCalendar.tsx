@@ -5,8 +5,9 @@ import { addMonths, startOfMonth, differenceInCalendarMonths, startOfDay } from 
 import type { DateSuggestion, GameSession } from '@/types';
 import { CalendarMonth } from './CalendarMonth';
 import { EyebrowLabel, Panel } from '@/components/ui';
-import { getCellTintTier, CellTintTier } from '@/lib/schedule';
-import { CALENDAR_STYLES, LEGEND_ORDER } from './calendarStyles';
+import { resolveDateState, showsPendingMark, describeDateState, type DateState } from '@/lib/schedule';
+import { SCHEDULED_STAR_PATH } from '@/lib/constants';
+import { LEGEND } from './calendarStyles';
 
 interface MiniCalendarProps {
   windowStart: Date;
@@ -39,9 +40,14 @@ export function MiniCalendar({
   }, [windowStart, windowEnd]);
 
   const suggestionsByDate = useMemo(() => {
-    const m = new Map<string, { tier: CellTintTier }>();
+    const m = new Map<string, { state: DateState; showPending: boolean; title: string }>();
     suggestions.forEach((s) => {
-      m.set(s.date, { tier: getCellTintTier(s) });
+      const state = resolveDateState(s, s.threshold);
+      m.set(s.date, {
+        state,
+        showPending: showsPendingMark(s, state),
+        title: describeDateState(s, s.threshold),
+      });
     });
     return m;
   }, [suggestions]);
@@ -59,26 +65,48 @@ export function MiniCalendar({
         <EyebrowLabel>Calendar</EyebrowLabel>
         {subscribeLink}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {months.map((m) => (
-          <CalendarMonth
-            key={m.toISOString()}
-            monthStart={m}
-            suggestionsByDate={suggestionsByDate}
-            scheduledDates={scheduledDates}
-            playDayWeekdays={playDayWeekdays}
-            specialPlayDates={specialPlayDates}
-            weekStartDay={weekStartDay}
-            today={today}
-            onCellActivate={onCellActivate}
-          />
-        ))}
+      <div className="@container">
+        <div className="grid grid-cols-1 @lg:grid-cols-2 gap-2">
+          {months.map((m) => (
+            <CalendarMonth
+              key={m.toISOString()}
+              monthStart={m}
+              suggestionsByDate={suggestionsByDate}
+              scheduledDates={scheduledDates}
+              playDayWeekdays={playDayWeekdays}
+              specialPlayDates={specialPlayDates}
+              weekStartDay={weekStartDay}
+              today={today}
+              onCellActivate={onCellActivate}
+            />
+          ))}
+        </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
-        {LEGEND_ORDER.map((state) => (
-          <span key={state} className="inline-flex items-center gap-1">
-            <span className={`size-2 rounded-sm ${CALENDAR_STYLES[state].className}`} />
-            {CALENDAR_STYLES[state].label}
+        {LEGEND.map((entry) => (
+          <span key={entry.label} className="inline-flex items-center gap-1">
+            {entry.swatches.map((swatch, i) => (
+              <span key={i} className={`relative size-5 rounded-sm ${swatch.swatch}`}>
+                {swatch.star && (
+                  <svg viewBox="0 0 24 24" className={`size-full ${swatch.star}`}>
+                    <path d={SCHEDULED_STAR_PATH} />
+                  </svg>
+                )}
+                {swatch.pip === 'gold-solid' && (
+                  <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] size-1.75 rounded-full bg-cal-everyone" />
+                )}
+                {swatch.pip === 'gold-hollow' && (
+                  <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] size-1.75 rounded-full border-2 border-cal-everyone" />
+                )}
+                {swatch.pip === 'pending-on-fill' && (
+                  <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] size-1.75 rounded-full bg-cal-pending-on-fill" />
+                )}
+                {swatch.pip === 'pending-on-page' && (
+                  <span className="absolute left-1/2 -translate-x-1/2 bottom-[9%] size-1.75 rounded-full bg-cal-empty-text" />
+                )}
+              </span>
+            ))}
+            {entry.label}
           </span>
         ))}
       </div>

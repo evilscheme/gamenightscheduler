@@ -83,6 +83,12 @@ describe('MiniCalendar month paging', () => {
     // cursor stops at the last full page, so this step advances by one month.
     await user.click(laterButton());
     expect(visibleMonths()).toEqual(['2026-11', '2026-12', '2027-01']);
+
+    // Stepping back from the clamped page is deliberately asymmetric: the
+    // clamp only shifted the cursor forward by one month (not a full page),
+    // so a full page-back lands one month earlier than the page we came from.
+    await user.click(earlierButton());
+    expect(visibleMonths()).toEqual(['2026-08', '2026-09', '2026-10']);
   });
 
   it('disables each arrow at its bound', async () => {

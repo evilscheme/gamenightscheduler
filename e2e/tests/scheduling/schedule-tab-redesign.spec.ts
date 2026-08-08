@@ -121,9 +121,9 @@ test.describe('Schedule Tab Redesign', () => {
     const rowDate = await firstRow.getAttribute('data-date');
     expect(rowDate).toBeTruthy();
 
-    // Find the matching calendar cell by data-date. Both mobile <details> and
-    // desktop <aside> render a MiniCalendar, so the selector resolves to two
-    // cells; filter to the visible one for the current viewport.
+    // Find the matching calendar cell by data-date. The sidebar renders once,
+    // so this resolves to a single cell; filter({ visible: true }) is kept as
+    // belt-and-braces.
     const matchingCell = page
       .locator(`[data-testid="calendar-cell"][data-date="${rowDate}"]`)
       .filter({ visible: true });
@@ -366,7 +366,7 @@ test.describe('Schedule Tab Redesign', () => {
   });
 
   // ────────────────────────────────────────────────────────────────────────────
-  // Test 6: long scheduling windows page three months at a time
+  // Test 7: long scheduling windows page three months at a time
   // ────────────────────────────────────────────────────────────────────────────
   test('long scheduling windows page the calendar three months at a time', async ({
     page,

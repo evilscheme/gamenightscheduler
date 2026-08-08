@@ -230,9 +230,9 @@ test.describe('Confirmed Day Availability', () => {
     const dateButton = page.locator(`button[data-date="${confirmedDate}"]`);
     await expect(dateButton).toBeVisible();
 
-    // Check the title attribute contains both scheduled info and availability status
-    const title = await dateButton.getAttribute('title');
-    expect(title).toContain('Scheduled');
+    // Check the aria-label attribute contains both scheduled info and availability status
+    const title = await dateButton.getAttribute('aria-label');
+    expect(title).toContain('Session confirmed');
     expect(title).toContain('7pm');
     expect(title).toContain('11pm');
     expect(title).toContain('Your status: Maybe');

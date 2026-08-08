@@ -63,7 +63,7 @@ test.describe('Play Date Notes', () => {
 
       // The date cell should have a tooltip containing the GM note
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
-      await expect(dayButton).toHaveAttribute('title', /GM note: Different location today/);
+      await expect(dayButton).toHaveAttribute('aria-label', /GM note: Different location today/);
     });
 
     test('player can see note in tooltip on calendar', async ({ page, request }) => {
@@ -103,7 +103,7 @@ test.describe('Play Date Notes', () => {
 
       // Player should see the GM note in the tooltip
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
-      await expect(dayButton).toHaveAttribute('title', /GM note: Only after 2pm/);
+      await expect(dayButton).toHaveAttribute('aria-label', /GM note: Only after 2pm/);
     });
   });
 
@@ -158,7 +158,7 @@ test.describe('Play Date Notes', () => {
       await page.getByRole('button', { name: /save/i }).click();
 
       // The tooltip on the date cell should now show the note
-      await expect(dayButton).toHaveAttribute('title', /GM note: Bring snacks!/);
+      await expect(dayButton).toHaveAttribute('aria-label', /GM note: Bring snacks!/);
     });
 
     test('non-GM player sees existing note as read-only in popover', async ({ page, request }) => {
@@ -297,7 +297,7 @@ test.describe('Play Date Notes', () => {
       // The special date should have the note in its tooltip
       const dayButton = page.locator(`button[data-date="${thursdayStr}"]`);
       await expect(dayButton).toHaveAttribute('data-extra', 'true');
-      await expect(dayButton).toHaveAttribute('title', /GM note: Extra session this week/);
+      await expect(dayButton).toHaveAttribute('aria-label', /GM note: Extra session this week/);
     });
   });
 
@@ -351,7 +351,7 @@ test.describe('Play Date Notes', () => {
       await page.getByRole('button', { name: /save/i }).click();
 
       // The GM note should appear in the tooltip
-      await expect(dayButton).toHaveAttribute('title', /GM note: Game at park/);
+      await expect(dayButton).toHaveAttribute('aria-label', /GM note: Game at park/);
 
       // Availability should NOT have been set (no data-status change)
       await expect(dayButton).not.toHaveAttribute('data-status', 'available');
@@ -505,8 +505,8 @@ test.describe('Play Date Notes', () => {
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
 
       // Tooltip should contain both the time constraint and the GM note
-      await expect(dayButton).toHaveAttribute('title', /After/);
-      await expect(dayButton).toHaveAttribute('title', /GM note: Afternoon only/);
+      await expect(dayButton).toHaveAttribute('aria-label', /Your status: \w+ after \d/);
+      await expect(dayButton).toHaveAttribute('aria-label', /GM note: Afternoon only/);
 
       // Both icons should be in the bottom-left area
       const bottomLeftIcons = dayButton.locator('[data-testid="note-icons"] > span');

@@ -87,4 +87,27 @@ describe('useHoverPopover', () => {
       useHoverPopover('2026-09-04', { selector: (d) => `button[data-date="${d}"]` }));
     expect(result.current.coords?.x).toBe(210);
   });
+
+  it('clamps x so the popover stays on-screen near the left edge', async () => {
+    // Cell centre at x=20, well inside the HALF_WIDTH (116) margin.
+    mountCell('2026-09-04', { left: 0, width: 40 });
+    const useHoverPopover = await loadHook();
+    const { result } = renderHook(() => useHoverPopover('2026-09-04'));
+    expect(result.current.coords?.x).toBe(116);
+    // The popover (w-56, translated -50%) never extends left of the viewport.
+    expect((result.current.coords?.x ?? 0) - 116).toBeGreaterThanOrEqual(0);
+  });
+
+  it('clamps x so the popover stays on-screen near the right edge', async () => {
+    const originalInnerWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 });
+    // Cell centre at x=1020, well past innerWidth - HALF_WIDTH (908).
+    mountCell('2026-09-04', { left: 1000, width: 40 });
+    const useHoverPopover = await loadHook();
+    const { result } = renderHook(() => useHoverPopover('2026-09-04'));
+    expect(result.current.coords?.x).toBe(908);
+    // The popover (w-56, translated -50%) never extends past the viewport.
+    expect((result.current.coords?.x ?? 0) + 116).toBeLessThanOrEqual(1024);
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth });
+  });
 });

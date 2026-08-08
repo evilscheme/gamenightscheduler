@@ -177,6 +177,24 @@ describe('describeCalendarCell — hints', () => {
     expect(describeCalendarCell(input).hints).toContain(hint);
   });
 
+  it('names the note pencil affordance when there is no note yet', () => {
+    expect(describeCalendarCell(base).hints).toContain('Click the note icon to add a note or time window');
+  });
+
+  it('names the note pencil affordance as "edit" once a note exists', () => {
+    const m = describeCalendarCell(withEntry('available', { comment: 'Might be late' }));
+    expect(m.hints).toContain('Click the note icon to edit your note');
+  });
+
+  it.each([
+    ['readOnly', { readOnly: true }],
+    ['past', { isPast: true }],
+    ['out-of-range', { isOutOfRange: true }],
+  ])('suppresses the note pencil hint when %s', (_name, patch) => {
+    const m = describeCalendarCell({ ...withEntry('available'), ...patch });
+    expect(m.hints.some((h) => h.startsWith('Click the note icon'))).toBe(false);
+  });
+
   it('offers the GM the add-extra affordance on a non-play day', () => {
     const m = describeCalendarCell({ ...base, isPlayDay: false, isGmOrCoGm: true, canAddAsExtra: true });
     expect(m.hints).toContain('GM · click + to add as an extra date');

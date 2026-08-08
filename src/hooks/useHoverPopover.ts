@@ -82,8 +82,15 @@ export function useHoverPopover(
     }
     const rect = el.getBoundingClientRect();
     const placeBelow = rect.top < heightHint;
+    // Clamp horizontally so a cell near a viewport edge (400% zoom, a narrow
+    // desktop window) doesn't push the w-56 popover half off-screen. It's
+    // position: fixed and pointer-events: none, so a clipped edge is
+    // unrecoverable — there's no scrolling or dismissing it into view.
+    const HALF_WIDTH = 116; // half of w-56 (224px) plus a small margin
+    const rawX = rect.left + rect.width / 2;
+    const x = Math.min(Math.max(rawX, HALF_WIDTH), window.innerWidth - HALF_WIDTH);
     setCoords({
-      x: rect.left + rect.width / 2,
+      x,
       y: placeBelow ? rect.bottom + 6 : rect.top - 6,
       placeBelow,
     });

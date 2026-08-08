@@ -144,6 +144,10 @@ function buildHints(i: TooltipInputs): string[] {
   const hints: string[] = [];
   if (i.isPlayDay) {
     hints.push(`Click to mark ${STATUS_LABEL[getNextStatus(i.entry)]}`);
+    // The pencil is a click target inside the cell button, so it can't be a
+    // real <button> and its aria-label isn't exposed on a generic span.
+    // The hint is the only place this affordance is named.
+    hints.push(i.entry?.comment ? 'Click the note icon to edit your note' : 'Click the note icon to add a note or time window');
   }
   if (i.isGmOrCoGm && i.canAddAsExtra) {
     hints.push('GM · click + to add as an extra date');

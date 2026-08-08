@@ -1,7 +1,6 @@
 'use client';
 
 import { createPortal } from 'react-dom';
-import { SCHEDULED_STAR_PATH } from '@/lib/constants';
 import type { BandTone, TooltipModel } from '@/lib/calendarCellTooltip';
 import { useHoverPopover } from '@/hooks/useHoverPopover';
 
@@ -60,12 +59,15 @@ export function DayTooltip({ hover }: DayTooltipProps) {
       } -translate-x-1/2`}
       style={{ left: coords.x, top: coords.y }}
     >
+      {/*
+        No star here: the cell's own star is coloured by the player's answer
+        (calendarCellState.ts's starFill ladder), and duplicating that ladder
+        just to match it would be a third copy of the same decision. A
+        fill-primary (blue) star above a green cell star taught the wrong
+        colour mapping. The SCHEDULED badge below already says this
+        unambiguously.
+      */}
       <p className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-card-foreground">
-        {model.isScheduled && (
-          <svg aria-hidden viewBox="0 0 24 24" className="size-3.5 shrink-0 fill-primary">
-            <path d={SCHEDULED_STAR_PATH} />
-          </svg>
-        )}
         {model.dateLabel}
         {model.badges.map((badge) => (
           <span

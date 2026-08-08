@@ -138,6 +138,16 @@ test.describe('availability day tooltip', () => {
     await expect(tip).toContainText('campaign');
   });
 
+  test('updates the band when you click the cell you are hovering', async ({ page }) => {
+    const cell = page.locator(`button[data-date="${unsetDate}"]`);
+    await cell.hover();
+    await expect(page.getByTestId('day-tooltip')).toContainText('Not set');
+    await cell.click();
+    await expect(cell).toHaveAttribute('data-status', 'available');
+    await expect(page.getByTestId('day-tooltip')).toContainText('Available');
+    await expect(page.getByTestId('day-tooltip')).not.toContainText('Not set');
+  });
+
   test('shows exactly one tooltip while moving between cells', async ({ page }) => {
     const tip = page.getByTestId('day-tooltip');
 

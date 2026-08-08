@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { TooltipModel } from '@/lib/calendarCellTooltip';
+import { calendarCellState, type CalendarCellInputs } from '@/lib/calendarCellState';
 
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
@@ -88,18 +89,25 @@ describe('DayTooltip', () => {
   it('paints the past band with the same out-of-range utility the cell uses', async () => {
     mountCell('2026-09-04');
     const DayTooltip = await loadTooltip();
-    render(<DayTooltip hover={{ date: '2026-09-04', model }} />);
-    const { BAND_STYLES } = await import('./DayTooltip');
+    const pastModel: TooltipModel = {
+      ...model,
+      band: { label: 'Past · you were Available', qualifier: null, tone: 'past' },
+    };
+    render(<DayTooltip hover={{ date: '2026-09-04', model: pastModel }} />);
     // A past cell is out-of-range by construction (windowStart is clamped to
     // today), so calendarCellState paints it with cal-out-of-range.
-    expect(BAND_STYLES.past).toContain('cal-out-of-range');
-    expect(BAND_STYLES['non-play']).toContain('var(--muted)');
-    expect(BAND_STYLES.past).not.toBe(BAND_STYLES['non-play']);
+    expect(screen.getByTestId('day-tooltip-band').className).toContain('cal-out-of-range');
   });
 
   it('paints the out-of-range band with the cell out-of-range utility', async () => {
-    const { BAND_STYLES } = await import('./DayTooltip');
-    expect(BAND_STYLES['out-of-range']).toContain('cal-out-of-range');
+    mountCell('2026-09-04');
+    const DayTooltip = await loadTooltip();
+    const outOfRangeModel: TooltipModel = {
+      ...model,
+      band: { label: 'Before campaign start', qualifier: null, tone: 'out-of-range' },
+    };
+    render(<DayTooltip hover={{ date: '2026-09-04', model: outOfRangeModel }} />);
+    expect(screen.getByTestId('day-tooltip-band').className).toContain('cal-out-of-range');
   });
 
   it('never intercepts the pointer', async () => {
@@ -107,5 +115,38 @@ describe('DayTooltip', () => {
     const DayTooltip = await loadTooltip();
     render(<DayTooltip hover={{ date: '2026-09-04', model }} />);
     expect(screen.getByRole('tooltip').className).toContain('pointer-events-none');
+  });
+});
+
+// Extracts cal-* tokens and CSS custom properties from a class string.
+function tokensOf(classes: string): string[] {
+  return [
+    ...(classes.match(/cal-[a-z-]+/g) ?? []),
+    ...(classes.match(/var\(--[a-z-]+\)/g) ?? []),
+  ];
+}
+
+const CELL_INPUTS: Record<string, CalendarCellInputs> = {
+  available:     { isOutOfRange: false, isConfirmed: false, isPast: false, isPlayDay: true,  isToday: false, status: 'available' },
+  maybe:         { isOutOfRange: false, isConfirmed: false, isPast: false, isPlayDay: true,  isToday: false, status: 'maybe' },
+  unavailable:   { isOutOfRange: false, isConfirmed: false, isPast: false, isPlayDay: true,  isToday: false, status: 'unavailable' },
+  unset:         { isOutOfRange: false, isConfirmed: false, isPast: false, isPlayDay: true,  isToday: false, status: undefined },
+  'non-play':    { isOutOfRange: false, isConfirmed: false, isPast: false, isPlayDay: false, isToday: false, status: undefined },
+  // A past date is out-of-range by construction (getSchedulingWindow clamps
+  // windowStart to today), which is exactly why calendarCellState never sees
+  // isPast without isOutOfRange in the real app — but as a pure function it
+  // still needs isOutOfRange: true here to reach the cal-out-of-range branch,
+  // same as the tooltip model's own `past` tone does at the model layer.
+  past:          { isOutOfRange: true,  isConfirmed: false, isPast: true,  isPlayDay: false, isToday: false, status: undefined },
+  'out-of-range': { isOutOfRange: true,  isConfirmed: false, isPast: false, isPlayDay: false, isToday: false, status: undefined },
+};
+
+describe('BAND_STYLES stays bound to the cell it describes', () => {
+  it.each(Object.keys(CELL_INPUTS))('band %s reuses the cell fill tokens', async (tone) => {
+    const { BAND_STYLES } = await import('./DayTooltip');
+    const cellTokens = tokensOf(calendarCellState(CELL_INPUTS[tone]).bgColor);
+    const bandTokens = tokensOf(BAND_STYLES[tone as keyof typeof BAND_STYLES]);
+    expect(cellTokens.length).toBeGreaterThan(0);
+    for (const token of cellTokens) expect(bandTokens).toContain(token);
   });
 });

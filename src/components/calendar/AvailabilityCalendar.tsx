@@ -19,14 +19,12 @@ import {
   filterDatesForBulkSet,
 } from "@/lib/availability";
 import type { OtherGameSessionInfo } from "@/lib/schedule";
-import type { TooltipModel } from "@/lib/calendarCellTooltip";
 import { useNoteEditorState } from "@/hooks/useNoteEditorState";
 import { MonthCalendar } from "./MonthCalendar";
 import { CalendarLegend } from "./CalendarLegend";
 import { NoteEditorPopover } from "./NoteEditorPopover";
 import { DateActionMenu } from "./DateActionMenu";
 import { BulkActionsBar } from "./BulkActionsBar";
-import { DayTooltip } from "./DayTooltip";
 
 export type { AvailabilityEntry };
 
@@ -92,6 +90,15 @@ export function AvailabilityCalendar({
   readOnly = false,
   onBulkSet,
 }: AvailabilityCalendarProps) {
+  // Recomputed every render, unlike windowStart (memoized once in
+  // useGameDerivedState.ts via getSchedulingWindow, which clamps
+  // windowStart to max(today, campaign_start)). The past/out-of-range
+  // precedence in calendarCellTooltip.ts's resolveBand rests entirely on
+  // windowStart >= today always holding — which is only true because both
+  // read the same clock. Decoupling this from that clamp (e.g. by moving one
+  // but not the other off "the render's `new Date()`") can produce
+  // isPast && !isOutOfRange across a midnight rollover with the tab left
+  // open, a combination that branch treats as impossible.
   const today = startOfDay(new Date());
   const maxDate = windowEnd;
   const {
@@ -110,7 +117,12 @@ export function AvailabilityCalendar({
   } = useNoteEditorState({ readOnly, availability, playDateNotes, onToggle, onUpdatePlayDateNote });
   // Action menu for GM long-press on extra play dates
   const [actionMenuDate, setActionMenuDate] = useState<string | null>(null);
-  const [hover, setHover] = useState<{ date: string; model: TooltipModel } | null>(null);
+  // The hovered/tapped date only — NOT a snapshot of its tooltip model. A
+  // model captured at hover time goes stale the instant the cell's own state
+  // changes without a fresh mouse event (e.g. a click, which doesn't move the
+  // pointer so onMouseEnter never re-fires). MonthCalendar re-derives the
+  // model from this date on every render, so it can never lag behind the cell.
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   // Inert tap toast state (mobile feedback for non-interactive cells)
   const [inertTapToast, setInertTapToast] = useState<string | null>(null);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -257,12 +269,11 @@ export function AvailabilityCalendar({
             onInertTap={showInertTapToast}
             otherGameSessionsByDate={otherGameSessionsByDate}
             readOnly={readOnly}
-            onHoverDate={setHover}
+            hoveredDate={hoveredDate}
+            onHoverDate={setHoveredDate}
           />
         ))}
       </div>
-
-      <DayTooltip hover={hover} />
 
       <CalendarLegend hasPlayDays={playDays.length > 0} hasCampaignDates={hasCampaignDates} />
 

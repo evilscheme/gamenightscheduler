@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment } from 'react';
 import {
   format,
   startOfMonth,
@@ -16,8 +17,12 @@ import { AvailabilityEntry } from '@/lib/availability';
 import { SCHEDULED_STAR_PATH } from '@/lib/constants';
 import { calendarCellState } from '@/lib/calendarCellState';
 import { type OtherGameSessionInfo } from '@/lib/schedule';
-import { describeCalendarCell, tooltipModelToText, type TooltipModel } from '@/lib/calendarCellTooltip';
+import { describeCalendarCell, tooltipModelToText } from '@/lib/calendarCellTooltip';
 import { useLongPress } from '@/hooks/useLongPress';
+// Imported directly, not via the './index' barrel: the barrel re-exports
+// AvailabilityCalendar, which imports this file — going through the barrel
+// would create a circular import.
+import { DayTooltip } from './DayTooltip';
 
 // Separate component for individual month to keep things clean
 interface MonthCalendarProps {
@@ -42,7 +47,9 @@ interface MonthCalendarProps {
   onInertTap?: (message: string) => void;
   otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   readOnly?: boolean;
-  onHoverDate?: (hover: { date: string; model: TooltipModel } | null) => void;
+  /** The single hovered/tapped date across the whole multi-month grid, or null. */
+  hoveredDate?: string | null;
+  onHoverDate?: (date: string | null) => void;
 }
 
 export function MonthCalendar({
@@ -67,6 +74,7 @@ export function MonthCalendar({
   onInertTap,
   otherGameSessionsByDate = new Map(),
   readOnly = false,
+  hoveredDate,
   onHoverDate,
 }: MonthCalendarProps) {
   const days = eachDayOfInterval({
@@ -196,13 +204,13 @@ export function MonthCalendar({
           const cellAriaLabel = tooltipModelToText(tooltipModel);
 
           return (
+            <Fragment key={dateStr}>
             <button
-              key={dateStr}
               onClick={() => {
                 if (isInert) return;
                 handleDayClickWithLongPressCheck(date);
               }}
-              onMouseEnter={() => onHoverDate?.({ date: dateStr, model: tooltipModel })}
+              onMouseEnter={() => onHoverDate?.(dateStr)}
               onMouseLeave={() => onHoverDate?.(null)}
               onTouchStart={() => {
                 // The band label already encodes the corrected precedence (past
@@ -341,6 +349,18 @@ export function MonthCalendar({
                 </span>
               )}
             </button>
+            {/*
+              Exactly one date can match hoveredDate across the whole
+              multi-month grid (dates don't repeat), so this renders at most
+              once total, not once per month. DayTooltip portals to
+              document.body, so its position in the tree doesn't matter, and
+              tooltipModel is computed above in this same render pass, so it
+              can never lag behind the cell it describes.
+            */}
+            {dateStr === hoveredDate && (
+              <DayTooltip hover={{ date: dateStr, model: tooltipModel }} />
+            )}
+            </Fragment>
           );
         })}
       </div>

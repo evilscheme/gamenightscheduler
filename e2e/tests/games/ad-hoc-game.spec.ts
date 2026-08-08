@@ -200,7 +200,7 @@ test.describe('Ad-Hoc Games', () => {
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
       await dayButton.hover();
 
-      const addIcon = dayButton.locator('span[title="Add play date"]');
+      const addIcon = dayButton.locator('span[aria-label="Add play date"]');
       await expect(addIcon).toBeVisible();
     });
 
@@ -233,7 +233,7 @@ test.describe('Ad-Hoc Games', () => {
       const dayButton = page.locator(`button[data-date="${futureDate}"]`);
       await dayButton.hover();
 
-      const addIcon = dayButton.locator('span[title="Add play date"]');
+      const addIcon = dayButton.locator('span[aria-label="Add play date"]');
       await addIcon.click();
 
       // Should now be a play date

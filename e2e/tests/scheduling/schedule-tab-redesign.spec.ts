@@ -364,4 +364,67 @@ test.describe('Schedule Tab Redesign', () => {
       .filter({ visible: true });
     await expect(cell).toHaveAttribute('data-state', 'unknown');
   });
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Test 6: long scheduling windows page three months at a time
+  // ────────────────────────────────────────────────────────────────────────────
+  test('long scheduling windows page the calendar three months at a time', async ({
+    page,
+    request,
+  }) => {
+    const gm = await createTestUser(request, {
+      email: `gm-redesign-pager-${Date.now()}@e2e.local`,
+      name: 'Redesign Pager GM',
+      is_gm: true,
+    });
+
+    // 12 months is the longest window the app offers; it spans 13 calendar
+    // months, which is what used to overflow the sticky sidebar.
+    const game = await createTestGame({
+      gm_id: gm.id,
+      name: 'Redesign Pager Campaign',
+      play_days: [5, 6],
+      scheduling_window_months: 12,
+    });
+
+    const playDates = getPlayDates([5, 6], 4);
+    await setAvailability(gm.id, game.id, [{ date: playDates[0], is_available: true }]);
+
+    await loginTestUser(page, { email: gm.email, name: gm.name, is_gm: true });
+    await page.goto(`/games/${game.id}`);
+
+    await expect(page.getByRole('button', { name: /schedule/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await page.getByRole('button', { name: /schedule/i }).click();
+
+    await expect(page.locator('[data-testid="schedule-tab-content"]')).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+
+    // The sidebar renders once, so a 13-month window shows exactly one page.
+    const months = page.locator('[data-testid="calendar-month"]');
+    await expect(months).toHaveCount(3);
+
+    const firstPage = await months.evaluateAll((els) =>
+      els.map((el) => el.getAttribute('data-month'))
+    );
+
+    await page.getByRole('button', { name: 'Show later months' }).click();
+
+    await expect(months).toHaveCount(3);
+    const secondPage = await months.evaluateAll((els) =>
+      els.map((el) => el.getAttribute('data-month'))
+    );
+
+    // A full-page step: no month carries over from the previous page.
+    expect(secondPage.filter((m) => firstPage.includes(m))).toEqual([]);
+
+    // And stepping back returns to exactly where we started.
+    await page.getByRole('button', { name: 'Show earlier months' }).click();
+    const backAgain = await months.evaluateAll((els) =>
+      els.map((el) => el.getAttribute('data-month'))
+    );
+    expect(backAgain).toEqual(firstPage);
+  });
 });

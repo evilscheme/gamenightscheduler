@@ -21,13 +21,17 @@ function stubMatchMedia(matches: boolean) {
 // jsdom never actually scrolls, so set scrollY directly and fire the event the
 // component listens for. requestAnimationFrame is made synchronous for just
 // this dispatch so the state update settles inside the act() block — userEvent
-// keeps the real one for its own internal scheduling.
+// keeps the real one for its own internal scheduling. The stub hands back an
+// incrementing nonzero id, like real browsers do (ids start at 1): a stub that
+// returned 0 would coincide with the guard's post-callback reset value and
+// mask a naive `if (frame === 0)` guard wedging on synchronous rAF.
+let rafHandle = 0;
 function scrollTo(y: number) {
   Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
   const realRaf = window.requestAnimationFrame;
   window.requestAnimationFrame = ((cb: FrameRequestCallback) => {
     cb(0);
-    return 0;
+    return ++rafHandle;
   }) as typeof window.requestAnimationFrame;
   act(() => {
     window.dispatchEvent(new Event('scroll'));

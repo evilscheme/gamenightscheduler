@@ -39,20 +39,39 @@ function scrollTo(y: number) {
   window.requestAnimationFrame = realRaf;
 }
 
+// Same rAF-synchronising trick as scrollTo(), but for a 'resize' event: sets
+// window.innerHeight then dispatches 'resize' so the component's throttled
+// handler runs synchronously inside the act() block.
+function resizeTo(height: number) {
+  Object.defineProperty(window, 'innerHeight', { value: height, configurable: true });
+  const realRaf = window.requestAnimationFrame;
+  window.requestAnimationFrame = ((cb: FrameRequestCallback) => {
+    cb(0);
+    return ++rafHandle;
+  }) as typeof window.requestAnimationFrame;
+  act(() => {
+    window.dispatchEvent(new Event('resize'));
+  });
+  window.requestAnimationFrame = realRaf;
+}
+
 const button = () => screen.queryByRole('button', { name: 'Back to top' });
 
 describe('ScrollToTopButton', () => {
   let realScrollTo: typeof window.scrollTo;
+  let realInnerHeight: number;
 
   beforeEach(() => {
     realScrollTo = window.scrollTo;
     window.scrollTo = vi.fn();
+    realInnerHeight = window.innerHeight;
     Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
     stubMatchMedia(false);
   });
 
   afterEach(() => {
     window.scrollTo = realScrollTo;
+    Object.defineProperty(window, 'innerHeight', { value: realInnerHeight, configurable: true });
     vi.restoreAllMocks();
   });
 
@@ -79,6 +98,20 @@ describe('ScrollToTopButton', () => {
     expect(button()).toBeInTheDocument();
 
     scrollTo(window.innerHeight);
+    expect(button()).not.toBeInTheDocument();
+  });
+
+  it('re-evaluates the threshold on resize without a new scroll event', () => {
+    Object.defineProperty(window, 'innerHeight', { value: 400, configurable: true });
+    render(<ScrollToTopButton />);
+    scrollTo(1000);
+    expect(button()).toBeInTheDocument();
+
+    // scrollY stays at 1000; only the viewport grows, so the threshold
+    // (2 * innerHeight) rises from 800 to 1800, putting the unchanged
+    // scroll position back under it. Without a 'resize' listener, no scroll
+    // event fires here and the button would incorrectly stay visible.
+    resizeTo(900);
     expect(button()).not.toBeInTheDocument();
   });
 

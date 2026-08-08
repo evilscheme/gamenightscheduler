@@ -37,15 +37,19 @@ test.describe('Back to top', () => {
     const backToTop = page.getByRole('button', { name: 'Back to top' });
 
     // Precondition: without a genuinely tall page the rest of this passes vacuously.
-    const tallEnough = await page.evaluate(
-      () => document.documentElement.scrollHeight > 3 * window.innerHeight
-    );
-    expect(tallEnough).toBe(true);
+    // Polled rather than read once — 13 full-size calendar months are still
+    // painting immediately after the visibility wait above.
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.scrollHeight > 3 * window.innerHeight)
+      )
+      .toBe(true);
 
     await expect(backToTop).toBeHidden();
 
     await page.evaluate(() => window.scrollTo(0, 3 * window.innerHeight));
     await expect(backToTop).toBeVisible();
+    await expect(backToTop).toHaveAttribute('data-testid', 'scroll-to-top');
 
     await backToTop.click();
 

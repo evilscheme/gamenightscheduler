@@ -16,8 +16,10 @@ export function ScrollToTopButton() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // innerHeight is read on every update rather than captured once, so
-    // orientation changes and window resizes need no separate listener.
+    // innerHeight is read live inside update() rather than captured once, but
+    // that only matters on a resize if update() actually runs — and update()
+    // only runs off a scroll event. So orientation changes and window resizes
+    // are handled explicitly below, by listening for 'resize' too.
     let ticking = false;
     let frame = 0;
 
@@ -26,10 +28,11 @@ export function ScrollToTopButton() {
       setVisible(window.scrollY > VIEWPORTS_BEFORE_SHOWING * window.innerHeight);
     };
 
-    // scroll fires far more often than we need to re-render, so coalesce to one
-    // update per frame. The guard is a separate boolean, not the frame handle:
-    // when requestAnimationFrame runs synchronously, update() would clear the
-    // handle before the assignment overwrote it, wedging the guard forever.
+    // scroll (and resize) fire far more often than we need to re-render, so
+    // coalesce to one update per frame. The guard is a separate boolean, not
+    // the frame handle: when requestAnimationFrame runs synchronously,
+    // update() would clear the handle before the assignment overwrote it,
+    // wedging the guard forever.
     const onScroll = () => {
       if (ticking) return;
       ticking = true;
@@ -38,8 +41,10 @@ export function ScrollToTopButton() {
 
     update();
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
     return () => {
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);

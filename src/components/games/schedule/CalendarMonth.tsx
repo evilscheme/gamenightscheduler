@@ -42,7 +42,11 @@ export function CalendarMonth({
       : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   return (
-    <div className="rounded-md bg-background/40 p-2">
+    <div
+      className="rounded-md bg-background/40 p-2"
+      data-testid="calendar-month"
+      data-month={format(first, 'yyyy-MM')}
+    >
       <p className="mb-1 text-xs font-semibold text-card-foreground">{format(first, 'MMMM yyyy')}</p>
       <div className="grid grid-cols-7 gap-0.75 mb-1">
         {dowLabels.map((d, i) => (

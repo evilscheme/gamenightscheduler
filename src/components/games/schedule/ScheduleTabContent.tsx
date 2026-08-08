@@ -88,6 +88,10 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
     [suggestions, scheduledDates]
   );
 
+  // ScheduledList renders null with no confirmed sessions, so its grid cell has
+  // to disappear too — otherwise desktop column 1 opens with an empty gap row.
+  const hasScheduled = scheduledDates.size > 0;
+
   const playDayWeekdays = useMemo(() => new Set(playDays), [playDays]);
 
   const handleCellActivate = (date: string) => {
@@ -198,32 +202,60 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
           candidateCount={unscheduledSuggestions.length}
         />
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="space-y-5 min-w-0">
-            <ScheduledList
-              sessions={sessions}
-              suggestions={suggestions}
-              timezone={timezone}
-              userTimezone={userTimezone ?? null}
-              use24h={use24h}
-              isGm={isGm}
-              gmId={gmId}
-              coGmIds={coGmIds}
-              playDateNotes={playDateNotes}
-              celebrateDate={celebrateDate}
-              onCelebrationDone={() => setCelebrateDate(null)}
-              onDownloadIcs={handleDownloadIcs}
-              onDownloadAllIcs={handleDownloadAllIcs}
-              onRequestCancel={(s) => setCancelFor(s)}
-              onEditDetails={(s) => setEditFor(s)}
-            />
-
-            {/* Mobile: calendar + response status, visible above the long ranked list */}
-            <div className="space-y-5 lg:hidden" data-testid="mobile-sidebar-panels">
-              {calendarPanel}
-              {responsePanel}
+        {/*
+          Flat grid so the sidebar renders ONCE and is repositioned per
+          breakpoint, rather than being rendered twice behind lg:hidden.
+          Mobile (1 column): scheduled -> calendar + response -> ranked list, so
+          the calendar sits above the long ranked list.
+          Desktop (2 columns): scheduled + ranked stack in column 1; the sidebar
+          is sticky in column 2 and scrolls independently. Duplicating it would
+          put two month-pagers in the DOM with cursors that desync on resize,
+          and duplicate DOM text breaks unscoped getByText() assertions.
+        */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          {hasScheduled && (
+            <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+              <ScheduledList
+                sessions={sessions}
+                suggestions={suggestions}
+                timezone={timezone}
+                userTimezone={userTimezone ?? null}
+                use24h={use24h}
+                isGm={isGm}
+                gmId={gmId}
+                coGmIds={coGmIds}
+                playDateNotes={playDateNotes}
+                celebrateDate={celebrateDate}
+                onCelebrationDone={() => setCelebrateDate(null)}
+                onDownloadIcs={handleDownloadIcs}
+                onDownloadAllIcs={handleDownloadAllIcs}
+                onRequestCancel={(s) => setCancelFor(s)}
+                onEditDetails={(s) => setEditFor(s)}
+              />
             </div>
+          )}
 
+          {/*
+            top-20 is 5rem, so capping at 100vh-6rem leaves a 1rem gap below the
+            panel. The cap is what makes trapped content structurally impossible:
+            three months usually fits, but ResponseStatus renders a row per
+            player and games allow 50.
+          */}
+          <aside
+            data-testid="sidebar-panels"
+            className={`space-y-5 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto ${
+              hasScheduled ? 'lg:row-span-2' : ''
+            }`}
+          >
+            {calendarPanel}
+            {responsePanel}
+          </aside>
+
+          <div
+            className={`min-w-0 lg:col-start-1 ${
+              hasScheduled ? 'lg:row-start-2' : 'lg:row-start-1'
+            }`}
+          >
             <RankedList
               suggestions={unscheduledSuggestions}
               isGm={isGm}
@@ -236,12 +268,6 @@ export function ScheduleTabContent(props: ScheduleTabContentProps) {
               autoExpandDate={autoExpandDate}
             />
           </div>
-
-          {/* Desktop sidebar (unchanged behavior) */}
-          <aside className="hidden lg:block space-y-5 lg:sticky lg:top-20 lg:self-start">
-            {calendarPanel}
-            {responsePanel}
-          </aside>
         </div>
 
         {scheduleFor !== null && (

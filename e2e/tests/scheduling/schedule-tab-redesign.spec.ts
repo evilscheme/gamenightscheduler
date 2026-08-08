@@ -240,7 +240,7 @@ test.describe('Schedule Tab Redesign', () => {
     });
 
     // Calendar + response panels are visible inline — no tap-to-expand gate.
-    const panels = page.locator('[data-testid="mobile-sidebar-panels"]');
+    const panels = page.locator('[data-testid="sidebar-panels"]');
     await expect(panels).toBeVisible();
 
     // Subscribe is a discoverable webcal:// link, no expansion needed.

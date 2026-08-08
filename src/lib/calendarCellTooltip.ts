@@ -1,7 +1,6 @@
 import { format, isBefore, parseISO } from 'date-fns';
 import type { AvailabilityStatus, GameSession } from '@/types';
-import type { AvailabilityEntry } from '@/lib/availability';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { getNextStatus, type AvailabilityEntry } from '@/lib/availability';
 import { formatSessionTimeWindow, type OtherGameSessionInfo } from '@/lib/schedule';
 import { formatTimeShort } from '@/lib/formatting';
 import type { CalendarCellInputs } from './calendarCellState';
@@ -104,6 +103,50 @@ function resolveBand(i: TooltipInputs): TooltipModel['band'] {
   return { label: STATUS_LABEL[i.status], qualifier, tone: i.status };
 }
 
+function buildRows(i: TooltipInputs): TooltipRow[] {
+  const rows: TooltipRow[] = [];
+
+  if (i.isConfirmed && i.session) {
+    const when = formatSessionTimeWindow(i.session.start_time, i.session.end_time, i.use24h);
+    rows.push({ label: 'Session', value: when || 'Time TBD' });
+  }
+  if (i.entry?.comment) rows.push({ label: 'Note', value: i.entry.comment });
+  if (i.gmNote) rows.push({ label: 'GM', value: i.gmNote });
+
+  for (const other of i.otherSessions) {
+    const when = formatSessionTimeWindow(other.startTime, other.endTime, i.use24h);
+    rows.push({ label: 'Also', value: when ? `${other.gameName}, ${when}` : other.gameName });
+  }
+
+  // Only the bound that was actually crossed — naming both is noise.
+  if (i.isOutOfRange) {
+    rows.push(
+      isBefore(parseISO(i.date), i.windowStart)
+        ? { label: 'Campaign starts', value: format(i.windowStart, 'MMM d') }
+        : { label: 'Campaign ends', value: format(i.windowEnd, 'MMM d') },
+    );
+  }
+
+  return rows;
+}
+
+function buildHints(i: TooltipInputs): string[] {
+  // Nothing here responds to a click, so promising one would be a lie.
+  if (i.readOnly || i.isPast || i.isOutOfRange) return [];
+
+  const hints: string[] = [];
+  if (i.isPlayDay) {
+    hints.push(`Click to mark ${STATUS_LABEL[getNextStatus(i.entry)]}`);
+  }
+  if (i.isGmOrCoGm && i.canAddAsExtra) {
+    hints.push('GM · click + to add as an extra date');
+  }
+  if (i.isGmOrCoGm && i.isExtraDate) {
+    hints.push('GM · click ✕ to remove this extra date');
+  }
+  return hints;
+}
+
 export function describeCalendarCell(i: TooltipInputs): TooltipModel {
   const badges: string[] = [];
   if (i.isConfirmed) badges.push('Scheduled');
@@ -115,8 +158,8 @@ export function describeCalendarCell(i: TooltipInputs): TooltipModel {
     badges,
     isScheduled: i.isConfirmed,
     band: resolveBand(i),
-    rows: [],
-    hints: [],
+    rows: buildRows(i),
+    hints: buildHints(i),
   };
 }
 

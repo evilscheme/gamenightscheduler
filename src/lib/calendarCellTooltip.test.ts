@@ -116,6 +116,84 @@ describe('describeCalendarCell — time qualifier', () => {
   });
 });
 
+describe('describeCalendarCell — rows', () => {
+  it('lists the confirmed session time', () => {
+    const m = describeCalendarCell({
+      ...base,
+      isConfirmed: true,
+      session: { date: '2026-09-04', start_time: '19:00', end_time: '23:00' } as never,
+    });
+    expect(m.rows).toContainEqual({ label: 'Session', value: '7pm–11pm' });
+  });
+
+  it('lists your own note and the GM note separately', () => {
+    const m = describeCalendarCell({
+      ...withEntry('maybe', { comment: 'Might be late' }),
+      gmNote: 'Bring snacks!',
+    });
+    expect(m.rows).toContainEqual({ label: 'Note', value: 'Might be late' });
+    expect(m.rows).toContainEqual({ label: 'GM', value: 'Bring snacks!' });
+  });
+
+  it('lists one row per conflicting game', () => {
+    const m = describeCalendarCell({
+      ...base,
+      otherSessions: [
+        { gameId: 'a', gameName: 'Curse of Strahd', startTime: '19:00', endTime: null },
+        { gameId: 'b', gameName: 'Blades', startTime: null, endTime: null },
+      ],
+    });
+    expect(m.rows).toContainEqual({ label: 'Also', value: 'Curse of Strahd, from 7pm' });
+    expect(m.rows).toContainEqual({ label: 'Also', value: 'Blades' });
+  });
+
+  it('gives the campaign bound that was crossed, not both', () => {
+    const after = describeCalendarCell({ ...base, isOutOfRange: true, date: '2026-12-04' });
+    expect(after.rows).toContainEqual({ label: 'Campaign ends', value: 'Nov 20' });
+    expect(after.rows.some((r) => r.label === 'Campaign starts')).toBe(false);
+  });
+
+  it('emits no rows when there is nothing to say', () => {
+    expect(describeCalendarCell(base).rows).toEqual([]);
+  });
+});
+
+describe('describeCalendarCell — hints', () => {
+  it.each([
+    [undefined, 'Click to mark Available'],
+    ['available', 'Click to mark Unavailable'],
+    ['unavailable', 'Click to mark Maybe'],
+    ['maybe', 'Click to mark Available'],
+  ] as const)('states the next status after %s', (status, hint) => {
+    const input = status ? withEntry(status) : base;
+    expect(describeCalendarCell(input).hints).toContain(hint);
+  });
+
+  it('offers the GM the add-extra affordance on a non-play day', () => {
+    const m = describeCalendarCell({ ...base, isPlayDay: false, isGmOrCoGm: true, canAddAsExtra: true });
+    expect(m.hints).toContain('GM · click + to add as an extra date');
+    expect(m.hints.some((h) => h.startsWith('Click to mark'))).toBe(false);
+  });
+
+  it('offers the GM the remove affordance on an extra date', () => {
+    const m = describeCalendarCell({ ...base, isExtraDate: true, isGmOrCoGm: true });
+    expect(m.hints).toContain('GM · click ✕ to remove this extra date');
+  });
+
+  it('gives a plain member no GM hints', () => {
+    const m = describeCalendarCell({ ...base, isPlayDay: false, canAddAsExtra: false });
+    expect(m.hints).toEqual([]);
+  });
+
+  it.each([
+    ['readOnly', { readOnly: true }],
+    ['past', { isPast: true }],
+    ['out-of-range', { isOutOfRange: true }],
+  ])('suppresses all hints when %s', (_name, patch) => {
+    expect(describeCalendarCell({ ...withEntry('available'), ...patch }).hints).toEqual([]);
+  });
+});
+
 describe('tooltipModelToText', () => {
   it('folds the qualifier into the status line', () => {
     const text = tooltipModelToText(describeCalendarCell(withEntry('available', { available_after: '14:00' })));
@@ -126,5 +204,17 @@ describe('tooltipModelToText', () => {
     const text = tooltipModelToText(describeCalendarCell({ ...base, isPlayDay: false }));
     expect(text).toContain('Not a play day');
     expect(text).not.toContain('Your status');
+  });
+
+  it('preserves the phrasings the confirmed-availability E2E asserts', () => {
+    const text = tooltipModelToText(describeCalendarCell({
+      ...withEntry('maybe'),
+      isConfirmed: true,
+      session: { date: '2026-09-04', start_time: '19:00', end_time: '23:00' } as never,
+    }));
+    expect(text).toContain('Scheduled');
+    expect(text).toContain('7pm');
+    expect(text).toContain('11pm');
+    expect(text).toContain('Your status: Maybe');
   });
 });

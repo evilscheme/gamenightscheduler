@@ -111,13 +111,13 @@ export function AvailabilityCalendar({
   // Action menu for GM long-press on extra play dates
   const [actionMenuDate, setActionMenuDate] = useState<string | null>(null);
   const [hover, setHover] = useState<{ date: string; model: TooltipModel } | null>(null);
-  // Out-of-range toast state (mobile feedback)
-  const [outOfRangeToast, setOutOfRangeToast] = useState<string | null>(null);
+  // Inert tap toast state (mobile feedback for non-interactive cells)
+  const [inertTapToast, setInertTapToast] = useState<string | null>(null);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const showOutOfRangeToast = useCallback((message: string) => {
+  const showInertTapToast = useCallback((message: string) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setOutOfRangeToast(message);
-    toastTimerRef.current = setTimeout(() => setOutOfRangeToast(null), 2000);
+    setInertTapToast(message);
+    toastTimerRef.current = setTimeout(() => setInertTapToast(null), 2000);
   }, []);
   useEffect(() => {
     return () => {
@@ -254,7 +254,7 @@ export function AvailabilityCalendar({
             playDateNotes={playDateNotes}
             windowStart={windowStart}
             windowEnd={windowEnd}
-            onOutOfRangeTap={showOutOfRangeToast}
+            onInertTap={showInertTapToast}
             otherGameSessionsByDate={otherGameSessionsByDate}
             readOnly={readOnly}
             onHoverDate={setHover}
@@ -266,14 +266,14 @@ export function AvailabilityCalendar({
 
       <CalendarLegend hasPlayDays={playDays.length > 0} hasCampaignDates={hasCampaignDates} />
 
-      {/* Out-of-range toast (mobile feedback) */}
-      {outOfRangeToast && (
+      {/* Inert tap toast (mobile feedback for non-interactive cells) */}
+      {inertTapToast && (
         <div
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-card border border-border shadow-lg text-sm text-foreground animate-in fade-in slide-in-from-bottom-2 duration-200"
           role="status"
           aria-live="polite"
         >
-          {outOfRangeToast}
+          {inertTapToast}
         </div>
       )}
 

@@ -39,7 +39,7 @@ interface MonthCalendarProps {
   playDateNotes?: Map<string, string>;
   windowStart: Date;
   windowEnd: Date;
-  onOutOfRangeTap?: (message: string) => void;
+  onInertTap?: (message: string) => void;
   otherGameSessionsByDate?: Map<string, OtherGameSessionInfo[]>;
   readOnly?: boolean;
   onHoverDate?: (hover: { date: string; model: TooltipModel } | null) => void;
@@ -64,7 +64,7 @@ export function MonthCalendar({
   playDateNotes,
   windowStart,
   windowEnd,
-  onOutOfRangeTap,
+  onInertTap,
   otherGameSessionsByDate = new Map(),
   readOnly = false,
   onHoverDate,
@@ -205,15 +205,23 @@ export function MonthCalendar({
               onMouseEnter={() => onHoverDate?.({ date: dateStr, model: tooltipModel })}
               onMouseLeave={() => onHoverDate?.(null)}
               onTouchStart={() => {
-                if (isOutOfRange && !isPast && onOutOfRangeTap) {
-                  onOutOfRangeTap(
+                if (isOutOfRange) {
+                  onInertTap?.(
                     isBefore(date, windowStart) ? "Before campaign start" : "After campaign end"
                   );
                   return;
                 }
-                if (!isPast && !isOutOfRange) {
-                  handleTouchStart(dateStr, isRegularPlayDay, isExtraPlayDate);
+                if (isPast) {
+                  onInertTap?.("Past date");
+                  return;
                 }
+                // A GM can long-press a non-play day to add it, so only the
+                // members who genuinely can't act get the toast.
+                if (!isPlayDay && !canAddAsExtra) {
+                  onInertTap?.("Not a play day");
+                  return;
+                }
+                handleTouchStart(dateStr, isRegularPlayDay, isExtraPlayDate);
               }}
               onTouchEnd={handleTouchEnd}
               onTouchMove={handleTouchEnd}

@@ -1,10 +1,10 @@
 'use client';
 
-import { useLayoutEffect, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { format, parseISO } from 'date-fns';
 import type { DateSuggestion } from '@/types';
 import { describeDateState } from '@/lib/schedule';
+import { useHoverPopover } from '@/hooks/useHoverPopover';
 import { useHoverSync } from './HoverSyncContext';
 
 interface CalendarHoverPopoverProps {
@@ -12,78 +12,12 @@ interface CalendarHoverPopoverProps {
   scheduledDates: Set<string>;
 }
 
-// Lazily created so it's only constructed in browser environments (and once
-// per module load, not per component instance).
-let hoverCapableMql: MediaQueryList | null | undefined;
-
-function getHoverCapableMql(): MediaQueryList | null {
-  if (hoverCapableMql === undefined) {
-    hoverCapableMql =
-      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-        ? window.matchMedia('(hover: hover) and (pointer: fine)')
-        : null;
-  }
-  return hoverCapableMql;
-}
-
-function subscribeHoverCapable(onChange: () => void): () => void {
-  const mql = getHoverCapableMql();
-  if (!mql) return () => {};
-  mql.addEventListener('change', onChange);
-  return () => mql.removeEventListener('change', onChange);
-}
-
-function getHoverCapableSnapshot(): boolean {
-  return getHoverCapableMql()?.matches ?? false;
-}
-
-function getHoverCapableServerSnapshot(): boolean {
-  return false;
-}
-
-function useHoverCapable(): boolean {
-  return useSyncExternalStore(
-    subscribeHoverCapable,
-    getHoverCapableSnapshot,
-    getHoverCapableServerSnapshot
-  );
-}
-
-const POPOVER_HEIGHT_HINT = 140;
-
 export function CalendarHoverPopover({ suggestions, scheduledDates }: CalendarHoverPopoverProps) {
   const { hoveredDate, hoveredFrom } = useHoverSync();
-  const hoverCapable = useHoverCapable();
-  const [coords, setCoords] = useState<{ x: number; y: number; placeBelow: boolean } | null>(null);
-
   const activeDate = hoveredFrom === 'cell' ? hoveredDate : null;
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useLayoutEffect(() => {
-    if (!activeDate) {
-      setCoords(null);
-      return;
-    }
-    // Both the mobile <details> block and the desktop <aside> render a calendar,
-    // so multiple cells can share the same data-date. Find the first one that
-    // is actually visible in the current viewport.
-    const candidates = document.querySelectorAll<HTMLElement>(
-      `[data-testid="calendar-cell"][data-date="${activeDate}"]`
-    );
-    const el = Array.from(candidates).find((node) => node.offsetParent !== null);
-    if (!el) {
-      setCoords(null);
-      return;
-    }
-    const rect = el.getBoundingClientRect();
-    const placeBelow = rect.top < POPOVER_HEIGHT_HINT;
-    setCoords({
-      x: rect.left + rect.width / 2,
-      y: placeBelow ? rect.bottom + 6 : rect.top - 6,
-      placeBelow,
-    });
-  }, [activeDate]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  const { coords, hoverCapable } = useHoverPopover(activeDate, {
+    selector: (date) => `[data-testid="calendar-cell"][data-date="${date}"]`,
+  });
 
   if (!hoverCapable || !activeDate || !coords) return null;
 

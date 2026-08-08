@@ -2,6 +2,19 @@
 
 Next.js 16 App Router app for scheduling game nights. Players mark availability on a calendar; the app ranks candidate dates. Supabase (Postgres + Auth + RLS) backend.
 
+## How the app works
+
+A GM creates a **game**: regular play days (weekdays), an optional scheduling window, session defaults, and `min_players_needed`. Players join via **invite code** and become members. The GM may add **extra dates** outside the regular play days, and may promote members to co-GM.
+
+Each player marks per-date **availability** — `available` / `maybe` / `unavailable`, with an optional comment and an `available_after`/`available_until` time range. A date with no row is *pending*, which is deliberately not the same as `unavailable`: **silence is not a no.** That distinction drives most of the scheduling logic.
+
+Every eligible date (`isEligiblePlayDate()` — regular play day or extra date, inside the window, not past) becomes a **suggestion** carrying counts of available/maybe/unavailable/pending. Ranking and calendar color are computed from the same numbers in `src/lib/schedule/`, so the list and the calendar can't contradict each other:
+
+- `effectiveThreshold(gmValue, totalPlayers)` — how many yeses "enough" needs. An explicit GM minimum is used verbatim and never capped (a game whose minimum exceeds its roster genuinely can't run); otherwise 60% of the group rounded up, floored at 3, capped at the roster.
+- `resolveDateState(suggestion, threshold)` — one of seven `DateState`s. **Positive claims read a ceiling that excludes pending players; the "can't happen" claim reads one that includes them.** So silence never counts as good news, and a date is only called dead when it can't be saved even if every silent player says yes. "We don't know yet" falls out of that asymmetry — there is no response-rate cutoff anywhere.
+
+The GM confirms a date into a **session** (date + start/end time), which draws the star on both calendars and can be exported to a personal calendar. A player belongs to many games, so the app also surfaces sessions from a user's *other* games when they mark availability here.
+
 ## Commands
 
 Full list in `package.json`. Non-obvious ones:
@@ -50,6 +63,8 @@ npx playwright test "e2e/tests/settings/profile.spec.ts:46" --project=chromium
 - Available: `primary`, `secondary`, `muted`, `accent`, `card`, `danger` (+ `danger-muted`), `foreground`, `border`, `ring`, each with a `-foreground` variant where applicable. There is no `destructive` token — use `danger`.
 - Info callouts: `bg-primary/10 border border-primary/30 rounded-lg` + `text-primary`. Badges: `bg-primary/10 text-primary`.
 - Use `public/logo.png` (via next/image) for branding, not emojis.
+- **Calendars have their own palette**, shared by the availability and schedule calendars: `cal-available-bg`/`-text`/`-ink`, `cal-empty-bg`/`-text`, `cal-unavailable-bg`/`-text`, `cal-disabled-bg`/`-text`, `cal-everyone` (gold), `cal-pending-on-fill`. Don't restyle a cell with `primary`/`danger` or a raw green, and don't reintroduce the retired `cal-maybe-*`, `cal-unset-*`, or `cal-scheduled-*` tokens — maybe is now the dashed `-ink` outline, unset is `cal-empty-*`, scheduled is a star.
+- **Cell appearance is data, not markup.** `src/components/games/schedule/calendarStyles.ts` maps each `DateState` to fill + pip and exports the matching `LEGEND` from the same constants, so a swatch can't drift from the cell it describes. Encoding: fill hue = outcome, solid vs dashed = whether confirmed yeses alone clear the threshold, gold badge = ceiling reaches everyone. Lightness encodes nothing — it inverts between light and dark mode, which is what broke the previous two-greens scheme across the 5 themes. `SCHEDULED_STAR_PATH` (`src/lib/constants.ts`) is the one star path.
 
 ## Database
 

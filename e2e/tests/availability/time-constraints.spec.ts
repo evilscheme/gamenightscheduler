@@ -47,7 +47,7 @@ test.describe('Time Availability Constraints', () => {
     await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     // Open note editor via pencil icon
-    const editIcon = dateButton.locator('span[title="Add note"]');
+    const editIcon = dateButton.locator('span[aria-label="Add note"]');
     await expect(editIcon).toBeVisible();
     await editIcon.click();
 
@@ -56,14 +56,14 @@ test.describe('Time Availability Constraints', () => {
     await expect(page.getByText('Available until')).toBeVisible();
 
     // Set "available after" time
-    const afterInput = page.getByLabel('Available after');
+    const afterInput = page.getByLabel('Available after', { exact: true });
     await afterInput.selectOption('19:00');
 
     // Save
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Clock icon should appear on the date cell
-    await expect(dateButton.locator('span[title*="After"], span[title*="Until"]')).toBeVisible();
+    await expect(dateButton.getByTestId('time-indicator')).toBeVisible();
 
     // Verify persistence after reload
     await page.reload();
@@ -73,13 +73,13 @@ test.describe('Time Availability Constraints', () => {
     await page.getByRole('button', { name: /availability/i }).click();
 
     const dateButtonAfterReload = page.locator(`button[data-date="${targetDate}"]`);
-    await expect(dateButtonAfterReload.locator('span[title*="After"], span[title*="Until"]')).toBeVisible();
+    await expect(dateButtonAfterReload.getByTestId('time-indicator')).toBeVisible();
 
     // Open note editor again and verify the time is still there
-    const editIconAfterReload = dateButtonAfterReload.locator('span[title="Add note"], span[title^="Edit note"]');
+    const editIconAfterReload = dateButtonAfterReload.locator('span[aria-label="Add note"], span[aria-label^="Edit note"]');
     await editIconAfterReload.first().click();
 
-    const afterInputAfterReload = page.getByLabel('Available after');
+    const afterInputAfterReload = page.getByLabel('Available after', { exact: true });
     await expect(afterInputAfterReload).toHaveValue('19:00');
   });
 
@@ -122,7 +122,7 @@ test.describe('Time Availability Constraints', () => {
     await expect(dateButton).toHaveAttribute('data-status', 'unavailable');
 
     // Open note editor
-    const editIcon = dateButton.locator('span[title="Add note"]');
+    const editIcon = dateButton.locator('span[aria-label="Add note"]');
     await expect(editIcon).toBeVisible();
     await editIcon.click();
 
@@ -280,9 +280,9 @@ test.describe('Time Availability Constraints', () => {
     await dateButton.click();
     await expect(dateButton).toHaveAttribute('data-status', 'available');
 
-    const editIcon = dateButton.locator('span[title="Add note"]');
+    const editIcon = dateButton.locator('span[aria-label="Add note"]');
     await editIcon.click();
-    await page.getByLabel('Available after').selectOption('20:00');
+    await page.getByLabel('Available after', { exact: true }).selectOption('20:00');
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Clock indicator visible while available
@@ -337,15 +337,15 @@ test.describe('Time Availability Constraints', () => {
     await dateButton.click();
     await expect(dateButton).toHaveAttribute('data-status', 'available');
 
-    const editIcon = dateButton.locator('span[title="Add note"]');
+    const editIcon = dateButton.locator('span[aria-label="Add note"]');
     await editIcon.click();
 
-    const afterInput = page.getByLabel('Available after');
+    const afterInput = page.getByLabel('Available after', { exact: true });
     await afterInput.selectOption('20:00');
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Clock icon visible
-    await expect(dateButton.locator('span[title*="After"], span[title*="Until"]')).toBeVisible();
+    await expect(dateButton.getByTestId('time-indicator')).toBeVisible();
 
     // Cycle to unavailable
     await dateButton.click();
@@ -356,20 +356,20 @@ test.describe('Time Availability Constraints', () => {
     await expect(dateButton).toHaveAttribute('data-status', 'maybe');
 
     // Clock icon should still be visible on maybe
-    await expect(dateButton.locator('span[title*="After"], span[title*="Until"]')).toBeVisible();
+    await expect(dateButton.getByTestId('time-indicator')).toBeVisible();
 
     // Cycle back to available
     await dateButton.click();
     await expect(dateButton).toHaveAttribute('data-status', 'available');
 
     // Clock icon should persist
-    await expect(dateButton.locator('span[title*="After"], span[title*="Until"]')).toBeVisible();
+    await expect(dateButton.getByTestId('time-indicator')).toBeVisible();
 
     // Open note editor and verify time is still set
-    const commentIcon = dateButton.locator('span[title="Add note"], span[title^="Edit note"]');
+    const commentIcon = dateButton.locator('span[aria-label="Add note"], span[aria-label^="Edit note"]');
     await commentIcon.first().click();
 
-    const afterInputCheck = page.getByLabel('Available after');
+    const afterInputCheck = page.getByLabel('Available after', { exact: true });
     await expect(afterInputCheck).toHaveValue('20:00');
   });
 });

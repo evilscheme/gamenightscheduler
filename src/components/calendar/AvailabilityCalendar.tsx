@@ -90,6 +90,15 @@ export function AvailabilityCalendar({
   readOnly = false,
   onBulkSet,
 }: AvailabilityCalendarProps) {
+  // Recomputed every render, unlike windowStart (memoized once in
+  // useGameDerivedState.ts via getSchedulingWindow, which clamps
+  // windowStart to max(today, campaign_start)). The past/out-of-range
+  // precedence in calendarCellTooltip.ts's resolveBand rests entirely on
+  // windowStart >= today always holding — which is only true because both
+  // read the same clock. Decoupling this from that clamp (e.g. by moving one
+  // but not the other off "the render's `new Date()`") can produce
+  // isPast && !isOutOfRange across a midnight rollover with the tab left
+  // open, a combination that branch treats as impossible.
   const today = startOfDay(new Date());
   const maxDate = windowEnd;
   const {
@@ -108,13 +117,19 @@ export function AvailabilityCalendar({
   } = useNoteEditorState({ readOnly, availability, playDateNotes, onToggle, onUpdatePlayDateNote });
   // Action menu for GM long-press on extra play dates
   const [actionMenuDate, setActionMenuDate] = useState<string | null>(null);
-  // Out-of-range toast state (mobile feedback)
-  const [outOfRangeToast, setOutOfRangeToast] = useState<string | null>(null);
+  // The hovered/tapped date only — NOT a snapshot of its tooltip model. A
+  // model captured at hover time goes stale the instant the cell's own state
+  // changes without a fresh mouse event (e.g. a click, which doesn't move the
+  // pointer so onMouseEnter never re-fires). MonthCalendar re-derives the
+  // model from this date on every render, so it can never lag behind the cell.
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+  // Inert tap toast state (mobile feedback for non-interactive cells)
+  const [inertTapToast, setInertTapToast] = useState<string | null>(null);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const showOutOfRangeToast = useCallback((message: string) => {
+  const showInertTapToast = useCallback((message: string) => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setOutOfRangeToast(message);
-    toastTimerRef.current = setTimeout(() => setOutOfRangeToast(null), 2000);
+    setInertTapToast(message);
+    toastTimerRef.current = setTimeout(() => setInertTapToast(null), 2000);
   }, []);
   useEffect(() => {
     return () => {
@@ -251,23 +266,25 @@ export function AvailabilityCalendar({
             playDateNotes={playDateNotes}
             windowStart={windowStart}
             windowEnd={windowEnd}
-            onOutOfRangeTap={showOutOfRangeToast}
+            onInertTap={showInertTapToast}
             otherGameSessionsByDate={otherGameSessionsByDate}
             readOnly={readOnly}
+            hoveredDate={hoveredDate}
+            onHoverDate={setHoveredDate}
           />
         ))}
       </div>
 
       <CalendarLegend hasPlayDays={playDays.length > 0} hasCampaignDates={hasCampaignDates} />
 
-      {/* Out-of-range toast (mobile feedback) */}
-      {outOfRangeToast && (
+      {/* Inert tap toast (mobile feedback for non-interactive cells) */}
+      {inertTapToast && (
         <div
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg bg-card border border-border shadow-lg text-sm text-foreground animate-in fade-in slide-in-from-bottom-2 duration-200"
           role="status"
           aria-live="polite"
         >
-          {outOfRangeToast}
+          {inertTapToast}
         </div>
       )}
 

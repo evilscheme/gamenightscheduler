@@ -55,7 +55,7 @@ test.describe('Special Play Dates', () => {
     await dayButton.hover();
 
     // Should see the add icon appear on hover
-    const addIcon = dayButton.locator('span[title="Add extra date"]');
+    const addIcon = dayButton.locator('span[aria-label="Add extra date"]');
     await expect(addIcon).toBeVisible();
   });
 
@@ -90,7 +90,7 @@ test.describe('Special Play Dates', () => {
     const dayButton = page.locator(`button[data-date="${nonPlayDate}"]`);
     await dayButton.hover();
 
-    const addIcon = dayButton.locator('span[title="Add extra date"]');
+    const addIcon = dayButton.locator('span[aria-label="Add extra date"]');
     await addIcon.click();
 
     // After clicking, the day should now be marked as an extra date
@@ -98,7 +98,7 @@ test.describe('Special Play Dates', () => {
 
     // Now hover again to verify the remove icon appears
     await dayButton.hover();
-    const removeIcon = dayButton.locator('span[title="Remove extra date"]');
+    const removeIcon = dayButton.locator('span[aria-label="Remove extra date"]');
     await expect(removeIcon).toBeVisible();
   });
 
@@ -137,7 +137,7 @@ test.describe('Special Play Dates', () => {
 
     // Hover and click the remove icon
     await dayButton.hover();
-    const removeIcon = dayButton.locator('span[title="Remove extra date"]');
+    const removeIcon = dayButton.locator('span[aria-label="Remove extra date"]');
     await removeIcon.click();
 
     // After removing, the day should go back to being a non-play day (disabled status)
@@ -270,7 +270,7 @@ test.describe('Special Play Dates', () => {
     await dayButton.hover();
 
     // Should NOT see any add/remove icons as player
-    const addIcon = dayButton.locator('span[title="Add extra date"]');
+    const addIcon = dayButton.locator('span[aria-label="Add extra date"]');
     await expect(addIcon).not.toBeVisible();
   });
 

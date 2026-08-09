@@ -49,20 +49,32 @@ export function ScrollToTopButton() {
     };
   }, []);
 
-  if (!visible) return null;
-
   const handleClick = () => {
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
   };
 
   return (
+    // Always mounted so the show/hide can be a transition rather than a mount.
+    // `invisible` matters as much as `opacity-0`: opacity alone still counts as
+    // visible to Playwright (and to the tab order), so visibility is what
+    // actually takes the button out of play once it has faded.
+    //
+    // Inverted fill, deliberately: `bg-card`/`border-border` is the exact pair
+    // Panel and RankedRow use, so a card-coloured button is invisible against
+    // the surface it most often floats over. foreground/background is the
+    // contrast pole of the palette and so cannot collide with any surface in
+    // any theme, while still reading as chrome rather than as a page action.
     <button
       type="button"
       onClick={handleClick}
       aria-label="Back to top"
+      aria-hidden={!visible}
+      tabIndex={visible ? undefined : -1}
       data-testid="scroll-to-top"
-      className="fixed bottom-6 right-4 z-40 inline-flex size-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-lg transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+      className={`fixed bottom-6 right-4 z-40 inline-flex size-11 items-center justify-center rounded-full bg-foreground text-background shadow-lg motion-safe:transition-[opacity,visibility] motion-safe:duration-200 hover:bg-foreground/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background ${
+        visible ? 'visible opacity-100' : 'invisible opacity-0 pointer-events-none'
+      }`}
     >
       <ArrowUp className="size-5" aria-hidden="true" />
     </button>

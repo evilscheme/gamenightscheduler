@@ -101,6 +101,26 @@ describe('ScrollToTopButton', () => {
     expect(button()).not.toBeInTheDocument();
   });
 
+  it('stays mounted while hidden, so showing and hiding can be a transition', () => {
+    render(<ScrollToTopButton />);
+
+    // Present in the DOM (queried by testid, which ignores the a11y tree)...
+    const el = screen.getByTestId('scroll-to-top');
+    expect(el).toBeInTheDocument();
+
+    // ...but out of the accessibility tree and out of the tab order, which is
+    // what keeps the faded-out button from being reachable. `button()` above
+    // queries by role, so it is aria-hidden that makes every other test's
+    // "not in the document" assertion mean "not available to the user".
+    expect(el).toHaveAttribute('aria-hidden', 'true');
+    expect(el).toHaveAttribute('tabindex', '-1');
+
+    scrollTo(3 * window.innerHeight);
+
+    expect(el).toHaveAttribute('aria-hidden', 'false');
+    expect(el).not.toHaveAttribute('tabindex');
+  });
+
   it('re-evaluates the threshold on resize without a new scroll event', () => {
     Object.defineProperty(window, 'innerHeight', { value: 400, configurable: true });
     render(<ScrollToTopButton />);

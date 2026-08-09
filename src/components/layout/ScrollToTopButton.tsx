@@ -62,9 +62,12 @@ export function ScrollToTopButton() {
     //
     // Inverted fill, deliberately: `bg-card`/`border-border` is the exact pair
     // Panel and RankedRow use, so a card-coloured button is invisible against
-    // the surface it most often floats over. foreground/background is the
-    // contrast pole of the palette and so cannot collide with any surface in
-    // any theme, while still reading as chrome rather than as a page action.
+    // the surface it most often floats over. Any `*-foreground` token is by
+    // definition picked to be legible against the surfaces, so it cannot
+    // collide with one in any theme. muted-foreground rather than foreground
+    // because foreground is the palette's extreme — near-white in dark mode,
+    // which reads as untinted; muted-foreground is the same idea a step in,
+    // carrying the theme's hue (sky, violet, green, slate, rose) instead.
     <button
       type="button"
       onClick={handleClick}
@@ -72,7 +75,7 @@ export function ScrollToTopButton() {
       aria-hidden={!visible}
       tabIndex={visible ? undefined : -1}
       data-testid="scroll-to-top"
-      className={`fixed bottom-6 right-4 z-40 inline-flex size-11 items-center justify-center rounded-full bg-foreground text-background shadow-lg motion-safe:transition-[opacity,visibility] motion-safe:duration-200 hover:bg-foreground/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background ${
+      className={`fixed bottom-6 right-4 z-40 inline-flex size-11 items-center justify-center rounded-full bg-muted-foreground text-background shadow-lg motion-safe:transition-[opacity,visibility] motion-safe:duration-300 hover:bg-muted-foreground/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background ${
         visible ? 'visible opacity-100' : 'invisible opacity-0 pointer-events-none'
       }`}
     >

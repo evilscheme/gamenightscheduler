@@ -1,13 +1,21 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { addMonths, startOfMonth, differenceInCalendarMonths, startOfDay } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { DateSuggestion, GameSession } from '@/types';
 import { CalendarMonth } from './CalendarMonth';
 import { EyebrowLabel, Panel } from '@/components/ui';
 import { resolveDateState, showsPendingMark, describeDateState, type DateState } from '@/lib/schedule';
 import { SCHEDULED_STAR_PATH } from '@/lib/constants';
 import { LEGEND } from './calendarStyles';
+
+/**
+ * Months shown at once. The panel lives in a 340px sticky sidebar, so rendering
+ * a full 13-month window made it taller than the viewport — and a sticky element
+ * taller than the viewport hides its own overflow until the page bottom.
+ */
+const MONTHS_PER_PAGE = 3;
 
 interface MiniCalendarProps {
   windowStart: Date;
@@ -39,6 +47,17 @@ export function MiniCalendar({
     );
   }, [windowStart, windowEnd]);
 
+  const [pageStart, setPageStart] = useState(0);
+
+  const maxStart = Math.max(0, months.length - MONTHS_PER_PAGE);
+  // Derived, not stored. The window shrinks on its own as time passes
+  // (windowStart is max(campaign_start, today)) and when a GM edits
+  // campaign_end_date, so a stored cursor would need an effect to re-clamp it
+  // and would render one wrong frame first.
+  const safeStart = Math.min(pageStart, maxStart);
+  const visibleMonths = months.slice(safeStart, safeStart + MONTHS_PER_PAGE);
+  const showPager = months.length > MONTHS_PER_PAGE;
+
   const suggestionsByDate = useMemo(() => {
     const m = new Map<string, { state: DateState; showPending: boolean; title: string }>();
     suggestions.forEach((s) => {
@@ -62,12 +81,38 @@ export function MiniCalendar({
   const body = (
     <>
       <div className="flex items-center justify-between mb-3">
-        <EyebrowLabel>Calendar</EyebrowLabel>
+        <div className="flex items-center gap-2">
+          <EyebrowLabel>Calendar</EyebrowLabel>
+          {showPager && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                data-testid="mini-calendar-prev"
+                aria-label="Show earlier months"
+                disabled={safeStart === 0}
+                onClick={() => setPageStart(Math.max(0, safeStart - MONTHS_PER_PAGE))}
+                className="inline-flex size-6 items-center justify-center rounded-sm border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+              >
+                <ChevronLeft className="size-3.5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                data-testid="mini-calendar-next"
+                aria-label="Show later months"
+                disabled={safeStart >= maxStart}
+                onClick={() => setPageStart(Math.min(maxStart, safeStart + MONTHS_PER_PAGE))}
+                className="inline-flex size-6 items-center justify-center rounded-sm border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+              >
+                <ChevronRight className="size-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          )}
+        </div>
         {subscribeLink}
       </div>
       <div className="@container">
         <div className="grid grid-cols-1 @lg:grid-cols-2 gap-2">
-          {months.map((m) => (
+          {visibleMonths.map((m) => (
             <CalendarMonth
               key={m.toISOString()}
               monthStart={m}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatTime, formatTimeShort } from "./formatting";
+import { buildSessionTimeRange, formatTime, formatTimeShort } from "./formatting";
 
 describe("formatTime", () => {
   it("returns empty string for null input", () => {
@@ -145,5 +145,95 @@ describe("backwards compatibility (explicit use24h=false)", () => {
 
   it("formatTimeShort still returns compact 12h format with explicit false", () => {
     expect(formatTimeShort("19:00", false)).toBe("7pm");
+  });
+});
+
+describe("buildSessionTimeRange", () => {
+  it("returns null when the session has no start time", () => {
+    expect(
+      buildSessionTimeRange("2026-08-15", null, "11:30:00", "Asia/Tokyo", "America/Los_Angeles", false)
+    ).toBeNull();
+  });
+
+  it("returns a bare compact range when the game has no timezone", () => {
+    const range = buildSessionTimeRange(
+      "2026-08-15",
+      "08:30:00",
+      "11:30:00",
+      null,
+      "America/Los_Angeles",
+      false
+    );
+    expect(range).toEqual({
+      gameTime: "8:30am–11:30am",
+      gameTzAbbrev: null,
+      viewerTime: null,
+      viewerTzAbbrev: null,
+    });
+  });
+
+  it("omits the timezone label when the viewer shares the game's offset", () => {
+    // Amsterdam and Berlin are distinct IANA zones with an identical offset —
+    // the wall clocks agree, so labelling them would be noise.
+    const range = buildSessionTimeRange(
+      "2026-08-16",
+      "19:00:00",
+      "23:00:00",
+      "Europe/Amsterdam",
+      "Europe/Berlin",
+      false
+    );
+    expect(range).toEqual({
+      gameTime: "7pm–11pm",
+      gameTzAbbrev: null,
+      viewerTime: null,
+      viewerTzAbbrev: null,
+    });
+  });
+
+  it("labels the game timezone and converts for a viewer in a different zone", () => {
+    // 08:30 JST on Aug 15 is 16:30 UTC on Aug 14 — i.e. 9:30 AM the previous
+    // day in Los Angeles. This is the row that makes the admin table look
+    // mis-sorted without a label.
+    const range = buildSessionTimeRange(
+      "2026-08-15",
+      "08:30:00",
+      "11:30:00",
+      "Asia/Tokyo",
+      "America/Los_Angeles",
+      false
+    );
+    expect(range?.gameTime).toBe("8:30am–11:30am");
+    expect(range?.gameTzAbbrev).toBe("GMT+9");
+    expect(range?.viewerTime).toBe("4:30 PM – 7:30 PM");
+    expect(range?.viewerTzAbbrev).toBe("PDT");
+  });
+
+  it("converts a start-only session without inventing an end time", () => {
+    const range = buildSessionTimeRange(
+      "2026-08-14",
+      "19:00:00",
+      null,
+      "America/New_York",
+      "America/Los_Angeles",
+      false
+    );
+    expect(range?.gameTime).toBe("7pm");
+    expect(range?.gameTzAbbrev).toBe("EDT");
+    expect(range?.viewerTime).toBe("4:00 PM");
+    expect(range?.viewerTzAbbrev).toBe("PDT");
+  });
+
+  it("honours the 24-hour preference in the game-local range", () => {
+    const range = buildSessionTimeRange(
+      "2026-08-15",
+      "08:30:00",
+      "11:30:00",
+      "Asia/Tokyo",
+      "America/Los_Angeles",
+      true
+    );
+    expect(range?.gameTime).toBe("8:30–11:30");
+    expect(range?.viewerTime).toBe("16:30 – 19:30");
   });
 });

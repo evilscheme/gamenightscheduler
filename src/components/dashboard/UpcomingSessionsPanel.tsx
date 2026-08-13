@@ -4,8 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { parseISO } from 'date-fns';
 import { CalendarClock, MapPin, StickyNote } from 'lucide-react';
-import { formatTimeShort } from '@/lib/formatting';
-import { convertTimeForDisplay } from '@/lib/timezone';
+import { buildSessionTimeRange } from '@/lib/formatting';
 import type { UpcomingSessionRow } from '@/lib/schedule';
 
 const SOFT_CAP = 5;
@@ -19,9 +18,12 @@ function formatSessionDate(dateStr: string): string {
 }
 
 /**
- * Build the time label for a session row, mirroring the game schedule view:
- * a compact game-local time, labelled with the game's timezone abbreviation
- * and a "(… for you)" conversion when the viewer is in a different timezone.
+ * Flatten a session's time range into this panel's one-line label.
+ *
+ * Intentional divergence from ScheduledRow (the game-page view), which only shows the
+ * "for you" conversion when both start and end times exist. Here we also show it for a
+ * start-only session, since this aggregate view is the one place a player sees the start
+ * time in their own zone.
  */
 function formatTimeRange(
   date: string,
@@ -31,31 +33,11 @@ function formatTimeRange(
   userTimezone: string | null,
   use24h: boolean
 ): string {
-  if (!start) return 'time TBD';
-  const base = end
-    ? `${formatTimeShort(start, use24h)}–${formatTimeShort(end, use24h)}`
-    : formatTimeShort(start, use24h);
-
-  // No game timezone recorded: nothing to convert against.
-  if (!gameTimezone) return base;
-
-  const startConv = convertTimeForDisplay(date, start, gameTimezone, userTimezone, use24h);
+  const range = buildSessionTimeRange(date, start, end, gameTimezone, userTimezone, use24h);
+  if (!range) return 'time TBD';
   // Same (or equivalent) timezone: the compact local time is already "for you".
-  if (!startConv.isDifferentTz) return base;
-
-  const gameLabel = `${base} ${startConv.gameTzAbbrev}`;
-  const endConv = end
-    ? convertTimeForDisplay(date, end, gameTimezone, userTimezone, use24h)
-    : null;
-  // Intentional divergence from ScheduledRow (the game-page view), which only shows the
-  // "for you" conversion when both start and end times exist. Here we also show it for a
-  // start-only session, since this aggregate view is the one place a player sees the start
-  // time in their own zone. startConv.userTime is non-null whenever isDifferentTz is true.
-  const forYou =
-    endConv?.userTime != null
-      ? `${startConv.userTime} – ${endConv.userTime} ${startConv.userTzAbbrev}`
-      : `${startConv.userTime} ${startConv.userTzAbbrev}`;
-  return `${gameLabel} (${forYou} for you)`;
+  if (!range.viewerTime) return range.gameTime;
+  return `${range.gameTime} ${range.gameTzAbbrev} (${range.viewerTime} ${range.viewerTzAbbrev} for you)`;
 }
 
 interface UpcomingSessionsPanelProps {

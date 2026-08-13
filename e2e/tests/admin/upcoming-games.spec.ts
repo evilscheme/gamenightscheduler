@@ -215,4 +215,103 @@ test.describe('Admin Upcoming Games tab', () => {
     await expect(rows).toHaveCount(20);
     await expect(previousButton).toBeDisabled();
   });
+
+  // Pinning the browser timezone makes the "for you" conversion deterministic:
+  // with no saved profile timezone the tab falls back to the browser's.
+  test.describe('across timezones', () => {
+    test.use({ timezoneId: 'America/Los_Angeles' });
+
+    test('orders by true instant and labels the timezone that explains the order', async ({
+      page,
+      request,
+    }) => {
+      const ts = Date.now();
+      const admin = await createTestUser(request, {
+        email: `admin-upcoming-tz-${ts}@e2e.local`,
+        name: 'Admin Upcoming TZ',
+        is_gm: false,
+        is_admin: true,
+      });
+      const gm = await createTestUser(request, {
+        email: `upcoming-tz-gm-${ts}@e2e.local`,
+        name: 'Upcoming TZ GM',
+        is_gm: true,
+        is_admin: false,
+      });
+
+      const tokyoGame = await createTestGame({
+        gm_id: gm.id,
+        name: `Upcoming TZ Tokyo ${ts}`,
+        play_days: [5, 6],
+        timezone: 'Asia/Tokyo',
+      });
+      const laGame = await createTestGame({
+        gm_id: gm.id,
+        name: `Upcoming TZ LA ${ts}`,
+        play_days: [5, 6],
+        timezone: 'America/Los_Angeles',
+      });
+
+      // The inversion this view has to survive: Tokyo's 08:30 on the LATER
+      // calendar date is 23:30 UTC on the earlier one, so it genuinely starts
+      // 90 minutes BEFORE the LA session dated a day before it.
+      const laMarker = `TzMarker-${ts}-LA`;
+      const tokyoMarker = `TzMarker-${ts}-TOKYO`;
+      await createTestSession({
+        game_id: laGame.id,
+        date: futureDate(4),
+        confirmed_by: gm.id,
+        start_time: '18:00',
+        end_time: '22:00',
+        location: laMarker,
+      });
+      await createTestSession({
+        game_id: tokyoGame.id,
+        date: futureDate(5),
+        confirmed_by: gm.id,
+        start_time: '08:30',
+        end_time: '11:30',
+        location: tokyoMarker,
+      });
+
+      await loginTestUser(page, {
+        email: admin.email,
+        name: admin.name,
+        is_gm: false,
+        is_admin: true,
+      });
+
+      await page.goto('/admin');
+      await page.getByRole('button', { name: 'Upcoming Games', exact: true }).click();
+
+      const rows = page.locator('table tbody tr');
+      await expect(rows.first()).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
+
+      // This route is system-wide, so our markers can land on any page.
+      const pagerText = await page.getByText(/page \d+ of \d+/i).innerText();
+      const totalPages = Number(pagerText.match(/page \d+ of (\d+)/i)![1]);
+      const nextButton = page.getByRole('button', { name: 'Next page of upcoming sessions' });
+      const allRowTexts: string[] = await rows.allTextContents();
+      for (let p = 2; p <= totalPages; p++) {
+        await nextButton.click();
+        await expect(page.getByText(new RegExp(`page ${p} of`, 'i'))).toBeVisible();
+        allRowTexts.push(...(await rows.allTextContents()));
+      }
+
+      const tokyoIndex = allRowTexts.findIndex((t) => t.includes(tokyoMarker));
+      const laIndex = allRowTexts.findIndex((t) => t.includes(laMarker));
+      expect(tokyoIndex).toBeGreaterThanOrEqual(0);
+      expect(laIndex).toBeGreaterThanOrEqual(0);
+      // Later calendar date, earlier instant, so it sorts first.
+      expect(tokyoIndex).toBeLessThan(laIndex);
+
+      // The label that keeps that from reading as a sorting bug.
+      expect(allRowTexts[tokyoIndex]).toContain('8:30am–11:30am');
+      expect(allRowTexts[tokyoIndex]).toContain('GMT+9');
+      expect(allRowTexts[tokyoIndex]).toContain('for you');
+      // The viewer's own zone needs no label.
+      expect(allRowTexts[laIndex]).toContain('6pm–10pm');
+      expect(allRowTexts[laIndex]).not.toContain('for you');
+    });
+  });
 });

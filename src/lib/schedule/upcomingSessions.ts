@@ -1,5 +1,5 @@
 import type { GameSession } from '@/types';
-import { getSessionInstantMs, getDateInTimezone } from '../timezone';
+import { getSessionInstantMs, getDateInTimezone, isValidTimezone } from '../timezone';
 import { toLocalDateString } from '../date';
 
 export type DayHighlight = 'today' | 'tomorrow' | null;
@@ -33,6 +33,27 @@ export function getUpcomingQueryFloor(nowMs: number): string {
   const d = new Date(nowMs);
   d.setDate(d.getDate() - 2);
   return toLocalDateString(d);
+}
+
+/**
+ * The viewer's own calendar date at `nowMs`, used for the Today/Tomorrow badge.
+ *
+ * `getTodayLocalDate()` reads the *runtime's* timezone, which is only the
+ * viewer's when it runs in the browser. Called from an API route it returns the
+ * server's date — UTC on Vercel — which tags tomorrow's session "Today" for
+ * every viewer west of UTC once their evening rolls past midnight UTC. Routes
+ * must therefore take the viewer's timezone from the request and resolve it
+ * here rather than reading their own clock.
+ *
+ * @param nowMs            Current instant (epoch ms).
+ * @param viewerTimezone   Viewer's IANA timezone; null or unrecognised falls
+ *                         back to the runtime's local date.
+ */
+export function resolveViewerToday(nowMs: number, viewerTimezone: string | null): string {
+  if (!viewerTimezone || !isValidTimezone(viewerTimezone)) {
+    return toLocalDateString(new Date(nowMs));
+  }
+  return getDateInTimezone(nowMs, viewerTimezone);
 }
 
 /** Add one calendar day to a YYYY-MM-DD string, handling month/year rollover. */

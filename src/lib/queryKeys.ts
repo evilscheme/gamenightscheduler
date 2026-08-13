@@ -52,7 +52,10 @@ export const queryKeys = {
   /** Admin top-users leaderboard. */
   adminTopUsers: () => ['adminTopUsers'] as const,
   /** One page of the admin upcoming-sessions table. */
-  adminUpcomingSessions: (page: number) => ['adminUpcomingSessions', page] as const,
+  // The viewer's timezone is part of the key because the route derives each
+  // row's Today/Tomorrow badge from it — same page, different tz, different data.
+  adminUpcomingSessions: (page: number, timezone: string | null) =>
+    ['adminUpcomingSessions', page, timezone] as const,
   /** Full admin snapshot of a single game (NOT the same shape as `game`). */
   adminGame: (gameId: string) => ['adminGame', gameId] as const,
 } as const;

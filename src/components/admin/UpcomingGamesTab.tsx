@@ -6,7 +6,8 @@ import { parseISO } from 'date-fns';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useUserPreferences } from '@/hooks/useUserPreferences';
 import { Button, Card, CardContent, CardHeader, EmptyState, LoadingSpinner } from '@/components/ui';
-import { formatTimeShort } from '@/lib/formatting';
+import { buildSessionTimeRange } from '@/lib/formatting';
+import { getBrowserTimezone } from '@/lib/timezone';
 import { queryKeys } from '@/lib/queryKeys';
 import type { AdminUpcomingSessionRow } from '@/types';
 import { AdminTable, AdminTh } from './AdminTable';
@@ -29,12 +30,17 @@ function formatUpcomingSessionDate(dateStr: string): string {
 }
 
 export function UpcomingGamesTab() {
-  const { use24h } = useUserPreferences();
+  const { use24h, timezone: profileTimezone } = useUserPreferences();
+  // The route needs the viewer's zone to date the Today/Tomorrow badge; it runs
+  // on a UTC server, so its own clock is not the admin's. Prefer the saved
+  // preference, fall back to whatever the browser reports.
+  const viewerTimezone = profileTimezone ?? getBrowserTimezone();
   const [page, setPage] = useState(1);
   const { data, isPending: loading, error } = useQuery({
-    queryKey: queryKeys.adminUpcomingSessions(page),
+    queryKey: queryKeys.adminUpcomingSessions(page, viewerTimezone),
     queryFn: async (): Promise<UpcomingSessionsResponse> => {
-      const url = `/api/admin/upcoming-sessions?page=${page}`;
+      const tzParam = viewerTimezone ? `&tz=${encodeURIComponent(viewerTimezone)}` : '';
+      const url = `/api/admin/upcoming-sessions?page=${page}${tzParam}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Failed to fetch ${url}`);
       return res.json();
@@ -89,7 +95,16 @@ export function UpcomingGamesTab() {
             </tr>
           </thead>
           <tbody>
-            {data.sessions.map((row) => (
+            {data.sessions.map((row) => {
+              const timeRange = buildSessionTimeRange(
+                row.session.date,
+                row.session.start_time,
+                row.session.end_time,
+                row.gameTimezone,
+                viewerTimezone,
+                use24h
+              );
+              return (
               <tr key={row.session.id} className="border-b border-border/50 hover:bg-muted/50">
                 <td className="py-3 px-2 text-foreground whitespace-nowrap">
                   <div className="flex items-center gap-2">
@@ -101,14 +116,31 @@ export function UpcomingGamesTab() {
                     )}
                   </div>
                 </td>
-                <td className="py-3 px-2 text-muted-foreground whitespace-nowrap">
-                  {row.session.start_time
-                    ? `${formatTimeShort(row.session.start_time, use24h)}${
-                        row.session.end_time
-                          ? `–${formatTimeShort(row.session.end_time, use24h)}`
-                          : ''
-                      }`
-                    : 'TBD'}
+                {/*
+                  Rows are ordered by absolute instant across every game's
+                  timezone, so a bare wall clock reads as mis-sorted (8:30am in
+                  Tokyo really does precede 6pm the previous day in LA). The
+                  abbreviation and the viewer conversion are what make the order
+                  legible.
+                */}
+                <td className="py-3 px-2 text-muted-foreground">
+                  {timeRange ? (
+                    <>
+                      <span className="whitespace-nowrap">
+                        {timeRange.gameTime}
+                        {timeRange.gameTzAbbrev && (
+                          <span className="ml-1 text-xs">{timeRange.gameTzAbbrev}</span>
+                        )}
+                      </span>
+                      {timeRange.viewerTime && (
+                        <span className="block whitespace-nowrap text-xs text-muted-foreground/70">
+                          {timeRange.viewerTime} {timeRange.viewerTzAbbrev} for you
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    'TBD'
+                  )}
                 </td>
                 <td className="py-3 px-2 font-medium text-foreground">
                   <Link
@@ -122,7 +154,8 @@ export function UpcomingGamesTab() {
                 <td className="py-3 px-2 text-muted-foreground">{row.gmName}</td>
                 <td className="py-3 px-2 text-muted-foreground">{row.session.location ?? '—'}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </AdminTable>
 

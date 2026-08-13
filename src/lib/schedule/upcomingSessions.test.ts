@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildUpcomingSessionRows,
   getUpcomingQueryFloor,
+  resolveViewerToday,
 } from './upcomingSessions';
 import { toLocalDateString } from '../date';
 import type { GameSession } from '@/types';
@@ -47,6 +48,24 @@ describe('getUpcomingQueryFloor', () => {
     // Parsed as UTC midnight on both sides, so the diff is exact and tz-independent.
     const diffDays = (Date.parse(today) - Date.parse(floor)) / 86_400_000;
     expect(diffDays).toBe(2);
+  });
+});
+
+describe('resolveViewerToday', () => {
+  // 2026-08-13 02:00 UTC is still the evening of 2026-08-12 in the Americas.
+  // Every assertion pins an explicit zone, so these hold on any dev machine.
+  const nowMs = Date.UTC(2026, 7, 13, 2, 0, 0);
+
+  it("returns the viewer's calendar date, not the runtime's", () => {
+    expect(resolveViewerToday(nowMs, 'America/Los_Angeles')).toBe('2026-08-12');
+    expect(resolveViewerToday(nowMs, 'UTC')).toBe('2026-08-13');
+    expect(resolveViewerToday(nowMs, 'Asia/Tokyo')).toBe('2026-08-13');
+  });
+
+  it('falls back to the runtime date for a null or unrecognised timezone', () => {
+    const runtimeToday = toLocalDateString(new Date(nowMs));
+    expect(resolveViewerToday(nowMs, null)).toBe(runtimeToday);
+    expect(resolveViewerToday(nowMs, 'Not/AZone')).toBe(runtimeToday);
   });
 });
 
@@ -106,6 +125,31 @@ describe('buildUpcomingSessionRows', () => {
     expect(byId.today).toBe('today');
     expect(byId.tom).toBe('tomorrow');
     expect(byId.later).toBeNull();
+  });
+
+  it('tags from the viewer date, so a UTC server clock cannot shift the badge a day early', () => {
+    // 2026-08-13 02:00 UTC = the evening of Aug 12 in Los Angeles. The admin
+    // route used to derive `today` from its own runtime (UTC on Vercel), which
+    // tagged an Aug 13 session "Today" while the viewer was still on Aug 12.
+    const nowMs = Date.UTC(2026, 7, 13, 2, 0, 0);
+    const sessions = [mkSession({ id: 'aug13', game_id: 'g1', date: '2026-08-13' })];
+
+    const viewerRows = buildUpcomingSessionRows(
+      sessions,
+      names,
+      resolveViewerToday(nowMs, 'America/Los_Angeles'),
+      nowMs
+    );
+    expect(viewerRows[0].dayHighlight).toBe('tomorrow');
+
+    // The old server-clock behaviour, pinned so the regression is unmistakable.
+    const serverRows = buildUpcomingSessionRows(
+      sessions,
+      names,
+      resolveViewerToday(nowMs, 'UTC'),
+      nowMs
+    );
+    expect(serverRows[0].dayHighlight).toBe('today');
   });
 
   it('computes tomorrow across a month/year boundary', () => {

@@ -3,9 +3,9 @@ import { requireAdmin, paginate } from '@/lib/api/admin';
 import {
   buildUpcomingSessionRows,
   getUpcomingQueryFloor,
+  resolveViewerToday,
   type GameDisplayInfo,
 } from '@/lib/schedule';
-import { getTodayLocalDate } from '@/lib/date';
 import { paginateArray } from '@/lib/pagination';
 import { serverError } from '@/lib/apiError';
 import type { GameSession, AdminUpcomingSessionRow } from '@/types';
@@ -30,7 +30,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     const page = Number.isFinite(pageParam) && pageParam >= 1 ? Math.floor(pageParam) : 1;
 
     const nowMs = Date.now();
-    const today = getTodayLocalDate();
+    // The Today/Tomorrow badge is viewer-relative, so it has to come from the
+    // client's timezone. This route runs on a UTC server in production, and
+    // reading its own clock tagged tomorrow's session "Today" all evening for
+    // anyone west of UTC.
+    const today = resolveViewerToday(nowMs, request.nextUrl.searchParams.get('tz'));
     // Two-day buffer covers the full UTC-12..UTC+14 span; buildUpcomingSessionRows
     // then trims precisely against each game's own timezone (see DashboardContent).
     const floor = getUpcomingQueryFloor(nowMs);

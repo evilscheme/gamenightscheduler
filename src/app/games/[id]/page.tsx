@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
-import { Button, Modal, OnboardingBanner, useToast, PageLoading } from "@/components/ui";
+import { Button, Modal, OnboardingBanner, useToast, PageLoading, PageError } from "@/components/ui";
+import { resolveGameLoadState } from "@/lib/gameLoadState";
 import { shouldShowAvailabilityNudge } from "@/lib/onboarding";
 import { OverviewTabContent } from "@/components/games/overview/OverviewTabContent";
 import { User } from "@/types";
@@ -55,6 +56,13 @@ function GameDetailContent() {
     availabilityHook.loading ||
     sessionsHook.loading ||
     playDatesHook.loading;
+
+  const loadState = resolveGameLoadState({
+    authLoading: authStatus === "loading",
+    gameLoading: loading,
+    gameErrored: meta.isError,
+    hasGame: !!game,
+  });
 
   const refresh = async () => {
     await Promise.all([
@@ -118,12 +126,15 @@ function GameDetailContent() {
 
   useAuthRedirect();
 
-  // Redirect to dashboard if game not found after loading
+  // Redirect to dashboard only when the game is genuinely absent. A load that
+  // *failed* says nothing about whether it exists, and ejecting the player then
+  // lands them on a dashboard whose queries failed the same way — an empty game
+  // list that reads as data loss. See resolveGameLoadState.
   useEffect(() => {
-    if (!loading && !game && userId) {
+    if (loadState === "not-found" && userId) {
       router.push("/dashboard");
     }
-  }, [loading, game, userId, router]);
+  }, [loadState, userId, router]);
 
   const toast = useToast();
 
@@ -172,9 +183,20 @@ function GameDetailContent() {
     notes: string | null,
   ) => confirmSessionRaw(date, startTime, endTime, userId, location, notes);
 
-  if (authStatus === 'loading' || loading) {
+  if (loadState === "loading") {
     return (
       <PageLoading />
+    );
+  }
+
+  if (loadState === "error") {
+    return (
+      <PageError
+        title="Couldn't load this game"
+        message="This is usually temporary. Try again in a moment."
+        onRetry={() => void refresh()}
+        retrying={refreshing}
+      />
     );
   }
 

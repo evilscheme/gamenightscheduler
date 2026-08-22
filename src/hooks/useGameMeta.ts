@@ -20,6 +20,8 @@ import { invalidateGamesLists, queryKeys } from '@/lib/queryKeys';
 export interface UseGameMetaReturn {
   game: GameWithMembers | null;
   loading: boolean;
+  /** The game load failed outright — distinct from the game being absent. */
+  isError: boolean;
   refreshing: boolean;
   otherGames: { id: string; name: string }[];
   refresh: () => Promise<void>;
@@ -43,8 +45,19 @@ export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
         fetchGameWithGM(supabase, gameId),
         fetchGameMembers(supabase, gameId),
       ]);
-      // Not found (or not a participant, which RLS reports the same way).
-      if (gameRes.error || !gameRes.data) return null;
+      // fetchGameWithGM uses .single(), so PostgREST reports "no rows" as an
+      // error (PGRST116) rather than an empty result — and that is how BOTH a
+      // genuinely missing game and an RLS-filtered one arrive. Both mean gone.
+      //
+      // Any OTHER error is a real failure and tells us nothing about whether
+      // the game exists — most often an expired token making PostgREST run as
+      // `anon`, which has no EXECUTE on is_game_participant() and returns
+      // 42501. Throwing keeps that distinguishable from absence and lets the
+      // query client retry once the token refresh lands.
+      if (gameRes.error && gameRes.error.code !== 'PGRST116') {
+        throw new Error(gameRes.error.message || 'Failed to load game');
+      }
+      if (!gameRes.data) return null;
       return { ...gameRes.data, members: membersRes.data } as GameWithMembers;
     },
   });
@@ -152,6 +165,7 @@ export function useGameMeta(gameId: string, userId: string): UseGameMetaReturn {
   return {
     game,
     loading: gameQuery.isPending,
+    isError: gameQuery.isError,
     refreshing,
     otherGames,
     refresh,

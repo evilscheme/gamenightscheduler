@@ -79,8 +79,7 @@ export function AvailabilityTabContent(props: AvailabilityTabContentProps) {
       {showEmptyAdHocPlayer && (
         <div className="rounded-lg border border-primary/30 bg-primary/10 p-3">
           <p className="text-sm text-primary">
-            No play dates have been added yet. Your GM will add dates to the calendar when
-            they&apos;re ready — check back soon!
+            No play dates yet. Ask your GM to add dates, then enter your availability.
           </p>
         </div>
       )}

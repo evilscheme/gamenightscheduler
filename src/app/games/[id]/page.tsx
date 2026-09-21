@@ -193,7 +193,7 @@ function GameDetailContent() {
     return (
       <PageError
         title="Couldn't load this game"
-        message="This is usually temporary. Try again in a moment."
+        message="Try loading the game again."
         onRetry={() => void refresh()}
         retrying={refreshing}
       />

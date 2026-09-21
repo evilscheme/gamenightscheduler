@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAvailability } from './useAvailability';
 import { queryKeys } from '@/lib/queryKeys';
-import type { Availability } from '@/types';
+import type { Availability, GameWithMembers } from '@/types';
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({}),
@@ -44,16 +44,34 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function setup(seed: Availability[]) {
+/**
+ * A game just complete enough for getSchedulingWindow + the defaults plan:
+ * a campaign fixed to Aug 2026 so the window never drifts with the clock.
+ */
+function game(playDays: number[]): GameWithMembers {
+  return {
+    id: GAME_ID,
+    play_days: playDays,
+    scheduling_window_months: 1,
+    campaign_start_date: '2026-08-01',
+    campaign_end_date: '2026-08-31',
+  } as unknown as GameWithMembers;
+}
+
+function setup(
+  seed: Availability[],
+  gameArg: GameWithMembers | null = null,
+  defaultRows: unknown[] = [],
+) {
   dataMocks.fetchAllAvailability.mockResolvedValue({ data: seed, error: null });
-  dataMocks.fetchUserDefaults.mockResolvedValue({ data: [], error: null });
+  dataMocks.fetchUserDefaults.mockResolvedValue({ data: defaultRows, error: null });
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
-  const utils = renderHook(() => useAvailability(GAME_ID, USER_ID, null), {
+  const utils = renderHook(() => useAvailability(GAME_ID, USER_ID, gameArg), {
     wrapper,
   });
   return { ...utils, queryClient };
@@ -208,5 +226,184 @@ describe('useAvailability — bulkSetStatus', () => {
       )
     ).toBe(true);
     expect(dataMocks.fetchAllAvailability).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('useAvailability — applyDefaults', () => {
+  // Aug 2026 window; Wednesdays fall on the 5th, 12th, 19th and 26th.
+  const WEDNESDAYS = ['2026-08-05', '2026-08-12', '2026-08-19', '2026-08-26'];
+  const WED_DEFAULT = {
+    day_of_week: 3,
+    status: 'available',
+    comment: null,
+    available_after: '19:00:00',
+    available_until: null,
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(2026, 7, 1));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Rows handed to the one batched upsert, keyed by date. */
+  function writtenRows() {
+    expect(dataMocks.batchUpsertAvailability).toHaveBeenCalledTimes(1);
+    const rows = dataMocks.batchUpsertAvailability.mock.calls[0][1] as {
+      date: string;
+      status: string;
+      available_after: string | null;
+    }[];
+    return new Map(rows.map((r) => [r.date, r]));
+  }
+
+  it('reports no defaults and writes nothing when none are configured', async () => {
+    const { result } = setup([], game([3]), []);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let res!: Awaited<ReturnType<typeof result.current.applyDefaults>>;
+    await act(async () => {
+      res = await result.current.applyDefaults([]);
+    });
+
+    expect(res).toEqual({ hadDefaults: false, filled: 0, replaced: 0, mismatchedDates: [] });
+    expect(dataMocks.batchUpsertAvailability).not.toHaveBeenCalled();
+  });
+
+  it('fills every blank play date in one batched upsert', async () => {
+    dataMocks.batchUpsertAvailability.mockResolvedValue({ error: null });
+    const { result } = setup([], game([3]), [WED_DEFAULT]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let res!: Awaited<ReturnType<typeof result.current.applyDefaults>>;
+    await act(async () => {
+      res = await result.current.applyDefaults([]);
+    });
+
+    expect(res).toEqual({
+      hadDefaults: true,
+      filled: WEDNESDAYS.length,
+      replaced: 0,
+      mismatchedDates: [],
+    });
+    expect([...writtenRows().keys()].sort()).toEqual(WEDNESDAYS);
+  });
+
+  it('reports an already-answered date instead of overwriting it', async () => {
+    dataMocks.batchUpsertAvailability.mockResolvedValue({ error: null });
+    const seed = [row({ id: 'kept', date: '2026-08-12', status: 'unavailable' })];
+    const { result } = setup(seed, game([3]), [WED_DEFAULT]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let res!: Awaited<ReturnType<typeof result.current.applyDefaults>>;
+    await act(async () => {
+      res = await result.current.applyDefaults([]);
+    });
+
+    expect(res.mismatchedDates).toEqual(['2026-08-12']);
+    expect(res.filled).toBe(3);
+    expect(res.replaced).toBe(0);
+    // The answered date was reported, not written.
+    expect(writtenRows().has('2026-08-12')).toBe(false);
+    expect(result.current.availability['2026-08-12'].status).toBe('unavailable');
+  });
+
+  it('overwrites an answered date only once it is passed back as confirmed', async () => {
+    dataMocks.batchUpsertAvailability.mockResolvedValue({ error: null });
+    const seed = [row({ id: 'old', date: '2026-08-12', status: 'unavailable' })];
+    const { result } = setup(seed, game([3]), [WED_DEFAULT]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let res!: Awaited<ReturnType<typeof result.current.applyDefaults>>;
+    await act(async () => {
+      res = await result.current.applyDefaults([], ['2026-08-12']);
+    });
+
+    expect(res.replaced).toBe(1);
+    expect(res.mismatchedDates).toEqual([]);
+    const written = writtenRows().get('2026-08-12');
+    // Replaced with the default's FULL payload, times included.
+    expect(written).toMatchObject({ status: 'available', available_after: '19:00:00' });
+    await waitFor(() => {
+      expect(result.current.availability['2026-08-12']).toMatchObject({
+        status: 'available',
+        available_after: '19:00:00',
+      });
+    });
+  });
+
+  it('never overwrites a mismatched date the caller did not confirm', async () => {
+    dataMocks.batchUpsertAvailability.mockResolvedValue({ error: null });
+    const seed = [
+      row({ id: 'a', date: '2026-08-12', status: 'unavailable' }),
+      row({ id: 'b', date: '2026-08-19', status: 'maybe' }),
+    ];
+    const { result } = setup(seed, game([3]), [WED_DEFAULT]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let res!: Awaited<ReturnType<typeof result.current.applyDefaults>>;
+    await act(async () => {
+      res = await result.current.applyDefaults([], ['2026-08-12']);
+    });
+
+    const written = writtenRows();
+    expect(written.has('2026-08-12')).toBe(true);
+    expect(written.has('2026-08-19')).toBe(false);
+    // The unconfirmed one is still outstanding, not silently dropped.
+    expect(res.mismatchedDates).toEqual(['2026-08-19']);
+    expect(result.current.availability['2026-08-19'].status).toBe('maybe');
+  });
+
+  it('writes nothing and reports no conflicts when every date already matches', async () => {
+    const seed = WEDNESDAYS.map((date, i) =>
+      row({ id: `w${i}`, date, status: 'available', available_after: '19:00:00' })
+    );
+    const { result } = setup(seed, game([3]), [WED_DEFAULT]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let res!: Awaited<ReturnType<typeof result.current.applyDefaults>>;
+    await act(async () => {
+      res = await result.current.applyDefaults([]);
+    });
+
+    expect(res).toEqual({ hadDefaults: true, filled: 0, replaced: 0, mismatchedDates: [] });
+    expect(dataMocks.batchUpsertAvailability).not.toHaveBeenCalled();
+  });
+
+  it('rolls the answered date back to its old value when the replace write fails', async () => {
+    dataMocks.batchUpsertAvailability.mockResolvedValue({ error: { message: 'boom' } });
+    const seed = [row({ id: 'old', date: '2026-08-12', status: 'unavailable', comment: 'busy' })];
+    const { result } = setup(seed, game([3]), [WED_DEFAULT]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    // Make the reconcile refetch hang so we observe the reverted cache.
+    await act(async () => {
+      dataMocks.fetchAllAvailability.mockReturnValue(new Promise(() => {}));
+      await expect(result.current.applyDefaults([], ['2026-08-12'])).rejects.toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(result.current.availability['2026-08-12']).toEqual({
+        status: 'unavailable',
+        comment: 'busy',
+        available_after: null,
+        available_until: null,
+      });
+    });
+  });
+
+  it('treats an extra play date like any other eligible date', async () => {
+    dataMocks.batchUpsertAvailability.mockResolvedValue({ error: null });
+    // Saturday default, no regular play days.
+    const { result } = setup([], game([]), [{ ...WED_DEFAULT, day_of_week: 6 }]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.applyDefaults(['2026-08-08']); // a Saturday
+    });
+
+    expect([...writtenRows().keys()]).toEqual(['2026-08-08']);
   });
 });

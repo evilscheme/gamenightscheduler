@@ -28,7 +28,7 @@ import {
   applyCopyConflicts,
   type CopyConflict,
   buildBulkUpsertEntries,
-  computeDefaultEntries,
+  planDefaultEntries,
   type WeekdayDefault,
 } from '@/lib/availability';
 import { getSchedulingWindow } from '@/lib/schedule';
@@ -41,8 +41,17 @@ const EMPTY_AVAILABILITY: Availability[] = [];
 export interface ApplyDefaultsResult {
   /** False when the user has not configured any default availability yet. */
   hadDefaults: boolean;
-  /** Number of dates filled (0 when everything eligible was already set). */
+  /** Number of blank dates filled (0 when everything eligible was already set). */
   filled: number;
+  /** Number of already-answered dates overwritten. Only ever non-zero on an opt-in replace. */
+  replaced: number;
+  /**
+   * Eligible dates already answered with something OTHER than the user's
+   * defaults. Nothing has been written to these — they're reported so the
+   * caller can offer to replace them, which is the only way an apply ever
+   * overwrites an answer.
+   */
+  mismatchedDates: string[];
 }
 
 export interface UseAvailabilityReturn {
@@ -65,7 +74,15 @@ export interface UseAvailabilityReturn {
     extraDateStrings: string[],
     conflict: CopyConflict | null,
   ) => Promise<{ copied: number; overridden: number }>;
-  applyDefaults: (extraDateStrings: string[]) => Promise<ApplyDefaultsResult>;
+  /**
+   * Fill blank dates from the user's weekday defaults. Pass `replaceDates` —
+   * the dates a previous call reported as `mismatchedDates`, after the user
+   * confirmed — to also overwrite those.
+   */
+  applyDefaults: (
+    extraDateStrings: string[],
+    replaceDates?: string[],
+  ) => Promise<ApplyDefaultsResult>;
   removePlayerData: (playerId: string) => void;
   refresh: () => Promise<void>;
 }
@@ -305,8 +322,17 @@ export function useAvailability(
   );
 
   const applyDefaults = useCallback(
-    async (extraDateStrings: string[]): Promise<ApplyDefaultsResult> => {
-      if (!userId || !gameId || !game) return { hadDefaults: false, filled: 0 };
+    async (
+      extraDateStrings: string[],
+      replaceDates?: string[],
+    ): Promise<ApplyDefaultsResult> => {
+      const empty: ApplyDefaultsResult = {
+        hadDefaults: false,
+        filled: 0,
+        replaced: 0,
+        mismatchedDates: [],
+      };
+      if (!userId || !gameId || !game) return empty;
 
       // Force a fresh read (defaults may have been edited in another tab) and
       // refresh the cached copy while we're at it.
@@ -315,9 +341,7 @@ export function useAvailability(
         queryFn: defaultsQueryFn,
         staleTime: 0,
       });
-      if (!defaultRows || defaultRows.length === 0) {
-        return { hadDefaults: false, filled: 0 };
-      }
+      if (!defaultRows || defaultRows.length === 0) return empty;
 
       const defaults: Record<number, WeekdayDefault> = {};
       defaultRows.forEach((d) => {
@@ -334,7 +358,7 @@ export function useAvailability(
       // getSchedulingWindow can return start > end (empty window); eachDayOfInterval would throw.
       const dates = isAfter(start, end) ? [] : eachDayOfInterval({ start, end });
 
-      const entries = computeDefaultEntries({
+      const { toFill, toReplace } = planDefaultEntries({
         defaults,
         dates,
         playDays: game.play_days,
@@ -345,7 +369,22 @@ export function useAvailability(
         getDayOfWeek: getDay,
       });
 
-      if (entries.length === 0) return { hadDefaults: true, filled: 0 };
+      // The plan is recomputed fresh on the confirm call, so only overwrite a
+      // date that is BOTH still a mismatch and one the user was actually
+      // shown — a calendar edited in another tab can't smuggle in a date the
+      // confirmation dialog never listed.
+      const confirmed = new Set(replaceDates ?? []);
+      const replacing = toReplace.filter((e) => confirmed.has(e.date));
+      const entries = [...toFill, ...replacing];
+
+      // Dates left unwritten because the user hasn't agreed to overwrite them.
+      const mismatchedDates = toReplace
+        .filter((e) => !confirmed.has(e.date))
+        .map((e) => e.date);
+
+      if (entries.length === 0) {
+        return { hadDefaults: true, filled: 0, replaced: 0, mismatchedDates };
+      }
 
       const datedEntries = entries.map((e) => ({
         date: e.date,
@@ -366,7 +405,12 @@ export function useAvailability(
         throw error;
       }
 
-      return { hadDefaults: true, filled: entries.length };
+      return {
+        hadDefaults: true,
+        filled: toFill.length,
+        replaced: replacing.length,
+        mismatchedDates,
+      };
     },
     [userId, gameId, game, availability, optimisticallyApply, queryClient, defaultsQueryFn, toUpsertRow, revertAndReconcile],
   );

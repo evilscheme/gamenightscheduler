@@ -277,7 +277,9 @@ test.describe('Ad-Hoc Games', () => {
       await expect(page.getByText(/mark your availability/i)).toBeVisible();
 
       // Player should see message about no play dates yet
-      await expect(page.getByText(/no play dates have been added yet/i)).toBeVisible();
+      await expect(
+        page.getByText('No play dates yet. Ask your GM to add dates, then enter your availability.'),
+      ).toBeVisible();
     });
   });
 

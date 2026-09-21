@@ -111,7 +111,7 @@ describe('GameForm', () => {
         mode="create"
         initial={baseInitial}
         busy={false}
-        disabledReason="Game limit reached — remove a game to unlock this."
+        disabledReason="Game limit reached. Delete an existing game to create another."
         onSubmit={onSubmit}
         onCancel={onCancel}
       />,
@@ -119,7 +119,7 @@ describe('GameForm', () => {
 
     expect(screen.getByRole('button', { name: /create game/i })).toBeDisabled();
     expect(
-      screen.getByText('Game limit reached — remove a game to unlock this.'),
+      screen.getByText('Game limit reached. Delete an existing game to create another.'),
     ).toBeInTheDocument();
   });
 });

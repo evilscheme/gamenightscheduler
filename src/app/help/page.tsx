@@ -26,7 +26,7 @@ export default function HelpPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">How to Use Can We Play?</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Everything you need to know about scheduling game nights.
+          How to create a game, mark availability, and schedule sessions.
         </p>
       </div>
 
@@ -73,8 +73,8 @@ export default function HelpPage() {
                 create or edit page to clamp the calendar to that range.
               </p>
               <p>
-                Dates outside the campaign window are shown as out-of-range and can&apos;t be marked
-                or confirmed as sessions, so players only see dates that actually matter.
+                Dates outside the campaign window are marked as out-of-range. Players can&apos;t
+                add availability or confirm sessions on those dates.
               </p>
             </HelpSection>
 

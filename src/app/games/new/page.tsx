@@ -160,7 +160,7 @@ export default function NewGamePage() {
         error={error}
         disabledReason={
           atGameLimit
-            ? 'Game limit reached — remove a game to unlock this.'
+            ? 'Game limit reached. Delete an existing game to create another.'
             : null
         }
         onSubmit={handleCreate}

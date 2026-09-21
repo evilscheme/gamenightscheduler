@@ -40,7 +40,7 @@ export interface AvailabilityTabContentProps {
     sourceGameId: string,
     conflict: import('@/lib/availability').CopyConflict | null,
   ) => Promise<{ copied: number; overridden: number }>;
-  onApplyDefaults?: () => Promise<ApplyDefaultsResult>;
+  onApplyDefaults?: (replaceDates?: string[]) => Promise<ApplyDefaultsResult>;
   hasDefaults?: boolean | null;
   playDateNotes: Map<string, string>;
   onUpdatePlayDateNote: (date: string, note: string | null) => void;

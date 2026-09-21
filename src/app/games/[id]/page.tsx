@@ -354,7 +354,7 @@ function GameDetailContent() {
           otherGames={otherGames}
           otherGameSessionsByDate={otherGameSessionsByDate}
           onCopyFromGame={copyFromGame}
-          onApplyDefaults={() => applyDefaults(extraDateStrings)}
+          onApplyDefaults={(replaceDates) => applyDefaults(extraDateStrings, replaceDates)}
           hasDefaults={hasDefaults}
           playDateNotes={playDateNotes}
           onUpdatePlayDateNote={updatePlayDateNote}

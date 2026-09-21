@@ -27,7 +27,8 @@ function DefaultAvailabilityContent() {
       <p className="mb-8 text-muted-foreground">
         Set your usual weekly availability. You can apply it to pre-fill any game&apos;s calendar
         from that game&apos;s <span className="font-medium text-foreground">Availability</span> tab.
-        Applying never overwrites dates you&apos;ve already set.
+        Applying fills blank dates only — if any dates you&apos;ve already marked disagree with
+        these defaults, you&apos;ll be asked before anything is overwritten.
       </p>
 
       <DefaultAvailabilityEditor />

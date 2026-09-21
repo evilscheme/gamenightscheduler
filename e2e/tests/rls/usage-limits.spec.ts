@@ -77,7 +77,9 @@ test.describe('Usage Limits - RLS Policy Enforcement', () => {
       // addition to the top-of-page banner), so it's visible at the point of
       // the disabled action without needing to scroll back up. Distinct
       // wording from the banner text above avoids an ambiguous double-match.
-      await expect(page.getByText(/game limit reached — remove a game/i)).toBeVisible();
+      await expect(
+        page.getByText('Game limit reached. Delete an existing game to create another.', { exact: true }),
+      ).toBeVisible();
     });
   });
 

@@ -232,10 +232,15 @@ export default function HelpPage() {
               <p>
                 On any game&apos;s Availability tab, click <strong className="text-foreground">Apply my
                 default availability</strong> to fill that game&apos;s calendar from your pattern.
-                It fills only the dates you haven&apos;t answered yet, leaving anything you&apos;ve
-                already marked untouched, and you can apply it again later (for example, after your
-                GM adds play dates). Use <strong className="text-foreground">Edit defaults</strong> beside
-                the button to change your pattern.
+                It only fills dates you haven&apos;t answered yet. If any dates you&apos;ve already
+                marked disagree with your pattern, they&apos;re listed first so you can
+                decide: <strong className="text-foreground">Replace</strong> updates them to match,
+                and <strong className="text-foreground">Keep them</strong> leaves them as they are.
+              </p>
+              <p>
+                Apply it again any time &mdash; after your GM adds play dates, or after you revise
+                your pattern with <strong className="text-foreground">Edit defaults</strong> beside
+                the button.
               </p>
             </HelpSection>
 

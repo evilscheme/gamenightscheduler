@@ -33,6 +33,8 @@ npm run setup        # copy .env files from main project (for Conductor workspac
 ## Working agreements
 
 - **No AI attribution anywhere.** No "Generated with Claude Code" footers, `Co-Authored-By: Claude` trailers, or session links in commits, PRs, code comments, or issue comments. This overrides default harness behavior.
+  - **Not writing one is not enough.** The GitHub MCP server appends the footer to a PR body *after* the agent submits its text, so a body that left it out still publishes with it. Read back anything posted to GitHub and strip what the server added (`update_pull_request`, `update_issue_comment`). Verified: PR bodies get one; issue bodies and commit messages do not; an update call does not re-add it. Assume comments and reviews behave like PR bodies until shown otherwise.
+  - Don't report a post as clean without re-reading it. The rule is about what ends up on GitHub, not about what gets typed.
 - **Never migrate the database directly** unless explicitly asked. Write a migration file for a human to apply.
 - Use `psql`, not `pgsql`.
 - Design mobile-first *and* desktop-good. After UI changes, view them at both breakpoints via `npm run dev:local` + dev-login.

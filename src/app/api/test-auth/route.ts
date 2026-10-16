@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, findAuthUserByEmail } from '@/lib/supabase/admin';
 import { isLocalSupabase } from '@/lib/supabase/env';
 
 /**
@@ -97,8 +97,7 @@ export async function POST(request: Request): Promise<Response> {
     if (createError) {
       // If user already exists, find them and update password
       if (createError.message?.includes('already')) {
-        const { data: existingUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
-        const existingUser = existingUsers?.users.find((u) => u.email === email);
+        const existingUser = await findAuthUserByEmail(admin, email);
         if (!existingUser) {
           return NextResponse.json(
             { error: 'User exists but could not be found' },
@@ -222,9 +221,7 @@ export async function DELETE(request: Request): Promise<Response> {
 
     const admin = createAdminClient();
 
-    // Find user by email
-    const { data: users } = await admin.auth.admin.listUsers({ perPage: 1000 });
-    const user = users?.users.find((u) => u.email === email);
+    const user = await findAuthUserByEmail(admin, email);
 
     if (!user) {
       return NextResponse.json({ success: true, message: 'User not found' });

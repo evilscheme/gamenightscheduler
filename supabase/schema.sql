@@ -126,6 +126,41 @@ CREATE TABLE game_play_dates (
   UNIQUE(game_id, date)
 );
 
+-- Admin platform-health history. One row per UTC day: how many users and games were
+-- in each health bucket at the end of that day. Buckets are defined and computed in
+-- TypeScript (HealthBucket in src/lib/admin/platformHealth.ts), so rows are written by
+-- the app, never by SQL. Dormant games and churned users aren't stored: they're the
+-- remainder, total minus the tracked buckets. `source` records whether the row was
+-- captured near the day it describes ('snapshot') or rebuilt later from row timestamps
+-- ('reconstructed' — undercounts anything deleted since, so treat it as approximate).
+CREATE TABLE platform_daily_stats (
+  day DATE PRIMARY KEY,
+  source TEXT NOT NULL CHECK (source IN ('snapshot', 'reconstructed')),
+  total_users INTEGER NOT NULL,
+  healthy_booked_users INTEGER NOT NULL,
+  healthy_viable_users INTEGER NOT NULL,
+  getting_going_users INTEGER NOT NULL,
+  unhealthy_users INTEGER NOT NULL,
+  total_games INTEGER NOT NULL,
+  healthy_booked_games INTEGER NOT NULL,
+  healthy_viable_games INTEGER NOT NULL,
+  getting_going_games INTEGER NOT NULL,
+  unhealthy_games INTEGER NOT NULL,
+  computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Append-only record of hard deletes, written by the log_deletion() trigger. Deletes
+-- are otherwise invisible: nothing in the schema soft-deletes. Deliberately holds no
+-- ids or content — only what was deleted and when. `cascaded` is TRUE when the row
+-- went because its parent did (a game's sessions when the game is deleted), so charts
+-- can count the deliberate action once instead of once per child row.
+CREATE TABLE deletion_log (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  entity TEXT NOT NULL CHECK (entity IN ('user', 'game', 'session', 'membership')),
+  cascaded BOOLEAN NOT NULL,
+  deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ============================================
 -- 3. Indexes
 -- ============================================
@@ -143,6 +178,7 @@ CREATE INDEX idx_sessions_date ON sessions(date);
 CREATE INDEX idx_sessions_confirmed_by ON sessions(confirmed_by);
 CREATE INDEX idx_game_play_dates_game_id ON game_play_dates(game_id);
 CREATE INDEX idx_game_play_dates_date ON game_play_dates(date);
+CREATE INDEX idx_deletion_log_deleted_at ON deletion_log(deleted_at);
 
 -- ============================================
 -- 4. Functions
@@ -446,6 +482,36 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 REVOKE EXECUTE ON FUNCTION public.join_game_by_invite(TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.join_game_by_invite(TEXT) TO authenticated;
 
+-- AFTER DELETE trigger body for deletion_log. A child row counts as cascaded when its
+-- parent is already gone: inside a cascading delete the parent row is no longer
+-- visible to the RI action that removes the child, so NOT EXISTS is true exactly
+-- for cascade deletes. A user row is never cascaded — account deletion is the act.
+CREATE OR REPLACE FUNCTION public.log_deletion()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_entity TEXT;
+  v_cascaded BOOLEAN := FALSE;
+BEGIN
+  CASE TG_TABLE_NAME
+    WHEN 'users' THEN
+      v_entity := 'user';
+    WHEN 'games' THEN
+      v_entity := 'game';
+      v_cascaded := NOT EXISTS (SELECT 1 FROM public.users WHERE id = OLD.gm_id);
+    WHEN 'sessions' THEN
+      v_entity := 'session';
+      v_cascaded := NOT EXISTS (SELECT 1 FROM public.games WHERE id = OLD.game_id);
+    WHEN 'game_memberships' THEN
+      v_entity := 'membership';
+      v_cascaded := NOT EXISTS (SELECT 1 FROM public.games WHERE id = OLD.game_id)
+        OR NOT EXISTS (SELECT 1 FROM public.users WHERE id = OLD.user_id);
+  END CASE;
+
+  INSERT INTO public.deletion_log (entity, cascaded) VALUES (v_entity, v_cascaded);
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
 -- ============================================
 -- 5. Triggers
 -- ============================================
@@ -482,6 +548,20 @@ CREATE TRIGGER protect_game_gm_id
   BEFORE UPDATE OF gm_id ON games
   FOR EACH ROW
   EXECUTE FUNCTION public.protect_game_gm_id();
+
+-- Record hard deletes for the admin deletions-over-time chart
+CREATE TRIGGER log_user_deletion
+  AFTER DELETE ON users
+  FOR EACH ROW EXECUTE FUNCTION public.log_deletion();
+CREATE TRIGGER log_game_deletion
+  AFTER DELETE ON games
+  FOR EACH ROW EXECUTE FUNCTION public.log_deletion();
+CREATE TRIGGER log_session_deletion
+  AFTER DELETE ON sessions
+  FOR EACH ROW EXECUTE FUNCTION public.log_deletion();
+CREATE TRIGGER log_membership_deletion
+  AFTER DELETE ON game_memberships
+  FOR EACH ROW EXECUTE FUNCTION public.log_deletion();
 
 -- ============================================
 -- 6. Row Level Security (RLS)
@@ -604,6 +684,11 @@ CREATE POLICY "GMs and co-GMs can update play dates" ON game_play_dates
 CREATE POLICY "GMs and co-GMs can delete play dates" ON game_play_dates
   FOR DELETE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
 
+-- Admin-only tables: RLS on with no policies, so anon/authenticated see nothing.
+-- Read and written only through the service-role admin client.
+ALTER TABLE platform_daily_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE deletion_log ENABLE ROW LEVEL SECURITY;
+
 -- ============================================================
 -- Data API role grants
 -- ============================================================
@@ -647,3 +732,4 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.protect_user_columns() FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.protect_game_gm_id() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.log_deletion() FROM authenticated;

@@ -11,7 +11,7 @@ import { TopUsersTab } from '@/components/admin/TopUsersTab';
 import { ActivityTab } from '@/components/admin/ActivityTab';
 import { UpcomingGamesTab } from '@/components/admin/UpcomingGamesTab';
 import { queryKeys } from '@/lib/queryKeys';
-import type { AdminStats, GameWithEngagement } from '@/types/api';
+import type { AdminGamesResponse, AdminStats } from '@/types/api';
 import type { TopUsersResult } from '@/lib/admin';
 
 type Tab = 'overview' | 'games' | 'topUsers' | 'activity' | 'upcomingGames';
@@ -42,11 +42,10 @@ export default function AdminPage() {
 
   const gamesQuery = useQuery({
     queryKey: queryKeys.adminGames(),
-    queryFn: async (): Promise<GameWithEngagement[]> => {
+    queryFn: async (): Promise<AdminGamesResponse> => {
       const res = await fetch('/api/admin/games');
       if (!res.ok) throw new Error('Failed to fetch admin data');
-      const data = await res.json();
-      return data.games;
+      return res.json();
     },
     enabled: !!profile?.is_admin,
   });
@@ -62,7 +61,8 @@ export default function AdminPage() {
   });
 
   const stats = statsQuery.data ?? null;
-  const games = gamesQuery.data ?? [];
+  const games = gamesQuery.data?.games ?? [];
+  const health = gamesQuery.data?.health ?? null;
   const topUsers = topUsersQuery.data ?? null;
   const loading = statsQuery.isPending || gamesQuery.isPending || topUsersQuery.isPending;
   const error =
@@ -112,7 +112,9 @@ export default function AdminPage() {
         <div className="text-danger text-center py-12">{error}</div>
       ) : (
         <>
-          {activeTab === 'overview' && stats && <OverviewTab stats={stats} games={games} />}
+          {activeTab === 'overview' && stats && health && (
+            <OverviewTab stats={stats} games={games} health={health} />
+          )}
           {activeTab === 'games' && <GamesTab games={games} />}
           {activeTab === 'topUsers' && topUsers && <TopUsersTab topUsers={topUsers} />}
           {activeTab === 'activity' && stats && <ActivityTab stats={stats} />}

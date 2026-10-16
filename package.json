@@ -15,6 +15,8 @@
     "db:wipe": "tsx scripts/wipe-database.ts",
     "db:seed-showcase": "tsx scripts/seed-showcase.ts",
     "db:delete-user": "env-cmd -f .env.local tsx scripts/delete-user.ts",
+    "db:backfill-stats": "TZ=UTC env-cmd -f .env.local tsx scripts/backfill-platform-stats.ts",
+    "db:backfill-stats:local": "TZ=UTC env-cmd -f .env.local.supabase tsx scripts/backfill-platform-stats.ts",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",

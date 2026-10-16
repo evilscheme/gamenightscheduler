@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, findAuthUserByEmail } from '@/lib/supabase/admin';
 import { isLocalSupabase } from '@/lib/supabase/env';
 
 interface DevUser {
@@ -37,42 +37,9 @@ export async function loginAsDevUser(persona: string): Promise<{ success: boolea
   }
 
   const testPassword = 'dev-password-123!';
+  const credentials = { email: devUser.email, password: testPassword };
   const admin = createAdminClient();
 
-  // Create or find the user
-  let userId: string;
-
-  const { data: newUser, error: createError } = await admin.auth.admin.createUser({
-    email: devUser.email,
-    password: testPassword,
-    email_confirm: true,
-    user_metadata: { full_name: devUser.name },
-  });
-
-  if (createError) {
-    if (createError.message?.includes('already')) {
-      // User exists — find them and update password
-      const { data: existingUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
-      const existing = existingUsers?.users.find((u) => u.email === devUser.email);
-      if (!existing) {
-        return { success: false, error: 'User exists but could not be found' };
-      }
-      userId = existing.id;
-      await admin.auth.admin.updateUserById(userId, { password: testPassword });
-    } else {
-      return { success: false, error: `Failed to create user: ${createError.message}` };
-    }
-  } else {
-    userId = newUser.user!.id;
-  }
-
-  // Upsert profile (handles case where public.users row was wiped by db:reset)
-  await admin
-    .from('users')
-    .upsert({ id: userId, email: devUser.email, name: devUser.name, is_gm: devUser.is_gm, is_admin: devUser.is_admin })
-    .eq('id', userId);
-
-  // Sign in and set session cookies
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -91,14 +58,44 @@ export async function loginAsDevUser(persona: string): Promise<{ success: boolea
     }
   );
 
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: devUser.email,
-    password: testPassword,
-  });
+  // Try the known password first. Setting it unconditionally (as this used to)
+  // revoked every session the persona had — GoTrue deletes them on any admin
+  // password change, even to the same value — so each login signed out every
+  // other browser, tab or Playwright context logged in as the same persona.
+  let { data: signIn, error: signInError } = await supabase.auth.signInWithPassword(credentials);
 
   if (signInError) {
-    return { success: false, error: `Failed to sign in: ${signInError.message}` };
+    // No such user yet, or one created elsewhere with a different password.
+    const { error: createError } = await admin.auth.admin.createUser({
+      ...credentials,
+      email_confirm: true,
+      user_metadata: { full_name: devUser.name },
+    });
+
+    if (createError) {
+      if (!createError.message?.includes('already')) {
+        return { success: false, error: `Failed to create user: ${createError.message}` };
+      }
+      // Exists with another password — reset it. The only path that revokes sessions.
+      const existing = await findAuthUserByEmail(admin, devUser.email);
+      if (!existing) {
+        return { success: false, error: 'User exists but could not be found' };
+      }
+      await admin.auth.admin.updateUserById(existing.id, { password: testPassword });
+    }
+
+    ({ data: signIn, error: signInError } = await supabase.auth.signInWithPassword(credentials));
+    if (signInError) {
+      return { success: false, error: `Failed to sign in: ${signInError.message}` };
+    }
   }
+
+  // Upsert profile (handles case where public.users row was wiped by db:reset)
+  const userId = signIn.user!.id;
+  await admin
+    .from('users')
+    .upsert({ id: userId, email: devUser.email, name: devUser.name, is_gm: devUser.is_gm, is_admin: devUser.is_admin })
+    .eq('id', userId);
 
   return { success: true, user: devUser };
 }

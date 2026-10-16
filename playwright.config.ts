@@ -98,6 +98,7 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_ANON_KEY: SUPABASE_LOCAL_ANON_KEY,
       SUPABASE_SERVICE_ROLE_KEY: SUPABASE_LOCAL_SERVICE_KEY,
       TEST_AUTH_SECRET: 'test-secret-for-e2e',
+      CRON_SECRET: 'test-cron-secret-for-e2e',
     },
   },
 });

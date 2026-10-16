@@ -3,28 +3,43 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui';
-import type { HealthBreakdown, HealthGrade } from '@/lib/schedule';
+import { differenceInCalendarDays } from 'date-fns';
+import { HEALTH_BUCKET_ORDER, isHealthy, type HealthBucket } from '@/lib/admin';
 import type { GameWithEngagement } from '@/types/api';
 import { AdminTable, AdminTh, AdminEmptyRow } from './AdminTable';
 
 type SortField = 'health' | 'name' | 'created' | 'lastActivity';
 
-const HEALTH_GRADE_STYLES: Record<HealthGrade, string> = {
-  A: 'bg-success/10 text-success',
-  B: 'bg-primary/10 text-primary',
-  C: 'bg-warning/10 text-warning',
-  D: 'bg-danger/10 text-danger',
-  F: 'bg-danger/20 text-danger font-semibold',
+// Both healthy buckets read "Healthy"; the solid vs outlined badge shows the evidence.
+const BUCKET_BADGE: Record<HealthBucket, { text: string; style: string }> = {
+  healthyBooked: { text: 'Healthy', style: 'bg-success/15 text-success' },
+  healthyViable: { text: 'Healthy', style: 'border border-success/40 text-success' },
+  gettingGoing: { text: 'Getting going', style: 'bg-warning/10 text-warning' },
+  unhealthy: { text: 'Unhealthy', style: 'bg-danger/10 text-danger' },
+  dormant: { text: 'Dormant', style: 'bg-muted text-muted-foreground' },
 };
 
-function formatBreakdownTooltip(b: HealthBreakdown): string {
-  return `Players: ${b.playerScore} | Sessions: ${b.sessionScore} | Fill Rate: ${b.fillRateScore} | Recency: ${b.recencyScore}`;
+const rank = (g: GameWithEngagement) => HEALTH_BUCKET_ORDER.indexOf(g.healthBucket);
+
+/** Why a game is in its bucket, in the terms the bucket is defined by. */
+function healthReason(game: GameWithEngagement): string {
+  if (game.healthBucket === 'healthyBooked') {
+    return `${game.playerCount} players, ${game.futureSessionCount} upcoming session${game.futureSessionCount === 1 ? '' : 's'}`;
+  }
+  if (game.viableDate) {
+    const { date, available, needed } = game.viableDate;
+    const day = new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    return `Nothing booked, but ${day} works for ${available} (${needed} needed)`;
+  }
+  const quiet = game.lastActivity ? differenceInCalendarDays(new Date(), new Date(game.lastActivity)) : null;
+  const booked = game.futureSessionCount > 0 ? 'Session booked, but no players yet' : 'Nothing booked';
+  return quiet === null ? booked : `${booked}; last activity ${quiet === 0 ? 'today' : `${quiet} day${quiet === 1 ? '' : 's'} ago`}`;
 }
 
 export function GamesTab({ games }: { games: GameWithEngagement[] }) {
   const [sortBy, setSortBy] = useState<SortField>('health');
   const [sortDesc, setSortDesc] = useState(true);
-  const [hideUnhealthy, setHideUnhealthy] = useState(false);
+  const [hideDormant, setHideDormant] = useState(false);
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'Never';
@@ -32,13 +47,15 @@ export function GamesTab({ games }: { games: GameWithEngagement[] }) {
   };
 
   const sortedGames = useMemo(() => {
-    const filtered = hideUnhealthy ? games.filter((g) => g.healthScore >= 30) : games;
+    const filtered = hideDormant ? games.filter((g) => g.healthBucket !== 'dormant') : games;
 
     const sorted = [...filtered].sort((a, b) => {
       let cmp = 0;
       switch (sortBy) {
         case 'health':
-          cmp = a.healthScore - b.healthScore;
+          // Healthier sorts higher; within a state, more recent activity first.
+          cmp = rank(b) - rank(a)
+            || (a.lastActivity ?? '').localeCompare(b.lastActivity ?? '');
           break;
         case 'name':
           cmp = a.name.localeCompare(b.name);
@@ -54,9 +71,9 @@ export function GamesTab({ games }: { games: GameWithEngagement[] }) {
     });
 
     return sorted;
-  }, [games, sortBy, sortDesc, hideUnhealthy]);
+  }, [games, sortBy, sortDesc, hideDormant]);
 
-  const healthyCount = games.filter((g) => g.healthScore >= 60).length;
+  const healthyCount = games.filter((g) => isHealthy(g.healthBucket)).length;
 
   const handleSortChange = (field: SortField) => {
     if (sortBy === field) {
@@ -81,11 +98,11 @@ export function GamesTab({ games }: { games: GameWithEngagement[] }) {
             <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={hideUnhealthy}
-                onChange={(e) => setHideUnhealthy(e.target.checked)}
+                checked={hideDormant}
+                onChange={(e) => setHideDormant(e.target.checked)}
                 className="rounded-sm border-border"
               />
-              Hide unhealthy (score &lt; 30)
+              Hide dormant
             </label>
           </div>
         </div>
@@ -110,10 +127,10 @@ export function GamesTab({ games }: { games: GameWithEngagement[] }) {
               <tr key={game.id} className="border-b border-border/50 hover:bg-muted/50">
                 <td className="py-3 px-2 text-center">
                   <span
-                    className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-sm text-xs font-medium cursor-help ${HEALTH_GRADE_STYLES[game.healthGrade]}`}
-                    title={`${game.healthLabel} (${game.healthScore}/100)\n${formatBreakdownTooltip(game.healthBreakdown)}`}
+                    className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-sm text-xs font-medium cursor-help ${BUCKET_BADGE[game.healthBucket].style}`}
+                    title={healthReason(game)}
                   >
-                    {game.healthGrade} {game.healthScore}
+                    {BUCKET_BADGE[game.healthBucket].text}
                   </span>
                 </td>
                 <td className="py-3 px-2 font-medium text-foreground">
@@ -147,7 +164,7 @@ export function GamesTab({ games }: { games: GameWithEngagement[] }) {
               </tr>
             ))}
             {sortedGames.length === 0 && (
-              <AdminEmptyRow colSpan={9} message={hideUnhealthy ? 'No healthy games found' : 'No games found'} />
+              <AdminEmptyRow colSpan={9} message={hideDormant ? 'No live games found' : 'No games found'} />
             )}
           </tbody>
         </AdminTable>

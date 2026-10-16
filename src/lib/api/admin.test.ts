@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { paginate, requireAdmin, type AdminClient } from './admin';
+import { createTtlCache, paginate, requireAdmin, type AdminClient } from './admin';
 
 const authMocks = vi.hoisted(() => {
   const serverClient = {
@@ -173,5 +173,23 @@ describe('paginate', () => {
     await expect(paginate<{ id: number }>(client, 'users', 'id')).rejects.toThrow(
       'database unavailable',
     );
+  });
+});
+
+describe('createTtlCache', () => {
+  it('returns an entry until it is older than the TTL', () => {
+    vi.useFakeTimers();
+    try {
+      const cache = createTtlCache<string>(1000);
+      cache.set('k', 'v');
+      expect(cache.get('k')).toBe('v');
+      vi.advanceTimersByTime(999);
+      expect(cache.get('k')).toBe('v');
+      vi.advanceTimersByTime(1);
+      expect(cache.get('k')).toBeUndefined();
+      expect(cache.get('missing')).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

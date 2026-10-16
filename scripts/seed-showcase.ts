@@ -19,6 +19,7 @@
  * the game — its id/url is printed at the end.
  */
 import { createClient } from '@supabase/supabase-js';
+import { findAuthUserByEmail, listAllAuthUsers } from '../src/lib/supabase/admin';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://localhost:54321';
 const SERVICE_KEY =
@@ -101,8 +102,7 @@ async function upsertUser(p: Person): Promise<string> {
     if (!error.message?.toLowerCase().includes('already')) {
       throw new Error(`createUser(${p.email}) failed: ${error.message}`);
     }
-    const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });
-    const existing = list?.users.find((u) => u.email === p.email);
+    const existing = await findAuthUserByEmail(admin, p.email);
     if (!existing) throw new Error(`User ${p.email} reported as existing but not found`);
     id = existing.id;
   } else {
@@ -202,9 +202,8 @@ function rollMark(person: Person, weekday: number, rng: () => number): Mark {
 // local DB doesn't accumulate orphaned @players.local users.
 async function cleanupStalePlayers() {
   const keep = new Set(PLAYERS.map((p) => p.email));
-  const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });
   let removed = 0;
-  for (const usr of list?.users ?? []) {
+  for (const usr of await listAllAuthUsers(admin)) {
     if (usr.email?.endsWith('@players.local') && !keep.has(usr.email)) {
       await admin.from('users').delete().eq('id', usr.id);
       await admin.auth.admin.deleteUser(usr.id);

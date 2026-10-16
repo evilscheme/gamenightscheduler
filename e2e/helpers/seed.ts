@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { listAllAuthUsers } from '../../src/lib/supabase/admin';
 import { execSync } from 'child_process';
 import * as path from 'path';
 
@@ -251,14 +252,10 @@ export async function getGameByInviteCode(
 export async function cleanTestUsers(): Promise<void> {
   const admin = getAdminClient();
 
-  const { data: users } = await admin.auth.admin.listUsers();
-
-  if (!users?.users) return;
-
-  const testUsers = users.users.filter(
-    (u) => u.email?.includes('test') || u.email?.includes('@e2e.')
-  );
-
+  // Every page: reading one default-sized page (50) let test users pile up across
+  // local runs, since the schema reset leaves auth.users alone.
+  const users = await listAllAuthUsers(admin);
+  const testUsers = users.filter((u) => u.email?.includes('test') || u.email?.includes('@e2e.'));
   for (const user of testUsers) {
     await admin.auth.admin.deleteUser(user.id);
   }
@@ -365,8 +362,12 @@ export function isSupabaseRunning(): boolean {
 export function resetDatabaseSchema(): void {
   const schemaPath = path.resolve(__dirname, '../../supabase/schema.sql');
 
-  // SQL to drop all app tables and types (in dependency order)
+  // SQL to drop everything schema.sql creates (in dependency order). The signup
+  // trigger lives on auth.users, which survives the table drops.
   const dropSql = `
+    DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+    DROP TABLE IF EXISTS platform_daily_stats CASCADE;
+    DROP TABLE IF EXISTS deletion_log CASCADE;
     DROP TABLE IF EXISTS user_availability_defaults CASCADE;
     DROP TABLE IF EXISTS game_play_dates CASCADE;
     DROP TABLE IF EXISTS sessions CASCADE;
@@ -385,9 +386,10 @@ export function resetDatabaseSchema(): void {
       { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
     );
 
-    // Apply fresh schema
+    // Apply fresh schema. ON_ERROR_STOP: an object schema.sql adds without a
+    // matching drop above fails setup here, instead of quietly keeping stale data.
     execSync(
-      `docker exec -i ${SUPABASE_DB_CONTAINER} psql -U postgres -d postgres < "${schemaPath}"`,
+      `docker exec -i ${SUPABASE_DB_CONTAINER} psql -U postgres -d postgres -v ON_ERROR_STOP=1 < "${schemaPath}"`,
       { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
     );
   } catch (error) {

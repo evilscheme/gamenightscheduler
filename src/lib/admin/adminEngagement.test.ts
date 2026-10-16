@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   buildRollingEngagement,
   getRollingBucketKey,
+  parseWeeks,
+  rollingSeries,
+  tallyAt,
+  windowEnds,
   type EngagementInputs,
 } from './adminEngagement';
 import { startOfDay } from 'date-fns';
@@ -89,8 +93,8 @@ describe('buildRollingEngagement', () => {
         users: [{ created_at: IN_BUCKET0 }, { created_at: IN_BUCKET1 }],
         games: [{ created_at: IN_BUCKET0 }],
         sessions: [
-          { created_at: IN_BUCKET0, status: 'confirmed' },
-          { created_at: IN_BUCKET0, status: 'pending' }, // ignored
+          { created_at: IN_BUCKET0, date: '2025-02-01', status: 'confirmed' },
+          { created_at: IN_BUCKET0, date: '2025-02-01', status: 'pending' }, // ignored
         ],
         availability: [],
       },
@@ -103,6 +107,29 @@ describe('buildRollingEngagement', () => {
       sessionsConfirmed: 1,
     });
     expect(result.find((b) => b.windowEnd === BUCKET1)!.newUsers).toBe(1);
+  });
+
+  it('buckets sessions played by play date, separately from when they were booked', () => {
+    const result = buildRollingEngagement(
+      {
+        ...EMPTY,
+        sessions: [
+          // Booked in bucket 2, played in bucket 0.
+          { created_at: IN_BUCKET2, date: '2025-01-10', status: 'confirmed' },
+          // Played yesterday (bare date must land on the local day, not UTC).
+          { created_at: IN_BUCKET1, date: '2025-01-14', status: 'confirmed' },
+          // Booked in bucket 0 but not played yet -> counts as booked only.
+          { created_at: IN_BUCKET0, date: '2025-02-01', status: 'confirmed' },
+          // Played today -> incomplete day, excluded.
+          { created_at: IN_BUCKET1, date: '2025-01-15', status: 'confirmed' },
+        ],
+      },
+      NOW
+    );
+    const byEnd = Object.fromEntries(result.map((b) => [b.windowEnd, b]));
+    expect(byEnd[BUCKET0]).toMatchObject({ sessionsPlayed: 2, sessionsConfirmed: 1 });
+    expect(byEnd[BUCKET1]).toMatchObject({ sessionsPlayed: 0, sessionsConfirmed: 2 });
+    expect(byEnd[BUCKET2]).toMatchObject({ sessionsPlayed: 0, sessionsConfirmed: 1 });
   });
 
   it('counts distinct active users per window', () => {
@@ -156,5 +183,59 @@ describe('buildRollingEngagement', () => {
     const result = buildRollingEngagement(EMPTY, NOW, 2);
     expect(result.map((b) => b.windowEnd)).toEqual([BUCKET1, BUCKET0]);
     expect(result.every((b) => b.newUsers === 0 && b.activeUsers === 0)).toBe(true);
+  });
+});
+
+describe('windowEnds', () => {
+  it('lists the last N window ends, oldest first', () => {
+    expect(windowEnds(3, END_EXCLUSIVE)).toEqual([BUCKET2, BUCKET1, BUCKET0]);
+    expect(windowEnds(0, END_EXCLUSIVE)).toEqual([]);
+  });
+});
+
+describe('tallyAt + rollingSeries', () => {
+  const empty = () => ({ n: 0 });
+
+  it('tallies by window and emits a dense series, zero-filling gaps', () => {
+    const tally = new Map<number, { n: number }>();
+    for (const d of [YESTERDAY, IN_BUCKET0, IN_BUCKET2]) tallyAt(tally, d, END_EXCLUSIVE, empty)!.n++;
+    expect(rollingSeries(tally, END_EXCLUSIVE, 3, empty)).toEqual([
+      { windowEnd: BUCKET2, n: 1 },
+      { windowEnd: BUCKET1, n: 0 },
+      { windowEnd: BUCKET0, n: 2 },
+    ]);
+  });
+
+  it('ignores today and the future', () => {
+    const tally = new Map<number, { n: number }>();
+    expect(tallyAt(tally, TODAY, END_EXCLUSIVE, empty)).toBeNull();
+    expect(tally.size).toBe(0);
+  });
+
+  it('spans back to the oldest data when no range is given, and is empty with no data', () => {
+    const tally = new Map<number, { n: number }>();
+    tallyAt(tally, IN_BUCKET1, END_EXCLUSIVE, empty)!.n++;
+    expect(rollingSeries(tally, END_EXCLUSIVE, undefined, empty).map((w) => w.windowEnd)).toEqual([BUCKET1, BUCKET0]);
+    expect(rollingSeries(new Map(), END_EXCLUSIVE, undefined, empty)).toEqual([]);
+  });
+
+  it('drops tallied windows older than a bounded range', () => {
+    const tally = new Map<number, { n: number }>();
+    tallyAt(tally, IN_BUCKET2, END_EXCLUSIVE, empty)!.n++;
+    expect(rollingSeries(tally, END_EXCLUSIVE, 2, empty)).toEqual([
+      { windowEnd: BUCKET1, n: 0 },
+      { windowEnd: BUCKET0, n: 0 },
+    ]);
+  });
+});
+
+describe('parseWeeks', () => {
+  it('accepts the offered ranges and all-time, and defaults anything else to 12', () => {
+    expect(parseWeeks('8')).toBe(8);
+    expect(parseWeeks('26')).toBe(26);
+    expect(parseWeeks('all')).toBeNull();
+    expect(parseWeeks('9')).toBe(12);
+    expect(parseWeeks(null)).toBe(12);
+    expect(parseWeeks('nonsense')).toBe(12);
   });
 });

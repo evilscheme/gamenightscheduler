@@ -5,7 +5,7 @@
 // (duplicated declarations drift silently; that is how the admin page ended up
 // disagreeing with its route about created_at nullability).
 
-import type { HealthBreakdown, HealthGrade } from '@/lib/schedule';
+import type { DeletionBucket, DormancyBucket, FunnelCohort, HealthBucket, PlatformCounts, ViableDate } from '@/lib/admin';
 
 // --- /api/account/delete-preview ---
 
@@ -65,9 +65,35 @@ export interface GameWithEngagement {
   sessionCount: number;
   futureSessionCount: number;
   availabilityFillRate: number;
+  /** Latest activity of any kind: a join, booking, availability, extra date. */
   lastActivity: string | null;
-  healthScore: number;
-  healthGrade: HealthGrade;
-  healthLabel: string;
-  healthBreakdown: HealthBreakdown;
+  /** Right now, by the same rules as the platform-health charts. */
+  healthBucket: HealthBucket;
+  /** The earliest date enough players can make, when healthBucket is 'healthyViable'. */
+  viableDate: ViableDate | null;
+}
+
+export interface AdminGamesResponse {
+  games: GameWithEngagement[];
+  /** Users and games right now, by health bucket (src/lib/admin/platformHealth.ts). */
+  health: PlatformCounts;
+}
+
+// --- /api/admin/health-trends ---
+
+/** The platform at the end of a rolling window's last day. */
+export interface HealthTrendPoint {
+  windowEnd: string;
+  /** 'snapshot' = captured within a day; 'reconstructed' = rebuilt later from row
+   *  timestamps, so it undercounts anything deleted since. Null with `counts`
+   *  when no row exists for the day (before the first signup, or a missed run). */
+  source: 'snapshot' | 'reconstructed' | null;
+  counts: PlatformCounts | null;
+}
+
+export interface AdminHealthTrends {
+  health: HealthTrendPoint[];
+  funnel: FunnelCohort[];
+  dormancy: DormancyBucket[];
+  deletions: DeletionBucket[];
 }

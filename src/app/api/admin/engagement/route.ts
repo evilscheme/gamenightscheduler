@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin, paginate } from '@/lib/api/admin';
-import { buildRollingEngagement } from '@/lib/admin';
+import { createTtlCache, requireAdmin, paginate } from '@/lib/api/admin';
+import { buildRollingEngagement, parseWeeks } from '@/lib/admin';
 import { startOfDay, subDays, format } from 'date-fns';
 import { serverError } from '@/lib/apiError';
 
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
-
-const VALID_WEEKS = [8, 12, 26] as const;
-
-// Best-effort in-memory cache keyed by weeks param.
-// In serverless, this only helps when the function instance is reused across
-// requests (Fluid Compute). Misses silently on cold starts — that's fine.
-const cache = new Map<string, { data: unknown; timestamp: number }>();
+const cache = createTtlCache<{ weeklyData: ReturnType<typeof buildRollingEngagement> }>(30 * 60 * 1000);
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -19,20 +12,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (result instanceof NextResponse) return result;
     const { admin } = result;
 
-    // Parse weeks param
-    const weeksParam = request.nextUrl.searchParams.get('weeks');
-    const weeks = weeksParam === 'all'
-      ? null
-      : VALID_WEEKS.includes(Number(weeksParam) as typeof VALID_WEEKS[number])
-        ? Number(weeksParam)
-        : 12;
-
-    // Check cache
+    const weeks = parseWeeks(request.nextUrl.searchParams.get('weeks'));
     const cacheKey = String(weeks ?? 'all');
     const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return NextResponse.json(cached.data);
-    }
+    if (cached) return NextResponse.json(cached);
 
     const now = new Date();
     // Rolling windows are anchored on midnight today (today is excluded as
@@ -46,7 +29,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     const [users, games, sessions, availability] = await Promise.all([
       paginate<{ created_at: string }>(admin, 'users', 'created_at', { dateColumn: 'created_at', cutoff }),
       paginate<{ created_at: string }>(admin, 'games', 'created_at', { dateColumn: 'created_at', cutoff }),
-      paginate<{ created_at: string; status: string }>(admin, 'sessions', 'created_at, status', { dateColumn: 'created_at', cutoff }),
+      // No cutoff: "sessions played" buckets by play date, and a session booked
+      // before the range can be played inside it. Older rows just fall outside
+      // the emitted windows.
+      paginate<{ created_at: string; date: string; status: string }>(admin, 'sessions', 'created_at, date, status'),
       paginate<{ user_id: string; updated_at: string }>(admin, 'availability', 'user_id, updated_at', { dateColumn: 'updated_at', cutoff }),
     ]);
 
@@ -60,7 +46,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     );
 
     const responseData = { weeklyData };
-    cache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+    cache.set(cacheKey, responseData);
 
     return NextResponse.json(responseData);
   } catch (error) {

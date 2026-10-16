@@ -11,6 +11,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { findAuthUserByEmail } from '../src/lib/supabase/admin';
 import * as readline from 'readline';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -67,12 +68,10 @@ async function deleteUser() {
     userEmail = user.user.email || 'unknown';
   } else {
     // Look up user by email
-    const { data, error } = await supabase.auth.admin.listUsers();
-    if (error) {
+    const user = await findAuthUserByEmail(supabase, identifier).catch((error: Error) => {
       console.error('Error listing users:', error.message);
       process.exit(1);
-    }
-    const user = data.users.find(u => u.email === identifier);
+    });
     if (!user) {
       console.error(`User not found with email: ${identifier}`);
       process.exit(1);

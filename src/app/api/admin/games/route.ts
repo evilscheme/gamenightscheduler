@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
 import { calculateGameFillRate } from '@/lib/availability';
-import { calculateGameHealth } from '@/lib/schedule';
+import { computeCurrentStats, currentGameStatuses, indexPlatform } from '@/lib/admin';
+import { fetchPlatformInputs } from '@/lib/admin/platformStatsStore';
 import { serverError } from '@/lib/apiError';
 import { getTodayLocalDate } from '@/lib/date';
 
-import type { GameWithEngagement } from '@/types/api';
+import type { AdminGamesResponse, GameWithEngagement } from '@/types/api';
 
 export async function GET(): Promise<Response> {
   try {
@@ -14,145 +15,64 @@ export async function GET(): Promise<Response> {
     const { admin } = result;
 
     type GmRef = { id: string; name: string | null; email: string };
-    type GameRow = {
-      id: string;
-      name: string;
-      created_at: string | null;
-      play_days: number[] | null;
-      scheduling_window_months: number | null;
-      campaign_start_date: string | null;
-      campaign_end_date: string | null;
-      gm_id: string;
-      gm: GmRef | GmRef[] | null;
-    };
+    type GameRow = { id: string; name: string; gm: GmRef | GmRef[] | null };
 
-    // Paginated: platform-wide games list grows unbounded, so a plain select
-    // would silently truncate at Supabase's 1000-row cap. Sort in JS since
-    // paginate() reads in primary-key order.
-    const games = await paginate<GameRow>(
-      admin,
-      'games',
-      'id, name, created_at, play_days, scheduling_window_months, campaign_start_date, campaign_end_date, gm_id, gm:users!games_gm_id_fkey(id, name, email)'
-    );
-    games.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
-
-    const [memberships, sessions, availabilityRecords, gamePlayDates] = await Promise.all([
-      paginate<{ game_id: string; user_id: string }>(admin, 'game_memberships', 'game_id, user_id'),
-      paginate<{ game_id: string; created_at: string; date: string }>(admin, 'sessions', 'game_id, created_at, date'),
-      paginate<{ game_id: string; user_id: string; date: string; updated_at: string }>(admin, 'availability', 'game_id, user_id, date, updated_at'),
-      paginate<{ game_id: string; date: string }>(admin, 'game_play_dates', 'game_id, date'),
+    // Health comes from the same rows and classifier as the platform-health
+    // charts (src/lib/admin/platformHealth.ts), so this list, the Overview tile
+    // and the trend charts can't disagree about which games are healthy.
+    // Paginated: platform-wide tables grow unbounded, so a plain select would
+    // silently truncate at Supabase's 1000-row cap.
+    const [names, inputs] = await Promise.all([
+      paginate<GameRow>(admin, 'games', 'id, name, gm:users!games_gm_id_fkey(id, name, email)'),
+      fetchPlatformInputs(admin),
     ]);
-
-    // Build lookup maps
-    const membershipsByGame = new Map<string, Set<string>>();
-    for (const m of memberships) {
-      if (!membershipsByGame.has(m.game_id)) {
-        membershipsByGame.set(m.game_id, new Set());
-      }
-      membershipsByGame.get(m.game_id)!.add(m.user_id);
-    }
-
+    const nameById = new Map(names.map((g) => [g.id, g]));
+    const data = indexPlatform(inputs);
+    const now = new Date();
+    const statuses = currentGameStatuses(data, now);
     const todayStr = getTodayLocalDate();
-    const sessionsByGame = new Map<string, { total: number; future: number; lastActivity: string | null }>();
-    for (const s of sessions) {
-      if (!sessionsByGame.has(s.game_id)) {
-        sessionsByGame.set(s.game_id, { total: 0, future: 0, lastActivity: null });
-      }
-      const stats = sessionsByGame.get(s.game_id)!;
-      stats.total++;
-      if (s.date >= todayStr) stats.future++;
-      if (!stats.lastActivity || s.created_at > stats.lastActivity) {
-        stats.lastActivity = s.created_at;
-      }
-    }
 
-    const playDatesByGame = new Map<string, string[]>();
-    for (const pd of gamePlayDates) {
-      if (!playDatesByGame.has(pd.game_id)) {
-        playDatesByGame.set(pd.game_id, []);
-      }
-      playDatesByGame.get(pd.game_id)!.push(pd.date.substring(0, 10));
-    }
-
-    const availabilityByGame = new Map<string, { records: Array<{ user_id: string; date: string }>; lastActivity: string | null }>();
-    for (const a of availabilityRecords) {
-      if (!availabilityByGame.has(a.game_id)) {
-        availabilityByGame.set(a.game_id, { records: [], lastActivity: null });
-      }
-      const stats = availabilityByGame.get(a.game_id)!;
-      stats.records.push({ user_id: a.user_id, date: a.date });
-      if (!stats.lastActivity || a.updated_at > stats.lastActivity) {
-        stats.lastActivity = a.updated_at;
-      }
-    }
-
-    // Build game list with engagement metrics
-    const gamesWithEngagement: GameWithEngagement[] = games.map((game) => {
-      const members = membershipsByGame.get(game.id) ?? new Set();
-      const totalPlayers = members.size + 1; // +1 for GM
-      const sessionStats = sessionsByGame.get(game.id) ?? { total: 0, future: 0, lastActivity: null };
-      const availabilityStats = availabilityByGame.get(game.id) ?? { records: [], lastActivity: null };
+    const gamesWithEngagement: GameWithEngagement[] = data.games.map((rows) => {
+      const { game } = rows;
+      const playerIds = [...rows.memberships.map((m) => m.user_id), game.gm_id];
+      const playerSet = new Set(playerIds);
 
       // Fill rate: average completion percentage across all current players.
       // Each player's rate = (dates they've filled in) / (total play dates in
       // the campaign-bounded scheduling window).
-      const currentPlayerIds = [...members, game.gm_id];
-      const currentPlayerRecords = availabilityStats.records.filter(
-        (r) => currentPlayerIds.includes(r.user_id)
-      );
-      const allSpecialDates = playDatesByGame.get(game.id) ?? [];
-
       const fillRate = calculateGameFillRate({
-        playerIds: currentPlayerIds,
+        playerIds,
         playDays: game.play_days ?? [],
         schedulingWindowMonths: game.scheduling_window_months ?? 2,
         campaignStartDate: game.campaign_start_date ?? null,
         campaignEndDate: game.campaign_end_date ?? null,
-        extraPlayDates: allSpecialDates,
-        availabilityRecords: currentPlayerRecords,
+        extraPlayDates: rows.playDates.map((p) => p.date.substring(0, 10)),
+        availabilityRecords: rows.availability.filter((a) => playerSet.has(a.user_id)),
       });
-
-      // Last activity: most recent of session or availability activity
-      let lastActivity: string | null = null;
-      if (sessionStats.lastActivity && availabilityStats.lastActivity) {
-        lastActivity = sessionStats.lastActivity > availabilityStats.lastActivity
-          ? sessionStats.lastActivity
-          : availabilityStats.lastActivity;
-      } else {
-        lastActivity = sessionStats.lastActivity || availabilityStats.lastActivity;
-      }
 
       // Handle gm field which may be an object or array from Supabase
-      const gmData = game.gm;
+      const gmData = nameById.get(game.id)?.gm ?? null;
       const gm = Array.isArray(gmData) ? gmData[0] ?? null : gmData;
-
-      // Calculate health score
-      const health = calculateGameHealth({
-        playerCount: totalPlayers,
-        futureSessionCount: sessionStats.future,
-        availabilityFillRate: fillRate,
-        lastActivity,
-        createdAt: game.created_at ?? getTodayLocalDate(),
-      });
+      const status = statuses.get(game.id)!; // every indexed game has one
 
       return {
         id: game.id,
-        name: game.name,
+        name: nameById.get(game.id)?.name ?? 'Unknown',
         created_at: game.created_at,
         gm: gm as GameWithEngagement['gm'],
-        playerCount: totalPlayers,
-        sessionCount: sessionStats.total,
-        futureSessionCount: sessionStats.future,
+        playerCount: playerIds.length,
+        sessionCount: rows.sessions.length,
+        futureSessionCount: rows.sessions.filter((s) => s.date >= todayStr).length,
         availabilityFillRate: fillRate,
-        lastActivity,
-        healthScore: health.score,
-        healthGrade: health.grade,
-        healthLabel: health.label,
-        healthBreakdown: health.breakdown,
+        lastActivity: new Date(status.lastActivity).toISOString(),
+        healthBucket: status.bucket,
+        viableDate: status.viableDate,
       };
     });
+    gamesWithEngagement.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
 
-    return NextResponse.json({ games: gamesWithEngagement });
+    const body: AdminGamesResponse = { games: gamesWithEngagement, health: computeCurrentStats(data, now) };
+    return NextResponse.json(body);
   } catch (error) {
     return serverError(error, { route: '/api/admin/games' });
   }

@@ -14,7 +14,7 @@ type SortField = 'health' | 'name' | 'created' | 'lastActivity';
 const BUCKET_BADGE: Record<HealthBucket, { text: string; style: string }> = {
   healthyBooked: { text: 'Healthy', style: 'bg-success/15 text-success' },
   healthyViable: { text: 'Healthy', style: 'border border-success/40 text-success' },
-  gettingGoing: { text: 'Getting going', style: 'bg-primary/10 text-primary' },
+  gettingGoing: { text: 'Getting going', style: 'bg-warning/10 text-warning' },
   unhealthy: { text: 'Unhealthy', style: 'bg-danger/10 text-danger' },
   dormant: { text: 'Dormant', style: 'bg-muted text-muted-foreground' },
 };

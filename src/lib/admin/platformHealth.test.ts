@@ -179,6 +179,15 @@ describe('viable dates', () => {
     expect(computeDailyStats(withDates(saturday, extra), '2025-01-10').games.healthyViable).toBe(1);
   });
 
+  it("only counts dates on the game's calendar, within its scheduling window", () => {
+    // A 1-month window seen from 01-31 ends 02-28; a date entered earlier for 03-07
+    // (inside six weeks) is no longer on the calendar after the window was shortened.
+    const data = withDates([avail('gm', '2025-03-07'), avail('p', '2025-03-07')]);
+    expect(computeDailyStats(data, '2025-01-30').games.healthyViable).toBe(0);
+    // Once the window reaches March, the same date counts.
+    expect(computeDailyStats(data, '2025-02-01').games.healthyViable).toBe(1);
+  });
+
   it('prefers booked over viable when a game has both', () => {
     const data = withDates([avail('gm', '2025-01-17'), avail('p', '2025-01-17')], {
       sessions: [{ game_id: 'g1', date: '2025-01-24', created_at: '2025-01-06T10:00:00' }],
@@ -297,7 +306,44 @@ describe('buildFunnelCohorts', () => {
   });
 });
 
+describe('buildFunnelCohorts: sessions', () => {
+  it('does not credit a session held before the player joined that game', () => {
+    // Signed up 01-01, joined 01-10; the game's only session was 01-05.
+    const data = indexPlatform({
+      ...EMPTY,
+      users: [
+        { id: 'gm', created_at: '2024-12-01T10:00:00' },
+        { id: 'p', created_at: '2025-01-01T10:00:00' },
+      ],
+      games: [game('g1', 'gm', '2024-12-01T11:00:00')],
+      memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2025-01-10T11:00:00' }],
+      sessions: [{ game_id: 'g1', date: '2025-01-05', created_at: '2024-12-20T10:00:00' }],
+    });
+    const cohort = buildFunnelCohorts(data, NOW, 3).find((c) => c.signups === 1 && c.joinedGame === 1);
+    expect(cohort).toMatchObject({ gotSession: 0 });
+  });
+});
+
 describe('buildDormancy', () => {
+  it('gives the same buckets for a bounded range as the full history does', () => {
+    // Games created and going dormant/reviving at assorted times before and inside the range.
+    const data = indexPlatform({
+      ...EMPTY,
+      games: [
+        game('old', 'gm', '2024-06-01T12:00:00'),
+        game('mid', 'gm', '2024-10-20T12:00:00'),
+        game('new', 'gm', '2024-11-25T12:00:00'),
+      ],
+      sessions: [
+        { game_id: 'old', date: '2025-03-01', created_at: '2024-12-05T12:00:00' }, // revives 'old'
+        { game_id: 'mid', date: '2024-12-01', created_at: '2024-11-01T12:00:00' },
+      ],
+    });
+    const full = buildDormancy(data, NOW);
+    expect(buildDormancy(data, NOW, 4)).toEqual(full.slice(-4));
+    expect(full.slice(-4).some((b) => b.wentDormant || b.revived)).toBe(true); // the range isn't trivially empty
+  });
+
   it('emits went-dormant 60 days after the last activity, and revived when it resumes', () => {
     const result = buildDormancy(
       indexPlatform({

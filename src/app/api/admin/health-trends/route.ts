@@ -36,16 +36,24 @@ export async function GET(request: NextRequest): Promise<Response> {
     // and a day with no row is returned as a gap.
     const inputs = await fetchPlatformInputs(admin);
 
-    // "All time" spans back to the window holding the first signup, so every
-    // series shares one x-axis.
+    // "All time" spans back to the oldest thing on record, so every series shares
+    // one x-axis. Not just surviving users: once the earliest accounts are
+    // deleted, stored snapshots and deletion records still reach further back.
     let windows = weeks;
     if (windows === null) {
-      const first = inputs.users.reduce<string | null>(
-        (min, u) => (min === null || u.created_at < min ? u.created_at : min),
-        null
-      );
-      const index = first ? getBucketIndex(first, endExclusive) : null;
-      windows = index === null ? 1 : index + 1;
+      const [oldestStats, oldestDeletion] = await Promise.all([
+        admin.from('platform_daily_stats').select('day').order('day').limit(1).maybeSingle(),
+        admin.from('deletion_log').select('deleted_at').order('deleted_at').limit(1).maybeSingle(),
+      ]);
+      if (oldestStats.error) throw oldestStats.error;
+      if (oldestDeletion.error) throw oldestDeletion.error;
+      const candidates = [
+        ...inputs.users.map((u) => u.created_at),
+        ...(oldestStats.data ? [`${oldestStats.data.day}T00:00:00`] : []),
+        ...(oldestDeletion.data ? [oldestDeletion.data.deleted_at] : []),
+      ];
+      const indexes = candidates.map((ts) => getBucketIndex(ts, endExclusive)).filter((i) => i !== null);
+      windows = indexes.length ? Math.max(...indexes) + 1 : 1;
     }
 
     const days = windowEnds(windows, endExclusive);

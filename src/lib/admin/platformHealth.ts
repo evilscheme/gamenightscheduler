@@ -1,6 +1,7 @@
-import { addDays, eachDayOfInterval, format, parseISO, startOfDay, subDays } from 'date-fns';
+import { addDays, eachDayOfInterval, format, max, parseISO, startOfDay, subDays } from 'date-fns';
 import { isEligiblePlayDate } from '@/lib/availability';
-import { effectiveThreshold } from '@/lib/schedule';
+import { effectiveThreshold, getSchedulingWindow } from '@/lib/schedule';
+import type { SchedulingWindowMonths } from '@/lib/constants';
 import { rollingSeries, tallyAt } from './adminEngagement';
 
 // ── Inputs ─────────────────────────────────────────────────
@@ -195,8 +196,9 @@ function playersAt(rows: GameRows, cutoff: number): string[] {
 }
 
 /**
- * The earliest eligible play date from firstUpcoming through viableThrough on
- * which at least effectiveThreshold current players are marked available. Only
+ * The earliest eligible play date on the game's calendar — its scheduling window
+ * (campaign bounds included), cut off at viableThrough — on which at least
+ * effectiveThreshold current players are marked available. Only
  * 'available' counts — not 'maybe' — matching the calendar's rule that a
  * positive claim reads confirmed yeses alone. Status is the row's current value
  * (edits aren't versioned), so rebuilt history is approximate for rows changed since.
@@ -213,19 +215,20 @@ function firstViableDate(rows: GameRows, players: string[], at: Moment): ViableD
   }
 
   const extraPlayDates = rows.playDates.filter((p) => before(p.created_at, at.cutoff)).map((p) => p.date.substring(0, 10));
-  const windowEnd = game.campaign_end_date && game.campaign_end_date < at.viableThrough
-    ? game.campaign_end_date
-    : at.viableThrough;
+  const calendar = getSchedulingWindow(
+    { ...game, scheduling_window_months: (game.scheduling_window_months ?? 2) as SchedulingWindowMonths },
+    parseISO(at.firstUpcoming)
+  );
+  const horizon = parseISO(at.viableThrough);
   let best: ViableDate | null = null;
   for (const [date, available] of counts) {
     if (available < needed || (best && date >= best.date)) continue;
-    if (game.campaign_start_date && date < game.campaign_start_date) continue;
     const eligible = isEligiblePlayDate({
       date: parseISO(date),
       playDays: game.play_days ?? [],
       extraPlayDates,
-      today: parseISO(at.firstUpcoming),
-      windowEnd: parseISO(windowEnd),
+      today: calendar.start,
+      windowEnd: calendar.end < horizon ? calendar.end : horizon,
     });
     if (eligible) best = { date, available, needed };
   }
@@ -336,7 +339,7 @@ export interface FunnelCohort {
   /** Joined someone's game or created their own. */
   joinedGame: number;
   enteredAvailability: number;
-  /** In a game that had a session on or after the day they signed up. */
+  /** In a game that had a session on or after the day they joined (or created) it. */
   gotSession: number;
 }
 
@@ -348,14 +351,21 @@ export interface FunnelCohort {
 export function buildFunnelCohorts(data: IndexedPlatform, now: Date, windows?: number): FunnelCohort[] {
   const endExclusive = startOfDay(now);
 
-  const gamesByUser = new Map<string, Set<string>>();
+  // Each user's games, with the day they came into each (created it, or joined).
+  const gamesByUser = new Map<string, { gameId: string; since: string }[]>();
   const usersWithAvailability = new Set<string>();
   const latestSessionByGame = new Map<string, string>();
+  const dayOf = (ts: string) => format(new Date(ts), 'yyyy-MM-dd');
   for (const rows of data.games) {
-    for (const id of [rows.game.gm_id, ...rows.memberships.map((m) => m.user_id)]) {
-      const set = gamesByUser.get(id);
-      if (set) set.add(rows.game.id);
-      else gamesByUser.set(id, new Set([rows.game.id]));
+    const entries = [
+      { userId: rows.game.gm_id, since: dayOf(rows.game.created_at) },
+      ...rows.memberships.map((m) => ({ userId: m.user_id, since: dayOf(m.joined_at) })),
+    ];
+    for (const { userId, since } of entries) {
+      const list = gamesByUser.get(userId);
+      const entry = { gameId: rows.game.id, since };
+      if (list) list.push(entry);
+      else gamesByUser.set(userId, [entry]);
     }
     for (const a of rows.availability) usersWithAvailability.add(a.user_id);
     for (const s of rows.sessions) {
@@ -371,12 +381,11 @@ export function buildFunnelCohorts(data: IndexedPlatform, now: Date, windows?: n
     if (!t) continue;
     t.signups++;
 
-    const games = gamesByUser.get(u.id);
-    if (games?.size) t.joinedGame++;
+    const games = gamesByUser.get(u.id) ?? [];
+    if (games.length) t.joinedGame++;
     if (usersWithAvailability.has(u.id)) t.enteredAvailability++;
-
-    const signupDay = format(new Date(u.created_at), 'yyyy-MM-dd');
-    if (games && [...games].some((id) => (latestSessionByGame.get(id) ?? '') >= signupDay)) {
+    // A session counts only if it was on or after the day they came into that game.
+    if (games.some(({ gameId, since }) => (latestSessionByGame.get(gameId) ?? '') >= since)) {
       t.gotSession++;
     }
   }
@@ -409,17 +418,22 @@ export function buildDormancy(data: IndexedPlatform, now: Date, windows?: number
     (min, g) => (min === null || g.game.created_at < min ? g.game.created_at : min),
     null
   );
-  const start = firstCreated ? startOfDay(new Date(firstCreated)) : null;
+  // Each day's bucket is classified from scratch, so a bounded range only needs
+  // the day before it (for the starting state), not all of history.
+  const rangeStart = windows != null ? subDays(endExclusive, windows * 7) : null;
+  const firstDay = firstCreated ? startOfDay(new Date(firstCreated)) : null;
+  const start = firstDay && rangeStart ? max([firstDay, subDays(rangeStart, 1)]) : firstDay;
   const days = start && start <= yesterday
     ? eachDayOfInterval({ start, end: yesterday }).map((d) => endOfDay(format(d, 'yyyy-MM-dd')))
     : [];
+  const rangeStartCutoff = rangeStart ? endOfDay(format(rangeStart, 'yyyy-MM-dd')).cutoff : -Infinity;
 
   for (const rows of data.games) {
     let wasDormant = false;
     for (const at of days) {
       if (!before(rows.game.created_at, at.cutoff)) continue;
       const dormant = classifyAt(rows, at).bucket === 'dormant';
-      if (dormant !== wasDormant) {
+      if (dormant !== wasDormant && at.cutoff >= rangeStartCutoff) {
         const t = tallyAt(tally, `${at.day}T00:00:00`, endExclusive, empty);
         if (t) t[dormant ? 'wentDormant' : 'revived']++;
       }

@@ -92,21 +92,24 @@ export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRan
     games: p.counts ? healthyShare(p.counts.games) : null,
     users: p.counts ? healthyShare(p.counts.users) : null,
   }));
-  // Points before this are rebuilt from timestamps; from here on they're live snapshots.
-  const firstSnapshot = data.health.find((p) => p.source === 'snapshot');
-  const hasReconstructed = data.health.some((p) => p.source === 'reconstructed');
-  const snapshotMarker = firstSnapshot && hasReconstructed ? (
+  // The marker sits where points become live for good: the first snapshot after
+  // the last rebuilt point. A cron gap-fill can rebuild a day after snapshots
+  // began, so "first snapshot" alone would mislabel those later points as live.
+  const lastRebuilt = data.health.findLastIndex((p) => p.source === 'reconstructed');
+  const hasReconstructed = lastRebuilt >= 0;
+  const liveFrom = data.health.slice(lastRebuilt + 1).find((p) => p.source === 'snapshot');
+  const snapshotMarker = liveFrom && hasReconstructed ? (
     <ReferenceLine
-      x={formatDayLabel(firstSnapshot.windowEnd)}
+      x={formatDayLabel(liveFrom.windowEnd)}
       stroke="var(--muted-foreground)"
       strokeDasharray="4 4"
       label={{ value: 'live', position: 'insideTopRight', fontSize: 10, fill: 'var(--muted-foreground)' }}
     />
   ) : null;
   const provenance = hasReconstructed
-    ? firstSnapshot
+    ? liveFrom
       ? 'Left of the dashed line is rebuilt from history (approximate)'
-      : 'Rebuilt from history (approximate) until daily snapshots accumulate'
+      : 'Rebuilt from history (approximate)'
     : null;
 
   const funnel = data.funnel.map((c) => ({
@@ -183,8 +186,8 @@ export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRan
               <YAxis tick={SMALL_TICK} allowDecimals={false} {...AXIS_PROPS} />
               <Tooltip content={<ChartTooltip />} />
               <Legend wrapperStyle={{ fontSize: '11px' }} />
-              <Bar dataKey="wentDormant" name="Went dormant" fill="#ef4444" fillOpacity={0.8} radius={[3, 3, 0, 0]} />
-              <Bar dataKey="revived" name="Revived" fill="#22c55e" fillOpacity={0.8} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="wentDormant" name="Went dormant" fill="var(--danger)" fillOpacity={0.8} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="revived" name="Revived" fill="var(--success)" fillOpacity={0.8} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>

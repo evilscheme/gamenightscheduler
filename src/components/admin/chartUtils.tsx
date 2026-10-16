@@ -8,13 +8,21 @@ import { HEALTH_BUCKET_ORDER, type HealthBucket, type WEEK_RANGES } from '@/lib/
 /** A chart range as sent in the `weeks` param. */
 export type TimeRange = `${(typeof WEEK_RANGES)[number]}` | 'all';
 
-// Both healthy buckets are green: they count as healthy alike, the shade shows the evidence.
+// Status tokens (--success/--warning/--danger) mean the same thing in every theme
+// and adapt to light/dark; --primary doesn't — it's the theme's brand hue (green in
+// forest, rose in rose), which would collide with healthy or unhealthy. Both healthy
+// buckets are --success: they count as healthy alike. Date found is mixed toward the
+// card background, a softer shade of the same hue in light and dark themes.
 const BUCKET_STYLE: Record<HealthBucket, { label: string; short: string; color: string }> = {
-  healthyBooked: { label: 'Healthy · booked', short: 'Booked', color: '#15803d' },
-  healthyViable: { label: 'Healthy · date found', short: 'Date found', color: '#4ade80' },
-  gettingGoing: { label: 'Getting going', short: 'Going', color: '#3b82f6' },
-  unhealthy: { label: 'Unhealthy', short: 'Unhealthy', color: '#ef4444' },
-  dormant: { label: 'Dormant', short: 'Dormant', color: '#64748b' },
+  healthyBooked: { label: 'Healthy · booked', short: 'Booked', color: 'var(--success)' },
+  healthyViable: {
+    label: 'Healthy · date found',
+    short: 'Date found',
+    color: 'color-mix(in srgb, var(--success) 60%, var(--card))',
+  },
+  gettingGoing: { label: 'Getting going', short: 'Going', color: 'var(--warning)' },
+  unhealthy: { label: 'Unhealthy', short: 'Unhealthy', color: 'var(--danger)' },
+  dormant: { label: 'Dormant', short: 'Dormant', color: 'var(--muted-foreground)' },
 };
 
 /** Label and color per health bucket, healthiest first — every admin view of

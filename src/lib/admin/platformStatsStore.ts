@@ -1,8 +1,19 @@
 import { eachDayOfInterval, format, startOfDay, subDays } from 'date-fns';
 import { paginate, type AdminClient } from '@/lib/api/admin';
-import { computeDailyStats, indexPlatform, type PlatformInputs } from './platformHealth';
+import type { Database } from '@/types/database';
+import {
+  computeDailyStats,
+  indexPlatform,
+  type DailyPlatformStats,
+  type PlatformCounts,
+  type PlatformInputs,
+} from './platformHealth';
 
-/** Fetch every row the platform-health metrics read. Admin (service-role) only. */
+type StatsRow = Database['public']['Tables']['platform_daily_stats']['Row'];
+type StatsInsert = Database['public']['Tables']['platform_daily_stats']['Insert'];
+
+/** Fetch every row the platform-health metrics (and the admin games list) read.
+ *  Admin (service-role) only. */
 export async function fetchPlatformInputs(admin: AdminClient): Promise<PlatformInputs> {
   const [users, games, memberships, sessions, availability, playDates] = await Promise.all([
     paginate<PlatformInputs['users'][number]>(admin, 'users', 'id, created_at'),
@@ -21,6 +32,46 @@ export async function fetchPlatformInputs(admin: AdminClient): Promise<PlatformI
     paginate<PlatformInputs['playDates'][number]>(admin, 'game_play_dates', 'game_id, date, created_at'),
   ]);
   return { users, games, memberships, sessions, availability, playDates };
+}
+
+// statsToRow and rowToCounts are the only code that knows platform_daily_stats'
+// column names. Spelled out (not built from a prefix) so the generated types
+// check every one.
+function statsToRow(s: DailyPlatformStats, source: 'snapshot' | 'reconstructed'): StatsInsert {
+  const { users: u, games: g } = s;
+  return {
+    day: s.day,
+    source,
+    total_users: u.total,
+    healthy_booked_users: u.healthyBooked,
+    healthy_viable_users: u.healthyViable,
+    getting_going_users: u.gettingGoing,
+    unhealthy_users: u.unhealthy,
+    total_games: g.total,
+    healthy_booked_games: g.healthyBooked,
+    healthy_viable_games: g.healthyViable,
+    getting_going_games: g.gettingGoing,
+    unhealthy_games: g.unhealthy,
+  };
+}
+
+export function rowToCounts(r: StatsRow): PlatformCounts {
+  return {
+    users: {
+      total: r.total_users,
+      healthyBooked: r.healthy_booked_users,
+      healthyViable: r.healthy_viable_users,
+      gettingGoing: r.getting_going_users,
+      unhealthy: r.unhealthy_users,
+    },
+    games: {
+      total: r.total_games,
+      healthyBooked: r.healthy_booked_games,
+      healthyViable: r.healthy_viable_games,
+      gettingGoing: r.getting_going_games,
+      unhealthy: r.unhealthy_games,
+    },
+  };
 }
 
 /** How far back the daily cron looks for days a failed run left empty. Anything
@@ -85,23 +136,9 @@ export async function fillMissingDailyStats(
   if (missing.length === 0) return { written: [], skipped: days.length };
 
   const indexed = indexPlatform(data);
-  const rows = missing.map((day) => {
-    const s = computeDailyStats(indexed, day);
-    return {
-      day,
-      source: day === yesterdayKey ? 'snapshot' : 'reconstructed',
-      total_users: s.totalUsers,
-      healthy_booked_users: s.healthyBookedUsers,
-      healthy_viable_users: s.healthyViableUsers,
-      getting_going_users: s.gettingGoingUsers,
-      unhealthy_users: s.unhealthyUsers,
-      total_games: s.totalGames,
-      healthy_booked_games: s.healthyBookedGames,
-      healthy_viable_games: s.healthyViableGames,
-      getting_going_games: s.gettingGoingGames,
-      unhealthy_games: s.unhealthyGames,
-    };
-  });
+  const rows = missing.map((day) =>
+    statsToRow(computeDailyStats(indexed, day), day === yesterdayKey ? 'snapshot' : 'reconstructed')
+  );
 
   // Chunked to stay well under PostgREST's request size limit on a long backfill.
   for (let i = 0; i < rows.length; i += 500) {

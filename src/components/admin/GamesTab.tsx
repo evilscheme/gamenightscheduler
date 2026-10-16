@@ -4,9 +4,9 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui';
 import { differenceInCalendarDays } from 'date-fns';
+import { HEALTH_BUCKET_ORDER, isHealthy, type HealthBucket } from '@/lib/admin';
 import type { GameWithEngagement } from '@/types/api';
 import { AdminTable, AdminTh, AdminEmptyRow } from './AdminTable';
-import { HEALTH_BUCKETS, healthBucket, type HealthBucket } from './chartUtils';
 
 type SortField = 'health' | 'name' | 'created' | 'lastActivity';
 
@@ -19,13 +19,11 @@ const BUCKET_BADGE: Record<HealthBucket, { text: string; style: string }> = {
   dormant: { text: 'Dormant', style: 'bg-muted text-muted-foreground' },
 };
 
-/** Healthiest first, matching HEALTH_BUCKETS' order. */
-const BUCKET_RANK = Object.fromEntries(HEALTH_BUCKETS.map((b, i) => [b.key, i])) as Record<HealthBucket, number>;
-const bucketOf = (g: GameWithEngagement) => healthBucket(g.healthState, g.healthyBy);
+const rank = (g: GameWithEngagement) => HEALTH_BUCKET_ORDER.indexOf(g.healthBucket);
 
-/** Why a game is in its state, in the terms the state is defined by. */
+/** Why a game is in its bucket, in the terms the bucket is defined by. */
 function healthReason(game: GameWithEngagement): string {
-  if (game.healthyBy === 'booked') {
+  if (game.healthBucket === 'healthyBooked') {
     return `${game.playerCount} players, ${game.futureSessionCount} upcoming session${game.futureSessionCount === 1 ? '' : 's'}`;
   }
   if (game.viableDate) {
@@ -49,14 +47,14 @@ export function GamesTab({ games }: { games: GameWithEngagement[] }) {
   };
 
   const sortedGames = useMemo(() => {
-    const filtered = hideDormant ? games.filter((g) => g.healthState !== 'dormant') : games;
+    const filtered = hideDormant ? games.filter((g) => g.healthBucket !== 'dormant') : games;
 
     const sorted = [...filtered].sort((a, b) => {
       let cmp = 0;
       switch (sortBy) {
         case 'health':
           // Healthier sorts higher; within a state, more recent activity first.
-          cmp = BUCKET_RANK[bucketOf(b)] - BUCKET_RANK[bucketOf(a)]
+          cmp = rank(b) - rank(a)
             || (a.lastActivity ?? '').localeCompare(b.lastActivity ?? '');
           break;
         case 'name':
@@ -75,7 +73,7 @@ export function GamesTab({ games }: { games: GameWithEngagement[] }) {
     return sorted;
   }, [games, sortBy, sortDesc, hideDormant]);
 
-  const healthyCount = games.filter((g) => g.healthState === 'healthy').length;
+  const healthyCount = games.filter((g) => isHealthy(g.healthBucket)).length;
 
   const handleSortChange = (field: SortField) => {
     if (sortBy === field) {
@@ -129,10 +127,10 @@ export function GamesTab({ games }: { games: GameWithEngagement[] }) {
               <tr key={game.id} className="border-b border-border/50 hover:bg-muted/50">
                 <td className="py-3 px-2 text-center">
                   <span
-                    className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-sm text-xs font-medium cursor-help ${BUCKET_BADGE[bucketOf(game)].style}`}
+                    className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-sm text-xs font-medium cursor-help ${BUCKET_BADGE[game.healthBucket].style}`}
                     title={healthReason(game)}
                   >
-                    {BUCKET_BADGE[bucketOf(game)].text}
+                    {BUCKET_BADGE[game.healthBucket].text}
                   </span>
                 </td>
                 <td className="py-3 px-2 font-medium text-foreground">

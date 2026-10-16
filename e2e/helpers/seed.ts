@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { listAllAuthUsers } from '../../src/lib/supabase/admin';
 import { execSync } from 'child_process';
 import * as path from 'path';
 
@@ -251,14 +252,10 @@ export async function getGameByInviteCode(
 export async function cleanTestUsers(): Promise<void> {
   const admin = getAdminClient();
 
-  const { data: users } = await admin.auth.admin.listUsers();
-
-  if (!users?.users) return;
-
-  const testUsers = users.users.filter(
-    (u) => u.email?.includes('test') || u.email?.includes('@e2e.')
-  );
-
+  // Every page: reading one default-sized page (50) let test users pile up across
+  // local runs, since the schema reset leaves auth.users alone.
+  const users = await listAllAuthUsers(admin);
+  const testUsers = users.filter((u) => u.email?.includes('test') || u.email?.includes('@e2e.'));
   for (const user of testUsers) {
     await admin.auth.admin.deleteUser(user.id);
   }

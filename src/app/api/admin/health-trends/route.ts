@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { startOfDay, subDays, format } from 'date-fns';
-import { requireAdmin, paginate } from '@/lib/api/admin';
+import { createTtlCache, requireAdmin, paginate } from '@/lib/api/admin';
 import {
   buildDeletions,
   buildDormancy,
   buildFunnelCohorts,
   getBucketIndex,
   indexPlatform,
-  windowEndKey,
+  parseWeeks,
+  windowEnds,
 } from '@/lib/admin';
-import { fetchPlatformInputs } from '@/lib/admin/platformStatsStore';
+import { fetchPlatformInputs, rowToCounts } from '@/lib/admin/platformStatsStore';
 import { serverError } from '@/lib/apiError';
 import type { AdminHealthTrends, HealthTrendPoint } from '@/types/api';
 
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
-const VALID_WEEKS = [8, 12, 26] as const;
-
-// Best-effort per-instance cache, same as /api/admin/engagement.
-const cache = new Map<string, { data: AdminHealthTrends; timestamp: number }>();
+const cache = createTtlCache<AdminHealthTrends>(30 * 60 * 1000);
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -25,18 +22,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (result instanceof NextResponse) return result;
     const { admin } = result;
 
-    const weeksParam = request.nextUrl.searchParams.get('weeks');
-    const weeks = weeksParam === 'all'
-      ? null
-      : VALID_WEEKS.includes(Number(weeksParam) as typeof VALID_WEEKS[number])
-        ? Number(weeksParam)
-        : 12;
-
+    const weeks = parseWeeks(request.nextUrl.searchParams.get('weeks'));
     const cacheKey = String(weeks ?? 'all');
     const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return NextResponse.json(cached.data);
-    }
+    if (cached) return NextResponse.json(cached);
 
     const now = new Date();
     const endExclusive = startOfDay(now);
@@ -59,11 +48,11 @@ export async function GET(request: NextRequest): Promise<Response> {
       windows = index === null ? 1 : index + 1;
     }
 
-    const windowEnds = Array.from({ length: windows }, (_, i) => windowEndKey(windows - 1 - i, endExclusive));
+    const days = windowEnds(windows, endExclusive);
     const cutoff = format(subDays(endExclusive, windows * 7), 'yyyy-MM-dd');
 
     const [statsResult, deletionRows] = await Promise.all([
-      admin.from('platform_daily_stats').select('*').in('day', windowEnds),
+      admin.from('platform_daily_stats').select('*').in('day', days),
       paginate<{ entity: string; cascaded: boolean; deleted_at: string }>(
         admin,
         'deletion_log',
@@ -74,47 +63,21 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (statsResult.error) throw statsResult.error;
     const statsByDay = new Map((statsResult.data ?? []).map((r) => [r.day, r]));
 
-    const health: HealthTrendPoint[] = windowEnds.map((windowEnd) => {
+    const health: HealthTrendPoint[] = days.map((windowEnd) => {
       const r = statsByDay.get(windowEnd);
-      if (!r) {
-        return {
-          windowEnd,
-          source: null,
-          totalUsers: null,
-          healthyBookedUsers: null,
-          healthyViableUsers: null,
-          gettingGoingUsers: null,
-          unhealthyUsers: null,
-          totalGames: null,
-          healthyBookedGames: null,
-          healthyViableGames: null,
-          gettingGoingGames: null,
-          unhealthyGames: null,
-        };
-      }
-      return {
-        windowEnd,
-        source: r.source as HealthTrendPoint['source'],
-        totalUsers: r.total_users,
-        healthyBookedUsers: r.healthy_booked_users,
-        healthyViableUsers: r.healthy_viable_users,
-        gettingGoingUsers: r.getting_going_users,
-        unhealthyUsers: r.unhealthy_users,
-        totalGames: r.total_games,
-        healthyBookedGames: r.healthy_booked_games,
-        healthyViableGames: r.healthy_viable_games,
-        gettingGoingGames: r.getting_going_games,
-        unhealthyGames: r.unhealthy_games,
-      };
+      return r
+        ? { windowEnd, source: r.source as HealthTrendPoint['source'], counts: rowToCounts(r) }
+        : { windowEnd, source: null, counts: null };
     });
 
+    const indexed = indexPlatform(inputs);
     const data: AdminHealthTrends = {
       health,
-      funnel: buildFunnelCohorts(inputs, now, windows),
-      dormancy: buildDormancy(indexPlatform(inputs), now, windows),
+      funnel: buildFunnelCohorts(indexed, now, windows),
+      dormancy: buildDormancy(indexed, now, windows),
       deletions: buildDeletions(deletionRows, now, windows),
     };
-    cache.set(cacheKey, { data, timestamp: Date.now() });
+    cache.set(cacheKey, data);
     return NextResponse.json(data);
   } catch (error) {
     return serverError(error, { route: '/api/admin/health-trends' });

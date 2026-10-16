@@ -1,49 +1,43 @@
 'use client';
 
 import { Card, CardContent } from '@/components/ui';
+import { healthyShare, liveCount, type PlatformCounts, type StateCounts } from '@/lib/admin';
 import EngagementCharts from './EngagementCharts';
-import type { AdminStats, GameWithEngagement, UserHealthCounts } from '@/types/api';
+import type { AdminStats, GameWithEngagement } from '@/types/api';
 
-export function OverviewTab({ stats, games, userHealth }: {
+export function OverviewTab({ stats, games, health }: {
   stats: AdminStats;
   games: GameWithEngagement[];
-  userHealth: UserHealthCounts;
+  health: PlatformCounts;
 }) {
-  // Same classification as the platform-health charts; dormant games are left out
-  // of the share so abandoned ones don't drag it down forever.
-  const healthyCount = games.filter((g) => g.healthState === 'healthy').length;
-  const viableCount = games.filter((g) => g.healthyBy === 'viableDate').length;
-  const dormantCount = games.filter((g) => g.healthState === 'dormant').length;
-  const liveCount = games.length - dormantCount;
-  // Users likewise: churned users (no live game, here 60+ days) are left out.
-  const healthyUsers = userHealth.healthyBooked + userHealth.healthyViable;
-  const activeUsers = healthyUsers + userHealth.gettingGoing + userHealth.unhealthy;
-  const churnedUsers = userHealth.total - activeUsers;
-
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard title="Total Users" value={stats.totalUsers} />
-        <StatCard
-          title="Healthy Users"
-          value={healthyUsers}
-          subtitle={`${activeUsers > 0 ? Math.round((healthyUsers / activeUsers) * 100) : 0}% of ${activeUsers} active users · ${churnedUsers} churned`}
-          detail={`${userHealth.healthyBooked} booked · ${userHealth.healthyViable} date found`}
-        />
+        <HealthCard title="Healthy Users" counts={health.users} live="active users" gone="churned" />
         <StatCard title="Total Games" value={stats.totalGames} />
-        <StatCard
-          title="Healthy Games"
-          value={healthyCount}
-          subtitle={`${liveCount > 0 ? Math.round((healthyCount / liveCount) * 100) : 0}% of ${liveCount} live games · ${dormantCount} dormant`}
-          detail={`${healthyCount - viableCount} booked · ${viableCount} date found`}
-        />
+        <HealthCard title="Healthy Games" counts={health.games} live="live games" gone="dormant" />
         <StatCard title="Confirmed Sessions" value={stats.totalSessions} />
       </div>
 
       {/* Engagement Charts */}
       <EngagementCharts games={games} />
     </div>
+  );
+}
+
+/** Healthy count, as a share of what's still in play — so abandoned users and
+ *  games (`gone`) don't drag the share down forever. */
+function HealthCard({ title, counts, live, gone }: { title: string; counts: StateCounts; live: string; gone: string }) {
+  const liveTotal = liveCount(counts);
+  return (
+    <StatCard
+      title={title}
+      value={counts.healthyBooked + counts.healthyViable}
+      subtitle={`${healthyShare(counts) ?? 0}% of ${liveTotal} ${live} · ${counts.total - liveTotal} ${gone}`}
+      detail={`${counts.healthyBooked} booked · ${counts.healthyViable} date found`}
+    />
   );
 }
 

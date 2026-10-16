@@ -75,3 +75,21 @@ export async function paginate<T>(
 
   return all;
 }
+
+/**
+ * Best-effort per-instance cache for expensive admin reads. In serverless it only
+ * helps when an instance is reused across requests (Fluid Compute); cold starts
+ * miss silently, which is fine.
+ */
+export function createTtlCache<T>(ttlMs: number) {
+  const entries = new Map<string, { data: T; storedAt: number }>();
+  return {
+    get(key: string): T | undefined {
+      const entry = entries.get(key);
+      return entry && Date.now() - entry.storedAt < ttlMs ? entry.data : undefined;
+    },
+    set(key: string, data: T): void {
+      entries.set(key, { data, storedAt: Date.now() });
+    },
+  };
+}

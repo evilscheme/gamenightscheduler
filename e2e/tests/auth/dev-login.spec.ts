@@ -38,8 +38,7 @@ test.describe('Dev login', () => {
   test('still signs in a persona whose password was changed elsewhere', async ({ browser }) => {
     await devLogin(browser); // make sure the account exists
     const admin = getAdminClient();
-    // Look the id up by email (dev-login upserts the profile) rather than scanning
-    // auth.admin.listUsers, which flaked under the full suite's parallel load.
+    // Dev-login upserts the profile, so the id is one indexed lookup away.
     const { data: profile, error: lookupError } = await admin
       .from('users')
       .select('id')

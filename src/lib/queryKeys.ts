@@ -49,7 +49,7 @@ export const queryKeys = {
   adminHealthTrends: (weeks: string) => ['adminHealthTrends', weeks] as const,
   /** Platform-wide admin counters. */
   adminStats: () => ['adminStats'] as const,
-  /** Admin list of every game with health grades. */
+  /** Admin list of every game with its health bucket, plus platform health counts. */
   adminGames: () => ['adminGames'] as const,
   /** Admin top-users leaderboard. */
   adminTopUsers: () => ['adminTopUsers'] as const,

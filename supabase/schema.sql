@@ -126,20 +126,16 @@ CREATE TABLE game_play_dates (
   UNIQUE(game_id, date)
 );
 
--- Admin platform-health history. One row per UTC day: the platform's state as of
--- the end of that day. Health is computed in TypeScript (src/lib/admin/platformHealth.ts),
--- so rows are written by the app, never by SQL. `source` records whether the row was
+-- Admin platform-health history. One row per UTC day: how many users and games were
+-- in each health bucket at the end of that day. Buckets are defined and computed in
+-- TypeScript (HealthBucket in src/lib/admin/platformHealth.ts), so rows are written by
+-- the app, never by SQL. Dormant games and churned users aren't stored: they're the
+-- remainder, total minus the tracked buckets. `source` records whether the row was
 -- captured near the day it describes ('snapshot') or rebuilt later from row timestamps
 -- ('reconstructed' — undercounts anything deleted since, so treat it as approximate).
--- Dormant games and churned users are left out of the health states, so abandoned
--- data doesn't pile up as permanently unhealthy rows.
 CREATE TABLE platform_daily_stats (
   day DATE PRIMARY KEY,
   source TEXT NOT NULL CHECK (source IN ('snapshot', 'reconstructed')),
-  -- States are defined in platformHealth.ts (GameState). Churned users and
-  -- dormant games are the remainder: total minus the three tracked states.
-  -- Healthy is split by evidence: a session booked, or only a viable date
-  -- (enough players available on an upcoming play date).
   total_users INTEGER NOT NULL,
   healthy_booked_users INTEGER NOT NULL,
   healthy_viable_users INTEGER NOT NULL,

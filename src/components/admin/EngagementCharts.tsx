@@ -9,16 +9,8 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 import { queryKeys } from '@/lib/queryKeys';
-import type { GameState, HealthyBy } from '@/lib/admin';
-import type { EngagementBucket } from '@/lib/admin';
-import {
-  ChartTooltip,
-  HEALTH_BUCKETS,
-  healthBucket,
-  type HealthBucket,
-  formatDayLabel,
-  type TimeRange,
-} from './chartUtils';
+import type { EngagementBucket, HealthBucket } from '@/lib/admin';
+import { ChartTooltip, HEALTH_BUCKETS, formatDayLabel, type TimeRange } from './chartUtils';
 import PlatformHealthCharts from './PlatformHealthCharts';
 
 // ── Types ──────────────────────────────────────────────────
@@ -28,7 +20,7 @@ interface EngagementData {
 }
 
 interface EngagementChartsProps {
-  games: Array<{ healthState: GameState; healthyBy: HealthyBy | null }>;
+  games: Array<{ healthBucket: HealthBucket }>;
 }
 
 const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
@@ -63,10 +55,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
 
   const healthData = useMemo(() => {
     const counts = new Map<HealthBucket, number>();
-    for (const g of games) {
-      const bucket = healthBucket(g.healthState, g.healthyBy);
-      counts.set(bucket, (counts.get(bucket) ?? 0) + 1);
-    }
+    for (const g of games) counts.set(g.healthBucket, (counts.get(g.healthBucket) ?? 0) + 1);
     return HEALTH_BUCKETS.map((b) => ({ short: b.short, label: b.label, count: counts.get(b.key) ?? 0, fill: b.color }));
   }, [games]);
 

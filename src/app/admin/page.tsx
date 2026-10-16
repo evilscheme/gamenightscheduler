@@ -62,7 +62,7 @@ export default function AdminPage() {
 
   const stats = statsQuery.data ?? null;
   const games = gamesQuery.data?.games ?? [];
-  const userHealth = gamesQuery.data?.users ?? null;
+  const health = gamesQuery.data?.health ?? null;
   const topUsers = topUsersQuery.data ?? null;
   const loading = statsQuery.isPending || gamesQuery.isPending || topUsersQuery.isPending;
   const error =
@@ -112,8 +112,8 @@ export default function AdminPage() {
         <div className="text-danger text-center py-12">{error}</div>
       ) : (
         <>
-          {activeTab === 'overview' && stats && userHealth && (
-            <OverviewTab stats={stats} games={games} userHealth={userHealth} />
+          {activeTab === 'overview' && stats && health && (
+            <OverviewTab stats={stats} games={games} health={health} />
           )}
           {activeTab === 'games' && <GamesTab games={games} />}
           {activeTab === 'topUsers' && topUsers && <TopUsersTab topUsers={topUsers} />}

@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { LoadingSpinner } from '@/components/ui';
+import { healthyShare, type StateCounts } from '@/lib/admin';
 import { queryKeys } from '@/lib/queryKeys';
 import type { AdminHealthTrends } from '@/types/api';
 import {
@@ -25,34 +26,17 @@ const SMALL_TICK = { fontSize: 10 };
 
 /** Bottom to top: healthy sits on the axis so its count reads straight off it.
  *  Dormant games and churned users are left out of the trends. */
-const STATES = HEALTH_BUCKETS.filter((st) => st.key !== 'dormant');
+const TRACKED_BUCKETS = HEALTH_BUCKETS.filter((b) => b.key !== 'dormant');
 
-/** Legend in stacking order (Recharts sorts alphabetically by default). */
-const LEGEND_ORDER: string[] = STATES.map((st) => st.key);
-const legendRank = (item: { dataKey?: unknown }) => LEGEND_ORDER.indexOf(String(item.dataKey));
+/** Legend items in the given dataKey order (Recharts sorts alphabetically by default). */
+const legendOrder = (keys: readonly string[]) => (item: { dataKey?: unknown }) => keys.indexOf(String(item.dataKey));
+const bucketLegend = legendOrder(TRACKED_BUCKETS.map((b) => b.key));
+const funnelLegend = legendOrder(['joined', 'availability', 'session']);
 
-/** Funnel legend in step order. */
-const FUNNEL_ORDER = ['joined', 'availability', 'session'];
-const funnelRank = (item: { dataKey?: unknown }) => FUNNEL_ORDER.indexOf(String(item.dataKey));
+/** A window's counts, or just its label when the day has no row (a gap). */
+type StatePoint = { label: string } & Partial<StateCounts>;
 
-type StatePoint = { label: string; healthyPct: number | null } & Record<
-  'healthyBooked' | 'healthyViable' | 'gettingGoing' | 'unhealthy',
-  number | null
->;
-
-function toStatePoint(
-  label: string,
-  counts: Omit<StatePoint, 'label' | 'healthyPct'>
-): StatePoint {
-  const values = Object.values(counts);
-  if (values.some((v) => v == null)) return { label, ...counts, healthyPct: null };
-  const tracked = (values as number[]).reduce((a, b) => a + b, 0);
-  return { label, ...counts, healthyPct: pct(counts.healthyBooked! + counts.healthyViable!, tracked) };
-}
-
-/** Stacked counts by state; dormant games and churned users are left out. The
- *  healthy share lives in its own chart — a second axis here read as if the
- *  stack should fill to 100%. */
+/** Stacked counts by bucket; dormant games and churned users are left out. */
 function StateChart({ data, marker }: { data: StatePoint[]; marker: React.ReactNode }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -61,16 +45,16 @@ function StateChart({ data, marker }: { data: StatePoint[]; marker: React.ReactN
         <XAxis dataKey="label" tick={SMALL_TICK} interval="preserveStartEnd" {...AXIS_PROPS} />
         <YAxis tick={SMALL_TICK} allowDecimals={false} {...AXIS_PROPS} />
         <Tooltip content={<ChartTooltip />} />
-        <Legend wrapperStyle={{ fontSize: '12px' }} itemSorter={legendRank} />
-        {STATES.map((st) => (
+        <Legend wrapperStyle={{ fontSize: '12px' }} itemSorter={bucketLegend} />
+        {TRACKED_BUCKETS.map((b) => (
           <Area
-            key={st.key}
+            key={b.key}
             type="linear"
-            dataKey={st.key}
-            name={st.label}
-            stackId="states"
-            stroke={st.color}
-            fill={st.color}
+            dataKey={b.key}
+            name={b.label}
+            stackId="buckets"
+            stroke={b.color}
+            fill={b.color}
             fillOpacity={0.35}
             strokeWidth={1.5}
             dot={false}
@@ -101,22 +85,13 @@ export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRan
   }
   if (error) return <div className="text-danger text-center py-12">{error.message}</div>;
 
-  const games = data.health.map((p) =>
-    toStatePoint(formatDayLabel(p.windowEnd), {
-      healthyBooked: p.healthyBookedGames,
-      healthyViable: p.healthyViableGames,
-      gettingGoing: p.gettingGoingGames,
-      unhealthy: p.unhealthyGames,
-    })
-  );
-  const users = data.health.map((p) =>
-    toStatePoint(formatDayLabel(p.windowEnd), {
-      healthyBooked: p.healthyBookedUsers,
-      healthyViable: p.healthyViableUsers,
-      gettingGoing: p.gettingGoingUsers,
-      unhealthy: p.unhealthyUsers,
-    })
-  );
+  const games: StatePoint[] = data.health.map((p) => ({ label: formatDayLabel(p.windowEnd), ...p.counts?.games }));
+  const users: StatePoint[] = data.health.map((p) => ({ label: formatDayLabel(p.windowEnd), ...p.counts?.users }));
+  const share = data.health.map((p) => ({
+    label: formatDayLabel(p.windowEnd),
+    games: p.counts ? healthyShare(p.counts.games) : null,
+    users: p.counts ? healthyShare(p.counts.users) : null,
+  }));
   // Points before this are rebuilt from timestamps; from here on they're live snapshots.
   const firstSnapshot = data.health.find((p) => p.source === 'snapshot');
   const hasReconstructed = data.health.some((p) => p.source === 'reconstructed');
@@ -134,11 +109,8 @@ export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRan
       : 'Rebuilt from history (approximate) until daily snapshots accumulate'
     : null;
 
-  const share = games.map((g, i) => ({ label: g.label, games: g.healthyPct, users: users[i].healthyPct }));
-
   const funnel = data.funnel.map((c) => ({
     label: formatDayLabel(c.windowEnd),
-    signups: c.signups,
     joined: pct(c.joinedGame, c.signups),
     availability: pct(c.enteredAvailability, c.signups),
     session: pct(c.gotSession, c.signups),
@@ -193,7 +165,7 @@ export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRan
               <XAxis dataKey="label" tick={SMALL_TICK} interval="preserveStartEnd" {...AXIS_PROPS} />
               <YAxis tick={SMALL_TICK} domain={[0, 100]} unit="%" {...AXIS_PROPS} />
               <Tooltip content={<ChartTooltip unit="%" />} />
-              <Legend wrapperStyle={{ fontSize: '11px' }} itemSorter={funnelRank} />
+              <Legend wrapperStyle={{ fontSize: '11px' }} itemSorter={funnelLegend} />
               <Line type="linear" dataKey="joined" name="In a game" stroke="#3b82f6" strokeWidth={2} dot={false} />
               <Line type="linear" dataKey="availability" name="Entered dates" stroke="#f59e0b" strokeWidth={2} dot={false} />
               <Line type="linear" dataKey="session" name="Got a session" stroke="#8b5cf6" strokeWidth={2} dot={false} />

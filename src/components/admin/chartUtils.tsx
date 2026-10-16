@@ -1,30 +1,25 @@
 'use client';
 
 import { Card, CardContent, CardHeader } from '@/components/ui';
-import type { GameState, HealthyBy } from '@/lib/admin';
+import { HEALTH_BUCKET_ORDER, type HealthBucket, type WEEK_RANGES } from '@/lib/admin';
 
 // Shared by the admin engagement and platform-health charts.
 
-export type TimeRange = '8' | '12' | '26' | 'all';
+/** A chart range as sent in the `weeks` param. */
+export type TimeRange = `${(typeof WEEK_RANGES)[number]}` | 'all';
 
-/** Health states with healthy split by its evidence (HealthyBy). */
-export type HealthBucket = 'healthyBooked' | 'healthyViable' | 'gettingGoing' | 'unhealthy' | 'dormant';
+// Both healthy buckets are green: they count as healthy alike, the shade shows the evidence.
+const BUCKET_STYLE: Record<HealthBucket, { label: string; short: string; color: string }> = {
+  healthyBooked: { label: 'Healthy · booked', short: 'Booked', color: '#15803d' },
+  healthyViable: { label: 'Healthy · date found', short: 'Date found', color: '#4ade80' },
+  gettingGoing: { label: 'Getting going', short: 'Going', color: '#3b82f6' },
+  unhealthy: { label: 'Unhealthy', short: 'Unhealthy', color: '#ef4444' },
+  dormant: { label: 'Dormant', short: 'Dormant', color: '#64748b' },
+};
 
-/** One label and color per bucket, healthiest first — every admin view of health
- *  (trend charts, distribution bars, games list) reads from here. Both healthy
- *  buckets are green: they count as healthy alike, the shade shows the evidence. */
-export const HEALTH_BUCKETS: ReadonlyArray<{ key: HealthBucket; label: string; short: string; color: string }> = [
-  { key: 'healthyBooked', label: 'Healthy · booked', short: 'Booked', color: '#15803d' },
-  { key: 'healthyViable', label: 'Healthy · date found', short: 'Date found', color: '#4ade80' },
-  { key: 'gettingGoing', label: 'Getting going', short: 'Going', color: '#3b82f6' },
-  { key: 'unhealthy', label: 'Unhealthy', short: 'Unhealthy', color: '#ef4444' },
-  { key: 'dormant', label: 'Dormant', short: 'Dormant', color: '#64748b' },
-];
-
-export function healthBucket(state: GameState, healthyBy: HealthyBy | null): HealthBucket {
-  if (state === 'healthy') return healthyBy === 'booked' ? 'healthyBooked' : 'healthyViable';
-  return state;
-}
+/** Label and color per health bucket, healthiest first — every admin view of
+ *  health (trend charts, distribution bars, games list) reads from here. */
+export const HEALTH_BUCKETS = HEALTH_BUCKET_ORDER.map((key) => ({ key, ...BUCKET_STYLE[key] }));
 
 export const AXIS_PROPS = {
   stroke: 'var(--muted-foreground)',
@@ -36,11 +31,10 @@ export function formatDayLabel(dayStr: string): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-/** Custom tooltip that uses Tailwind classes for proper theme support. A series'
- *  own `unit` prop wins over the tooltip-wide one, for charts that mix % and counts. */
+/** Custom tooltip that uses Tailwind classes for proper theme support */
 export function ChartTooltip({ active, payload, label, unit = '' }: {
   active?: boolean;
-  payload?: Array<{ name: string; value: number | null; color: string; unit?: string }>;
+  payload?: Array<{ name: string; value: number | null; color: string }>;
   label?: string;
   unit?: string;
 }) {
@@ -51,7 +45,7 @@ export function ChartTooltip({ active, payload, label, unit = '' }: {
       {payload.map((entry) => (
         <p key={entry.name} className="text-card-foreground">
           <span style={{ color: entry.color }}>&#9679;</span>{' '}
-          {entry.name}: <span className="font-medium">{entry.value ?? '—'}{entry.value != null ? (entry.unit ?? unit) : ''}</span>
+          {entry.name}: <span className="font-medium">{entry.value ?? '—'}{entry.value != null ? unit : ''}</span>
         </p>
       ))}
     </div>

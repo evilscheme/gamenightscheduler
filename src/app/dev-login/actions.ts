@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createAdminClient, findAuthUserByEmail } from '@/lib/supabase/admin';
 import { isLocalSupabase } from '@/lib/supabase/env';
 
 interface DevUser {
@@ -77,8 +77,7 @@ export async function loginAsDevUser(persona: string): Promise<{ success: boolea
         return { success: false, error: `Failed to create user: ${createError.message}` };
       }
       // Exists with another password — reset it. The only path that revokes sessions.
-      const { data: existingUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
-      const existing = existingUsers?.users.find((u) => u.email === devUser.email);
+      const existing = await findAuthUserByEmail(admin, devUser.email);
       if (!existing) {
         return { success: false, error: 'User exists but could not be found' };
       }

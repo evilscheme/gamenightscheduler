@@ -1,11 +1,10 @@
 -- Admin platform-health history: platform_daily_stats + deletion_log.
 --
--- platform_daily_stats holds one row per UTC day (state at end of day). Rows are
--- written by the app (src/lib/admin/platformStatsStore.ts) — a daily Vercel cron
--- plus a one-off history backfill (npm run db:backfill-stats) — never by SQL,
--- because health is computed in TypeScript. Dormant games and churned users are
--- left out of the health states, so abandoned data doesn't pile up as
--- permanently unhealthy rows.
+-- platform_daily_stats holds one row per UTC day: how many users and games were in
+-- each health bucket at the end of it (HealthBucket in src/lib/admin/platformHealth.ts).
+-- Rows are written by the app (src/lib/admin/platformStatsStore.ts) — a daily Vercel
+-- cron plus a one-off history backfill (npm run db:backfill-stats) — never by SQL.
+-- Dormant games and churned users aren't stored: total minus the tracked buckets.
 --
 -- deletion_log is filled by AFTER DELETE triggers on users, games, sessions and
 -- game_memberships. Deletions before this migration cannot be recovered; the
@@ -20,10 +19,6 @@
 CREATE TABLE platform_daily_stats (
   day DATE PRIMARY KEY,
   source TEXT NOT NULL CHECK (source IN ('snapshot', 'reconstructed')),
-  -- States are defined in platformHealth.ts (GameState). Churned users and
-  -- dormant games are the remainder: total minus the three tracked states.
-  -- Healthy is split by evidence: a session booked, or only a viable date
-  -- (enough players available on an upcoming play date).
   total_users INTEGER NOT NULL,
   healthy_booked_users INTEGER NOT NULL,
   healthy_viable_users INTEGER NOT NULL,

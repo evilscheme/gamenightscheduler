@@ -30,7 +30,6 @@ export async function GET(): Promise<Response> {
     const data = indexPlatform(inputs);
     const now = new Date();
     const statuses = currentGameStatuses(data, now);
-    const current = computeCurrentStats(data, now);
     const todayStr = getTodayLocalDate();
 
     const gamesWithEngagement: GameWithEngagement[] = data.games.map((rows) => {
@@ -54,7 +53,7 @@ export async function GET(): Promise<Response> {
       // Handle gm field which may be an object or array from Supabase
       const gmData = nameById.get(game.id)?.gm ?? null;
       const gm = Array.isArray(gmData) ? gmData[0] ?? null : gmData;
-      const status = statuses.get(game.id);
+      const status = statuses.get(game.id)!; // every indexed game has one
 
       return {
         id: game.id,
@@ -65,25 +64,14 @@ export async function GET(): Promise<Response> {
         sessionCount: rows.sessions.length,
         futureSessionCount: rows.sessions.filter((s) => s.date >= todayStr).length,
         availabilityFillRate: fillRate,
-        lastActivity: status?.lastActivity ?? game.created_at,
-        // A game created after `now` was computed (a race) reads as just started.
-        healthState: status?.state ?? 'gettingGoing',
-        healthyBy: status?.healthyBy ?? null,
-        viableDate: status?.viable ?? null,
+        lastActivity: new Date(status.lastActivity).toISOString(),
+        healthBucket: status.bucket,
+        viableDate: status.viableDate,
       };
     });
     gamesWithEngagement.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
 
-    const body: AdminGamesResponse = {
-      games: gamesWithEngagement,
-      users: {
-        total: current.totalUsers,
-        healthyBooked: current.healthyBookedUsers,
-        healthyViable: current.healthyViableUsers,
-        gettingGoing: current.gettingGoingUsers,
-        unhealthy: current.unhealthyUsers,
-      },
-    };
+    const body: AdminGamesResponse = { games: gamesWithEngagement, health: computeCurrentStats(data, now) };
     return NextResponse.json(body);
   } catch (error) {
     return serverError(error, { route: '/api/admin/games' });

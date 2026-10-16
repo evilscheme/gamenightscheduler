@@ -28,12 +28,17 @@ test.describe('handle_new_user() name fallbacks', () => {
   function signUp(metadata: string, email: string): string {
     const id = randomUUID();
     created.push(id);
+    // GoTrue writes '' (never NULL) to the token columns that have no default, and
+    // fails to read a row that holds NULL there: while one exists, every admin
+    // listUsers in a parallel worker 500s. Insert them the way GoTrue does.
     sql(
       `INSERT INTO auth.users
-         (id, instance_id, aud, role, email, raw_user_meta_data, raw_app_meta_data, created_at, updated_at)
+         (id, instance_id, aud, role, email, raw_user_meta_data, raw_app_meta_data, created_at, updated_at,
+          confirmation_token, recovery_token, email_change_token_new, email_change)
        VALUES
          ('${id}', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-          '${email}', '${metadata}'::jsonb, '{"provider":"discord"}'::jsonb, now(), now());`
+          '${email}', '${metadata}'::jsonb, '{"provider":"discord"}'::jsonb, now(), now(),
+          '', '', '', '');`
     );
     return sql(`SELECT name FROM public.users WHERE id = '${id}';`);
   }

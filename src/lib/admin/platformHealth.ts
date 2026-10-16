@@ -1,7 +1,7 @@
 import { addDays, eachDayOfInterval, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { isEligiblePlayDate } from '@/lib/availability';
 import { effectiveThreshold } from '@/lib/schedule';
-import { getBucketIndex, windowEndKey } from './adminEngagement';
+import { rollingSeries, tallyAt } from './adminEngagement';
 
 // ── Inputs ─────────────────────────────────────────────────
 
@@ -38,9 +38,9 @@ export const GRACE_DAYS = 7;
  *  "unhealthy" rows. */
 export const DORMANT_AFTER_DAYS = 60;
 
-/** How far ahead a viable date (see GameState) still makes a game healthy. A
- *  booked session counts however far out it is; dates players filled in are a
- *  weaker commitment, so stale far-ahead entries shouldn't keep a game alive. */
+/** How far ahead a viable date still makes a game healthy. A booked session
+ *  counts however far out it is; dates players filled in are a weaker
+ *  commitment, so stale far-ahead entries shouldn't keep a game alive. */
 export const VIABLE_DATE_WEEKS = 6;
 
 // ── Indexing ───────────────────────────────────────────────
@@ -87,14 +87,6 @@ function gameActivity(rows: Omit<GameRows, 'activity'>): number[] {
   return times.sort((a, b) => a - b);
 }
 
-/** Latest activity strictly before `cutoffMs`, or null if none. */
-function lastActivityBefore(activity: number[], cutoffMs: number): number | null {
-  for (let i = activity.length - 1; i >= 0; i--) {
-    if (activity[i] < cutoffMs) return activity[i];
-  }
-  return null;
-}
-
 /** Group rows by game once, so a multi-day backfill doesn't rescan every table per day. */
 export function indexPlatform(inputs: PlatformInputs): IndexedPlatform {
   const memberships = groupBy(inputs.memberships);
@@ -117,27 +109,35 @@ export function indexPlatform(inputs: PlatformInputs): IndexedPlatform {
   };
 }
 
-// ── Health states ──────────────────────────────────────────
+// ── Health buckets ─────────────────────────────────────────
 
 /**
- * - healthy: has at least one player (besides the host), and either
- *     - booked: a session on an upcoming date, or
- *     - viableDate: an eligible play date within VIABLE_DATE_WEEKS where enough
- *       players (effectiveThreshold, as on the calendar) are marked available.
- *       Many groups find their date here but confirm it in Discord, never
- *       pressing "book"; those groups are playing, and look it — they keep
- *       coming back week after week, like booked groups do.
- *   However quiet the app gets in between — usage is bursty: everyone enters
- *   dates far ahead, the GM books a batch, then nobody visits until the next
- *   batch — a game with a game night on the horizon is healthy.
+ * Every game is in exactly one bucket, healthiest first:
+ * - healthyBooked: at least one player besides the host, and a session on an
+ *   upcoming date. However quiet the app gets in between — usage is bursty:
+ *   everyone enters dates far ahead, the GM books a batch, then nobody visits
+ *   until the next batch — a game with sessions on the books is healthy.
+ * - healthyViable: at least one player besides the host, nothing booked, but an
+ *   eligible play date within VIABLE_DATE_WEEKS that enough players
+ *   (effectiveThreshold, as on the calendar) are marked available for. Many
+ *   groups find their date here and confirm it in Discord without booking; they
+ *   keep coming back week after week, like booked groups do.
  * - gettingGoing: neither, but activity within GRACE_DAYS.
  * - unhealthy: neither, quiet for GRACE_DAYS up to DORMANT_AFTER_DAYS.
  * - dormant: neither, quiet for DORMANT_AFTER_DAYS or more.
+ *
+ * A user is in the best bucket of their games (as host or player), so a player
+ * in a healthy game is healthy whether or not they've entered dates — they have
+ * a game to go to. A user with no game counts as gettingGoing for GRACE_DAYS
+ * after signing up, unhealthy until DORMANT_AFTER_DAYS, then churned; a user
+ * whose games are all dormant is churned once past DORMANT_AFTER_DAYS too.
  */
-export type GameState = 'healthy' | 'gettingGoing' | 'unhealthy' | 'dormant';
+export const HEALTH_BUCKET_ORDER = ['healthyBooked', 'healthyViable', 'gettingGoing', 'unhealthy', 'dormant'] as const;
+export type HealthBucket = (typeof HEALTH_BUCKET_ORDER)[number];
 
-/** What made a healthy game healthy. */
-export type HealthyBy = 'booked' | 'viableDate';
+export const isHealthy = (bucket: HealthBucket) => bucket === 'healthyBooked' || bucket === 'healthyViable';
+
+const rank = (bucket: HealthBucket) => HEALTH_BUCKET_ORDER.indexOf(bucket);
 
 /** The earliest upcoming date enough players can make. */
 export interface ViableDate {
@@ -146,43 +146,44 @@ export interface ViableDate {
   needed: number;
 }
 
-interface Classification {
-  state: GameState;
-  healthyBy: HealthyBy | null;
-  viable: ViableDate | null;
+export interface GameStatus {
+  bucket: HealthBucket;
+  /** Set when bucket is 'healthyViable'. */
+  viableDate: ViableDate | null;
+  /** Latest activity of any kind (see gameActivity), epoch ms. */
+  lastActivity: number;
 }
 
-/** Best first: a user's state follows the best of their games, and a booked game
- *  outranks one with only a viable date. */
-function rankOf(c: Classification): number {
-  if (c.state === 'healthy') return c.healthyBy === 'booked' ? 0 : 1;
-  return { gettingGoing: 2, unhealthy: 3, dormant: 4 }[c.state];
-}
-
-/** The end of a day, precomputed once so per-game checks stay cheap. */
-interface DayEnd {
+/** The moment a classification is made, precomputed once so per-game checks stay cheap. */
+interface Moment {
   day: string; // yyyy-MM-dd
-  /** Midnight after `day`, epoch ms: rows count if created before it. */
+  /** Rows count if created before this, epoch ms. */
   cutoff: number;
   /** First date that counts as upcoming. */
-  nextDay: string;
+  firstUpcoming: string;
   /** Last date (inclusive) a viable date can fall on. */
   viableThrough: string;
   graceSince: number;
   dormantSince: number;
 }
 
-function dayEnd(day: string): DayEnd {
-  const reference = startOfDay(addDays(parseISO(day), 1));
+/** `reference` is both the cutoff and the first upcoming day. */
+function momentAt(day: string, reference: Date): Moment {
   return {
     day,
     cutoff: reference.getTime(),
-    nextDay: format(reference, 'yyyy-MM-dd'),
+    firstUpcoming: format(reference, 'yyyy-MM-dd'),
     viableThrough: format(addDays(reference, VIABLE_DATE_WEEKS * 7 - 1), 'yyyy-MM-dd'),
     graceSince: subDays(reference, GRACE_DAYS).getTime(),
     dormantSince: subDays(reference, DORMANT_AFTER_DAYS).getTime(),
   };
 }
+
+/** The end of `day`, as if it were midnight the next morning: "upcoming" means after `day`. */
+const endOfDay = (day: string) => momentAt(day, startOfDay(addDays(parseISO(day), 1)));
+
+/** Right now: a session later today still counts as upcoming. */
+const rightNow = (now: Date) => momentAt(format(now, 'yyyy-MM-dd'), now);
 
 const before = (ts: string, cutoffMs: number) => Date.parse(ts) < cutoffMs;
 
@@ -194,28 +195,27 @@ function playersAt(rows: GameRows, cutoff: number): string[] {
 }
 
 /**
- * The earliest eligible play date from the day after the cutoff through
- * VIABLE_DATE_WEEKS on which at least effectiveThreshold current players are
- * marked available. Only 'available' counts — not 'maybe' — matching the
- * calendar's rule that a positive claim reads confirmed yeses alone. Status is
- * the row's current value (edits aren't versioned), so rebuilt history is
- * approximate for rows changed since.
+ * The earliest eligible play date from firstUpcoming through viableThrough on
+ * which at least effectiveThreshold current players are marked available. Only
+ * 'available' counts — not 'maybe' — matching the calendar's rule that a
+ * positive claim reads confirmed yeses alone. Status is the row's current value
+ * (edits aren't versioned), so rebuilt history is approximate for rows changed since.
  */
-function firstViableDate(rows: GameRows, players: string[], end: DayEnd): ViableDate | null {
+function firstViableDate(rows: GameRows, players: string[], at: Moment): ViableDate | null {
   const { game } = rows;
   const needed = effectiveThreshold(game.min_players_needed ?? 0, players.length);
   const playerSet = new Set(players);
   const counts = new Map<string, number>();
   for (const a of rows.availability) {
-    if (a.status !== 'available' || a.date < end.nextDay || a.date > end.viableThrough) continue;
-    if (!playerSet.has(a.user_id) || !before(a.created_at, end.cutoff)) continue;
+    if (a.status !== 'available' || a.date < at.firstUpcoming || a.date > at.viableThrough) continue;
+    if (!playerSet.has(a.user_id) || !before(a.created_at, at.cutoff)) continue;
     counts.set(a.date, (counts.get(a.date) ?? 0) + 1);
   }
 
-  const extraPlayDates = rows.playDates.filter((p) => before(p.created_at, end.cutoff)).map((p) => p.date.substring(0, 10));
-  const windowEnd = game.campaign_end_date && game.campaign_end_date < end.viableThrough
+  const extraPlayDates = rows.playDates.filter((p) => before(p.created_at, at.cutoff)).map((p) => p.date.substring(0, 10));
+  const windowEnd = game.campaign_end_date && game.campaign_end_date < at.viableThrough
     ? game.campaign_end_date
-    : end.viableThrough;
+    : at.viableThrough;
   let best: ViableDate | null = null;
   for (const [date, available] of counts) {
     if (available < needed || (best && date >= best.date)) continue;
@@ -224,7 +224,7 @@ function firstViableDate(rows: GameRows, players: string[], end: DayEnd): Viable
       date: parseISO(date),
       playDays: game.play_days ?? [],
       extraPlayDates,
-      today: parseISO(end.nextDay),
+      today: parseISO(at.firstUpcoming),
       windowEnd: parseISO(windowEnd),
     });
     if (eligible) best = { date, available, needed };
@@ -232,146 +232,101 @@ function firstViableDate(rows: GameRows, players: string[], end: DayEnd): Viable
   return best;
 }
 
-/** A game's classification at the end of a day. The game must already exist then. */
-function classifyAt(rows: GameRows, end: DayEnd): Classification {
-  const players = playersAt(rows, end.cutoff);
+function classifyAt(rows: GameRows, at: Moment): GameStatus {
+  let lastActivity = Date.parse(rows.game.created_at);
+  for (let i = rows.activity.length - 1; i >= 0; i--) {
+    if (rows.activity[i] < at.cutoff) {
+      lastActivity = rows.activity[i];
+      break;
+    }
+  }
+
+  const players = playersAt(rows, at.cutoff);
   if (players.length > 1) {
-    if (rows.sessions.some((s) => s.date >= end.nextDay && before(s.created_at, end.cutoff))) {
-      return { state: 'healthy', healthyBy: 'booked', viable: null };
+    if (rows.sessions.some((s) => s.date >= at.firstUpcoming && before(s.created_at, at.cutoff))) {
+      return { bucket: 'healthyBooked', viableDate: null, lastActivity };
     }
-    const viable = firstViableDate(rows, players, end);
-    if (viable) return { state: 'healthy', healthyBy: 'viableDate', viable };
+    const viableDate = firstViableDate(rows, players, at);
+    if (viableDate) return { bucket: 'healthyViable', viableDate, lastActivity };
   }
-  const last = lastActivityBefore(rows.activity, end.cutoff) ?? Date.parse(rows.game.created_at);
-  const state = last >= end.graceSince ? 'gettingGoing' : last >= end.dormantSince ? 'unhealthy' : 'dormant';
-  return { state, healthyBy: null, viable: null };
+  const bucket = lastActivity >= at.graceSince ? 'gettingGoing' : lastActivity >= at.dormantSince ? 'unhealthy' : 'dormant';
+  return { bucket, viableDate: null, lastActivity };
 }
 
-// ── Current state ──────────────────────────────────────────
-
-/** The same check as a day's end, applied at an arbitrary moment: rows count if
- *  created before `now`, and a session today still counts as upcoming. */
-function momentEnd(now: Date): DayEnd {
-  const today = format(now, 'yyyy-MM-dd');
-  return {
-    day: today,
-    cutoff: now.getTime(),
-    nextDay: today,
-    viableThrough: format(addDays(now, VIABLE_DATE_WEEKS * 7 - 1), 'yyyy-MM-dd'),
-    graceSince: subDays(now, GRACE_DAYS).getTime(),
-    dormantSince: subDays(now, DORMANT_AFTER_DAYS).getTime(),
-  };
-}
-
-export interface GameStatus {
-  state: GameState;
-  healthyBy: HealthyBy | null;
-  /** Set when healthyBy is 'viableDate'. */
-  viable: ViableDate | null;
-  /** Latest activity of any kind (see gameActivity), ISO. */
-  lastActivity: string;
-}
-
-/**
- * Every game's state right now — for the admin games list, Overview tile and
- * distribution bars, so they classify games exactly as the trend charts do.
- */
+/** Every game's status right now — what the admin games list, Overview tiles
+ *  and distribution bars show, classified exactly as the trend charts are. */
 export function currentGameStatuses(data: IndexedPlatform, now: Date): Map<string, GameStatus> {
-  const end = momentEnd(now);
-  const result = new Map<string, GameStatus>();
-  for (const rows of data.games) {
-    if (!before(rows.game.created_at, end.cutoff)) continue;
-    const last = lastActivityBefore(rows.activity, end.cutoff) ?? Date.parse(rows.game.created_at);
-    result.set(rows.game.id, { ...classifyAt(rows, end), lastActivity: new Date(last).toISOString() });
-  }
-  return result;
+  const at = rightNow(now);
+  return new Map(data.games.map((rows) => [rows.game.id, classifyAt(rows, at)]));
 }
 
-// ── Daily state ────────────────────────────────────────────
+// ── Counts ─────────────────────────────────────────────────
 
-/** Counts at the end of a day. Dormant games and churned users are the
- *  remainder: total minus the three tracked states. */
-export interface DailyPlatformStats {
+/** How many users or games are in each tracked bucket. The rest of `total` is
+ *  left out of the health counts: dormant games, churned users. */
+export interface StateCounts {
+  total: number;
+  healthyBooked: number;
+  healthyViable: number;
+  gettingGoing: number;
+  unhealthy: number;
+}
+
+export interface PlatformCounts {
+  users: StateCounts;
+  games: StateCounts;
+}
+
+export interface DailyPlatformStats extends PlatformCounts {
   day: string; // yyyy-MM-dd
-  totalUsers: number;
-  /** Healthy users split by their best game's evidence (HealthyBy). */
-  healthyBookedUsers: number;
-  healthyViableUsers: number;
-  gettingGoingUsers: number;
-  unhealthyUsers: number;
-  totalGames: number;
-  healthyBookedGames: number;
-  healthyViableGames: number;
-  gettingGoingGames: number;
-  unhealthyGames: number;
 }
 
-/**
- * The platform's state at the end of `day` (server-local day, UTC in production),
- * evaluated as if it were midnight the next morning: rows count only if they
- * existed by then, and "upcoming" means a play date after `day`.
- *
- * Games are classified by GameState. A user's state follows their best game (as
- * host or player), so a player in a healthy game is healthy whether or not
- * they've entered dates — they have a game to go to. Otherwise a user is
- *   - gettingGoing: signed up within GRACE_DAYS, or in a game that's getting going;
- *   - unhealthy: in an unhealthy game, or has no live game but signed up less
- *     than DORMANT_AFTER_DAYS ago (never joined, or their games died young);
- *   - churned (not counted): no non-dormant game, and here DORMANT_AFTER_DAYS or more.
- */
-export function computeDailyStats(data: IndexedPlatform, day: string): DailyPlatformStats {
-  return statsAt(data, dayEnd(day));
+/** Users or games still in play: everything but dormant games / churned users. */
+export const liveCount = (c: StateCounts) => c.healthyBooked + c.healthyViable + c.gettingGoing + c.unhealthy;
+
+/** Percent of live users or games that are healthy, or null when none are live. */
+export function healthyShare(c: StateCounts): number | null {
+  const live = liveCount(c);
+  return live > 0 ? Math.round(((c.healthyBooked + c.healthyViable) / live) * 100) : null;
 }
 
-/** The same counts right now (`day` is today), for the admin Overview tiles. */
-export function computeCurrentStats(data: IndexedPlatform, now: Date): DailyPlatformStats {
-  return statsAt(data, momentEnd(now));
+function emptyCounts(): StateCounts {
+  return { total: 0, healthyBooked: 0, healthyViable: 0, gettingGoing: 0, unhealthy: 0 };
 }
 
-function statsAt(data: IndexedPlatform, end: DayEnd): DailyPlatformStats {
-
-  // Counts per rank (see rankOf): booked, viable, gettingGoing, unhealthy, dormant.
-  const games = [0, 0, 0, 0, 0];
-  const bestByUser = new Map<string, number>();
-  let totalGames = 0;
-
+function countAt(data: IndexedPlatform, at: Moment): DailyPlatformStats {
+  const games = emptyCounts();
+  const bestByUser = new Map<string, HealthBucket>();
   for (const rows of data.games) {
-    if (!before(rows.game.created_at, end.cutoff)) continue;
-    totalGames++;
-    const rank = rankOf(classifyAt(rows, end));
-    games[rank]++;
-    for (const id of playersAt(rows, end.cutoff)) {
+    if (!before(rows.game.created_at, at.cutoff)) continue;
+    games.total++;
+    const { bucket } = classifyAt(rows, at);
+    if (bucket !== 'dormant') games[bucket]++;
+    for (const id of playersAt(rows, at.cutoff)) {
       const prev = bestByUser.get(id);
-      if (prev === undefined || rank < prev) bestByUser.set(id, rank);
+      if (!prev || rank(bucket) < rank(prev)) bestByUser.set(id, bucket);
     }
   }
 
-  let totalUsers = 0;
-  const users = [0, 0, 0, 0];
+  const users = emptyCounts();
   for (const u of data.users) {
     const created = Date.parse(u.created_at);
-    if (created >= end.cutoff) continue;
-    totalUsers++;
-    const best = bestByUser.get(u.id) ?? 4;
-    if (best <= 1) users[best]++;
-    else if (best === 2 || created >= end.graceSince) users[2]++;
-    else if (best === 3 || created >= end.dormantSince) users[3]++;
+    if (created >= at.cutoff) continue;
+    users.total++;
+    const best = bestByUser.get(u.id) ?? 'dormant';
+    if (isHealthy(best)) users[best]++;
+    else if (best === 'gettingGoing' || created >= at.graceSince) users.gettingGoing++;
+    else if (best === 'unhealthy' || created >= at.dormantSince) users.unhealthy++;
   }
 
-  return {
-    day: end.day,
-    totalUsers,
-    healthyBookedUsers: users[0],
-    healthyViableUsers: users[1],
-    gettingGoingUsers: users[2],
-    unhealthyUsers: users[3],
-    totalGames,
-    healthyBookedGames: games[0],
-    healthyViableGames: games[1],
-    gettingGoingGames: games[2],
-    unhealthyGames: games[3],
-  };
+  return { day: at.day, users, games };
 }
+
+/** The platform at the end of `day` (server-local day, UTC in production). */
+export const computeDailyStats = (data: IndexedPlatform, day: string) => countAt(data, endOfDay(day));
+
+/** The same counts right now, for the admin Overview tiles. */
+export const computeCurrentStats = (data: IndexedPlatform, now: Date) => countAt(data, rightNow(now));
 
 // ── Activation funnel ──────────────────────────────────────
 
@@ -386,39 +341,34 @@ export interface FunnelCohort {
 }
 
 /**
- * Activation funnel by signup cohort, on the same rolling 7-day windows as the
- * engagement charts. Each step is "ever, so far" — younger cohorts have had less
- * time to convert, so the newest points read low until they mature.
+ * Activation funnel by signup cohort, on the engagement charts' rolling windows. Each step is "ever, so far" — younger
+ * cohorts have had less time to convert, so the newest points read low until
+ * they mature.
  */
-export function buildFunnelCohorts(inputs: PlatformInputs, now: Date, windows?: number): FunnelCohort[] {
+export function buildFunnelCohorts(data: IndexedPlatform, now: Date, windows?: number): FunnelCohort[] {
   const endExclusive = startOfDay(now);
 
   const gamesByUser = new Map<string, Set<string>>();
-  const addGame = (userId: string, gameId: string) => {
-    const set = gamesByUser.get(userId);
-    if (set) set.add(gameId);
-    else gamesByUser.set(userId, new Set([gameId]));
-  };
-  for (const g of inputs.games) addGame(g.gm_id, g.id);
-  for (const m of inputs.memberships) addGame(m.user_id, m.game_id);
-
-  const usersWithAvailability = new Set(inputs.availability.map((a) => a.user_id));
-
+  const usersWithAvailability = new Set<string>();
   const latestSessionByGame = new Map<string, string>();
-  for (const s of inputs.sessions) {
-    const prev = latestSessionByGame.get(s.game_id);
-    if (!prev || s.date > prev) latestSessionByGame.set(s.game_id, s.date);
+  for (const rows of data.games) {
+    for (const id of [rows.game.gm_id, ...rows.memberships.map((m) => m.user_id)]) {
+      const set = gamesByUser.get(id);
+      if (set) set.add(rows.game.id);
+      else gamesByUser.set(id, new Set([rows.game.id]));
+    }
+    for (const a of rows.availability) usersWithAvailability.add(a.user_id);
+    for (const s of rows.sessions) {
+      const prev = latestSessionByGame.get(rows.game.id);
+      if (!prev || s.date > prev) latestSessionByGame.set(rows.game.id, s.date);
+    }
   }
 
-  const tally = new Map<number, Omit<FunnelCohort, 'windowEnd'>>();
-  for (const u of inputs.users) {
-    const index = getBucketIndex(u.created_at, endExclusive);
-    if (index === null) continue;
-    let t = tally.get(index);
-    if (!t) {
-      t = { signups: 0, joinedGame: 0, enteredAvailability: 0, gotSession: 0 };
-      tally.set(index, t);
-    }
+  const empty = () => ({ signups: 0, joinedGame: 0, enteredAvailability: 0, gotSession: 0 });
+  const tally = new Map<number, ReturnType<typeof empty>>();
+  for (const u of data.users) {
+    const t = tallyAt(tally, u.created_at, endExclusive, empty);
+    if (!t) continue;
     t.signups++;
 
     const games = gamesByUser.get(u.id);
@@ -430,96 +380,61 @@ export function buildFunnelCohorts(inputs: PlatformInputs, now: Date, windows?: 
       t.gotSession++;
     }
   }
-
-  const count = windows ?? (tally.size ? Math.max(...tally.keys()) + 1 : 0);
-  const result: FunnelCohort[] = [];
-  for (let index = count - 1; index >= 0; index--) {
-    const t = tally.get(index);
-    result.push({
-      windowEnd: windowEndKey(index, endExclusive),
-      signups: t?.signups ?? 0,
-      joinedGame: t?.joinedGame ?? 0,
-      enteredAvailability: t?.enteredAvailability ?? 0,
-      gotSession: t?.gotSession ?? 0,
-    });
-  }
-  return result;
+  return rollingSeries(tally, endExclusive, windows, empty);
 }
 
 // ── Dormancy ───────────────────────────────────────────────
 
 export interface DormancyBucket {
   windowEnd: string;
-  /** Games that became dormant (see GameState) during the window. */
+  /** Games that became dormant during the window. */
   wentDormant: number;
   /** Dormant games that saw activity again during the window. */
   revived: number;
 }
 
 /**
- * Games going dormant and coming back, per rolling 7-day window. Walks each
- * game's state day by day with the same classifyAt the daily stats use, so a
- * game this chart calls dormant is exactly one the health charts stopped
- * counting — and a quiet game with a game night on the horizon never goes dormant.
+ * Games going dormant and coming back. Walks each game's bucket day by day with
+ * the same classification the daily counts use, so a game this chart calls
+ * dormant is exactly one the health charts stopped counting — and a quiet game
+ * with a game night on the horizon never goes dormant.
  */
 export function buildDormancy(data: IndexedPlatform, now: Date, windows?: number): DormancyBucket[] {
   const endExclusive = startOfDay(now);
   const yesterday = subDays(endExclusive, 1);
+  const empty = () => ({ wentDormant: 0, revived: 0 });
+  const tally = new Map<number, ReturnType<typeof empty>>();
 
-  const tally = new Map<number, { wentDormant: number; revived: number }>();
-  if (data.games.length > 0) {
-    const firstCreated = data.games.reduce(
-      (min, g) => (g.game.created_at < min ? g.game.created_at : min),
-      data.games[0].game.created_at
-    );
-    const start = startOfDay(new Date(firstCreated));
-    const ends = start <= yesterday
-      ? eachDayOfInterval({ start, end: yesterday }).map((d) => dayEnd(format(d, 'yyyy-MM-dd')))
-      : [];
+  const firstCreated = data.games.reduce<string | null>(
+    (min, g) => (min === null || g.game.created_at < min ? g.game.created_at : min),
+    null
+  );
+  const start = firstCreated ? startOfDay(new Date(firstCreated)) : null;
+  const days = start && start <= yesterday
+    ? eachDayOfInterval({ start, end: yesterday }).map((d) => endOfDay(format(d, 'yyyy-MM-dd')))
+    : [];
 
-    const bump = (day: string, key: 'wentDormant' | 'revived') => {
-      const index = getBucketIndex(`${day}T00:00:00`, endExclusive);
-      if (index === null) return;
-      const t = tally.get(index) ?? { wentDormant: 0, revived: 0 };
-      t[key]++;
-      tally.set(index, t);
-    };
-
-    for (const rows of data.games) {
-      let wasDormant = false;
-      for (const end of ends) {
-        if (!before(rows.game.created_at, end.cutoff)) continue;
-        const dormant = classifyAt(rows, end).state === 'dormant';
-        if (dormant !== wasDormant) bump(end.day, dormant ? 'wentDormant' : 'revived');
-        wasDormant = dormant;
+  for (const rows of data.games) {
+    let wasDormant = false;
+    for (const at of days) {
+      if (!before(rows.game.created_at, at.cutoff)) continue;
+      const dormant = classifyAt(rows, at).bucket === 'dormant';
+      if (dormant !== wasDormant) {
+        const t = tallyAt(tally, `${at.day}T00:00:00`, endExclusive, empty);
+        if (t) t[dormant ? 'wentDormant' : 'revived']++;
       }
+      wasDormant = dormant;
     }
   }
-
-  const count = windows ?? (tally.size ? Math.max(...tally.keys()) + 1 : 0);
-  const result: DormancyBucket[] = [];
-  for (let index = count - 1; index >= 0; index--) {
-    const t = tally.get(index);
-    result.push({
-      windowEnd: windowEndKey(index, endExclusive),
-      wentDormant: t?.wentDormant ?? 0,
-      revived: t?.revived ?? 0,
-    });
-  }
-  return result;
+  return rollingSeries(tally, endExclusive, windows, empty);
 }
 
 // ── Deletions ──────────────────────────────────────────────
 
-export type DeletedEntity = 'user' | 'game' | 'session' | 'membership';
+const DELETED_ENTITIES = ['user', 'game', 'session', 'membership'] as const;
+export type DeletedEntity = (typeof DELETED_ENTITIES)[number];
 
-export interface DeletionBucket {
-  windowEnd: string;
-  user: number;
-  game: number;
-  session: number;
-  membership: number;
-}
+export type DeletionBucket = { windowEnd: string } & Record<DeletedEntity, number>;
 
 /**
  * Deliberate deletions per rolling window. Cascaded rows (a deleted game's
@@ -531,16 +446,13 @@ export function buildDeletions(
   windows: number
 ): DeletionBucket[] {
   const endExclusive = startOfDay(now);
-  const result: DeletionBucket[] = [];
-  for (let index = windows - 1; index >= 0; index--) {
-    result.push({ windowEnd: windowEndKey(index, endExclusive), user: 0, game: 0, session: 0, membership: 0 });
-  }
+  const empty = () => ({ user: 0, game: 0, session: 0, membership: 0 });
+  const tally = new Map<number, Record<DeletedEntity, number>>();
   for (const r of rows) {
-    if (r.cascaded) continue;
-    const index = getBucketIndex(r.deleted_at, endExclusive);
-    if (index === null || index >= windows) continue;
-    const bucket = result[windows - 1 - index];
-    if (r.entity in bucket && r.entity !== 'windowEnd') bucket[r.entity as DeletedEntity]++;
+    if (r.cascaded || !(DELETED_ENTITIES as readonly string[]).includes(r.entity)) continue;
+    const t = tallyAt(tally, r.deleted_at, endExclusive, empty);
+    if (t) t[r.entity as DeletedEntity]++;
   }
-  return result;
+  // Windows past the requested range are dropped by rollingSeries' fixed count.
+  return rollingSeries(tally, endExclusive, windows, empty);
 }

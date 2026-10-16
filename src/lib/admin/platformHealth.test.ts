@@ -7,7 +7,9 @@ import {
   computeDailyStats,
   currentGameStatuses,
   indexPlatform,
+  liveCount,
   type PlatformInputs,
+  type StateCounts,
 } from './platformHealth';
 
 // Timestamps use local values (no trailing Z) so day boundaries are stable across
@@ -53,29 +55,18 @@ describe('computeDailyStats', () => {
     sessions: [{ game_id: 'g1', date: '2025-01-20', created_at: '2025-01-05T09:00:00' }],
   };
 
-  const gameState = (s: ReturnType<typeof computeDailyStats>) => {
-    const healthy = s.healthyBookedGames + s.healthyViableGames;
-    return {
-      healthy,
-      gettingGoing: s.gettingGoingGames,
-      unhealthy: s.unhealthyGames,
-      dormant: s.totalGames - healthy - s.gettingGoingGames - s.unhealthyGames,
-    };
-  };
-  const userState = (s: ReturnType<typeof computeDailyStats>) => {
-    const healthy = s.healthyBookedUsers + s.healthyViableUsers;
-    return {
-      healthy,
-      gettingGoing: s.gettingGoingUsers,
-      unhealthy: s.unhealthyUsers,
-      churned: s.totalUsers - healthy - s.gettingGoingUsers - s.unhealthyUsers,
-    };
-  };
+  const tracked = (c: StateCounts) => ({
+    healthy: c.healthyBooked + c.healthyViable,
+    gettingGoing: c.gettingGoing,
+    unhealthy: c.unhealthy,
+  });
+  const gameState = (s: ReturnType<typeof computeDailyStats>) => ({ ...tracked(s.games), dormant: s.games.total - liveCount(s.games) });
+  const userState = (s: ReturnType<typeof computeDailyStats>) => ({ ...tracked(s.users), churned: s.users.total - liveCount(s.users) });
 
   it('ignores rows that did not exist yet on the day', () => {
     const data = indexPlatform(base);
-    expect(computeDailyStats(data, '2024-11-30')).toMatchObject({ totalUsers: 0, totalGames: 0 });
-    expect(computeDailyStats(data, '2024-12-02')).toMatchObject({ totalUsers: 2, totalGames: 1 });
+    expect(computeDailyStats(data, '2024-11-30')).toMatchObject({ users: { total: 0 }, games: { total: 0 } });
+    expect(computeDailyStats(data, '2024-12-02')).toMatchObject({ users: { total: 2 }, games: { total: 1 } });
   });
 
   it('moves a game through getting going, unhealthy, healthy, unhealthy, dormant', () => {
@@ -97,7 +88,7 @@ describe('computeDailyStats', () => {
       sessions: [{ game_id: 'g1', date: '2025-06-01', created_at: '2025-01-05T09:00:00' }],
     });
     // Nearly five months without anyone opening the app.
-    expect(computeDailyStats(data, '2025-05-31').healthyBookedGames).toBe(1);
+    expect(computeDailyStats(data, '2025-05-31').games.healthyBooked).toBe(1);
   });
 
   it('needs a player besides the host for a booked game to be healthy', () => {
@@ -159,46 +150,45 @@ describe('viable dates', () => {
   it('counts a game as healthy when enough players can make an upcoming date', () => {
     const data = withDates([avail('gm', '2025-01-17'), avail('p', '2025-01-17')]); // a Friday
     expect(computeDailyStats(data, '2025-01-10')).toMatchObject({
-      healthyBookedGames: 0,
-      healthyViableGames: 1,
-      healthyViableUsers: 2,
+      games: { healthyBooked: 0, healthyViable: 1 },
+      users: { healthyViable: 2 },
     });
   });
 
   it('does not count maybes toward the threshold', () => {
     const data = withDates([avail('gm', '2025-01-17'), avail('p', '2025-01-17', 'maybe')]);
-    expect(computeDailyStats(data, '2025-01-10').healthyViableGames).toBe(0);
+    expect(computeDailyStats(data, '2025-01-10').games.healthyViable).toBe(0);
   });
 
   it('honors an explicit GM minimum the roster cannot reach', () => {
     const g = { ...game('g1', 'gm', '2024-12-01T11:00:00'), min_players_needed: 3 };
     const data = withDates([avail('gm', '2025-01-17'), avail('p', '2025-01-17')], { games: [g] });
-    expect(computeDailyStats(data, '2025-01-10').healthyViableGames).toBe(0);
+    expect(computeDailyStats(data, '2025-01-10').games.healthyViable).toBe(0);
   });
 
   it('only looks six weeks ahead', () => {
     const data = withDates([avail('gm', '2025-03-14'), avail('p', '2025-03-14')]); // a Friday
-    expect(computeDailyStats(data, '2025-01-10').healthyViableGames).toBe(0); // 9 weeks out
-    expect(computeDailyStats(data, '2025-02-01').healthyViableGames).toBe(1); // 6 weeks out
+    expect(computeDailyStats(data, '2025-01-10').games.healthyViable).toBe(0); // 9 weeks out
+    expect(computeDailyStats(data, '2025-02-01').games.healthyViable).toBe(1); // 6 weeks out
   });
 
   it('only counts eligible play dates, including extra dates', () => {
     const saturday = [avail('gm', '2025-01-18'), avail('p', '2025-01-18')];
-    expect(computeDailyStats(withDates(saturday), '2025-01-10').healthyViableGames).toBe(0);
+    expect(computeDailyStats(withDates(saturday), '2025-01-10').games.healthyViable).toBe(0);
     const extra = { playDates: [{ game_id: 'g1', date: '2025-01-18', created_at: '2025-01-04T10:00:00' }] };
-    expect(computeDailyStats(withDates(saturday, extra), '2025-01-10').healthyViableGames).toBe(1);
+    expect(computeDailyStats(withDates(saturday, extra), '2025-01-10').games.healthyViable).toBe(1);
   });
 
   it('prefers booked over viable when a game has both', () => {
     const data = withDates([avail('gm', '2025-01-17'), avail('p', '2025-01-17')], {
       sessions: [{ game_id: 'g1', date: '2025-01-24', created_at: '2025-01-06T10:00:00' }],
     });
-    expect(computeDailyStats(data, '2025-01-10')).toMatchObject({ healthyBookedGames: 1, healthyViableGames: 0 });
+    expect(computeDailyStats(data, '2025-01-10')).toMatchObject({ games: { healthyBooked: 1, healthyViable: 0 } });
   });
 
   it('needs a player besides the host', () => {
     const data = withDates([avail('gm', '2025-01-17')], { memberships: [] });
-    expect(computeDailyStats(data, '2025-01-10').healthyViableGames).toBe(0);
+    expect(computeDailyStats(data, '2025-01-10').games.healthyViable).toBe(0);
   });
 
   it('reports the earliest viable date right now', () => {
@@ -207,9 +197,8 @@ describe('viable dates', () => {
       avail('gm', '2025-01-17'), avail('p', '2025-01-17'),
     ]);
     expect(currentGameStatuses(data, NOW).get('g1')).toMatchObject({
-      state: 'healthy',
-      healthyBy: 'viableDate',
-      viable: { date: '2025-01-17', available: 2, needed: 2 },
+      bucket: 'healthyViable',
+      viableDate: { date: '2025-01-17', available: 2, needed: 2 },
     });
   });
 
@@ -230,7 +219,7 @@ describe('viable dates', () => {
       availability: burst,
     });
     expect(buildDormancy(data, NOW, 16).every((b) => b.wentDormant === 0)).toBe(true);
-    expect(computeDailyStats(data, '2025-01-14').healthyViableGames).toBe(1); // 104 days quiet
+    expect(computeDailyStats(data, '2025-01-14').games.healthyViable).toBe(1); // 104 days quiet
   });
 });
 
@@ -246,12 +235,11 @@ describe('currentGameStatuses', () => {
   it('classifies each game right now, counting a session today as upcoming', () => {
     const statuses = currentGameStatuses(indexPlatform(inputs), NOW);
     expect(statuses.get('g1')).toEqual({
-      state: 'healthy',
-      healthyBy: 'booked',
-      viable: null,
-      lastActivity: new Date('2024-12-20T09:00:00').toISOString(),
+      bucket: 'healthyBooked',
+      viableDate: null,
+      lastActivity: new Date('2024-12-20T09:00:00').getTime(),
     });
-    expect(statuses.get('g2')?.state).toBe('dormant');
+    expect(statuses.get('g2')?.bucket).toBe('dormant');
   });
 
   it('counts users right now by the same rules', () => {
@@ -266,10 +254,8 @@ describe('currentGameStatuses', () => {
     });
     expect(computeCurrentStats(data, NOW)).toMatchObject({
       day: '2025-01-15',
-      totalUsers: 4,
-      healthyBookedUsers: 2, // gm and p: g1 has a session tonight
-      gettingGoingUsers: 1,
-      unhealthyUsers: 0,
+      // gm and p: g1 has a session tonight. 'new' is in their first week; 'gone' churned.
+      users: { total: 4, healthyBooked: 2, gettingGoing: 1, unhealthy: 0 },
     });
   });
 
@@ -278,16 +264,14 @@ describe('currentGameStatuses', () => {
     const data = indexPlatform(inputs);
     const daily = computeDailyStats(data, '2025-01-14');
     const now = currentGameStatuses(data, new Date('2025-01-15T00:00:01'));
-    expect(daily.healthyBookedGames + daily.healthyViableGames).toBe(
-      [...now.values()].filter((g) => g.state === 'healthy').length
-    );
+    expect(daily.games.healthyBooked).toBe([...now.values()].filter((g) => g.bucket === 'healthyBooked').length);
   });
 });
 
 describe('buildFunnelCohorts', () => {
   it('tracks each signup cohort through join, availability, and session', () => {
     const result = buildFunnelCohorts(
-      {
+      indexPlatform({
         ...EMPTY,
         users: [
           { id: 'gm', created_at: '2025-01-02T10:00:00' }, // bucket 1, hosts a game with a session
@@ -301,7 +285,7 @@ describe('buildFunnelCohorts', () => {
         availability: [
           { game_id: 'g1', user_id: 'p', date: '2025-01-17', status: 'available', created_at: '2025-01-10T12:00:00', updated_at: '2025-01-10T12:00:00' },
         ],
-      },
+      }),
       NOW,
       2
     );

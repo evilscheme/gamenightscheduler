@@ -89,8 +89,8 @@ describe('buildRollingEngagement', () => {
         users: [{ created_at: IN_BUCKET0 }, { created_at: IN_BUCKET1 }],
         games: [{ created_at: IN_BUCKET0 }],
         sessions: [
-          { created_at: IN_BUCKET0, status: 'confirmed' },
-          { created_at: IN_BUCKET0, status: 'pending' }, // ignored
+          { created_at: IN_BUCKET0, date: '2025-02-01', status: 'confirmed' },
+          { created_at: IN_BUCKET0, date: '2025-02-01', status: 'pending' }, // ignored
         ],
         availability: [],
       },
@@ -103,6 +103,29 @@ describe('buildRollingEngagement', () => {
       sessionsConfirmed: 1,
     });
     expect(result.find((b) => b.windowEnd === BUCKET1)!.newUsers).toBe(1);
+  });
+
+  it('buckets sessions played by play date, separately from when they were booked', () => {
+    const result = buildRollingEngagement(
+      {
+        ...EMPTY,
+        sessions: [
+          // Booked in bucket 2, played in bucket 0.
+          { created_at: IN_BUCKET2, date: '2025-01-10', status: 'confirmed' },
+          // Played yesterday (bare date must land on the local day, not UTC).
+          { created_at: IN_BUCKET1, date: '2025-01-14', status: 'confirmed' },
+          // Booked in bucket 0 but not played yet -> counts as booked only.
+          { created_at: IN_BUCKET0, date: '2025-02-01', status: 'confirmed' },
+          // Played today -> incomplete day, excluded.
+          { created_at: IN_BUCKET1, date: '2025-01-15', status: 'confirmed' },
+        ],
+      },
+      NOW
+    );
+    const byEnd = Object.fromEntries(result.map((b) => [b.windowEnd, b]));
+    expect(byEnd[BUCKET0]).toMatchObject({ sessionsPlayed: 2, sessionsConfirmed: 1 });
+    expect(byEnd[BUCKET1]).toMatchObject({ sessionsPlayed: 0, sessionsConfirmed: 2 });
+    expect(byEnd[BUCKET2]).toMatchObject({ sessionsPlayed: 0, sessionsConfirmed: 1 });
   });
 
   it('counts distinct active users per window', () => {

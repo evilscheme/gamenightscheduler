@@ -45,6 +45,8 @@ export const queryKeys = {
 
   /** Admin engagement analytics for a rolling window ('8' | '12' | '26' | 'all'). */
   adminEngagement: (weeks: string) => ['adminEngagement', weeks] as const,
+  /** Platform health trends (daily stats, funnel, dormancy, deletions) for a range. */
+  adminHealthTrends: (weeks: string) => ['adminHealthTrends', weeks] as const,
   /** Platform-wide admin counters. */
   adminStats: () => ['adminStats'] as const,
   /** Admin list of every game with health grades. */

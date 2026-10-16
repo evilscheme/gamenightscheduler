@@ -69,6 +69,27 @@ export type Database = {
           },
         ]
       }
+      deletion_log: {
+        Row: {
+          cascaded: boolean
+          deleted_at: string
+          entity: string
+          id: number
+        }
+        Insert: {
+          cascaded: boolean
+          deleted_at?: string
+          entity: string
+          id?: never
+        }
+        Update: {
+          cascaded?: boolean
+          deleted_at?: string
+          entity?: string
+          id?: never
+        }
+        Relationships: []
+      }
       game_memberships: {
         Row: {
           game_id: string
@@ -201,6 +222,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_daily_stats: {
+        Row: {
+          computed_at: string
+          day: string
+          getting_going_games: number
+          getting_going_users: number
+          healthy_booked_games: number
+          healthy_viable_games: number
+          healthy_booked_users: number
+          healthy_viable_users: number
+          source: string
+          total_games: number
+          total_users: number
+          unhealthy_games: number
+          unhealthy_users: number
+        }
+        Insert: {
+          computed_at?: string
+          day: string
+          getting_going_games: number
+          getting_going_users: number
+          healthy_booked_games: number
+          healthy_viable_games: number
+          healthy_booked_users: number
+          healthy_viable_users: number
+          source: string
+          total_games: number
+          total_users: number
+          unhealthy_games: number
+          unhealthy_users: number
+        }
+        Update: {
+          computed_at?: string
+          day?: string
+          getting_going_games?: number
+          getting_going_users?: number
+          healthy_booked_games?: number
+          healthy_viable_games?: number
+          healthy_booked_users?: number
+          healthy_viable_users?: number
+          source?: string
+          total_games?: number
+          total_users?: number
+          unhealthy_games?: number
+          unhealthy_users?: number
+        }
+        Relationships: []
       }
       sessions: {
         Row: {

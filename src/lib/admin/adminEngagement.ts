@@ -5,13 +5,15 @@ export interface EngagementBucket {
   newUsers: number;
   newGames: number;
   sessionsConfirmed: number;
+  /** Sessions whose play date fell in the window — when the game actually happened. */
+  sessionsPlayed: number;
   activeUsers: number;
 }
 
 export interface EngagementInputs {
   users: { created_at: string }[];
   games: { created_at: string }[];
-  sessions: { created_at: string; status: string }[];
+  sessions: { created_at: string; date: string; status: string }[];
   availability: { user_id: string; updated_at: string }[];
 }
 
@@ -25,7 +27,7 @@ export interface EngagementInputs {
  * 7 days. Because the anchor is "today", the newest window advances every day, so
  * fresh data shows up within a day instead of waiting for a calendar week to close.
  */
-function getBucketIndex(date: string | Date, endExclusive: Date): number | null {
+export function getBucketIndex(date: string | Date, endExclusive: Date): number | null {
   const d = typeof date === 'string' ? new Date(date) : date;
   // Whole days between the row's day and today. 1 = yesterday, 7 = a week ago.
   // <= 0 means today or the future — incomplete, so excluded.
@@ -35,7 +37,7 @@ function getBucketIndex(date: string | Date, endExclusive: Date): number | null 
 }
 
 /** Last day (yyyy-MM-dd) of the rolling window at `index`. Index 0 ends yesterday. */
-function windowEndKey(index: number, endExclusive: Date): string {
+export function windowEndKey(index: number, endExclusive: Date): string {
   return format(subDays(endExclusive, 7 * index + 1), 'yyyy-MM-dd');
 }
 
@@ -53,6 +55,7 @@ interface BucketTally {
   newUsers: number;
   newGames: number;
   sessionsConfirmed: number;
+  sessionsPlayed: number;
   activeUsers: Set<string>;
 }
 
@@ -83,7 +86,7 @@ export function buildRollingEngagement(
   function ensure(index: number): BucketTally {
     let t = tally.get(index);
     if (!t) {
-      t = { newUsers: 0, newGames: 0, sessionsConfirmed: 0, activeUsers: new Set() };
+      t = { newUsers: 0, newGames: 0, sessionsConfirmed: 0, sessionsPlayed: 0, activeUsers: new Set() };
       tally.set(index, t);
     }
     return t;
@@ -101,6 +104,10 @@ export function buildRollingEngagement(
     if (s.status !== 'confirmed') continue;
     const i = getBucketIndex(s.created_at, endExclusive);
     if (i !== null) ensure(i).sessionsConfirmed++;
+    // Bucketed by play date, not booking date. A bare yyyy-MM-dd parses as UTC
+    // midnight, so anchor it to local midnight to land on the right day.
+    const played = getBucketIndex(`${s.date}T00:00:00`, endExclusive);
+    if (played !== null) ensure(played).sessionsPlayed++;
   }
   for (const a of availability) {
     const i = getBucketIndex(a.updated_at, endExclusive);
@@ -128,6 +135,7 @@ export function buildRollingEngagement(
       newUsers: t?.newUsers ?? 0,
       newGames: t?.newGames ?? 0,
       sessionsConfirmed: t?.sessionsConfirmed ?? 0,
+      sessionsPlayed: t?.sessionsPlayed ?? 0,
       activeUsers: t?.activeUsers.size ?? 0,
     });
   }

@@ -46,7 +46,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     const [users, games, sessions, availability] = await Promise.all([
       paginate<{ created_at: string }>(admin, 'users', 'created_at', { dateColumn: 'created_at', cutoff }),
       paginate<{ created_at: string }>(admin, 'games', 'created_at', { dateColumn: 'created_at', cutoff }),
-      paginate<{ created_at: string; status: string }>(admin, 'sessions', 'created_at, status', { dateColumn: 'created_at', cutoff }),
+      // No cutoff: "sessions played" buckets by play date, and a session booked
+      // before the range can be played inside it. Older rows just fall outside
+      // the emitted windows.
+      paginate<{ created_at: string; date: string; status: string }>(admin, 'sessions', 'created_at, date, status'),
       paginate<{ user_id: string; updated_at: string }>(admin, 'availability', 'user_id, updated_at', { dateColumn: 'updated_at', cutoff }),
     ]);
 

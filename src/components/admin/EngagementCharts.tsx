@@ -9,27 +9,27 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 import { queryKeys } from '@/lib/queryKeys';
-import type { HealthGrade } from '@/lib/schedule';
+import type { GameState, HealthyBy } from '@/lib/admin';
+import type { EngagementBucket } from '@/lib/admin';
+import {
+  ChartTooltip,
+  HEALTH_BUCKETS,
+  healthBucket,
+  type HealthBucket,
+  formatDayLabel,
+  type TimeRange,
+} from './chartUtils';
+import PlatformHealthCharts from './PlatformHealthCharts';
 
 // ── Types ──────────────────────────────────────────────────
 
-interface WeekBucket {
-  windowEnd: string; // last day of the rolling 7-day window (yesterday for the newest)
-  newUsers: number;
-  newGames: number;
-  sessionsConfirmed: number;
-  activeUsers: number;
-}
-
 interface EngagementData {
-  weeklyData: WeekBucket[];
+  weeklyData: EngagementBucket[];
 }
 
 interface EngagementChartsProps {
-  games: Array<{ healthGrade: HealthGrade }>;
+  games: Array<{ healthState: GameState; healthyBy: HealthyBy | null }>;
 }
-
-type TimeRange = '8' | '12' | '26' | 'all';
 
 const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
   { value: '8', label: '8 weeks' },
@@ -37,41 +37,6 @@ const TIME_RANGE_OPTIONS: { value: TimeRange; label: string }[] = [
   { value: '26', label: '6 months' },
   { value: 'all', label: 'All time' },
 ];
-
-const HEALTH_GRADE_COLORS: Record<string, string> = {
-  A: '#22c55e',
-  B: '#3b82f6',
-  C: '#eab308',
-  D: '#f97316',
-  F: '#ef4444',
-};
-
-// ── Helpers ────────────────────────────────────────────────
-
-function formatDayLabel(dayStr: string): string {
-  const date = new Date(dayStr + 'T00:00:00');
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-/** Custom tooltip that uses Tailwind classes for proper theme support */
-function ChartTooltip({ active, payload, label }: {
-  active?: boolean;
-  payload?: Array<{ name: string; value: number; color: string }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-card border border-border rounded-sm px-3 py-2 text-xs shadow-lg">
-      {label && <p className="text-muted-foreground mb-1">{label}</p>}
-      {payload.map((entry) => (
-        <p key={entry.name} className="text-card-foreground">
-          <span style={{ color: entry.color }}>&#9679;</span>{' '}
-          {entry.name}: <span className="font-medium">{entry.value}</span>
-        </p>
-      ))}
-    </div>
-  );
-}
 
 // ── Main Component ─────────────────────────────────────────
 
@@ -97,13 +62,12 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
   })) ?? [];
 
   const healthData = useMemo(() => {
-    const dist: Record<string, number> = { A: 0, B: 0, C: 0, D: 0, F: 0 };
-    for (const g of games) dist[g.healthGrade]++;
-    return Object.entries(dist).map(([grade, count]) => ({
-      grade,
-      count,
-      fill: HEALTH_GRADE_COLORS[grade],
-    }));
+    const counts = new Map<HealthBucket, number>();
+    for (const g of games) {
+      const bucket = healthBucket(g.healthState, g.healthyBy);
+      counts.set(bucket, (counts.get(bucket) ?? 0) + 1);
+    }
+    return HEALTH_BUCKETS.map((b) => ({ short: b.short, label: b.label, count: counts.get(b.key) ?? 0, fill: b.color }));
   }, [games]);
 
   return (
@@ -140,7 +104,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
           <Card>
             <CardHeader>
               <h4 className="text-sm font-semibold text-card-foreground">Platform Growth</h4>
-              <p className="text-xs text-muted-foreground">New users, games, and sessions confirmed per week</p>
+              <p className="text-xs text-muted-foreground">New users, games, and sessions booked per week</p>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
@@ -188,7 +152,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
                   <Line
                     type="monotone"
                     dataKey="sessionsConfirmed"
-                    name="Sessions"
+                    name="Sessions Booked"
                     stroke="#8b5cf6"
                     strokeWidth={2}
                     dot={false}
@@ -243,8 +207,8 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
             {/* Sessions per week */}
             <Card>
               <CardHeader>
-                <h4 className="text-sm font-semibold text-card-foreground">Sessions / Week</h4>
-                <p className="text-xs text-muted-foreground">Confirmed game sessions</p>
+                <h4 className="text-sm font-semibold text-card-foreground">Sessions Played</h4>
+                <p className="text-xs text-muted-foreground">Sessions held per week, by play date</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={160}>
@@ -265,8 +229,8 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
                     />
                     <Tooltip content={<ChartTooltip />} />
                     <Bar
-                      dataKey="sessionsConfirmed"
-                      name="Sessions"
+                      dataKey="sessionsPlayed"
+                      name="Sessions Played"
                       fill="#8b5cf6"
                       radius={[3, 3, 0, 0]}
                       fillOpacity={0.8}
@@ -280,15 +244,16 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
             <Card>
               <CardHeader>
                 <h4 className="text-sm font-semibold text-card-foreground">Health Distribution</h4>
-                <p className="text-xs text-muted-foreground">Games by health grade</p>
+                <p className="text-xs text-muted-foreground">Games by health right now, dormant included</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={160}>
                   <BarChart data={healthData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis
-                      dataKey="grade"
-                      tick={{ fontSize: 11 }}
+                      dataKey="short"
+                      interval={0}
+                      tick={{ fontSize: 10 }}
                       stroke="var(--muted-foreground)"
                       tickLine={false}
                     />
@@ -301,7 +266,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
                     <Tooltip content={<ChartTooltip />} />
                     <Bar dataKey="count" radius={[3, 3, 0, 0]}>
                       {healthData.map((entry) => (
-                        <Cell key={entry.grade} fill={entry.fill} />
+                        <Cell key={entry.label} fill={entry.fill} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -309,6 +274,8 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
               </CardContent>
             </Card>
           </div>
+
+          <PlatformHealthCharts timeRange={timeRange} />
         </>
       )}
     </div>

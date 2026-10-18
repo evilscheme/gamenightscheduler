@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fetchAllPages, PAGE_SIZE } from "./paginate";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -66,5 +68,43 @@ describe("fetchAllPages", () => {
     expect(data).toBeNull();
     expect(error).toBe(err);
     expect(buildPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("discards earlier pages when a later page fails", async () => {
+    const err = { message: "boom" } as PostgrestError;
+    const buildPage = vi
+      .fn()
+      .mockResolvedValueOnce({ data: Array.from({ length: PAGE_SIZE }, (_, i) => i), error: null })
+      .mockResolvedValueOnce({ data: null, error: err });
+
+    const { data, error } = await fetchAllPages<number>(buildPage);
+
+    // A partial result returned as success is the bug this helper exists to
+    // prevent, so a failed page fails the whole read.
+    expect(data).toBeNull();
+    expect(error).toBe(err);
+  });
+
+  it("reads past an exact multiple of the page size", async () => {
+    const rows = Array.from({ length: PAGE_SIZE * 2 }, (_, i) => i);
+    const buildPage = pagerOver(rows);
+
+    const { data } = await fetchAllPages<number>(buildPage);
+
+    expect(data).toEqual(rows);
+    expect(buildPage).toHaveBeenCalledTimes(3); // two full pages + empty final page
+  });
+});
+
+describe("page-size contract", () => {
+  it("never asks for more rows than the server's max_rows returns", () => {
+    // A short page ends the scan. If PostgREST capped responses below
+    // PAGE_SIZE, every page would come back short and the scan would stop
+    // after the first one, silently.
+    const config = readFileSync(join(process.cwd(), "supabase/config.toml"), "utf8");
+    const maxRows = Number(config.match(/^max_rows\s*=\s*(\d+)/m)?.[1]);
+
+    expect(maxRows).toBeGreaterThan(0);
+    expect(PAGE_SIZE).toBeLessThanOrEqual(maxRows);
   });
 });

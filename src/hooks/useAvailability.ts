@@ -32,7 +32,7 @@ import {
   type WeekdayDefault,
 } from '@/lib/availability';
 import { getSchedulingWindow } from '@/lib/schedule';
-import { getTodayLocalDate } from '@/lib/date';
+import { getTodayLocalDate, toLocalDateString } from '@/lib/date';
 
 const supabase = getSupabaseClient();
 
@@ -273,7 +273,19 @@ export function useAvailability(
     ): Promise<{ copied: number; overridden: number }> => {
       if (!userId || !gameId || !game) return { copied: 0, overridden: 0 };
 
-      const { data: sourceAvail } = await fetchUserAvailability(supabase, sourceGameId, userId);
+      const today = startOfDay(new Date());
+      const { end: windowEnd } = getSchedulingWindow(game, today);
+
+      // Only the destination's window can be copied into, so bound the read to
+      // it; a failed read must not look like "nothing to copy".
+      const { data: sourceAvail, error: readError } = await fetchUserAvailability(
+        supabase,
+        sourceGameId,
+        userId,
+        toLocalDateString(today),
+        toLocalDateString(windowEnd),
+      );
+      if (readError) throw readError;
 
       const sourceMap: Record<string, AvailabilityEntry> = {};
       (sourceAvail ?? []).forEach((a) => {
@@ -284,9 +296,6 @@ export function useAvailability(
           available_until: a.available_until,
         };
       });
-
-      const today = startOfDay(new Date());
-      const { end: windowEnd } = getSchedulingWindow(game, today);
 
       const copied = filterAvailabilityForCopy({
         sourceAvailability: sourceMap,

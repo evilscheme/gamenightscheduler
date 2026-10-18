@@ -13,6 +13,9 @@ import {
 import { fetchPlatformInputs, rowToCounts } from '@/lib/admin/platformStatsStore';
 import { serverError } from '@/lib/apiError';
 import type { AdminHealthTrends, HealthTrendPoint } from '@/types/api';
+import type { Database } from '@/types/database';
+
+type StatsRow = Database['public']['Tables']['platform_daily_stats']['Row'];
 
 const cache = createTtlCache<AdminHealthTrends>(30 * 60 * 1000);
 
@@ -59,8 +62,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     const days = windowEnds(windows, endExclusive);
     const cutoff = format(subDays(endExclusive, windows * 7), 'yyyy-MM-dd');
 
-    const [statsResult, deletionRows] = await Promise.all([
-      admin.from('platform_daily_stats').select('*').in('day', days),
+    const [statsRows, deletionRows] = await Promise.all([
+      // A paged range, not `.in('day', days)`: all-time history grows that
+      // list (and its URL) without bound. Reads every day in the range — 7×
+      // the weekly samples, still small — and the lookup below picks the samples.
+      paginate<StatsRow>(admin, 'platform_daily_stats', '*', { dateColumn: 'day', cutoff: days[0] }),
       paginate<{ entity: string; cascaded: boolean; deleted_at: string }>(
         admin,
         'deletion_log',
@@ -68,8 +74,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         { dateColumn: 'deleted_at', cutoff }
       ),
     ]);
-    if (statsResult.error) throw statsResult.error;
-    const statsByDay = new Map((statsResult.data ?? []).map((r) => [r.day, r]));
+    const statsByDay = new Map(statsRows.map((r) => [r.day, r]));
 
     const health: HealthTrendPoint[] = days.map((windowEnd) => {
       const r = statsByDay.get(windowEnd);

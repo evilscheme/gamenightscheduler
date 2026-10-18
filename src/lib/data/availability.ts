@@ -3,16 +3,30 @@ import type { Database } from '@/types/database';
 import type { Availability, AvailabilityStatus } from '@/types';
 import { fetchAllPages } from './paginate';
 
+/**
+ * One player's availability in a game between `fromDate` and `toDate`
+ * (inclusive). Bounded and paginated: a game's whole history can exceed the
+ * 1000-row cap, and older rows would crowd the in-window ones out of the first
+ * page. `date` is unique per (user, game), so it is a total order on its own.
+ */
 export async function fetchUserAvailability(
   supabase: SupabaseClient<Database>,
   gameId: string,
-  userId: string
+  userId: string,
+  fromDate: string,
+  toDate: string
 ) {
-  return supabase
-    .from('availability')
-    .select('*')
-    .eq('game_id', gameId)
-    .eq('user_id', userId);
+  return fetchAllPages<Availability>((from, to) =>
+    supabase
+      .from('availability')
+      .select('*')
+      .eq('game_id', gameId)
+      .eq('user_id', userId)
+      .gte('date', fromDate)
+      .lte('date', toDate)
+      .order('date', { ascending: true })
+      .range(from, to)
+  );
 }
 
 /**

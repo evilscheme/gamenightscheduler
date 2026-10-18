@@ -9,6 +9,14 @@ import type { PostgrestError } from '@supabase/supabase-js';
  * `fetchAllPages` reads every matching row by paging through `.range()` until a
  * short page arrives. `buildPage(from, to)` MUST apply a stable, total ordering
  * (e.g. `.order('date').order('id')`) so pages don't skip or duplicate rows.
+ * Ordering makes pages consistent, not a snapshot: a row inserted mid-scan can
+ * still shift later offsets.
+ *
+ * Page-size contract: a short page is read as end-of-data, which is only true
+ * while PAGE_SIZE <= the server's `max_rows`. A lower cap would return short
+ * pages that look final and end the scan early, with no error. paginate.test.ts
+ * pins PAGE_SIZE to config.toml; a hosted project's API setting must not go
+ * below it either. This is the only page size in the app — don't add another.
  */
 export const PAGE_SIZE = 1000;
 

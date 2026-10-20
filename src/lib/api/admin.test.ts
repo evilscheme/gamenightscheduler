@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createTtlCache, paginate, requireAdmin, type AdminClient } from './admin';
+import { createTtlCache, paginate, PAGINATION_ORDER_KEY, requireAdmin, type AdminClient } from './admin';
+import { fakePostgrest } from '@/test/fakePostgrest';
 
 const authMocks = vi.hoisted(() => {
   const serverClient = {
@@ -42,6 +43,7 @@ function makeMockClient(pages: unknown[][]) {
   const builder = {
     select: vi.fn().mockReturnThis(),
     gte: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
     range,
   };
   const from = vi.fn().mockReturnValue(builder);
@@ -114,7 +116,7 @@ describe('requireAdmin', () => {
 describe('paginate', () => {
   it('returns rows for a single page', async () => {
     const { client } = makeMockClient([[{ id: 1 }, { id: 2 }]]);
-    const result = await paginate<{ id: number }>(client, 'users', 'id', { pageSize: 1000 });
+    const result = await paginate<{ id: number }>(client, 'users', 'id');
     expect(result).toEqual([{ id: 1 }, { id: 2 }]);
   });
 
@@ -155,10 +157,46 @@ describe('paginate', () => {
     expect(builder.gte).not.toHaveBeenCalled();
   });
 
-  it('respects a custom pageSize', async () => {
-    const { client, builder } = makeMockClient([[{ id: 1 }, { id: 2 }]]);
-    await paginate<{ id: number }>(client, 'users', 'id', { pageSize: 50 });
-    expect(builder.range).toHaveBeenCalledWith(0, 49);
+  it("orders every page by the table's unique key", async () => {
+    const { client, builder } = makeMockClient([[{ day: '2026-01-01' }]]);
+    await paginate<{ day: string }>(client, 'platform_daily_stats', 'day');
+    expect(builder.order).toHaveBeenCalledWith('day', { ascending: true });
+  });
+
+  it('reads more than 1000 rows completely, with no duplicates, when the database reorders between queries', async () => {
+    const rows = Array.from({ length: 2500 }, (_, i) => ({ id: `u${String(i).padStart(4, '0')}` }));
+    const client = fakePostgrest({ users: rows }) as unknown as AdminClient;
+
+    const result = await paginate<{ id: string }>(client, 'users', 'id');
+
+    expect(result).toHaveLength(2500);
+    expect(new Set(result.map((r) => r.id)).size).toBe(2500);
+  });
+
+  it('applies the cutoff before paging, so historical rows cannot crowd out recent ones', async () => {
+    const old = Array.from({ length: 1500 }, (_, i) => ({ id: `a${String(i).padStart(4, '0')}`, created_at: '2020-01-01' }));
+    const recent = Array.from({ length: 1200 }, (_, i) => ({ id: `b${String(i).padStart(4, '0')}`, created_at: '2026-06-01' }));
+    const client = fakePostgrest({ users: [...old, ...recent] }) as unknown as AdminClient;
+
+    const result = await paginate<{ id: string }>(client, 'users', 'id', { dateColumn: 'created_at', cutoff: '2026-01-01' });
+
+    expect(result.map((r) => r.id).sort()).toEqual(recent.map((r) => r.id));
+  });
+
+  it('names a unique order key for every table', () => {
+    // Primary keys (schema.sql). Non-unique keys like created_at would let
+    // tied rows straddle a page boundary.
+    expect(PAGINATION_ORDER_KEY).toEqual({
+      users: 'id',
+      games: 'id',
+      game_memberships: 'id',
+      availability: 'id',
+      user_availability_defaults: 'id',
+      sessions: 'id',
+      game_play_dates: 'id',
+      platform_daily_stats: 'day',
+      deletion_log: 'id',
+    });
   });
 
   it('throws when Supabase returns an error for a page', async () => {
@@ -166,6 +204,7 @@ describe('paginate', () => {
     const builder = {
       select: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
       range: vi.fn().mockResolvedValue({ data: null, error }),
     };
     const client = { from: vi.fn().mockReturnValue(builder) } as unknown as AdminClient;

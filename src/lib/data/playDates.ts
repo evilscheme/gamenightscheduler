@@ -1,9 +1,23 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 import type { GamePlayDate } from '@/types';
+import { fetchAllPages } from './paginate';
 
+/**
+ * Every explicit play date (extra dates and per-date notes) for a game, past
+ * included. Paginated: nothing caps or prunes these rows, so a long campaign
+ * can pass the 1000-row cap, and any dropped extra date would stop counting as
+ * a play date. `date` is unique per game, so it is a total order on its own.
+ */
 export async function fetchGamePlayDates(supabase: SupabaseClient<Database>, gameId: string) {
-  return supabase.from('game_play_dates').select('*').eq('game_id', gameId);
+  return fetchAllPages<GamePlayDate>((from, to) =>
+    supabase
+      .from('game_play_dates')
+      .select('*')
+      .eq('game_id', gameId)
+      .order('date', { ascending: true })
+      .range(from, to)
+  );
 }
 
 export async function addPlayDate(

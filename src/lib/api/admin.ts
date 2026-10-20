@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { PostgrestError } from '@supabase/supabase-js';
+import { fetchAllPages } from '@/lib/data/paginate';
 import type { Database } from '@/types/database';
 
 export type AdminClient = ReturnType<typeof createAdminClient>;
@@ -36,10 +38,28 @@ export async function requireAdmin(): Promise<{ admin: AdminClient } | NextRespo
   return { admin };
 }
 
-const DEFAULT_PAGE_SIZE = 1000;
+type TableName = keyof Database['public']['Tables'] & string;
+
+/**
+ * The unique column each table is paged in. Offset pages are only consistent
+ * under a total order — without one Postgres may hand back overlapping pages
+ * that skip rows, and the cron would store the result as a daily stat. A
+ * Record (not a lookup with a default) so adding a table forces a choice here.
+ * The ordered column needn't appear in the selected columns.
+ */
+export const PAGINATION_ORDER_KEY: Record<TableName, string> = {
+  users: 'id',
+  games: 'id',
+  game_memberships: 'id',
+  availability: 'id',
+  user_availability_defaults: 'id',
+  sessions: 'id',
+  game_play_dates: 'id',
+  platform_daily_stats: 'day',
+  deletion_log: 'id',
+};
 
 interface PaginateOptions {
-  pageSize?: number;
   /** Optional column to filter on with a `gte` cutoff. */
   dateColumn?: string;
   /** Cutoff value (typically a date string) used with `dateColumn`. */
@@ -47,33 +67,27 @@ interface PaginateOptions {
 }
 
 /**
- * Paginate through all rows of a table, working around Supabase's default
- * 1000-row limit. Optionally filters by a date column with a `gte` cutoff.
+ * Read every row of a table, paged under its unique order key (see
+ * `fetchAllPages` for the page-size contract). Optionally filters by a date
+ * column with a `gte` cutoff. Throws on any page's error.
  */
 export async function paginate<T>(
   client: AdminClient,
-  table: keyof Database['public']['Tables'] & string,
+  table: TableName,
   columns: string,
   opts: PaginateOptions = {}
 ): Promise<T[]> {
-  const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
-  const all: T[] = [];
-  let offset = 0;
-
-  for (;;) {
+  const { data, error } = await fetchAllPages<T>((from, to) => {
     let query = client.from(table).select(columns);
     if (opts.dateColumn && opts.cutoff) {
       query = query.gte(opts.dateColumn, opts.cutoff);
     }
-    const { data, error } = await query.range(offset, offset + pageSize - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    all.push(...(data as T[]));
-    if (data.length < pageSize) break;
-    offset += pageSize;
-  }
-
-  return all;
+    return query
+      .order(PAGINATION_ORDER_KEY[table], { ascending: true })
+      .range(from, to) as unknown as PromiseLike<{ data: T[] | null; error: PostgrestError | null }>;
+  });
+  if (error) throw error;
+  return data ?? [];
 }
 
 /**

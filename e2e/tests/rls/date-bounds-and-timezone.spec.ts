@@ -214,7 +214,8 @@ test.describe('availability write bounds (RLS)', () => {
         data: dates.map((d) => ({ ...availRow(player.id, game.id, d), status: 'maybe' })),
       }
     );
-    expect(res.status()).toBe(201);
+    // PostgREST answers 200, not 201, when every row resolved as an update.
+    expect([200, 201]).toContain(res.status());
 
     const { data } = await admin
       .from('availability')

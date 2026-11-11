@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Users, Calendar } from "lucide-react";
-import { Button, PageLoading } from "@/components/ui";
+import { Button, PageLoading, PageError } from "@/components/ui";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { DAY_LABELS } from "@/lib/constants";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,7 +25,7 @@ export function DashboardContent() {
   const userId = user?.id ?? '';
 
   const queryClient = useQueryClient();
-  const { data, isPending } = useQuery({
+  const { data, isPending, isError, refetch, isRefetching } = useQuery({
     queryKey: queryKeys.dashboard(userId),
     queryFn: () => fetchDashboardData(supabase, userId),
     enabled: !!userId,
@@ -59,6 +59,20 @@ export function DashboardContent() {
   if (authStatus === 'loading' || (!!userId && isPending)) {
     return (
       <PageLoading />
+    );
+  }
+
+  // A failed load keeps the user here with a retry. Falling through would
+  // render the empty/welcome state, which tells someone with games that they
+  // have none. (Background refetch failures with data on screen keep the data.)
+  if (isError && !data) {
+    return (
+      <PageError
+        title="Couldn't load your games"
+        message="Your games didn't load. Try again."
+        onRetry={() => void refetch()}
+        retrying={isRefetching}
+      />
     );
   }
 

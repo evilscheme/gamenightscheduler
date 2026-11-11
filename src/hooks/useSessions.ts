@@ -8,6 +8,7 @@ import {
   confirmSession as confirmSessionQuery,
   cancelSession as cancelSessionQuery,
   updateSession as updateSessionQuery,
+  unwrapList,
 } from '@/lib/data';
 import { queryKeys } from '@/lib/queryKeys';
 import { USAGE_LIMITS } from '@/lib/constants';
@@ -19,6 +20,8 @@ const EMPTY_SESSIONS: GameSession[] = [];
 export interface UseSessionsReturn {
   sessions: GameSession[];
   loading: boolean;
+  /** The sessions load failed and nothing is cached; `sessions` is then only the empty fallback. */
+  isError: boolean;
   confirmSession: (
     date: string,
     startTime: string,
@@ -51,7 +54,7 @@ export function useSessions(gameId: string, userId: string): UseSessionsReturn {
   const sessionsQuery = useQuery({
     queryKey: queryKeys.sessions(gameId),
     enabled: !!gameId && !!userId,
-    queryFn: async () => (await fetchGameSessions(supabase, gameId)).data ?? [],
+    queryFn: async () => unwrapList(await fetchGameSessions(supabase, gameId)),
   });
   const sessions = sessionsQuery.data ?? EMPTY_SESSIONS;
 
@@ -78,6 +81,16 @@ export function useSessions(gameId: string, userId: string): UseSessionsReturn {
       notes: string | null = null,
     ): Promise<{ success: boolean; error?: string }> => {
       if (!gameId || !confirmedBy) return { success: false, error: 'Not authenticated' };
+
+      // The upsert below overwrites any session already on this date. If the
+      // list never loaded, an existing session is invisible here and would be
+      // silently clobbered (time, location, notes).
+      if (sessionsQuery.data === undefined) {
+        return {
+          success: false,
+          error: "Couldn't load this game's sessions, so nothing was changed. Reload and try again.",
+        };
+      }
 
       const sessionDate = parseISO(date);
       const today = startOfDay(new Date());
@@ -133,7 +146,7 @@ export function useSessions(gameId: string, userId: string): UseSessionsReturn {
 
       return { success: true };
     },
-    [gameId, sessions, setSessions, queryClient],
+    [gameId, sessions, sessionsQuery.data, setSessions, queryClient],
   );
 
   const updateSession = useCallback(
@@ -185,6 +198,7 @@ export function useSessions(gameId: string, userId: string): UseSessionsReturn {
   return {
     sessions,
     loading: sessionsQuery.isPending,
+    isError: sessionsQuery.isError && sessionsQuery.data === undefined,
     confirmSession,
     updateSession,
     cancelSession,

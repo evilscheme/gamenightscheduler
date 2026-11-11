@@ -21,6 +21,8 @@ import {
   upsertAvailability,
   batchUpsertAvailability,
   fetchUserDefaults,
+  unwrapList,
+  requireLoaded,
 } from '@/lib/data';
 import { queryKeys } from '@/lib/queryKeys';
 import {
@@ -58,6 +60,11 @@ export interface UseAvailabilityReturn {
   availability: Record<string, AvailabilityEntry>;
   allAvailability: Availability[];
   loading: boolean;
+  /**
+   * The availability load failed and nothing is cached. `availability` is then
+   * the empty fallback, NOT "the user has answered nothing" — don't render it.
+   */
+  isError: boolean;
   /** Whether the user has any default availability saved. `null` while the initial fetch is in flight. */
   hasDefaults: boolean | null;
   changeAvailability: (
@@ -105,9 +112,12 @@ export function useAvailability(
     // fetch. `getTodayLocalDate()` is always <= the scheduling-window start, so
     // this never drops a date the UI can display.
     queryFn: async () =>
-      (await fetchAllAvailability(supabase, gameId, getTodayLocalDate())).data ?? [],
+      unwrapList(await fetchAllAvailability(supabase, gameId, getTodayLocalDate())),
   });
   const allAvailability = allQuery.data ?? EMPTY_AVAILABILITY;
+  // The EMPTY fallback above is only safe to READ from; mutations that plan
+  // writes from it must check this first (see requireLoaded).
+  const availabilityLoaded = allQuery.data !== undefined;
 
   const availability = useMemo(() => {
     const map: Record<string, AvailabilityEntry> = {};
@@ -124,7 +134,7 @@ export function useAvailability(
   }, [allAvailability, userId]);
 
   const defaultsQueryFn = useCallback(
-    async () => (await fetchUserDefaults(supabase, userId)).data ?? [],
+    async () => unwrapList(await fetchUserDefaults(supabase, userId)),
     [userId]
   );
   const defaultsQuery = useQuery({
@@ -253,6 +263,14 @@ export function useAvailability(
     async (dates: string[], status: AvailabilityStatus) => {
       if (!userId || !gameId || dates.length === 0) return;
 
+      // Preserve existing comments/time constraints below — which means the
+      // cache must be real, or a failed read would wipe them. Single-date
+      // changes carry their own values and don't need this.
+      if (!availabilityLoaded) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.availability(gameId) });
+        return;
+      }
+
       // Preserve existing comments/time constraints, matching single-date toggles.
       const entries = buildBulkUpsertEntries(dates, status, availability);
       const revert = optimisticallyApply(entries);
@@ -262,7 +280,7 @@ export function useAvailability(
       const { error } = await batchUpsertAvailability(supabase, rows);
       if (error) revertAndReconcile(revert);
     },
-    [userId, gameId, availability, optimisticallyApply, toUpsertRow, revertAndReconcile],
+    [userId, gameId, availability, availabilityLoaded, queryClient, optimisticallyApply, toUpsertRow, revertAndReconcile],
   );
 
   const copyFromGame = useCallback(
@@ -272,6 +290,9 @@ export function useAvailability(
       conflict: CopyConflict | null,
     ): Promise<{ copied: number; overridden: number }> => {
       if (!userId || !gameId || !game) return { copied: 0, overridden: 0 };
+      // "Fill the blanks" against a cache that never loaded would overwrite
+      // every date the user has really answered.
+      requireLoaded([{ name: 'availability', loaded: availabilityLoaded }]);
 
       const today = startOfDay(new Date());
       const { end: windowEnd } = getSchedulingWindow(game, today);
@@ -327,7 +348,7 @@ export function useAvailability(
       const overridden = conflict ? conflict.dates.length : 0;
       return { copied: finalEntries.length - overridden, overridden };
     },
-    [userId, gameId, game, availability, optimisticallyApply, toUpsertRow, revertAndReconcile],
+    [userId, gameId, game, availability, availabilityLoaded, optimisticallyApply, toUpsertRow, revertAndReconcile],
   );
 
   const applyDefaults = useCallback(
@@ -342,6 +363,7 @@ export function useAvailability(
         mismatchedDates: [],
       };
       if (!userId || !gameId || !game) return empty;
+      requireLoaded([{ name: 'availability', loaded: availabilityLoaded }]);
 
       // Force a fresh read (defaults may have been edited in another tab) and
       // refresh the cached copy while we're at it.
@@ -421,7 +443,7 @@ export function useAvailability(
         mismatchedDates,
       };
     },
-    [userId, gameId, game, availability, optimisticallyApply, queryClient, defaultsQueryFn, toUpsertRow, revertAndReconcile],
+    [userId, gameId, game, availability, availabilityLoaded, optimisticallyApply, queryClient, defaultsQueryFn, toUpsertRow, revertAndReconcile],
   );
 
   const removePlayerData = useCallback(
@@ -441,6 +463,7 @@ export function useAvailability(
     // nothing): rendering before hasDefaults resolves would flash the
     // ApplyDefaultsButton's null state for users with no defaults.
     loading: allQuery.isPending || (!!userId && defaultsQuery.isPending),
+    isError: allQuery.isError && allQuery.data === undefined,
     hasDefaults,
     changeAvailability,
     bulkSetStatus,

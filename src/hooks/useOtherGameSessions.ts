@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { fetchUpcomingSessionsForGames } from '@/lib/data';
+import { fetchUpcomingSessionsForGames, unwrapList } from '@/lib/data';
 import { queryKeys } from '@/lib/queryKeys';
 import { getTodayLocalDate } from '@/lib/date';
 import {
@@ -34,8 +34,11 @@ export function useOtherGameSessions(
   const sessionsQuery = useQuery({
     queryKey: queryKeys.otherGameSessions(gameIds),
     enabled: !!userId && gameIds.length > 0,
+    // Throws on error (cached as an error, not as "no other sessions"). A
+    // failure is non-critical: it only drives "other game" badges, so
+    // `data` stays undefined and the map below degrades to empty.
     queryFn: async () =>
-      (await fetchUpcomingSessionsForGames(supabase, gameIds, getTodayLocalDate())).data ?? [],
+      unwrapList(await fetchUpcomingSessionsForGames(supabase, gameIds, getTodayLocalDate())),
   });
 
   const otherGameSessionsByDate = useMemo(() => {

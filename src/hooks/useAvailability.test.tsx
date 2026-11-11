@@ -17,7 +17,11 @@ const dataMocks = vi.hoisted(() => ({
   batchUpsertAvailability: vi.fn(),
   fetchUserDefaults: vi.fn(),
 }));
-vi.mock('@/lib/data', () => dataMocks);
+// Keep the real unwrap helpers; only the network functions are mocked.
+vi.mock('@/lib/data', async () => ({
+  ...(await vi.importActual<typeof import('@/lib/data/unwrap')>('@/lib/data/unwrap')),
+  ...dataMocks,
+}));
 
 const GAME_ID = 'game-1';
 const USER_ID = 'user-1';
@@ -62,8 +66,13 @@ function setup(
   seed: Availability[],
   gameArg: GameWithMembers | null = null,
   defaultRows: unknown[] = [],
+  availabilityFails = false,
 ) {
-  dataMocks.fetchAllAvailability.mockResolvedValue({ data: seed, error: null });
+  dataMocks.fetchAllAvailability.mockResolvedValue(
+    availabilityFails
+      ? { data: null, error: { message: 'permission denied' } }
+      : { data: seed, error: null },
+  );
   dataMocks.fetchUserDefaults.mockResolvedValue({ data: defaultRows, error: null });
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -405,5 +414,60 @@ describe('useAvailability — applyDefaults', () => {
     });
 
     expect([...writtenRows().keys()]).toEqual(['2026-08-08']);
+  });
+});
+
+describe('useAvailability — failed availability load', () => {
+  // A failed read used to be cached as []. Every date then looked blank, so
+  // "fill the blanks" mutations overwrote the user's real answers.
+  const WED_DEFAULT = {
+    day_of_week: 3,
+    status: 'available',
+    comment: null,
+    available_after: null,
+    available_until: null,
+  };
+
+  function setupFailedLoad() {
+    return setup([], game([3]), [WED_DEFAULT], true);
+  }
+
+  it('exposes isError and keeps the empty fallback when the read fails', async () => {
+    const { result } = setupFailedLoad();
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.allAvailability).toEqual([]);
+  });
+
+  it('refuses applyDefaults and writes nothing', async () => {
+    const { result } = setupFailedLoad();
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    await act(async () => {
+      await expect(result.current.applyDefaults([])).rejects.toThrow(/nothing was changed/i);
+    });
+    expect(dataMocks.batchUpsertAvailability).not.toHaveBeenCalled();
+  });
+
+  it('refuses copyFromGame without reading the source or writing', async () => {
+    const { result } = setupFailedLoad();
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    await act(async () => {
+      await expect(result.current.copyFromGame('other', [], null)).rejects.toThrow(
+        /nothing was changed/i,
+      );
+    });
+    expect(dataMocks.fetchUserAvailability).not.toHaveBeenCalled();
+    expect(dataMocks.batchUpsertAvailability).not.toHaveBeenCalled();
+  });
+
+  it('refuses bulkSetStatus, which would otherwise wipe comments it cannot see', async () => {
+    const { result } = setupFailedLoad();
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    await act(async () => {
+      await result.current.bulkSetStatus(['2026-08-05'], 'available');
+    });
+    expect(dataMocks.batchUpsertAvailability).not.toHaveBeenCalled();
   });
 });

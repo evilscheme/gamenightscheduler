@@ -16,7 +16,11 @@ const dataMocks = vi.hoisted(() => ({
   updatePlayDateNote: vi.fn(),
   upsertPlayDate: vi.fn(),
 }));
-vi.mock('@/lib/data', () => dataMocks);
+// Keep the real unwrap helpers; only the network functions are mocked.
+vi.mock('@/lib/data', async () => ({
+  ...(await vi.importActual<typeof import('@/lib/data/unwrap')>('@/lib/data/unwrap')),
+  ...dataMocks,
+}));
 
 const GAME_ID = 'game-1';
 const USER_ID = 'user-1';

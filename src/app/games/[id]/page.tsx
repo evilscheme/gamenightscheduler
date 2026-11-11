@@ -61,6 +61,10 @@ function GameDetailContent() {
     authLoading: authStatus === "loading",
     gameLoading: loading,
     gameErrored: meta.isError,
+    // Failed availability/sessions/play-dates reads must not render as an empty
+    // calendar. useOtherGameSessions is deliberately absent: it only drives
+    // "other game" badges and degrades quietly.
+    dataErrored: availabilityHook.isError || sessionsHook.isError || playDatesHook.isError,
     hasGame: !!game,
   });
 
@@ -193,7 +197,7 @@ function GameDetailContent() {
     return (
       <PageError
         title="Couldn't load this game"
-        message="Try loading the game again."
+        message="Some of its data didn't load. Try loading the game again."
         onRetry={() => void refresh()}
         retrying={refreshing}
       />

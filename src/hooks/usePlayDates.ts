@@ -8,6 +8,7 @@ import {
   removePlayDate,
   updatePlayDateNote as updatePlayDateNoteQuery,
   upsertPlayDate,
+  unwrapList,
 } from '@/lib/data';
 import { queryKeys } from '@/lib/queryKeys';
 
@@ -18,6 +19,8 @@ const EMPTY_PLAY_DATES: GamePlayDate[] = [];
 export interface UsePlayDatesReturn {
   gamePlayDates: GamePlayDate[];
   loading: boolean;
+  /** The play-dates load failed and nothing is cached; `gamePlayDates` is then only the empty fallback. */
+  isError: boolean;
   toggleExtraDate: (date: string, isCurrentlyExtra: boolean) => Promise<void>;
   updatePlayDateNote: (date: string, note: string | null) => Promise<void>;
   refresh: () => Promise<void>;
@@ -34,7 +37,7 @@ export function usePlayDates(gameId: string, userId: string): UsePlayDatesReturn
   const playDatesQuery = useQuery({
     queryKey: queryKeys.playDates(gameId),
     enabled: !!gameId && !!userId,
-    queryFn: async () => (await fetchGamePlayDates(supabase, gameId)).data ?? [],
+    queryFn: async () => unwrapList(await fetchGamePlayDates(supabase, gameId)),
   });
   const gamePlayDates = playDatesQuery.data ?? EMPTY_PLAY_DATES;
 
@@ -128,5 +131,9 @@ export function usePlayDates(gameId: string, userId: string): UsePlayDatesReturn
     [gameId, gamePlayDates, setGamePlayDates],
   );
 
-  return { gamePlayDates, loading: playDatesQuery.isPending, toggleExtraDate, updatePlayDateNote, refresh };
+  return {
+    gamePlayDates,
+    loading: playDatesQuery.isPending,
+    isError: playDatesQuery.isError && playDatesQuery.data === undefined,
+    toggleExtraDate, updatePlayDateNote, refresh };
 }

@@ -85,10 +85,15 @@ export async function fetchDashboardData(
   const fetchedAtMs = Date.now();
   const fetchedToday = getTodayLocalDate();
 
-  const [{ data: memberships }, { data: gmGames }] = await Promise.all([
-    fetchUserMemberships(supabase, userId),
-    fetchUserGmGames(supabase, userId),
-  ]);
+  const [{ data: memberships, error: membershipsError }, { data: gmGames, error: gmGamesError }] =
+    await Promise.all([
+      fetchUserMemberships(supabase, userId),
+      fetchUserGmGames(supabase, userId),
+    ]);
+  // A failed load is not "no games": returning an empty list would render the
+  // first-game welcome state to someone with games. Throw so the query errors.
+  if (membershipsError) throw new Error(membershipsError.message || 'Failed to load memberships');
+  if (gmGamesError) throw new Error(gmGamesError.message || 'Failed to load games');
 
   const gmGameIds = new Set((gmGames ?? []).map((g) => g.id));
   const memberGameIds = (memberships ?? [])
@@ -96,12 +101,17 @@ export async function fetchDashboardData(
     .filter((gameId) => !gmGameIds.has(gameId));
   const allGameIds = [...gmGameIds, ...memberGameIds];
 
-  const [{ data: memberGames }, { data: upcoming, error: sessionsError }] = await Promise.all([
+  const [
+    { data: memberGames, error: memberGamesError },
+    { data: upcoming, error: sessionsError },
+  ] = await Promise.all([
     memberGameIds.length
       ? fetchGamesWithGMByIds(supabase, memberGameIds)
       : Promise.resolve({ data: [], error: null }),
     fetchUpcomingSessionsForGames(supabase, allGameIds, getUpcomingQueryFloor(fetchedAtMs)),
   ]);
+
+  if (memberGamesError) throw new Error(memberGamesError.message || 'Failed to load games');
 
   if (sessionsError) {
     // Games already resolved above; surface the failure rather than showing

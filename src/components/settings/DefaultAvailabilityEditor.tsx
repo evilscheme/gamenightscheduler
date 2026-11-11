@@ -9,7 +9,7 @@ import { Button } from '@/components/ui';
 import { DAY_LABELS } from '@/lib/constants';
 import { queryKeys } from '@/lib/queryKeys';
 import type { WeekdayDefault } from '@/lib/availability';
-import { fetchUserDefaults, upsertUserDefault, deleteUserDefault } from '@/lib/data';
+import { fetchUserDefaults, upsertUserDefault, deleteUserDefault, unwrapList } from '@/lib/data';
 import { DefaultDayRow } from './DefaultDayRow';
 
 const supabase = getSupabaseClient();
@@ -45,7 +45,7 @@ export function DefaultAvailabilityEditor() {
   const defaultsQuery = useQuery({
     queryKey: queryKeys.userDefaults(userId ?? ''),
     enabled: !!userId,
-    queryFn: async () => (await fetchUserDefaults(supabase, userId!)).data ?? [],
+    queryFn: async () => unwrapList(await fetchUserDefaults(supabase, userId!)),
   });
   const loading = defaultsQuery.isPending;
 
@@ -119,6 +119,18 @@ export function DefaultAvailabilityEditor() {
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
+  }
+
+  // A failed read must not render as an empty editor the user then "fills in".
+  if (defaultsQuery.isError && !defaultsQuery.data) {
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-danger">Couldn&apos;t load your defaults.</p>
+        <Button variant="secondary" onClick={() => void defaultsQuery.refetch()}>
+          Try again
+        </Button>
+      </div>
+    );
   }
 
   return (

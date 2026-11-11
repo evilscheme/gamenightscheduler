@@ -32,6 +32,8 @@ const RLS_DENIAL = {
 
 // Matches /rest/v1/games only — game_memberships is a different path segment.
 const GAMES_ROUTE = '**/rest/v1/games**';
+// The availability table only; user_default_availability etc. are other paths.
+const AVAILABILITY_ROUTE = /\/rest\/v1\/availability(\?|$)/;
 
 test.describe('Game page load failure', () => {
   test('keeps the player on the game page instead of redirecting to the dashboard', async ({
@@ -58,6 +60,40 @@ test.describe('Game page load failure', () => {
 
     // "Recover" — the token refresh has landed, requests succeed again.
     await gmPage.unroute(GAMES_ROUTE);
+    await retry.click();
+
+    await expect(gmPage.getByText(testGame.name).first()).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await expect(retry).not.toBeVisible();
+  });
+
+  // The game row loads fine here; only the availability read fails. It used to
+  // be cached as an empty list, so the Availability tab rendered a blank
+  // calendar inviting the player to overwrite answers they had already given.
+  test('shows an error instead of an empty calendar when the availability read fails', async ({
+    gmPage,
+    testGame,
+  }) => {
+    await gmPage.route(AVAILABILITY_ROUTE, (route) => route.fulfill(RLS_DENIAL));
+
+    await gmPage.goto(`/games/${testGame.id}?tab=availability`);
+
+    await expect(gmPage.getByRole('button', { name: /try again/i })).toBeVisible({
+      timeout: TEST_TIMEOUTS.LONG,
+    });
+    await expect(gmPage.getByText(/couldn't load this game/i)).toBeVisible();
+    expect(gmPage.url()).toContain(`/games/${testGame.id}`);
+  });
+
+  test('loads the game when the availability retry succeeds', async ({ gmPage, testGame }) => {
+    await gmPage.route(AVAILABILITY_ROUTE, (route) => route.fulfill(RLS_DENIAL));
+
+    await gmPage.goto(`/games/${testGame.id}?tab=availability`);
+    const retry = gmPage.getByRole('button', { name: /try again/i });
+    await expect(retry).toBeVisible({ timeout: TEST_TIMEOUTS.LONG });
+
+    await gmPage.unroute(AVAILABILITY_ROUTE);
     await retry.click();
 
     await expect(gmPage.getByText(testGame.name).first()).toBeVisible({

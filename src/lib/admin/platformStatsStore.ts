@@ -1,5 +1,5 @@
 import { eachDayOfInterval, format, startOfDay, subDays } from 'date-fns';
-import { paginate, type AdminClient } from '@/lib/api/admin';
+import { createSharedLoadCache, paginate, type AdminClient } from '@/lib/api/admin';
 import type { Database } from '@/types/database';
 import {
   computeDailyStats,
@@ -12,8 +12,10 @@ import {
 type StatsRow = Database['public']['Tables']['platform_daily_stats']['Row'];
 type StatsInsert = Database['public']['Tables']['platform_daily_stats']['Insert'];
 
-/** Fetch every row the platform-health metrics (and the admin games list) read.
- *  Admin (service-role) only. */
+/** Fetch every row the platform-health metrics, the admin games list, the
+ *  top-users leaderboard and the engagement charts read. Admin (service-role)
+ *  only. Always a fresh read: the cron and the backfill script write stats
+ *  from this, so they must not take the cached copy below. */
 export async function fetchPlatformInputs(admin: AdminClient): Promise<PlatformInputs> {
   const [users, games, memberships, sessions, availability, playDates] = await Promise.all([
     paginate<PlatformInputs['users'][number]>(admin, 'users', 'id, created_at'),
@@ -23,7 +25,7 @@ export async function fetchPlatformInputs(admin: AdminClient): Promise<PlatformI
       'id, gm_id, created_at, play_days, scheduling_window_months, campaign_start_date, campaign_end_date, min_players_needed'
     ),
     paginate<PlatformInputs['memberships'][number]>(admin, 'game_memberships', 'game_id, user_id, joined_at'),
-    paginate<PlatformInputs['sessions'][number]>(admin, 'sessions', 'game_id, date, created_at'),
+    paginate<PlatformInputs['sessions'][number]>(admin, 'sessions', 'game_id, date, created_at, status'),
     paginate<PlatformInputs['availability'][number]>(
       admin,
       'availability',
@@ -32,6 +34,28 @@ export async function fetchPlatformInputs(admin: AdminClient): Promise<PlatformI
     paginate<PlatformInputs['playDates'][number]>(admin, 'game_play_dates', 'game_id, date, created_at'),
   ]);
   return { users, games, memberships, sessions, availability, playDates };
+}
+
+/**
+ * How long the admin read routes reuse one read of the platform inputs. Zero
+ * outside production: local dev and the E2E suite (which runs `next dev`) seed
+ * rows and look for them on the next page load, so only concurrent requests
+ * share a read there.
+ */
+export const PLATFORM_INPUTS_TTL_MS = process.env.NODE_ENV === 'production' ? 5 * 60 * 1000 : 0;
+
+const inputsCache = createSharedLoadCache<PlatformInputs>(PLATFORM_INPUTS_TTL_MS);
+
+/**
+ * fetchPlatformInputs for the admin read routes (games, health-trends,
+ * top-users, engagement). The Overview tab fires several of them at once, and
+ * each would otherwise scan every table, availability included, on its own:
+ * concurrent callers share one in-flight read, and later ones reuse it for
+ * PLATFORM_INPUTS_TTL_MS. Per server instance, best effort, like createTtlCache.
+ * Never for writers — see fetchPlatformInputs.
+ */
+export function getCachedPlatformInputs(admin: AdminClient): Promise<PlatformInputs> {
+  return inputsCache.get('all', () => fetchPlatformInputs(admin));
 }
 
 // statsToRow and rowToCounts are the only code that knows platform_daily_stats'

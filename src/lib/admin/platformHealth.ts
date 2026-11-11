@@ -25,7 +25,7 @@ export interface PlatformInputs {
     min_players_needed: number | null;
   }[];
   memberships: { game_id: string; user_id: string; joined_at: string }[];
-  sessions: { game_id: string; date: string; created_at: string }[];
+  sessions: { game_id: string; date: string; created_at: string; status: string }[];
   availability: { game_id: string; user_id: string; date: string; status: string; created_at: string; updated_at: string }[];
   playDates: { game_id: string; date: string; created_at: string }[];
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildRollingEngagement,
+  engagementInputsFrom,
   getRollingBucketKey,
   parseWeeks,
   rollingSeries,
@@ -237,5 +238,46 @@ describe('parseWeeks', () => {
     expect(parseWeeks('9')).toBe(12);
     expect(parseWeeks(null)).toBe(12);
     expect(parseWeeks('nonsense')).toBe(12);
+  });
+});
+
+describe('engagementInputsFrom', () => {
+  // 2 weeks back from midnight 2025-01-15 → the range starts 2025-01-01.
+  const before = '2024-12-31T23:59:59';
+  const onCutoff = '2025-01-01T00:00:00';
+  const inside = '2025-01-10T09:00:00';
+  const inputs = {
+    users: [{ created_at: before }, { created_at: onCutoff }, { created_at: inside }],
+    games: [{ created_at: before }, { created_at: inside }],
+    sessions: [
+      { created_at: '2024-11-01T10:00:00', date: '2025-01-08', status: 'confirmed' },
+      { created_at: inside, date: '2025-02-01', status: 'confirmed' },
+    ],
+    availability: [
+      { user_id: 'old', updated_at: before },
+      { user_id: 'edge', updated_at: onCutoff },
+      { user_id: 'new', updated_at: inside },
+    ],
+  };
+
+  it('keeps what the old gte(cutoff) reads returned: from the first day of the range on', () => {
+    const out = engagementInputsFrom(inputs, NOW, 2);
+    expect(out.users).toEqual([{ created_at: onCutoff }, { created_at: inside }]);
+    expect(out.games).toEqual([{ created_at: inside }]);
+    expect(out.availability.map((a) => a.user_id)).toEqual(['edge', 'new']);
+  });
+
+  it('never cuts sessions off, since one booked before the range can be played in it', () => {
+    expect(engagementInputsFrom(inputs, NOW, 2).sessions).toEqual(inputs.sessions);
+  });
+
+  it('passes everything through for all time', () => {
+    expect(engagementInputsFrom(inputs, NOW, null)).toEqual(inputs);
+  });
+
+  it('charts the same with or without the cutoff', () => {
+    expect(buildRollingEngagement(engagementInputsFrom(inputs, NOW, 2), NOW, 2)).toEqual(
+      buildRollingEngagement(inputs, NOW, 2)
+    );
   });
 });

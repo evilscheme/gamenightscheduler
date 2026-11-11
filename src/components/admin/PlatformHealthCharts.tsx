@@ -9,6 +9,7 @@ import {
 import { LoadingSpinner } from '@/components/ui';
 import { healthyShare, type StateCounts } from '@/lib/admin';
 import { queryKeys } from '@/lib/queryKeys';
+import { ADMIN_QUERY_OPTIONS } from '@/lib/constants';
 import type { AdminHealthTrends } from '@/types/api';
 import {
   AXIS_PROPS,
@@ -68,6 +69,7 @@ function StateChart({ data, marker }: { data: StatePoint[]; marker: React.ReactN
 
 export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRange }) {
   const { data, isPending, error } = useQuery({
+    ...ADMIN_QUERY_OPTIONS,
     queryKey: queryKeys.adminHealthTrends(timeRange),
     queryFn: async (): Promise<AdminHealthTrends> => {
       const res = await fetch(`/api/admin/health-trends?weeks=${timeRange}`);

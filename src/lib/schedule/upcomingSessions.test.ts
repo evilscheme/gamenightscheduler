@@ -227,4 +227,33 @@ describe('buildUpcomingSessionRows', () => {
     );
     expect(rows).toHaveLength(0);
   });
+
+  // A GM can PATCH games.timezone to any well-shaped string through PostgREST.
+  // This ran inside a dashboard useMemo and white-screened every member.
+  it.each(['Not/A_Zone', 'garbage', 'UTC\r\nX:1'])(
+    'does not throw for a game whose timezone is invalid (%j), treating it as no timezone',
+    (badTz) => {
+      const games = new Map([
+        ['g1', { name: 'Broken Zone', timezone: badTz }],
+        ['g2', { name: 'Heist Crew', timezone: 'America/New_York' }],
+      ]);
+      const nowMs = noonUtc('2026-06-10');
+      const sessions = [
+        mkSession({ id: 'bad-past', game_id: 'g1', date: '2026-06-09' }),
+        mkSession({ id: 'bad-today', game_id: 'g1', date: '2026-06-10', start_time: '23:00:00' }),
+        mkSession({ id: 'ny-today', game_id: 'g2', date: '2026-06-10', start_time: '19:00:00' }),
+      ];
+
+      let rows: ReturnType<typeof buildUpcomingSessionRows> = [];
+      expect(() => {
+        rows = buildUpcomingSessionRows(sessions, games, '2026-06-10', nowMs);
+      }).not.toThrow();
+
+      // Same as a null zone: the cutoff is the viewer's `today`, and the time
+      // is read as UTC (23:00 UTC sorts after 19:00 EDT = 23:00 UTC by name).
+      expect(rows.map((r) => r.session.id)).toEqual(['bad-today', 'ny-today']);
+      expect(rows[0].dayHighlight).toBe('today');
+      expect(rows[0].gameTimezone).toBe(badTz);
+    }
+  );
 });

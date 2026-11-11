@@ -1,6 +1,7 @@
 /**
  * Generate an ICS (iCalendar) file content for calendar export
  */
+import { usableTimezone } from './timezone';
 
 interface CalendarEvent {
   date: string; // YYYY-MM-DD
@@ -259,11 +260,19 @@ function generateVTimezone(tzid: string): string[] {
 }
 
 export function generateICS(events: CalendarEvent[]): string {
+  // A stored timezone is GM-writable, and TZID is a property parameter that
+  // escapeICS can't protect: a value carrying CR/LF would inject whole lines
+  // into every subscriber's calendar. Only a zone that passes the shape check
+  // (TIMEZONE_SHAPE, which mirrors the SQL constraint) and that Intl
+  // recognises is ever interpolated; anything else falls back to floating time.
+  const zoneOf = (event: CalendarEvent) => usableTimezone(event.timezone);
+
   // Collect unique timezones used by events
   const timezones = new Set<string>();
   events.forEach((event) => {
-    if (event.timezone && event.startTime && event.endTime) {
-      timezones.add(event.timezone);
+    const tz = zoneOf(event);
+    if (tz && event.startTime && event.endTime) {
+      timezones.add(tz);
     }
   });
 
@@ -281,7 +290,9 @@ export function generateICS(events: CalendarEvent[]): string {
   });
 
   events.forEach((event, index) => {
-    const dateStr = event.date.replace(/-/g, '');
+    // Dates and times come from DATE/TIME columns, but reduce them to digits
+    // anyway so no event field is interpolated unescaped.
+    const dateStr = event.date.replace(/\D/g, '');
     const uid = `${dateStr}-${index}@canweplay.games`;
     const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
@@ -291,15 +302,16 @@ export function generateICS(events: CalendarEvent[]): string {
 
     // Use timed event if start/end times provided, otherwise all-day
     if (event.startTime && event.endTime) {
-      const startTimeStr = event.startTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
-      const endTimeStr = event.endTime.replace(/:/g, '').slice(0, 6).padEnd(6, '0');
+      const startTimeStr = event.startTime.replace(/\D/g, '').slice(0, 6).padEnd(6, '0');
+      const endTimeStr = event.endTime.replace(/\D/g, '').slice(0, 6).padEnd(6, '0');
+      const tz = zoneOf(event);
 
-      // Include TZID if timezone is provided
-      if (event.timezone) {
-        lines.push(`DTSTART;TZID=${event.timezone}:${dateStr}T${startTimeStr}`);
-        lines.push(`DTEND;TZID=${event.timezone}:${dateStr}T${endTimeStr}`);
+      // Include TZID if a usable timezone is provided
+      if (tz) {
+        lines.push(`DTSTART;TZID=${tz}:${dateStr}T${startTimeStr}`);
+        lines.push(`DTEND;TZID=${tz}:${dateStr}T${endTimeStr}`);
       } else {
-        // Floating time (no timezone) - interpreted in viewer's local timezone
+        // Floating time (no or unusable timezone) - interpreted in viewer's local timezone
         lines.push(`DTSTART:${dateStr}T${startTimeStr}`);
         lines.push(`DTEND:${dateStr}T${endTimeStr}`);
       }

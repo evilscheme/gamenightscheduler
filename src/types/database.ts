@@ -419,6 +419,7 @@ export type Database = {
       }
       count_game_players: { Args: { game_id_param: string }; Returns: number }
       count_user_games: { Args: { user_id_param: string }; Returns: number }
+      game_window_end: { Args: { game_id_param: string }; Returns: string }
       is_game_gm_or_co_gm: {
         Args: { game_id_param: string; user_id_param: string }
         Returns: boolean

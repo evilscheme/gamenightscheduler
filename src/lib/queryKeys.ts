@@ -53,6 +53,8 @@ export const queryKeys = {
   adminGames: () => ['adminGames'] as const,
   /** Admin top-users leaderboard. */
   adminTopUsers: () => ['adminTopUsers'] as const,
+  /** The latest deletion records, for the admin Deletions tab. */
+  adminDeletions: () => ['adminDeletions'] as const,
   /** One page of the admin upcoming-sessions table. */
   // The viewer's timezone is part of the key because the route derives each
   // row's Today/Tomorrow badge from it — same page, different tz, different data.

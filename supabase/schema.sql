@@ -161,16 +161,27 @@ CREATE TABLE platform_daily_stats (
   computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Append-only record of hard deletes, written by the log_deletion() trigger. Deletes
--- are otherwise invisible: nothing in the schema soft-deletes. Deliberately holds no
--- ids or content — only what was deleted and when. `cascaded` is TRUE when the row
+-- Append-only deletion records, written by the log_deletion() trigger. Deletes are
+-- otherwise invisible: nothing in the schema soft-deletes. Deliberately anonymous —
+-- no ids, names or anything a user wrote; only counts, day-precision dates and flags
+-- (docs/adr/0001-deletion-records-stay-anonymous.md). `cascaded` is TRUE when the row
 -- went because its parent did (a game's sessions when the game is deleted), so charts
 -- can count the deliberate action once instead of once per child row.
+--   actor   who did it, as a role: 'self' (a player leaving), 'gm' (a host or co-GM),
+--           'system' (nobody signed in: the account-deletion flow, admin tooling).
+--   xact    the transaction the delete ran in. Records sharing one belong to the same
+--           act, which is how an account deletion is tied to the games it took with it.
+--   details facts about what was deleted; shape per entity in log_deletion(), read by
+--           src/lib/admin/deletionRecords.ts.
+-- All three are NULL on records from before 2026-11, which kept no facts.
 CREATE TABLE deletion_log (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   entity TEXT NOT NULL CHECK (entity IN ('user', 'game', 'session', 'membership')),
   cascaded BOOLEAN NOT NULL,
-  deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  actor TEXT CHECK (actor IN ('self', 'gm', 'system')),
+  xact BIGINT,
+  details JSONB
 );
 
 -- ============================================
@@ -534,32 +545,90 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 REVOKE EXECUTE ON FUNCTION public.join_game_by_invite(TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.join_game_by_invite(TEXT) TO authenticated;
 
--- AFTER DELETE trigger body for deletion_log. A child row counts as cascaded when its
--- parent is already gone: inside a cascading delete the parent row is no longer
--- visible to the RI action that removes the child, so NOT EXISTS is true exactly
--- for cascade deletes. A user row is never cascaded — account deletion is the act.
+-- BEFORE DELETE trigger body for deletion_log. BEFORE, not AFTER: the facts are counts
+-- of the row's children, and the cascade that removes them runs ahead of any AFTER
+-- trigger here. A child row counts as cascaded when its parent is already gone:
+-- inside a cascading delete the parent row is no longer visible to the RI action
+-- that removes the child, so NOT EXISTS is true exactly for cascade deletes. A user
+-- row is never cascaded — account deletion is the act.
+--
+-- The facts stay anonymous (see the deletion_log comment): counts, flags, and dates
+-- cut to the UTC day. A game's last_activity is the same set of timestamps as
+-- gameActivity() in src/lib/admin/platformHealth.ts — change them together.
+--
+-- A membership removed because its user now hosts the game is an ownership transfer,
+-- not a departure, and is not recorded. Account deletions always read 'system': the
+-- auth service performs them with no signed-in user, whoever asked.
 CREATE OR REPLACE FUNCTION public.log_deletion()
 RETURNS TRIGGER AS $$
 DECLARE
   v_entity TEXT;
   v_cascaded BOOLEAN := FALSE;
+  v_uid UUID := auth.uid();
+  v_actor TEXT;
+  v_today DATE;
+  v_details JSONB;
 BEGIN
+  v_actor := CASE WHEN v_uid IS NULL THEN 'system' ELSE 'gm' END;
+
   CASE TG_TABLE_NAME
     WHEN 'users' THEN
       v_entity := 'user';
+      v_actor := 'system';
+      v_details := jsonb_build_object(
+        'created', (COALESCE(OLD.created_at, now()) AT TIME ZONE 'UTC')::date,
+        'games_hosted', (SELECT count(*) FROM public.games WHERE gm_id = OLD.id),
+        'games_joined', (SELECT count(*) FROM public.game_memberships WHERE user_id = OLD.id),
+        'availability_entries', (SELECT count(*) FROM public.availability WHERE user_id = OLD.id)
+      );
     WHEN 'games' THEN
       v_entity := 'game';
       v_cascaded := NOT EXISTS (SELECT 1 FROM public.users WHERE id = OLD.gm_id);
+      v_today := public.game_today(OLD.id);
+      v_details := jsonb_build_object(
+        'created', (COALESCE(OLD.created_at, now()) AT TIME ZONE 'UTC')::date,
+        'players', 1 + (SELECT count(*) FROM public.game_memberships WHERE game_id = OLD.id),
+        'sessions_past', (SELECT count(*) FROM public.sessions WHERE game_id = OLD.id AND date < v_today),
+        'sessions_upcoming', (SELECT count(*) FROM public.sessions WHERE game_id = OLD.id AND date >= v_today),
+        'availability_entries', (SELECT count(*) FROM public.availability WHERE game_id = OLD.id),
+        'extra_dates', (SELECT count(*) FROM public.game_play_dates WHERE game_id = OLD.id),
+        'last_activity', (GREATEST(
+          COALESCE(OLD.created_at, now()),
+          (SELECT max(joined_at) FROM public.game_memberships WHERE game_id = OLD.id),
+          (SELECT max(created_at) FROM public.sessions WHERE game_id = OLD.id),
+          (SELECT max(GREATEST(created_at, updated_at)) FROM public.availability WHERE game_id = OLD.id),
+          (SELECT max(created_at) FROM public.game_play_dates WHERE game_id = OLD.id)
+        ) AT TIME ZONE 'UTC')::date
+      );
     WHEN 'sessions' THEN
       v_entity := 'session';
       v_cascaded := NOT EXISTS (SELECT 1 FROM public.games WHERE id = OLD.game_id);
+      v_details := jsonb_build_object(
+        'created', (COALESCE(OLD.created_at, now()) AT TIME ZONE 'UTC')::date,
+        'session_date', OLD.date,
+        'days_until', OLD.date - public.game_today(OLD.game_id)
+      );
     WHEN 'game_memberships' THEN
+      IF EXISTS (SELECT 1 FROM public.games WHERE id = OLD.game_id AND gm_id = OLD.user_id) THEN
+        RETURN OLD;
+      END IF;
       v_entity := 'membership';
       v_cascaded := NOT EXISTS (SELECT 1 FROM public.games WHERE id = OLD.game_id)
         OR NOT EXISTS (SELECT 1 FROM public.users WHERE id = OLD.user_id);
+      IF v_uid = OLD.user_id THEN
+        v_actor := 'self';
+      END IF;
+      v_details := jsonb_build_object(
+        'joined', (COALESCE(OLD.joined_at, now()) AT TIME ZONE 'UTC')::date,
+        'co_gm', OLD.is_co_gm,
+        'availability_entries', (
+          SELECT count(*) FROM public.availability WHERE game_id = OLD.game_id AND user_id = OLD.user_id
+        )
+      );
   END CASE;
 
-  INSERT INTO public.deletion_log (entity, cascaded) VALUES (v_entity, v_cascaded);
+  INSERT INTO public.deletion_log (entity, cascaded, actor, xact, details)
+  VALUES (v_entity, v_cascaded, v_actor, txid_current(), v_details);
   RETURN OLD;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
@@ -601,18 +670,19 @@ CREATE TRIGGER protect_game_gm_id
   FOR EACH ROW
   EXECUTE FUNCTION public.protect_game_gm_id();
 
--- Record hard deletes for the admin deletions-over-time chart
+-- Write a deletion record for every hard delete (admin Deletions chart and list).
+-- BEFORE DELETE so the row's children are still there to count: see log_deletion().
 CREATE TRIGGER log_user_deletion
-  AFTER DELETE ON users
+  BEFORE DELETE ON users
   FOR EACH ROW EXECUTE FUNCTION public.log_deletion();
 CREATE TRIGGER log_game_deletion
-  AFTER DELETE ON games
+  BEFORE DELETE ON games
   FOR EACH ROW EXECUTE FUNCTION public.log_deletion();
 CREATE TRIGGER log_session_deletion
-  AFTER DELETE ON sessions
+  BEFORE DELETE ON sessions
   FOR EACH ROW EXECUTE FUNCTION public.log_deletion();
 CREATE TRIGGER log_membership_deletion
-  AFTER DELETE ON game_memberships
+  BEFORE DELETE ON game_memberships
   FOR EACH ROW EXECUTE FUNCTION public.log_deletion();
 
 -- ============================================

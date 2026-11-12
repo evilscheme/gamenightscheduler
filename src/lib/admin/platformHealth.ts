@@ -75,6 +75,8 @@ function groupBy<T extends { game_id: string }>(rows: T[]): Map<string, T[]> {
  * What counts as activity on a game: creation, a player joining, a session
  * booked, availability entered or edited, an extra date added. Availability
  * edits overwrite updated_at, so only a row's first and latest touch are visible.
+ * log_deletion() in supabase/schema.sql reads the same timestamps for a deleted
+ * game's last_activity — change them together.
  */
 function gameActivity(rows: Omit<GameRows, 'activity'>): number[] {
   const times = [Date.parse(rows.game.created_at)];

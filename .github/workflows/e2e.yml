@@ -23,11 +23,13 @@ jobs:
           cache: 'npm'
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           # Pinned: "latest" both drifts (v2.106.0 changed default grants under
-          # us) and flakes (GitHub API rate limit while resolving the tag)
-          version: 2.106.0
+          # us) and flakes (GitHub API rate limit while resolving the tag).
+          # Must stay on the same major as local dev: supabase/config.toml uses
+          # 3.x names ([local_smtp], auth.email.enabled) that 2.x doesn't know.
+          version: 3.1.0
 
       - name: Start Supabase (background)
         run: |

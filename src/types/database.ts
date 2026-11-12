@@ -71,22 +71,31 @@ export type Database = {
       }
       deletion_log: {
         Row: {
+          actor: string | null
           cascaded: boolean
           deleted_at: string
+          details: Json | null
           entity: string
           id: number
+          xact: number | null
         }
         Insert: {
+          actor?: string | null
           cascaded: boolean
           deleted_at?: string
+          details?: Json | null
           entity: string
           id?: never
+          xact?: number | null
         }
         Update: {
+          actor?: string | null
           cascaded?: boolean
           deleted_at?: string
+          details?: Json | null
           entity?: string
           id?: never
+          xact?: number | null
         }
         Relationships: []
       }

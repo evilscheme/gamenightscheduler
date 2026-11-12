@@ -19,6 +19,7 @@ import {
   formatDayLabel,
   type TimeRange,
 } from './chartUtils';
+import RecentDeletions from './RecentDeletions';
 
 const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : null);
 
@@ -210,6 +211,8 @@ export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRan
           </ResponsiveContainer>
         </ChartCard>
       </div>
+
+      <RecentDeletions records={data.recentDeletions} total={data.recentDeletionsTotal} />
     </div>
   );
 }

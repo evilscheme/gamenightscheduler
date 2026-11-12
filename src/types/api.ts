@@ -5,7 +5,15 @@
 // (duplicated declarations drift silently; that is how the admin page ended up
 // disagreeing with its route about created_at nullability).
 
-import type { DeletionBucket, DormancyBucket, FunnelCohort, HealthBucket, PlatformCounts, ViableDate } from '@/lib/admin';
+import type {
+  DeletionBucket,
+  DeletionRecord,
+  DormancyBucket,
+  FunnelCohort,
+  HealthBucket,
+  PlatformCounts,
+  ViableDate,
+} from '@/lib/admin';
 
 // --- /api/account/delete-preview ---
 
@@ -96,4 +104,8 @@ export interface AdminHealthTrends {
   funnel: FunnelCohort[];
   dormancy: DormancyBucket[];
   deletions: DeletionBucket[];
+  /** Deliberate deletions in the range with the facts their records kept, newest first, capped. */
+  recentDeletions: DeletionRecord[];
+  /** How many deliberate deletions the range holds, before the cap. */
+  recentDeletionsTotal: number;
 }

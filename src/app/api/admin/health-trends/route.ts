@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { startOfDay, subDays, format } from 'date-fns';
 import { createTtlCache, requireAdmin, paginate } from '@/lib/api/admin';
 import {
-  buildDeletionRecords,
   buildDeletions,
   buildDormancy,
   buildFunnelCohorts,
@@ -10,7 +9,6 @@ import {
   indexPlatform,
   parseWeeks,
   windowEnds,
-  type DeletionLogRow,
 } from '@/lib/admin';
 import { getCachedPlatformInputs, rowToCounts } from '@/lib/admin/platformStatsStore';
 import { serverError } from '@/lib/apiError';
@@ -19,9 +17,7 @@ import type { Database } from '@/types/database';
 
 type StatsRow = Database['public']['Tables']['platform_daily_stats']['Row'];
 
-// Not cached outside production, for the reason PLATFORM_INPUTS_TTL_MS isn't:
-// local dev and the E2E suite delete something and look for it on the next load.
-const cache = createTtlCache<AdminHealthTrends>(process.env.NODE_ENV === 'production' ? 30 * 60 * 1000 : 0);
+const cache = createTtlCache<AdminHealthTrends>(30 * 60 * 1000);
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
@@ -71,10 +67,12 @@ export async function GET(request: NextRequest): Promise<Response> {
       // list (and its URL) without bound. Reads every day in the range — 7×
       // the weekly samples, still small — and the lookup below picks the samples.
       paginate<StatsRow>(admin, 'platform_daily_stats', '*', { dateColumn: 'day', cutoff: days[0] }),
-      paginate<DeletionLogRow>(admin, 'deletion_log', 'id, entity, cascaded, deleted_at, actor, xact, details', {
-        dateColumn: 'deleted_at',
-        cutoff,
-      }),
+      paginate<{ entity: string; cascaded: boolean; deleted_at: string }>(
+        admin,
+        'deletion_log',
+        'entity, cascaded, deleted_at',
+        { dateColumn: 'deleted_at', cutoff }
+      ),
     ]);
     const statsByDay = new Map(statsRows.map((r) => [r.day, r]));
 
@@ -86,14 +84,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     });
 
     const indexed = indexPlatform(inputs);
-    const recent = buildDeletionRecords(deletionRows);
     const data: AdminHealthTrends = {
       health,
       funnel: buildFunnelCohorts(indexed, now, windows),
       dormancy: buildDormancy(indexed, now, windows),
       deletions: buildDeletions(deletionRows, now, windows),
-      recentDeletions: recent.records,
-      recentDeletionsTotal: recent.total,
     };
     cache.set(cacheKey, data);
     return NextResponse.json(data);

@@ -104,8 +104,13 @@ export interface AdminHealthTrends {
   funnel: FunnelCohort[];
   dormancy: DormancyBucket[];
   deletions: DeletionBucket[];
-  /** Deliberate deletions in the range with the facts their records kept, newest first, capped. */
-  recentDeletions: DeletionRecord[];
-  /** How many deliberate deletions the range holds, before the cap. */
-  recentDeletionsTotal: number;
+}
+
+// --- /api/admin/deletions ---
+
+export interface AdminDeletions {
+  /** The latest deliberate deletions with the facts their records kept, newest first, capped. */
+  records: DeletionRecord[];
+  /** How many deliberate deletions have ever been recorded, before the cap. */
+  total: number;
 }

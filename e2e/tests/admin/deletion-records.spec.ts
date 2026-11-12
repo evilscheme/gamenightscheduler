@@ -194,7 +194,7 @@ test.describe('Deletion records', () => {
     expect(await recordsWith('membership', 'joined', heirJoinDay)).toEqual([]);
   });
 
-  test('the admin page lists recent deletions with their facts', async ({ page, request }) => {
+  test('the admin Deletions tab lists recent deletions with their facts', async ({ page, request }) => {
     const admin = await newUser(request, 'delrec-admin', 'Record Admin');
     const { error } = await getAdminClient()
       .from('deletion_log')
@@ -221,6 +221,7 @@ test.describe('Deletion records', () => {
 
     await login(page, admin, true);
     await page.goto('/admin');
+    await page.getByRole('button', { name: 'Deletions', exact: true }).click({ timeout: TEST_TIMEOUTS.LONG });
     await expect(page.getByRole('heading', { name: 'Recent Deletions', exact: true })).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });

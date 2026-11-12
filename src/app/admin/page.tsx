@@ -10,12 +10,13 @@ import { GamesTab } from '@/components/admin/GamesTab';
 import { TopUsersTab } from '@/components/admin/TopUsersTab';
 import { ActivityTab } from '@/components/admin/ActivityTab';
 import { UpcomingGamesTab } from '@/components/admin/UpcomingGamesTab';
+import { DeletionsTab } from '@/components/admin/DeletionsTab';
 import { queryKeys } from '@/lib/queryKeys';
 import { ADMIN_QUERY_OPTIONS } from '@/lib/constants';
-import type { AdminGamesResponse, AdminStats } from '@/types/api';
+import type { AdminDeletions, AdminGamesResponse, AdminStats } from '@/types/api';
 import type { TopUsersResult } from '@/lib/admin';
 
-type Tab = 'overview' | 'games' | 'topUsers' | 'activity' | 'upcomingGames';
+type Tab = 'overview' | 'games' | 'topUsers' | 'activity' | 'upcomingGames' | 'deletions';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -23,6 +24,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'topUsers', label: 'Top Users' },
   { id: 'activity', label: 'Activity' },
   { id: 'upcomingGames', label: 'Upcoming Games' },
+  { id: 'deletions', label: 'Deletions' },
 ];
 
 export default function AdminPage() {
@@ -55,6 +57,13 @@ export default function AdminPage() {
     queryKey: queryKeys.adminTopUsers(),
     queryFn: () => fetchAdmin<TopUsersResult>('/api/admin/top-users'),
     enabled: isAdmin && activeTab === 'topUsers',
+  });
+
+  const deletionsQuery = useQuery({
+    ...ADMIN_QUERY_OPTIONS,
+    queryKey: queryKeys.adminDeletions(),
+    queryFn: () => fetchAdmin<AdminDeletions>('/api/admin/deletions'),
+    enabled: isAdmin && activeTab === 'deletions',
   });
 
   if (authStatus === 'loading') {
@@ -111,6 +120,9 @@ export default function AdminPage() {
         <TabQueries queries={[statsQuery]}>{() => <ActivityTab stats={statsQuery.data!} />}</TabQueries>
       )}
       {activeTab === 'upcomingGames' && <UpcomingGamesTab />}
+      {activeTab === 'deletions' && (
+        <TabQueries queries={[deletionsQuery]}>{() => <DeletionsTab deletions={deletionsQuery.data!} />}</TabQueries>
+      )}
     </div>
   );
 }

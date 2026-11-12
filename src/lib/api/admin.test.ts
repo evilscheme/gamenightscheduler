@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createTtlCache, paginate, PAGINATION_ORDER_KEY, requireAdmin, type AdminClient } from './admin';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+  createSharedLoadCache,
+  createTtlCache,
+  paginate,
+  PAGINATION_KEY,
+  requireAdmin,
+  type AdminClient,
+} from './admin';
+import { PAGE_SIZE } from '@/lib/data/paginate';
 import { fakePostgrest } from '@/test/fakePostgrest';
 
 const authMocks = vi.hoisted(() => {
@@ -32,23 +42,6 @@ vi.mock('@/lib/supabase/server', () => ({
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: authMocks.createAdminClient,
 }));
-
-function makeMockClient(pages: unknown[][]) {
-  let pageIndex = 0;
-  const range = vi.fn().mockImplementation(() => {
-    const data = pages[pageIndex] ?? [];
-    pageIndex++;
-    return Promise.resolve({ data });
-  });
-  const builder = {
-    select: vi.fn().mockReturnThis(),
-    gte: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    range,
-  };
-  const from = vi.fn().mockReturnValue(builder);
-  return { client: { from } as unknown as AdminClient, builder, from };
-}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -113,105 +106,151 @@ describe('requireAdmin', () => {
   });
 });
 
+/** `count` v4-shaped UUIDs spread evenly over the key space. */
+function uuids(count: number, tag = 0): string[] {
+  return Array.from({ length: count }, (_, i) => {
+    const prefix = Math.floor((i / count) * 0x1_0000_0000).toString(16).padStart(8, '0');
+    return `${prefix}-0000-4000-8000-${tag.toString(16).padStart(4, '0')}${i.toString(16).padStart(8, '0')}`;
+  });
+}
+
+type FakeBuilder = Record<'select' | 'gt' | 'gte' | 'lt' | 'order' | 'range', ReturnType<typeof vi.fn>>;
+
+/** fakePostgrest, plus the builder each page request used. */
+function fakeAdmin(tables: Record<string, Record<string, unknown>[]>) {
+  const fake = fakePostgrest(tables);
+  const builders = () => fake.from.mock.results.map((r) => r.value as FakeBuilder);
+  return { client: fake as unknown as AdminClient, from: fake.from, builders };
+}
+
 describe('paginate', () => {
-  it('returns rows for a single page', async () => {
-    const { client } = makeMockClient([[{ id: 1 }, { id: 2 }]]);
-    const result = await paginate<{ id: number }>(client, 'users', 'id');
-    expect(result).toEqual([{ id: 1 }, { id: 2 }]);
+  it('reads a small table in one request', async () => {
+    const rows = uuids(3).map((id) => ({ id, name: `u-${id}` }));
+    const { client, from } = fakeAdmin({ users: rows });
+
+    const result = await paginate<{ id: string; name: string }>(client, 'users', 'id, name');
+
+    expect(result).toEqual(rows);
+    expect(from).toHaveBeenCalledTimes(1);
   });
 
-  it('paginates across multiple pages until a short page is returned', async () => {
-    const fullPage = Array.from({ length: 1000 }, (_, i) => ({ id: i }));
-    const partialPage = [{ id: 1000 }, { id: 1001 }];
-    const { client, builder } = makeMockClient([fullPage, partialPage]);
-
-    const result = await paginate<{ id: number }>(client, 'users', 'id');
-
-    expect(result).toHaveLength(1002);
-    expect(result[0]).toEqual({ id: 0 });
-    expect(result[1001]).toEqual({ id: 1001 });
-    expect(builder.range).toHaveBeenCalledTimes(2);
-    expect(builder.range).toHaveBeenNthCalledWith(1, 0, 999);
-    expect(builder.range).toHaveBeenNthCalledWith(2, 1000, 1999);
+  it('returns an empty array for an empty table, in one request', async () => {
+    const { client, from } = fakeAdmin({ users: [] });
+    expect(await paginate(client, 'users', 'id')).toEqual([]);
+    expect(from).toHaveBeenCalledTimes(1);
   });
 
-  it('returns an empty array when the first page is empty', async () => {
-    const { client, builder } = makeMockClient([[]]);
-    const result = await paginate<{ id: number }>(client, 'users', 'id');
-    expect(result).toEqual([]);
-    expect(builder.range).toHaveBeenCalledTimes(1);
+  it('selects the key under an alias and strips it, whatever the column list', async () => {
+    const rows = uuids(2).map((id) => ({ id, name: 'Game', gm: { id: 'u', name: 'GM', email: 'e' } }));
+    const { client, builders } = fakeAdmin({ games: rows });
+    const columns = 'id, name, gm:users!games_gm_id_fkey(id, name, email)';
+
+    const result = await paginate<Record<string, unknown>>(client, 'games', columns);
+
+    expect(builders()[0].select).toHaveBeenCalledWith(`_page_key:id, ${columns}`);
+    expect(result).toEqual(rows);
+    for (const row of result) expect(row).not.toHaveProperty('_page_key');
   });
 
-  it('applies a date-column cutoff via gte when provided', async () => {
-    const { client, builder } = makeMockClient([[{ id: 1 }]]);
-    await paginate<{ id: number }>(client, 'users', 'id, created_at', {
+  it('strips the alias from a * select of a table keyed on another column', async () => {
+    const rows = [{ day: '2026-01-01', total_users: 3 }];
+    const { client, builders } = fakeAdmin({ platform_daily_stats: rows });
+
+    const result = await paginate<Record<string, unknown>>(client, 'platform_daily_stats', '*');
+
+    expect(builders()[0].select).toHaveBeenCalledWith('_page_key:day, *');
+    expect(result).toEqual(rows);
+  });
+
+  it('reads a large UUID-keyed table in parallel ranges, every row exactly once, in key order', async () => {
+    const ids = uuids(PAGE_SIZE * 9 + 17);
+    const { client, from, builders } = fakeAdmin({ availability: ids.map((id) => ({ id, user_id: 'u' })) });
+
+    const result = await paginate<{ id: string }>(client, 'availability', 'id, user_id');
+
+    expect(result.map((r) => r.id)).toEqual([...ids].sort());
+    // More requests than pages would need sequentially (one short page per
+    // range), and later requests are bounded to a range.
+    expect(from.mock.calls.length).toBeGreaterThan(10);
+    expect(builders().some((b) => b.lt.mock.calls.length > 0)).toBe(true);
+  });
+
+  it('keeps the cutoff on every page alongside the key filters', async () => {
+    const old = uuids(1500, 1).map((id) => ({ id, created_at: '2020-01-01' }));
+    const recent = uuids(2200, 2).map((id) => ({ id, created_at: '2026-06-01' }));
+    const { client, builders } = fakeAdmin({ users: [...old, ...recent] });
+
+    const result = await paginate<{ id: string }>(client, 'users', 'id', {
       dateColumn: 'created_at',
-      cutoff: '2025-01-01',
+      cutoff: '2026-01-01',
     });
-    expect(builder.gte).toHaveBeenCalledWith('created_at', '2025-01-01');
+
+    expect(result.map((r) => r.id).sort()).toEqual(recent.map((r) => r.id).sort());
+    for (const b of builders()) expect(b.gte).toHaveBeenCalledWith('created_at', '2026-01-01');
   });
 
   it('does not call gte when cutoff is missing', async () => {
-    const { client, builder } = makeMockClient([[{ id: 1 }]]);
-    await paginate<{ id: number }>(client, 'users', 'id', { dateColumn: 'created_at' });
-    expect(builder.gte).not.toHaveBeenCalled();
+    const { client, builders } = fakeAdmin({ users: [{ id: uuids(1)[0] }] });
+    await paginate(client, 'users', 'id', { dateColumn: 'created_at' });
+    expect(builders()[0].gte).not.toHaveBeenCalled();
   });
 
-  it("orders every page by the table's unique key", async () => {
-    const { client, builder } = makeMockClient([[{ day: '2026-01-01' }]]);
-    await paginate<{ day: string }>(client, 'platform_daily_stats', 'day');
-    expect(builder.order).toHaveBeenCalledWith('day', { ascending: true });
+  it('pages a non-UUID key sequentially, each page after the last', async () => {
+    const days = Array.from({ length: PAGE_SIZE * 2 + 3 }, (_, i) => ({ day: `2020-${String(i).padStart(5, '0')}` }));
+    const { client, builders } = fakeAdmin({ platform_daily_stats: days });
+
+    const result = await paginate<{ day: string }>(client, 'platform_daily_stats', 'day');
+
+    expect(result).toEqual(days);
+    const pages = builders();
+    expect(pages).toHaveLength(3);
+    expect(pages[0].gt).not.toHaveBeenCalled();
+    expect(pages[1].gt).toHaveBeenCalledWith('day', days[PAGE_SIZE - 1].day);
+    expect(pages[2].gt).toHaveBeenCalledWith('day', days[PAGE_SIZE * 2 - 1].day);
+    for (const b of pages) {
+      expect(b.lt).not.toHaveBeenCalled();
+      expect(b.order).toHaveBeenCalledWith('day', { ascending: true });
+      expect(b.range).toHaveBeenCalledWith(0, PAGE_SIZE - 1);
+    }
   });
 
-  it('reads more than 1000 rows completely, with no duplicates, when the database reorders between queries', async () => {
-    const rows = Array.from({ length: 2500 }, (_, i) => ({ id: `u${String(i).padStart(4, '0')}` }));
-    const client = fakePostgrest({ users: rows }) as unknown as AdminClient;
-
-    const result = await paginate<{ id: string }>(client, 'users', 'id');
-
-    expect(result).toHaveLength(2500);
-    expect(new Set(result.map((r) => r.id)).size).toBe(2500);
-  });
-
-  it('applies the cutoff before paging, so historical rows cannot crowd out recent ones', async () => {
-    const old = Array.from({ length: 1500 }, (_, i) => ({ id: `a${String(i).padStart(4, '0')}`, created_at: '2020-01-01' }));
-    const recent = Array.from({ length: 1200 }, (_, i) => ({ id: `b${String(i).padStart(4, '0')}`, created_at: '2026-06-01' }));
-    const client = fakePostgrest({ users: [...old, ...recent] }) as unknown as AdminClient;
-
-    const result = await paginate<{ id: string }>(client, 'users', 'id', { dateColumn: 'created_at', cutoff: '2026-01-01' });
-
-    expect(result.map((r) => r.id).sort()).toEqual(recent.map((r) => r.id));
-  });
-
-  it('names a unique order key for every table', () => {
-    // Primary keys (schema.sql). Non-unique keys like created_at would let
-    // tied rows straddle a page boundary.
-    expect(PAGINATION_ORDER_KEY).toEqual({
-      users: 'id',
-      games: 'id',
-      game_memberships: 'id',
-      availability: 'id',
-      user_availability_defaults: 'id',
-      sessions: 'id',
-      game_play_dates: 'id',
-      platform_daily_stats: 'day',
-      deletion_log: 'id',
+  it('throws when a later page fails', async () => {
+    const fake = fakePostgrest({ sessions: uuids(PAGE_SIZE * 3).map((id) => ({ id })) });
+    const realFrom = fake.from.getMockImplementation()!;
+    let requests = 0;
+    fake.from.mockImplementation((table: string) => {
+      const builder = realFrom(table);
+      if (++requests === 3) {
+        (builder.range as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: new Error('database unavailable') });
+      }
+      return builder;
     });
+
+    await expect(paginate(fake as unknown as AdminClient, 'sessions', 'id')).rejects.toThrow('database unavailable');
   });
 
-  it('throws when Supabase returns an error for a page', async () => {
-    const error = new Error('database unavailable');
+  it('throws when the first page fails', async () => {
     const builder = {
       select: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
       order: vi.fn().mockReturnThis(),
-      range: vi.fn().mockResolvedValue({ data: null, error }),
+      range: vi.fn().mockResolvedValue({ data: null, error: new Error('database unavailable') }),
     };
     const client = { from: vi.fn().mockReturnValue(builder) } as unknown as AdminClient;
 
-    await expect(paginate<{ id: number }>(client, 'users', 'id')).rejects.toThrow(
-      'database unavailable',
-    );
+    await expect(paginate(client, 'users', 'id')).rejects.toThrow('database unavailable');
+  });
+
+  it("names every table's primary key and its type, as declared in schema.sql", () => {
+    // A non-unique key would let tied rows straddle a page boundary; a key
+    // wrongly marked uuid would be split on UUID ranges that don't fit it.
+    const schema = readFileSync(join(process.cwd(), 'supabase/schema.sql'), 'utf8');
+    for (const [table, { column, type }] of Object.entries(PAGINATION_KEY)) {
+      const body = schema.match(new RegExp(`CREATE TABLE ${table} \\(([\\s\\S]*?)\\n\\);`))?.[1];
+      expect(body, table).toBeDefined();
+      const decl = body!.match(new RegExp(`^\\s*${column} (\\w+)[^\\n]*PRIMARY KEY`, 'm'));
+      expect(decl?.[1].toLowerCase(), `${table}.${column}`).toBe(type);
+    }
   });
 });
 
@@ -230,5 +269,110 @@ describe('createTtlCache', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('createSharedLoadCache', () => {
+  function deferred<T>() {
+    let resolve!: (v: T) => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<T>((res, rej) => ((resolve = res), (reject = rej)));
+    return { promise, resolve, reject };
+  }
+
+  it('shares one in-flight load between concurrent callers', async () => {
+    const cache = createSharedLoadCache<string>(1000);
+    const d = deferred<string>();
+    const load = vi.fn(() => d.promise);
+
+    const a = cache.get('k', load);
+    const b = cache.get('k', load);
+    d.resolve('v');
+
+    expect(await a).toBe('v');
+    expect(await b).toBe('v');
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses a resolved load until the TTL has passed since it began', async () => {
+    vi.useFakeTimers();
+    try {
+      const cache = createSharedLoadCache<number>(1000);
+      let n = 0;
+      const load = vi.fn(async () => ++n);
+
+      expect(await cache.get('k', load)).toBe(1);
+      vi.advanceTimersByTime(999);
+      expect(await cache.get('k', load)).toBe(1);
+      vi.advanceTimersByTime(1);
+      expect(await cache.get('k', load)).toBe(2);
+      expect(load).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps sharing a load that outlasts the TTL', async () => {
+    vi.useFakeTimers();
+    try {
+      const cache = createSharedLoadCache<string>(1000);
+      const d = deferred<string>();
+      const load = vi.fn(() => d.promise);
+
+      const a = cache.get('k', load);
+      vi.advanceTimersByTime(5000);
+      const b = cache.get('k', load);
+      d.resolve('v');
+
+      expect(await a).toBe('v');
+      expect(await b).toBe('v');
+      expect(load).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('never caches a failed load', async () => {
+    const cache = createSharedLoadCache<string>(60_000);
+    const d = deferred<string>();
+    const failing = vi.fn(() => d.promise);
+
+    const a = cache.get('k', failing);
+    const b = cache.get('k', failing); // joins the in-flight load
+    d.reject(new Error('boom'));
+    await expect(a).rejects.toThrow('boom');
+    await expect(b).rejects.toThrow('boom');
+    expect(failing).toHaveBeenCalledTimes(1);
+
+    const retry = vi.fn(async () => 'ok');
+    expect(await cache.get('k', retry)).toBe('ok');
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('turns a synchronous throw into a rejection that is not cached', async () => {
+    const cache = createSharedLoadCache<string>(60_000);
+    await expect(
+      cache.get('k', () => {
+        throw new Error('sync');
+      })
+    ).rejects.toThrow('sync');
+    expect(await cache.get('k', async () => 'ok')).toBe('ok');
+  });
+
+  it('with a TTL of 0, shares only while in flight', async () => {
+    const cache = createSharedLoadCache<number>(0);
+    let n = 0;
+    const load = vi.fn(async () => ++n);
+
+    const [a, b] = await Promise.all([cache.get('k', load), cache.get('k', load)]);
+    expect([a, b]).toEqual([1, 1]);
+    expect(await cache.get('k', load)).toBe(2);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps keys apart', async () => {
+    const cache = createSharedLoadCache<string>(1000);
+    expect(await cache.get('a', async () => 'A')).toBe('A');
+    expect(await cache.get('b', async () => 'B')).toBe('B');
   });
 });

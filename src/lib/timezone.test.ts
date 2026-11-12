@@ -6,6 +6,8 @@ import {
   convertTimeForDisplay,
   getSessionInstantMs,
   getDateInTimezone,
+  usableTimezone,
+  TIMEZONE_SHAPE,
 } from "./timezone";
 
 describe("isValidTimezone", () => {
@@ -27,6 +29,19 @@ describe("isValidTimezone", () => {
 
   it("rejects an empty string", () => {
     expect(isValidTimezone("")).toBe(false);
+  });
+
+  it("rejects a real zone with an embedded or trailing CR/LF", () => {
+    expect(isValidTimezone("America/New_York\n")).toBe(false);
+    expect(isValidTimezone("America/New_York\r\nX-INJECT:1")).toBe(false);
+    expect(isValidTimezone("UTC\r")).toBe(false);
+  });
+
+  it("returns a stable answer across repeated (cached) calls", () => {
+    expect(isValidTimezone("Mars/Olympus_Mons")).toBe(false);
+    expect(isValidTimezone("Mars/Olympus_Mons")).toBe(false);
+    expect(isValidTimezone("Asia/Tokyo")).toBe(true);
+    expect(isValidTimezone("Asia/Tokyo")).toBe(true);
   });
 
   it("rejects non-IANA strings like Eastern", () => {
@@ -259,5 +274,94 @@ describe("getDateInTimezone", () => {
     const ms = Date.UTC(2026, 5, 2, 3, 0, 0);
     expect(getDateInTimezone(ms, "America/Los_Angeles")).toBe("2026-06-01");
     expect(getDateInTimezone(ms, "Asia/Tokyo")).toBe("2026-06-02");
+  });
+});
+
+// Stored zones are GM-writable through PostgREST; anything that isn't a real
+// zone must behave exactly like "no timezone" instead of throwing RangeError.
+const GARBAGE_ZONES = [
+  "Not/A_Zone",
+  "garbage",
+  "America/New_York\r\nX-INJECT:1",
+  "UTC\n",
+  "<b>bold</b>",
+  "",
+];
+
+describe("TIMEZONE_SHAPE (mirrors the SQL CHECK constraint)", () => {
+  it.each([
+    "America/Argentina/Buenos_Aires",
+    "America/Port-au-Prince",
+    "Etc/GMT+5",
+    "Etc/GMT-14",
+    "UTC",
+    "America/Los_Angeles",
+  ])("accepts %s", (tz) => {
+    expect(TIMEZONE_SHAPE.test(tz)).toBe(true);
+  });
+
+  it.each([
+    "UTC\n",
+    "UTC\r",
+    "America/New_York\r\nX-INJECT:1",
+    "Europe/London;X=1",
+    "A:B",
+    "has space",
+    "",
+    "a".repeat(65),
+  ])("rejects %j", (tz) => {
+    expect(TIMEZONE_SHAPE.test(tz)).toBe(false);
+  });
+});
+
+describe("usableTimezone", () => {
+  it("returns a valid zone unchanged", () => {
+    expect(usableTimezone("Europe/London")).toBe("Europe/London");
+  });
+
+  it.each([...GARBAGE_ZONES, null, undefined])("returns null for %j", (tz) => {
+    expect(usableTimezone(tz)).toBeNull();
+  });
+});
+
+describe("helpers with an invalid stored timezone", () => {
+  const ms = Date.UTC(2026, 5, 2, 3, 0, 0);
+
+  it.each(GARBAGE_ZONES)("getDateInTimezone(%j) behaves as with null", (tz) => {
+    expect(() => getDateInTimezone(ms, tz)).not.toThrow();
+    expect(getDateInTimezone(ms, tz)).toBe(getDateInTimezone(ms, null));
+  });
+
+  it.each(GARBAGE_ZONES)("getSessionInstantMs(%j) behaves as with null", (tz) => {
+    expect(getSessionInstantMs("2026-06-01", "19:00", tz)).toBe(
+      getSessionInstantMs("2026-06-01", "19:00", null)
+    );
+  });
+
+  it.each(GARBAGE_ZONES)("convertTimeForDisplay with game zone %j shows the raw time", (tz) => {
+    const result = convertTimeForDisplay("2026-01-15", "18:00", tz, "Europe/London", false);
+    expect(result).toEqual({
+      gameTime: "6:00 PM",
+      gameTzAbbrev: "",
+      userTime: null,
+      userTzAbbrev: null,
+      isDifferentTz: false,
+    });
+  });
+
+  it.each(GARBAGE_ZONES)("convertTimeForDisplay with user zone %j skips conversion", (tz) => {
+    const result = convertTimeForDisplay("2026-01-15", "18:00", "America/Los_Angeles", tz, true);
+    expect(result.gameTime).toBe("18:00");
+    expect(result.gameTzAbbrev).toBe("PST");
+    expect(result.isDifferentTz).toBe(false);
+    expect(result.userTime).toBeNull();
+  });
+
+  it.each(GARBAGE_ZONES)("formatTimezoneDisplay(%j) does not throw", (tz) => {
+    expect(() => formatTimezoneDisplay(tz)).not.toThrow();
+  });
+
+  it.each(GARBAGE_ZONES)("getTimezoneAbbreviation(%j) does not throw", (tz) => {
+    expect(() => getTimezoneAbbreviation(new Date(ms), tz)).not.toThrow();
   });
 });

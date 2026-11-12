@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
@@ -11,6 +11,7 @@ import { TopUsersTab } from '@/components/admin/TopUsersTab';
 import { ActivityTab } from '@/components/admin/ActivityTab';
 import { UpcomingGamesTab } from '@/components/admin/UpcomingGamesTab';
 import { queryKeys } from '@/lib/queryKeys';
+import { ADMIN_QUERY_OPTIONS } from '@/lib/constants';
 import type { AdminGamesResponse, AdminStats } from '@/types/api';
 import type { TopUsersResult } from '@/lib/admin';
 
@@ -30,43 +31,31 @@ export default function AdminPage() {
 
   useAuthRedirect({ requireAdmin: true });
 
+  const isAdmin = !!profile?.is_admin;
+
+  // Overview and Activity share stats, Overview and Games share the games list;
+  // both load up front since Overview is the landing tab.
   const statsQuery = useQuery({
+    ...ADMIN_QUERY_OPTIONS,
     queryKey: queryKeys.adminStats(),
-    queryFn: async (): Promise<AdminStats> => {
-      const res = await fetch('/api/admin/stats');
-      if (!res.ok) throw new Error('Failed to fetch admin data');
-      return res.json();
-    },
-    enabled: !!profile?.is_admin,
+    queryFn: () => fetchAdmin<AdminStats>('/api/admin/stats'),
+    enabled: isAdmin,
   });
 
   const gamesQuery = useQuery({
+    ...ADMIN_QUERY_OPTIONS,
     queryKey: queryKeys.adminGames(),
-    queryFn: async (): Promise<AdminGamesResponse> => {
-      const res = await fetch('/api/admin/games');
-      if (!res.ok) throw new Error('Failed to fetch admin data');
-      return res.json();
-    },
-    enabled: !!profile?.is_admin,
+    queryFn: () => fetchAdmin<AdminGamesResponse>('/api/admin/games'),
+    enabled: isAdmin,
   });
 
+  // Only once its tab is opened; the cache keeps it after that.
   const topUsersQuery = useQuery({
+    ...ADMIN_QUERY_OPTIONS,
     queryKey: queryKeys.adminTopUsers(),
-    queryFn: async (): Promise<TopUsersResult> => {
-      const res = await fetch('/api/admin/top-users');
-      if (!res.ok) throw new Error('Failed to fetch admin data');
-      return res.json();
-    },
-    enabled: !!profile?.is_admin,
+    queryFn: () => fetchAdmin<TopUsersResult>('/api/admin/top-users'),
+    enabled: isAdmin && activeTab === 'topUsers',
   });
-
-  const stats = statsQuery.data ?? null;
-  const games = gamesQuery.data?.games ?? [];
-  const health = gamesQuery.data?.health ?? null;
-  const topUsers = topUsersQuery.data ?? null;
-  const loading = statsQuery.isPending || gamesQuery.isPending || topUsersQuery.isPending;
-  const error =
-    statsQuery.error?.message ?? gamesQuery.error?.message ?? topUsersQuery.error?.message ?? null;
 
   if (authStatus === 'loading') {
     return (
@@ -104,23 +93,51 @@ export default function AdminPage() {
         </nav>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <LoadingSpinner size="lg" />
-        </div>
-      ) : error ? (
-        <div className="text-danger text-center py-12">{error}</div>
-      ) : (
-        <>
-          {activeTab === 'overview' && stats && health && (
-            <OverviewTab stats={stats} games={games} health={health} />
+      {/* Each tab waits only for the queries it reads. */}
+      {activeTab === 'overview' && (
+        <TabQueries queries={[statsQuery, gamesQuery]}>
+          {() => (
+            <OverviewTab stats={statsQuery.data!} games={gamesQuery.data!.games} health={gamesQuery.data!.health} />
           )}
-          {activeTab === 'games' && <GamesTab games={games} />}
-          {activeTab === 'topUsers' && topUsers && <TopUsersTab topUsers={topUsers} />}
-          {activeTab === 'activity' && stats && <ActivityTab stats={stats} />}
-          {activeTab === 'upcomingGames' && <UpcomingGamesTab />}
-        </>
+        </TabQueries>
       )}
+      {activeTab === 'games' && (
+        <TabQueries queries={[gamesQuery]}>{() => <GamesTab games={gamesQuery.data!.games} />}</TabQueries>
+      )}
+      {activeTab === 'topUsers' && (
+        <TabQueries queries={[topUsersQuery]}>{() => <TopUsersTab topUsers={topUsersQuery.data!} />}</TabQueries>
+      )}
+      {activeTab === 'activity' && (
+        <TabQueries queries={[statsQuery]}>{() => <ActivityTab stats={statsQuery.data!} />}</TabQueries>
+      )}
+      {activeTab === 'upcomingGames' && <UpcomingGamesTab />}
     </div>
   );
+}
+
+async function fetchAdmin<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch admin data');
+  return res.json();
+}
+
+/** A spinner until every query has data, or the first error. Children render
+ *  only once all of them have data, so they can read it unguarded. */
+function TabQueries({
+  queries,
+  children,
+}: {
+  queries: { isPending: boolean; error: Error | null }[];
+  children: () => ReactNode;
+}) {
+  const error = queries.find((q) => q.error)?.error;
+  if (error) return <div className="text-danger text-center py-12">{error.message}</div>;
+  if (queries.some((q) => q.isPending)) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+  return <>{children()}</>;
 }

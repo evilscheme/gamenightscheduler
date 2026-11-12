@@ -158,3 +158,33 @@ export function buildRollingEngagement(
     activeUsers: activeUsers.size,
   }));
 }
+
+/**
+ * The engagement charts' rows, cut from whole-table rows (the shared platform
+ * inputs) instead of a read of their own. Bounded ranges keep the rows the
+ * route used to fetch
+ * with `gte(column, cutoff)`: created (users, games) or last touched
+ * (availability) on or after the range's first day, server-local midnight,
+ * the same day the database compared against in production (both UTC).
+ * Sessions are never cut off: "sessions played" buckets by play date, and a
+ * session booked before the range can be played inside it.
+ *
+ * Rows before the cutoff land past the last emitted window anyway, so the
+ * charts are the same with or without it; it only keeps the work small.
+ */
+export function engagementInputsFrom(
+  inputs: EngagementInputs,
+  now: Date,
+  weeks: number | null
+): EngagementInputs {
+  const { users, games, sessions, availability } = inputs;
+  if (weeks === null) return { users, games, sessions, availability };
+  const cutoff = subDays(startOfDay(now), weeks * 7).getTime();
+  const since = (ts: string) => Date.parse(ts) >= cutoff;
+  return {
+    users: users.filter((u) => since(u.created_at)),
+    games: games.filter((g) => since(g.created_at)),
+    sessions,
+    availability: availability.filter((a) => since(a.updated_at)),
+  };
+}

@@ -52,7 +52,7 @@ describe('computeDailyStats', () => {
     ],
     games: [game('g1', 'gm', '2024-12-01T11:00:00')],
     memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2024-12-02T11:00:00' }],
-    sessions: [{ game_id: 'g1', date: '2025-01-20', created_at: '2025-01-05T09:00:00' }],
+    sessions: [{ game_id: 'g1', date: '2025-01-20', created_at: '2025-01-05T09:00:00', status: 'confirmed' }],
   };
 
   const tracked = (c: StateCounts) => ({
@@ -85,7 +85,7 @@ describe('computeDailyStats', () => {
   it('keeps a quiet game healthy for as long as a session is on the books', () => {
     const data = indexPlatform({
       ...base,
-      sessions: [{ game_id: 'g1', date: '2025-06-01', created_at: '2025-01-05T09:00:00' }],
+      sessions: [{ game_id: 'g1', date: '2025-06-01', created_at: '2025-01-05T09:00:00', status: 'confirmed' }],
     });
     // Nearly five months without anyone opening the app.
     expect(computeDailyStats(data, '2025-05-31').games.healthyBooked).toBe(1);
@@ -190,7 +190,7 @@ describe('viable dates', () => {
 
   it('prefers booked over viable when a game has both', () => {
     const data = withDates([avail('gm', '2025-01-17'), avail('p', '2025-01-17')], {
-      sessions: [{ game_id: 'g1', date: '2025-01-24', created_at: '2025-01-06T10:00:00' }],
+      sessions: [{ game_id: 'g1', date: '2025-01-24', created_at: '2025-01-06T10:00:00', status: 'confirmed' }],
     });
     expect(computeDailyStats(data, '2025-01-10')).toMatchObject({ games: { healthyBooked: 1, healthyViable: 0 } });
   });
@@ -238,7 +238,7 @@ describe('currentGameStatuses', () => {
     games: [game('g1', 'gm', '2024-12-01T11:00:00'), game('g2', 'gm', '2024-10-01T11:00:00')],
     memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2024-12-02T11:00:00' }],
     // NOW is 01-15 at noon: a session tonight is still upcoming.
-    sessions: [{ game_id: 'g1', date: '2025-01-15', created_at: '2024-12-20T09:00:00' }],
+    sessions: [{ game_id: 'g1', date: '2025-01-15', created_at: '2024-12-20T09:00:00', status: 'confirmed' }],
   };
 
   it('classifies each game right now, counting a session today as upcoming', () => {
@@ -290,7 +290,7 @@ describe('buildFunnelCohorts', () => {
         ],
         games: [game('g1', 'gm', '2025-01-02T11:00:00')],
         memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2025-01-10T11:00:00' }],
-        sessions: [{ game_id: 'g1', date: '2025-01-09', created_at: '2025-01-03T10:00:00' }],
+        sessions: [{ game_id: 'g1', date: '2025-01-09', created_at: '2025-01-03T10:00:00', status: 'confirmed' }],
         availability: [
           { game_id: 'g1', user_id: 'p', date: '2025-01-17', status: 'available', created_at: '2025-01-10T12:00:00', updated_at: '2025-01-10T12:00:00' },
         ],
@@ -317,7 +317,7 @@ describe('buildFunnelCohorts: sessions', () => {
       ],
       games: [game('g1', 'gm', '2024-12-01T11:00:00')],
       memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2025-01-10T11:00:00' }],
-      sessions: [{ game_id: 'g1', date: '2025-01-05', created_at: '2024-12-20T10:00:00' }],
+      sessions: [{ game_id: 'g1', date: '2025-01-05', created_at: '2024-12-20T10:00:00', status: 'confirmed' }],
     });
     const cohort = buildFunnelCohorts(data, NOW, 3).find((c) => c.signups === 1 && c.joinedGame === 1);
     expect(cohort).toMatchObject({ gotSession: 0 });
@@ -335,8 +335,8 @@ describe('buildDormancy', () => {
         game('new', 'gm', '2024-11-25T12:00:00'),
       ],
       sessions: [
-        { game_id: 'old', date: '2025-03-01', created_at: '2024-12-05T12:00:00' }, // revives 'old'
-        { game_id: 'mid', date: '2024-12-01', created_at: '2024-11-01T12:00:00' },
+        { game_id: 'old', date: '2025-03-01', created_at: '2024-12-05T12:00:00', status: 'confirmed' }, // revives 'old'
+        { game_id: 'mid', date: '2024-12-01', created_at: '2024-11-01T12:00:00', status: 'confirmed' },
       ],
     });
     const full = buildDormancy(data, NOW);
@@ -350,7 +350,7 @@ describe('buildDormancy', () => {
         ...EMPTY,
         // Created 2024-11-03 -> dormant 2025-01-02 (bucket 1) -> revived 2025-01-10 (bucket 0).
         games: [game('g1', 'gm', '2024-11-03T12:00:00'), game('g2', 'gm', '2025-01-01T12:00:00')],
-        sessions: [{ game_id: 'g1', date: '2025-02-01', created_at: '2025-01-10T12:00:00' }],
+        sessions: [{ game_id: 'g1', date: '2025-02-01', created_at: '2025-01-10T12:00:00', status: 'confirmed' }],
       }),
       NOW,
       2
@@ -377,7 +377,7 @@ describe('buildDormancy', () => {
         games: [game('g1', 'gm', '2024-10-01T12:00:00')],
         memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2024-10-01T13:00:00' }],
         // Booked once in October for March; nothing since.
-        sessions: [{ game_id: 'g1', date: '2025-03-01', created_at: '2024-10-02T12:00:00' }],
+        sessions: [{ game_id: 'g1', date: '2025-03-01', created_at: '2024-10-02T12:00:00', status: 'confirmed' }],
       }),
       NOW,
       16
@@ -391,7 +391,7 @@ describe('buildDormancy', () => {
         ...EMPTY,
         games: [game('g1', 'gm', '2024-10-01T12:00:00')],
         memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2024-10-01T13:00:00' }],
-        sessions: [{ game_id: 'g1', date: '2024-12-01', created_at: '2024-10-02T12:00:00' }],
+        sessions: [{ game_id: 'g1', date: '2024-12-01', created_at: '2024-10-02T12:00:00', status: 'confirmed' }],
       }),
       NOW,
       7

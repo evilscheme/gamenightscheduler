@@ -506,6 +506,62 @@ describe("generateICS", () => {
     expect(result).toContain("END:VEVENT");
   });
 
+  it("uses floating time with no TZID for a well-shaped but unknown timezone", () => {
+    const result = generateICS([
+      {
+        date: "2025-02-14",
+        startTime: "19:00",
+        endTime: "22:00",
+        title: "Mystery Game Night",
+        timezone: "Fake/Zone",
+      },
+    ]);
+
+    expect(result).not.toContain("TZID");
+    expect(result).toContain("DTSTART:20250214T190000");
+    expect(result).toContain("DTEND:20250214T220000");
+  });
+
+  it("never interpolates a CRLF-bearing timezone (no injected lines)", () => {
+    const evil =
+      "UTC\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nSUMMARY:Injected\r\nURL:https://evil.example\r\nBEGIN:VALARM";
+    const result = generateICS([
+      {
+        date: "2025-02-14",
+        startTime: "19:00",
+        endTime: "22:00",
+        title: "Game Night",
+        timezone: evil,
+      },
+    ]);
+
+    const lines = result.split("\r\n");
+    expect(result).not.toContain("TZID");
+    expect(result).not.toContain("BEGIN:VTIMEZONE");
+    expect(lines).not.toContain("SUMMARY:Injected");
+    expect(result).not.toContain("evil.example");
+    expect(result).not.toContain("VALARM");
+    expect(lines.filter((l) => l === "BEGIN:VEVENT")).toHaveLength(1);
+    expect(lines.filter((l) => l === "END:VEVENT")).toHaveLength(1);
+    expect(result).toContain("DTSTART:20250214T190000");
+    // No bare LF anywhere: every line break is the CRLF separator.
+    expect(result.replace(/\r\n/g, "")).not.toMatch(/[\r\n]/);
+  });
+
+  it("falls back to floating time for a timezone with a trailing newline", () => {
+    const result = generateICS([
+      {
+        date: "2025-02-14",
+        startTime: "19:00",
+        endTime: "22:00",
+        title: "Game Night",
+        timezone: "America/New_York\n",
+      },
+    ]);
+    expect(result).not.toContain("TZID");
+    expect(result).toContain("DTSTART:20250214T190000");
+  });
+
   it("emits a LOCATION line when location is set", () => {
     const ics = generateICS([
       { date: "2026-06-14", title: "Game Night", location: "Tom's basement" },

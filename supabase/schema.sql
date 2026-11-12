@@ -26,7 +26,10 @@ CREATE TABLE users (
   is_gm BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   is_admin BOOLEAN DEFAULT FALSE,
-  timezone TEXT DEFAULT NULL,
+  -- Shape check, not a zone lookup: see games_timezone_shape.
+  timezone TEXT DEFAULT NULL CONSTRAINT users_timezone_shape CHECK (
+    timezone IS NULL OR timezone ~ '^[A-Za-z0-9_+/-]{1,64}$'
+  ),
   week_start_day INTEGER DEFAULT 0 CHECK (week_start_day IN (0, 1)),
   time_format TEXT DEFAULT '12h' CHECK (time_format IN ('12h', '24h'))
 );
@@ -43,7 +46,16 @@ CREATE TABLE games (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   default_start_time TIME DEFAULT '18:00',
   default_end_time TIME DEFAULT '22:00',
-  timezone TEXT DEFAULT 'America/Los_Angeles',
+  -- Conservative IANA *shape* (mirrored by TIMEZONE_SHAPE in src/lib/timezone.ts),
+  -- deliberately not a lookup in pg_timezone_names: Postgres's and browsers'
+  -- zone lists differ, and a strict lookup could reject a zone a real browser
+  -- reports. It keeps CR/LF, ':' and ';' out (the value is interpolated into
+  -- iCalendar feeds); a well-shaped unknown zone is handled by the client
+  -- guards and game_today()'s UTC fallback. In a Postgres ARE '$' matches only
+  -- at the very end of the string, so a trailing newline is rejected too.
+  timezone TEXT DEFAULT 'America/Los_Angeles' CONSTRAINT games_timezone_shape CHECK (
+    timezone IS NULL OR timezone ~ '^[A-Za-z0-9_+/-]{1,64}$'
+  ),
   min_players_needed INTEGER DEFAULT 0 CHECK (min_players_needed >= 0),
   ad_hoc_only BOOLEAN NOT NULL DEFAULT false,
   campaign_start_date DATE DEFAULT NULL,
@@ -326,6 +338,46 @@ BEGIN
     -- making every session insert fail.
     RETURN (now() AT TIME ZONE 'UTC')::date;
   END;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
+
+-- Last date a player can be offered for availability (and a GM for an extra
+-- play date): the upper bound the availability and game_play_dates write
+-- policies enforce. Mirrors the END of getSchedulingWindow()
+-- (src/lib/schedule/scheduling.ts):
+--   start = max(today, campaign_start_date)
+--   end   = min(lastDayOfMonth(start + scheduling_window_months), campaign_end_date)
+-- ad_hoc_only does not change the window (it only empties play_days).
+--
+-- "today" here is deliberately NOT game_today(): the client computes the window
+-- from the VIEWER's local date, and the end is month-granular, so a viewer one
+-- calendar day ahead of the game's zone on the last day of a month gets a
+-- window a whole month longer. The policy must accept a superset of what any
+-- client can offer, so this uses the latest local date anywhere on Earth: the
+-- UTC date + 1 (UTC+14 is never more than one calendar day ahead of UTC). Month
+-- arithmetic agrees with date-fns: both clamp Jan 31 + 1 month to Feb 28, and
+-- only the month matters once it is rounded to the month's last day.
+CREATE OR REPLACE FUNCTION public.game_window_end(game_id_param UUID)
+RETURNS DATE AS $$
+DECLARE
+  v_months     INTEGER;
+  v_start      DATE;
+  v_end        DATE;
+  v_months_end DATE;
+BEGIN
+  SELECT scheduling_window_months, campaign_start_date, campaign_end_date
+    INTO v_months, v_start, v_end
+    FROM public.games WHERE id = game_id_param;
+  IF NOT FOUND THEN
+    RETURN NULL;
+  END IF;
+  -- GREATEST/LEAST ignore NULLs: no campaign start/end means no clamp. A NULL
+  -- window length (the column has a default but no NOT NULL) reads as the
+  -- longest allowed, 12, so the backstop never undercuts the client.
+  v_start := GREATEST((now() AT TIME ZONE 'UTC')::date + 1, v_start);
+  v_months_end := (date_trunc('month', v_start + make_interval(months => COALESCE(v_months, 12)))
+                   + interval '1 month' - interval '1 day')::date;
+  RETURN LEAST(v_months_end, v_end);
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '';
 
@@ -642,6 +694,24 @@ CREATE POLICY "Users can update own availability defaults" ON user_availability_
 CREATE POLICY "Users can delete own availability defaults" ON user_availability_defaults
   FOR DELETE USING ((select auth.uid()) = user_id);
 
+-- Date bounds on availability and game_play_dates writes. Without them any
+-- signed-up user could create a game and bulk-insert rows for every date from
+-- year 1 to 9999 (storage exhaustion, slow game loads, admin scans timing out).
+-- The bound is what the UI can offer: not before today, not after the game's
+-- scheduling window (game_window_end). Both ends are slightly lenient, because
+-- the client decides "today" from the VIEWER's local date while the server only
+-- knows UTC: the earliest local date anywhere is the UTC date - 1 (UTC-12), and
+-- game_window_end already assumes the latest (UTC date + 1). The database is a
+-- backstop against abuse, not the source of truth for the UI, so it must be a
+-- superset of what the client offers, never a subset.
+-- The bound lives in RLS, not a CHECK or trigger: a CHECK can't reference the
+-- current date, and service-role seeds, E2E helpers and backfills legitimately
+-- write historical rows (they bypass RLS).
+-- The UPDATE policies carry an explicit WITH CHECK so a row can't be inserted in
+-- range and then moved out of it. Consequence (intended): a row whose date has
+-- passed, or that falls outside a window the GM later shortened, can no longer
+-- be edited by its owner. It can still be read and deleted.
+
 -- Availability policies
 CREATE POLICY "Game participants can view availability" ON availability
   FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
@@ -649,11 +719,19 @@ CREATE POLICY "Users can insert own availability" ON availability
   FOR INSERT WITH CHECK (
     (select auth.uid()) = user_id
     AND public.is_game_participant(game_id, (select auth.uid()))
+    AND date >= (now() AT TIME ZONE 'UTC')::date - 1
+    AND date <= public.game_window_end(game_id)
   );
 CREATE POLICY "Users can update own availability" ON availability
   FOR UPDATE USING (
     (select auth.uid()) = user_id
     AND public.is_game_participant(game_id, (select auth.uid()))
+  )
+  WITH CHECK (
+    (select auth.uid()) = user_id
+    AND public.is_game_participant(game_id, (select auth.uid()))
+    AND date >= (now() AT TIME ZONE 'UTC')::date - 1
+    AND date <= public.game_window_end(game_id)
   );
 CREATE POLICY "Users can delete own availability" ON availability
   FOR DELETE USING ((select auth.uid()) = user_id);
@@ -677,10 +755,22 @@ ALTER TABLE game_play_dates ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Game participants can view play dates" ON game_play_dates
   FOR SELECT USING (public.is_game_participant(game_id, (select auth.uid())));
+-- Same date bounds as availability (see the comment above its policies): the
+-- calendar only lets a GM add an extra date, or edit a date's note, on a
+-- non-past date inside the scheduling window.
 CREATE POLICY "GMs and co-GMs can insert play dates" ON game_play_dates
-  FOR INSERT WITH CHECK (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
+  FOR INSERT WITH CHECK (
+    public.is_game_gm_or_co_gm(game_id, (select auth.uid()))
+    AND date >= (now() AT TIME ZONE 'UTC')::date - 1
+    AND date <= public.game_window_end(game_id)
+  );
 CREATE POLICY "GMs and co-GMs can update play dates" ON game_play_dates
-  FOR UPDATE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
+  FOR UPDATE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())))
+  WITH CHECK (
+    public.is_game_gm_or_co_gm(game_id, (select auth.uid()))
+    AND date >= (now() AT TIME ZONE 'UTC')::date - 1
+    AND date <= public.game_window_end(game_id)
+  );
 CREATE POLICY "GMs and co-GMs can delete play dates" ON game_play_dates
   FOR DELETE USING (public.is_game_gm_or_co_gm(game_id, (select auth.uid())));
 

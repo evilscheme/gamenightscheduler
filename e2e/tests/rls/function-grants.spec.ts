@@ -14,6 +14,7 @@ const HELPERS: Array<[string, string]> = [
   ['count_future_sessions', 'uuid'],
   ['count_user_games', 'uuid'],
   ['game_today', 'uuid'],
+  ['game_window_end', 'uuid'],
   ['is_game_participant', 'uuid, uuid'],
   ['is_game_gm_or_co_gm', 'uuid, uuid'],
   ['is_membership_co_gm', 'uuid, uuid'],

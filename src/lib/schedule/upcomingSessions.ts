@@ -1,5 +1,5 @@
 import type { GameSession } from '@/types';
-import { getSessionInstantMs, getDateInTimezone, isValidTimezone } from '../timezone';
+import { getSessionInstantMs, getDateInTimezone, usableTimezone } from '../timezone';
 import { toLocalDateString } from '../date';
 
 export type DayHighlight = 'today' | 'tomorrow' | null;
@@ -50,9 +50,8 @@ export function getUpcomingQueryFloor(nowMs: number): string {
  *                         back to the runtime's local date.
  */
 export function resolveViewerToday(nowMs: number, viewerTimezone: string | null): string {
-  if (!viewerTimezone || !isValidTimezone(viewerTimezone)) {
-    return toLocalDateString(new Date(nowMs));
-  }
+  // getDateInTimezone already falls back to the runtime's local date for a
+  // null or unusable zone.
   return getDateInTimezone(nowMs, viewerTimezone);
 }
 
@@ -91,7 +90,9 @@ export function buildUpcomingSessionRows(
 
   return [...sessions]
     .filter((session) => {
-      const tz = games.get(session.game_id)?.timezone ?? null;
+      // An unusable stored zone (a GM can PATCH any well-shaped string) is
+      // treated like no zone, so it can't throw a RangeError mid-render.
+      const tz = usableTimezone(games.get(session.game_id)?.timezone);
       // A session is upcoming if its date is today-or-later in the game's tz.
       const gameToday = tz ? getDateInTimezone(nowMs, tz) : today;
       return session.date >= gameToday;

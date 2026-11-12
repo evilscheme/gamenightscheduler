@@ -1,4 +1,5 @@
 export * from './paginate';
+export * from './unwrap';
 export * from './games';
 export * from './memberships';
 export * from './availability';

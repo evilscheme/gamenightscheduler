@@ -30,6 +30,14 @@ export const TIMEOUTS = {
 // of refetching; a window refocus or explicit invalidation refetches sooner.
 export const QUERY_STALE_TIME = 45_000;
 
+// Query options for every admin dashboard read. Each one aggregates whole
+// tables server-side, so they stay fresh for 10 minutes and don't refetch when
+// the tab regains focus; reloading the page fetches anew.
+export const ADMIN_QUERY_OPTIONS = {
+  staleTime: 10 * 60_000,
+  refetchOnWindowFocus: false,
+} as const;
+
 // Default session times
 export const SESSION_DEFAULTS = {
   START_TIME: '18:00',

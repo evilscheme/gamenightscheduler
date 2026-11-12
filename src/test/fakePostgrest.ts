@@ -20,11 +20,23 @@ export function fakePostgrest(tables: Record<string, Row[]>, opts: { maxRows?: n
   const from = vi.fn((table: string) => {
     let rows = [...(tables[table] ?? [])];
     const orderBy: string[] = [];
+    // Simple `alias:column` entries in the select list. Other columns aren't
+    // projected: rows come back with every field, plus any aliases.
+    let aliases: [alias: string, column: string][] = [];
 
     const builder = {
-      select: vi.fn(() => builder),
+      select: vi.fn((columns?: string) => {
+        aliases = (columns ?? '')
+          .split(',')
+          .map((c) => c.trim().match(/^(\w+):(\w+)$/))
+          .filter((m): m is RegExpMatchArray => m !== null)
+          .map((m) => [m[1], m[2]]);
+        return builder;
+      }),
       eq: vi.fn((col: string, v: unknown) => ((rows = rows.filter((r) => r[col] === v)), builder)),
+      gt: vi.fn((col: string, v: string) => ((rows = rows.filter((r) => String(r[col]) > v)), builder)),
       gte: vi.fn((col: string, v: string) => ((rows = rows.filter((r) => String(r[col]) >= v)), builder)),
+      lt: vi.fn((col: string, v: string) => ((rows = rows.filter((r) => String(r[col]) < v)), builder)),
       lte: vi.fn((col: string, v: string) => ((rows = rows.filter((r) => String(r[col]) <= v)), builder)),
       order: vi.fn((col: string) => (orderBy.push(col), builder)),
       range: vi.fn(async (start: number, end: number) => {
@@ -41,7 +53,14 @@ export function fakePostgrest(tables: Record<string, Row[]>, opts: { maxRows?: n
           sorted = [...rows].reverse();
         }
         const count = Math.min(end - start + 1, maxRows);
-        return { data: sorted.slice(start, start + count), error: null };
+        const page = sorted.slice(start, start + count);
+        // Like PostgREST, every response is fresh objects, never the stored rows.
+        const data = page.map((r) => {
+          const copy = { ...r };
+          for (const [alias, col] of aliases) copy[alias] = r[col];
+          return copy;
+        });
+        return { data, error: null };
       }),
     };
     return builder;

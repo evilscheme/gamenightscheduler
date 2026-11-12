@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, LoadingSpinner } from '@/components/ui';
 import { queryKeys } from '@/lib/queryKeys';
+import { ADMIN_QUERY_OPTIONS } from '@/lib/constants';
 import type { EngagementBucket, HealthBucket } from '@/lib/admin';
 import { ChartTooltip, HEALTH_BUCKETS, formatDayLabel, type TimeRange } from './chartUtils';
 import PlatformHealthCharts from './PlatformHealthCharts';
@@ -40,6 +41,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
     isPending: loading,
     error,
   } = useQuery({
+    ...ADMIN_QUERY_OPTIONS,
     queryKey: queryKeys.adminEngagement(timeRange),
     queryFn: async (): Promise<EngagementData> => {
       const res = await fetch(`/api/admin/engagement?weeks=${timeRange}`);

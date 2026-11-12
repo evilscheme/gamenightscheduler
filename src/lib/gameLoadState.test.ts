@@ -38,6 +38,24 @@ describe('resolveGameLoadState', () => {
     expect(failed).not.toBe(missing);
   });
 
+  it('reports error when a required companion read failed but the game loaded', () => {
+    expect(resolveGameLoadState({ ...base, dataErrored: true })).toBe('error');
+  });
+
+  it('prefers error over not-found when a companion read failed', () => {
+    expect(resolveGameLoadState({ ...base, dataErrored: true, hasGame: false })).toBe('error');
+  });
+
+  it('still reports loading while a companion read is retried', () => {
+    expect(resolveGameLoadState({ ...base, gameLoading: true, dataErrored: true })).toBe(
+      'loading',
+    );
+  });
+
+  it('treats an omitted dataErrored as no failure', () => {
+    expect(resolveGameLoadState(base)).toBe('ready');
+  });
+
   it('still reports loading when a retry is in flight after an error', () => {
     expect(
       resolveGameLoadState({ ...base, gameLoading: true, gameErrored: true, hasGame: false })

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin, paginate } from '@/lib/api/admin';
 import { calculateGameFillRate } from '@/lib/availability';
 import { computeCurrentStats, currentGameStatuses, indexPlatform } from '@/lib/admin';
-import { fetchPlatformInputs } from '@/lib/admin/platformStatsStore';
+import { getCachedPlatformInputs } from '@/lib/admin/platformStatsStore';
 import { serverError } from '@/lib/apiError';
 import { getTodayLocalDate } from '@/lib/date';
 
@@ -24,7 +24,7 @@ export async function GET(): Promise<Response> {
     // silently truncate at Supabase's 1000-row cap.
     const [names, inputs] = await Promise.all([
       paginate<GameRow>(admin, 'games', 'id, name, gm:users!games_gm_id_fkey(id, name, email)'),
-      fetchPlatformInputs(admin),
+      getCachedPlatformInputs(admin),
     ]);
     const nameById = new Map(names.map((g) => [g.id, g]));
     const data = indexPlatform(inputs);

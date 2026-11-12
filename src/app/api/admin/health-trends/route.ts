@@ -10,7 +10,7 @@ import {
   parseWeeks,
   windowEnds,
 } from '@/lib/admin';
-import { fetchPlatformInputs, rowToCounts } from '@/lib/admin/platformStatsStore';
+import { getCachedPlatformInputs, rowToCounts } from '@/lib/admin/platformStatsStore';
 import { serverError } from '@/lib/apiError';
 import type { AdminHealthTrends, HealthTrendPoint } from '@/types/api';
 import type { Database } from '@/types/database';
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     // later joins, a game's earlier activity), so there's no cutoff here.
     // Read-only: daily stats are written by the cron and the backfill script,
     // and a day with no row is returned as a gap.
-    const inputs = await fetchPlatformInputs(admin);
+    const inputs = await getCachedPlatformInputs(admin);
 
     // "All time" spans back to the oldest thing on record, so every series shares
     // one x-axis. Not just surviving users: once the earliest accounts are

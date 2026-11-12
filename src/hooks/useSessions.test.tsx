@@ -17,7 +17,11 @@ const dataMocks = vi.hoisted(() => ({
   cancelSession: vi.fn(),
   updateSession: vi.fn(),
 }));
-vi.mock('@/lib/data', () => dataMocks);
+// Keep the real unwrap helpers; only the network functions are mocked.
+vi.mock('@/lib/data', async () => ({
+  ...(await vi.importActual<typeof import('@/lib/data/unwrap')>('@/lib/data/unwrap')),
+  ...dataMocks,
+}));
 
 const GAME_ID = 'game-1';
 const USER_ID = 'user-1';
@@ -38,8 +42,12 @@ function row(overrides: Partial<GameSession>): GameSession {
   } as GameSession;
 }
 
-function setup(seed: GameSession[], userId = USER_ID) {
-  dataMocks.fetchGameSessions.mockResolvedValue({ data: seed, error: null });
+function setup(seed: GameSession[], userId = USER_ID, loadFails = false) {
+  dataMocks.fetchGameSessions.mockResolvedValue(
+    loadFails
+      ? { data: null, error: { message: 'permission denied' } }
+      : { data: seed, error: null },
+  );
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -190,5 +198,29 @@ describe('useSessions — updateSession', () => {
       expect(result.current.sessions[0]?.start_time).toBe('20:00');
     });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.dashboardAll });
+  });
+});
+
+describe('useSessions — failed sessions load', () => {
+  it('exposes isError instead of presenting an empty list as loaded', async () => {
+    const { result } = setup([], USER_ID, true);
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.sessions).toEqual([]);
+  });
+
+  // The upsert is on (game_id, date): with the list unloaded, an existing
+  // session on that date is invisible and would be overwritten.
+  it('refuses confirmSession and does not write', async () => {
+    const { result } = setup([], USER_ID, true);
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    let outcome!: { success: boolean; error?: string };
+    await act(async () => {
+      outcome = await result.current.confirmSession('2030-01-05', '19:00', '22:00', 'user-1');
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.error).toMatch(/nothing was changed/i);
+    expect(dataMocks.confirmSession).not.toHaveBeenCalled();
   });
 });

@@ -241,6 +241,52 @@ describe("fetchDashboardData", () => {
     consoleErrorSpy.mockRestore();
   });
 
+  // A failed load must reject, not resolve to an empty list: an empty result
+  // renders the "create your first game" state for someone who has games.
+  describe("throws instead of returning an empty dashboard when a games query fails", () => {
+    const ok = (data: unknown) => ({ data, error: null });
+    const fail = (message: string) => ({ data: null, error: { message } });
+
+    it("throws when the memberships query fails", async () => {
+      vi.mocked(fetchUserMemberships).mockResolvedValue(
+        fail("memberships down") as unknown as MembershipsResult,
+      );
+      vi.mocked(fetchUserGmGames).mockResolvedValue(ok([]) as unknown as GmGamesResult);
+      vi.mocked(fetchUpcomingSessionsForGames).mockResolvedValue(
+        ok([]) as unknown as SessionsResult,
+      );
+
+      await expect(fetchDashboardData(supabase, "user-1")).rejects.toThrow("memberships down");
+    });
+
+    it("throws when the GM-games query fails", async () => {
+      vi.mocked(fetchUserMemberships).mockResolvedValue(ok([]) as unknown as MembershipsResult);
+      vi.mocked(fetchUserGmGames).mockResolvedValue(
+        fail("gm games down") as unknown as GmGamesResult,
+      );
+      vi.mocked(fetchUpcomingSessionsForGames).mockResolvedValue(
+        ok([]) as unknown as SessionsResult,
+      );
+
+      await expect(fetchDashboardData(supabase, "user-1")).rejects.toThrow("gm games down");
+    });
+
+    it("throws when the member-games query fails", async () => {
+      vi.mocked(fetchUserMemberships).mockResolvedValue(
+        ok([{ game_id: "g2", is_co_gm: false }]) as unknown as MembershipsResult,
+      );
+      vi.mocked(fetchUserGmGames).mockResolvedValue(ok([]) as unknown as GmGamesResult);
+      vi.mocked(fetchGamesWithGMByIds).mockResolvedValue(
+        fail("member games down") as unknown as MemberGamesResult,
+      );
+      vi.mocked(fetchUpcomingSessionsForGames).mockResolvedValue(
+        ok([]) as unknown as SessionsResult,
+      );
+
+      await expect(fetchDashboardData(supabase, "user-1")).rejects.toThrow("member games down");
+    });
+  });
+
   it("returns a plausible fetchedAtMs (number) and fetchedToday (YYYY-MM-DD string)", async () => {
     vi.mocked(fetchUserMemberships).mockResolvedValue({
       data: [],

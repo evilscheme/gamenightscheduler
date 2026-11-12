@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { PostgrestError } from '@supabase/supabase-js';
-import { fetchAllPages } from '@/lib/data/paginate';
+import { fetchAllByKey, PAGE_SIZE, uuidSplitPoints } from '@/lib/data/paginate';
 import type { Database } from '@/types/database';
 
 export type AdminClient = ReturnType<typeof createAdminClient>;
@@ -41,23 +41,32 @@ export async function requireAdmin(): Promise<{ admin: AdminClient } | NextRespo
 type TableName = keyof Database['public']['Tables'] & string;
 
 /**
- * The unique column each table is paged in. Offset pages are only consistent
- * under a total order — without one Postgres may hand back overlapping pages
- * that skip rows, and the cron would store the result as a daily stat. A
- * Record (not a lookup with a default) so adding a table forces a choice here.
- * The ordered column needn't appear in the selected columns.
+ * The unique column each table is keyset-paged on, and its type (schema.sql).
+ * Unique, because rows tied on a non-unique key that straddle a page boundary
+ * would be skipped, and the cron would store the result as a daily stat. `uuid`
+ * keys (random v4 ids, so evenly spread) are split into ranges read in
+ * parallel; other keys are paged sequentially. A Record (not a lookup with a
+ * default) so adding a table forces a choice here. The key needn't appear in
+ * the selected columns.
  */
-export const PAGINATION_ORDER_KEY: Record<TableName, string> = {
-  users: 'id',
-  games: 'id',
-  game_memberships: 'id',
-  availability: 'id',
-  user_availability_defaults: 'id',
-  sessions: 'id',
-  game_play_dates: 'id',
-  platform_daily_stats: 'day',
-  deletion_log: 'id',
+export const PAGINATION_KEY: Record<TableName, { column: string; type: 'uuid' | 'bigint' | 'date' }> = {
+  users: { column: 'id', type: 'uuid' },
+  games: { column: 'id', type: 'uuid' },
+  game_memberships: { column: 'id', type: 'uuid' },
+  availability: { column: 'id', type: 'uuid' },
+  user_availability_defaults: { column: 'id', type: 'uuid' },
+  sessions: { column: 'id', type: 'uuid' },
+  game_play_dates: { column: 'id', type: 'uuid' },
+  platform_daily_stats: { column: 'day', type: 'date' },
+  deletion_log: { column: 'id', type: 'bigint' },
 };
+
+/** How many key ranges a large UUID-keyed table is read in at once. */
+export const PAGINATION_FAN_OUT = 8;
+
+/** The page key is selected under this alias, so it can be read back whatever
+ *  `columns` the caller asked for, and removed before rows are returned. */
+const PAGE_KEY_ALIAS = '_page_key';
 
 interface PaginateOptions {
   /** Optional column to filter on with a `gte` cutoff. */
@@ -67,9 +76,13 @@ interface PaginateOptions {
 }
 
 /**
- * Read every row of a table, paged under its unique order key (see
- * `fetchAllPages` for the page-size contract). Optionally filters by a date
- * column with a `gte` cutoff. Throws on any page's error.
+ * Read every row of a table, keyset-paged on its unique key (see
+ * `fetchAllByKey` for the page-size contract and the parallel ranges).
+ * Optionally filters by a date column with a `gte` cutoff. Throws on any page's
+ * error.
+ *
+ * Rows have exactly the shape `columns` selects (any column list, `*` and
+ * embedded joins included), in ascending key order.
  */
 export async function paginate<T>(
   client: AdminClient,
@@ -77,17 +90,27 @@ export async function paginate<T>(
   columns: string,
   opts: PaginateOptions = {}
 ): Promise<T[]> {
-  const { data, error } = await fetchAllPages<T>((from, to) => {
-    let query = client.from(table).select(columns);
-    if (opts.dateColumn && opts.cutoff) {
-      query = query.gte(opts.dateColumn, opts.cutoff);
-    }
-    return query
-      .order(PAGINATION_ORDER_KEY[table], { ascending: true })
-      .range(from, to) as unknown as PromiseLike<{ data: T[] | null; error: PostgrestError | null }>;
-  });
+  const { column, type } = PAGINATION_KEY[table];
+  type KeyedRow = Record<string, unknown>;
+  const { data, error } = await fetchAllByKey<KeyedRow>(
+    ({ after, from, before }) => {
+      let query = client.from(table).select(`${PAGE_KEY_ALIAS}:${column}, ${columns}`);
+      if (opts.dateColumn && opts.cutoff) query = query.gte(opts.dateColumn, opts.cutoff);
+      if (after !== undefined) query = query.gt(column, after);
+      if (from !== undefined) query = query.gte(column, from);
+      if (before !== undefined) query = query.lt(column, before);
+      return query
+        .order(column, { ascending: true })
+        .range(0, PAGE_SIZE - 1) as unknown as PromiseLike<{ data: KeyedRow[] | null; error: PostgrestError | null }>;
+    },
+    (row) => String(row[PAGE_KEY_ALIAS]),
+    { splitPoints: type === 'uuid' ? uuidSplitPoints(PAGINATION_FAN_OUT) : undefined }
+  );
   if (error) throw error;
-  return data ?? [];
+  const rows = data ?? [];
+  // In place: these are fresh objects, and a whole-table scan is too big to copy.
+  for (const row of rows) delete row[PAGE_KEY_ALIAS];
+  return rows as T[];
 }
 
 /**
@@ -104,6 +127,36 @@ export function createTtlCache<T>(ttlMs: number) {
     },
     set(key: string, data: T): void {
       entries.set(key, { data, storedAt: Date.now() });
+    },
+  };
+}
+
+/**
+ * Like createTtlCache, but holds the in-flight promise: callers that ask while a
+ * load is running share it instead of starting their own, and later callers
+ * get the result until `ttlMs` after the load began. A load that rejects is
+ * dropped as soon as it settles, so the next caller retries instead of being
+ * handed the failure. A TTL of 0 keeps only the sharing of in-flight loads.
+ */
+export function createSharedLoadCache<T>(ttlMs: number) {
+  const entries = new Map<string, { promise: Promise<T>; startedAt: number; settled: boolean }>();
+  return {
+    get(key: string, load: () => Promise<T>): Promise<T> {
+      const entry = entries.get(key);
+      if (entry && (!entry.settled || Date.now() - entry.startedAt < ttlMs)) return entry.promise;
+
+      const created = { promise: (async () => load())(), startedAt: Date.now(), settled: false };
+      entries.set(key, created);
+      created.promise.then(
+        () => {
+          created.settled = true;
+          if (ttlMs <= 0 && entries.get(key) === created) entries.delete(key);
+        },
+        () => {
+          if (entries.get(key) === created) entries.delete(key);
+        }
+      );
+      return created.promise;
     },
   };
 }

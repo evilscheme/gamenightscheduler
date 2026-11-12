@@ -52,17 +52,56 @@ export function formatTimezoneDisplay(timezone: string | null): string {
 }
 
 /**
- * Validate that a timezone string is a valid IANA timezone
+ * The conservative shape every stored timezone must have: IANA names only use
+ * letters, digits, `_`, `+`, `-` and `/` (`America/Argentina/Buenos_Aires`,
+ * `America/Port-au-Prince`, `Etc/GMT+5`, `UTC`). Mirrors the
+ * `games_timezone_shape` and `users_timezone_shape` CHECK constraints in
+ * supabase/schema.sql — keep the two in sync.
+ *
+ * It is a shape check, not a zone lookup: it is what makes a value safe to
+ * interpolate (no CR/LF, `:` or `;`), and `isValidTimezone` adds the lookup.
+ */
+export const TIMEZONE_SHAPE = /^[A-Za-z0-9_+/-]{1,64}$/;
+
+// Distinct strings are few (one per game/user zone), but they arrive per row,
+// and constructing an Intl.DateTimeFormat is expensive. The cap only matters if
+// something feeds in unbounded garbage.
+const validityCache = new Map<string, boolean>();
+const VALIDITY_CACHE_MAX = 500;
+
+/**
+ * Validate that a timezone string is a well-shaped IANA timezone the runtime
+ * recognises. Results are cached per distinct string.
  * @param timezone - String to validate
  * @returns true if valid IANA timezone
  */
 export function isValidTimezone(timezone: string): boolean {
-  try {
-    Intl.DateTimeFormat(undefined, { timeZone: timezone });
-    return true;
-  } catch {
-    return false;
+  if (typeof timezone !== 'string') return false;
+  const cached = validityCache.get(timezone);
+  if (cached !== undefined) return cached;
+
+  let valid = TIMEZONE_SHAPE.test(timezone);
+  if (valid) {
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: timezone });
+    } catch {
+      valid = false;
+    }
   }
+  if (validityCache.size >= VALIDITY_CACHE_MAX) validityCache.clear();
+  validityCache.set(timezone, valid);
+  return valid;
+}
+
+/**
+ * A stored timezone if it is usable, otherwise null. Stored zones come from
+ * the database, where a GM can write any well-shaped string, and an unknown
+ * zone makes Intl throw a RangeError mid-render. Every helper below that takes
+ * a stored zone passes it through here and treats an unusable one exactly as
+ * it treats "no timezone".
+ */
+export function usableTimezone(timezone: string | null | undefined): string | null {
+  return timezone && isValidTimezone(timezone) ? timezone : null;
 }
 
 /**
@@ -90,7 +129,7 @@ export function getTimezoneAbbreviation(date: Date, timezone: string): string {
  * @param dateStr - Date in YYYY-MM-DD format
  * @param timeStr - Time in HH:MM or HH:MM:SS format (in gameTz)
  * @param gameTz - Game's IANA timezone
- * @param userTz - User's IANA timezone (null = same as game)
+ * @param rawUserTz - User's IANA timezone (null or unusable = same as game)
  * @param use24h - Whether to format in 24h
  * @returns Object with formatted game time, user time (if different), and TZ abbreviations
  */
@@ -98,7 +137,7 @@ export function convertTimeForDisplay(
   dateStr: string,
   timeStr: string,
   gameTz: string,
-  userTz: string | null,
+  rawUserTz: string | null,
   use24h: boolean
 ): {
   gameTime: string;
@@ -112,6 +151,20 @@ export function convertTimeForDisplay(
 
   // Build a UTC date by probing the game timezone's offset
   const probeUtc = new Date(Date.UTC(y, mo - 1, d, h, m, 0));
+
+  // An unusable game zone gives nothing to convert from: show the stored
+  // wall-clock time as-is, with no abbreviation and no "for you" conversion.
+  if (!usableTimezone(gameTz)) {
+    return {
+      gameTime: formatTimeInTz(probeUtc, 'UTC', use24h),
+      gameTzAbbrev: '',
+      userTime: null,
+      userTzAbbrev: null,
+      isDifferentTz: false,
+    };
+  }
+  // An unusable viewer zone is treated like "no viewer zone".
+  const userTz = usableTimezone(rawUserTz);
   const gameOffset = getTimezoneOffsetMinutes(probeUtc, gameTz);
   // The actual UTC moment: local time in gameTz minus the offset
   const actualUtc = new Date(probeUtc.getTime() - gameOffset * 60000);
@@ -162,17 +215,19 @@ export function convertTimeForDisplay(
  *
  * @param dateStr  Session date in YYYY-MM-DD (interpreted in `timezone`)
  * @param timeStr  Time in HH:MM[:SS] (interpreted in `timezone`); null → 00:00
- * @param timezone IANA timezone, or null to interpret the local time as UTC
+ * @param rawTimezone IANA timezone, or null (or unusable) to interpret the
+ *                    local time as UTC
  * @returns UTC epoch milliseconds
  */
 export function getSessionInstantMs(
   dateStr: string,
   timeStr: string | null,
-  timezone: string | null
+  rawTimezone: string | null
 ): number {
   const [y, mo, d] = dateStr.split('-').map(Number);
   const [h, m] = (timeStr ?? '00:00').split(':').map(Number);
   const probeUtc = new Date(Date.UTC(y, mo - 1, d, h, m || 0, 0));
+  const timezone = usableTimezone(rawTimezone);
   if (!timezone) return probeUtc.getTime();
   const offset = getTimezoneOffsetMinutes(probeUtc, timezone);
   return probeUtc.getTime() - offset * 60000;
@@ -184,10 +239,12 @@ export function getSessionInstantMs(
  * its own game's timezone rather than the viewer's.
  *
  * @param ms       UTC epoch milliseconds
- * @param timezone IANA timezone, or null to use the runtime's local date
+ * @param rawTimezone IANA timezone, or null (or unusable) to use the runtime's
+ *                    local date
  */
-export function getDateInTimezone(ms: number, timezone: string | null): string {
+export function getDateInTimezone(ms: number, rawTimezone: string | null): string {
   const date = new Date(ms);
+  const timezone = usableTimezone(rawTimezone);
   if (!timezone) {
     return toLocalDateString(date);
   }
@@ -202,9 +259,10 @@ export function getDateInTimezone(ms: number, timezone: string | null): string {
 
 /**
  * Get the UTC offset in minutes for a timezone at a given moment.
- * Positive = ahead of UTC, negative = behind.
+ * Positive = ahead of UTC, negative = behind. An unusable zone reads as UTC (0).
  */
 function getTimezoneOffsetMinutes(utcDate: Date, timezone: string): number {
+  if (!usableTimezone(timezone)) return 0;
   // Format the date in both UTC and target timezone, then compute difference
   const utcStr = utcDate.toLocaleString('en-US', { timeZone: 'UTC' });
   const tzStr = utcDate.toLocaleString('en-US', { timeZone: timezone });
@@ -214,11 +272,11 @@ function getTimezoneOffsetMinutes(utcDate: Date, timezone: string): number {
 }
 
 /**
- * Format a UTC Date in a specific timezone
+ * Format a UTC Date in a specific timezone (an unusable zone formats as UTC)
  */
 function formatTimeInTz(utcDate: Date, timezone: string, use24h: boolean): string {
   const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
+    timeZone: usableTimezone(timezone) ?? 'UTC',
     hour: 'numeric',
     minute: '2-digit',
     hour12: !use24h,

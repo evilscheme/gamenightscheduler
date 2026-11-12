@@ -9,6 +9,7 @@ import { Button, Card, CardContent, CardHeader, EmptyState, LoadingSpinner } fro
 import { buildSessionTimeRange } from '@/lib/formatting';
 import { getBrowserTimezone } from '@/lib/timezone';
 import { queryKeys } from '@/lib/queryKeys';
+import { ADMIN_QUERY_OPTIONS } from '@/lib/constants';
 import type { AdminUpcomingSessionRow } from '@/types';
 import { AdminTable, AdminTh } from './AdminTable';
 
@@ -37,6 +38,7 @@ export function UpcomingGamesTab() {
   const viewerTimezone = profileTimezone ?? getBrowserTimezone();
   const [page, setPage] = useState(1);
   const { data, isPending: loading, error } = useQuery({
+    ...ADMIN_QUERY_OPTIONS,
     queryKey: queryKeys.adminUpcomingSessions(page, viewerTimezone),
     queryFn: async (): Promise<UpcomingSessionsResponse> => {
       const tzParam = viewerTimezone ? `&tz=${encodeURIComponent(viewerTimezone)}` : '';

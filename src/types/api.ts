@@ -10,6 +10,7 @@ import type {
   DeletionRecord,
   DormancyBucket,
   FunnelCohort,
+  GameNightsBucket,
   HealthBucket,
   PlatformCounts,
   ViableDate,
@@ -101,6 +102,7 @@ export interface HealthTrendPoint {
 
 export interface AdminHealthTrends {
   health: HealthTrendPoint[];
+  gameNights: GameNightsBucket[];
   funnel: FunnelCohort[];
   dormancy: DormancyBucket[];
   deletions: DeletionBucket[];

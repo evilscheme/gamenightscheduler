@@ -7,7 +7,14 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { LoadingSpinner } from '@/components/ui';
-import { healthyShare, type StateCounts } from '@/lib/admin';
+import {
+  FUNNEL_POOL_WEEKS,
+  FUNNEL_WINDOW_DAYS,
+  healthyShare,
+  type FunnelCohort,
+  type HealthBucket,
+  type StateCounts,
+} from '@/lib/admin';
 import { queryKeys } from '@/lib/queryKeys';
 import { ADMIN_QUERY_OPTIONS } from '@/lib/constants';
 import type { AdminHealthTrends } from '@/types/api';
@@ -32,7 +39,21 @@ const TRACKED_BUCKETS = HEALTH_BUCKETS.filter((b) => b.key !== 'dormant');
 /** Legend items in the given dataKey order (Recharts sorts alphabetically by default). */
 const legendOrder = (keys: readonly string[]) => (item: { dataKey?: unknown }) => keys.indexOf(String(item.dataKey));
 const bucketLegend = legendOrder(TRACKED_BUCKETS.map((b) => b.key));
-const funnelLegend = legendOrder(['joined', 'availability', 'session']);
+
+const bucketColor = (key: HealthBucket) => HEALTH_BUCKETS.find((b) => b.key === key)?.color;
+
+/** Funnel steps in legend order. The game-night steps take the health charts'
+ *  colours, so "date found" and "booked" look the same everywhere on the page. */
+const FUNNEL_STEPS: { key: string; name: string; color?: string; count: (c: FunnelCohort) => number }[] = [
+  { key: 'joined', name: 'In a game', color: '#3b82f6', count: (c) => c.joinedGame },
+  { key: 'availability', name: 'Entered dates', color: '#f59e0b', count: (c) => c.enteredAvailability },
+  { key: 'found', name: 'Game night found', color: bucketColor('healthyViable'), count: (c) => c.foundGameNight },
+  { key: 'booked', name: 'Booked', color: bucketColor('healthyBooked'), count: (c) => c.bookedGameNight },
+];
+const funnelLegend = legendOrder(FUNNEL_STEPS.map((s) => s.key));
+/** Each step is two lines under one name, solid and its dashed tail; where they
+ *  join both carry a value, so the tooltip keeps one entry per name. */
+const funnelTooltipKey = (entry: { name?: unknown }) => entry.name;
 
 /** A window's counts, or just its label when the day has no row (a gap). */
 type StatePoint = { label: string } & Partial<StateCounts>;
@@ -114,12 +135,20 @@ export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRan
       : 'Rebuilt from history (approximate)'
     : null;
 
-  const funnel = data.funnel.map((c) => ({
-    label: formatDayLabel(c.windowEnd),
-    joined: pct(c.joinedGame, c.signups),
-    availability: pct(c.enteredAvailability, c.signups),
-    session: pct(c.gotSession, c.signups),
-  }));
+  // Recharts can't dash part of a line, so each step is drawn twice: solid over
+  // mature points, dashed from the last mature point on, so the two join.
+  const lastMature = data.funnel.findLastIndex((c) => c.mature);
+  const funnel = data.funnel.map((c, i) => {
+    const point: Record<string, string | number | null> = { label: formatDayLabel(c.windowEnd) };
+    for (const step of FUNNEL_STEPS) {
+      const value = pct(step.count(c), c.signups);
+      point[step.key] = c.mature ? value : null;
+      point[`${step.key}Tail`] = i >= lastMature ? value : null;
+    }
+    return point;
+  });
+
+  const gameNights = data.gameNights.map((d) => ({ label: formatDayLabel(d.windowEnd), ...d }));
 
   const dormancy = data.dormancy.map((d) => ({ label: formatDayLabel(d.windowEnd), ...d }));
   const deletions = data.deletions.map((d) => ({ label: formatDayLabel(d.windowEnd), ...d }));
@@ -127,6 +156,30 @@ export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRan
   return (
     <div className="space-y-4">
       <h3 className="text-base font-semibold text-foreground pt-2">Platform Health</h3>
+
+      <ChartCard
+        title="Game Nights"
+        subtitle="People whose group had a game night that week: a session booked, or a date enough of them could make by the calendar's rule. Each person counted once"
+      >
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={gameNights} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+            {GRID}
+            <XAxis dataKey="label" tick={SMALL_TICK} interval="preserveStartEnd" {...AXIS_PROPS} />
+            <YAxis tick={SMALL_TICK} allowDecimals={false} {...AXIS_PROPS} />
+            <Tooltip content={<ChartTooltip />} />
+            <Legend wrapperStyle={{ fontSize: '11px' }} />
+            <Bar dataKey="booked" name="Booked" stackId="nights" fill={bucketColor('healthyBooked')} fillOpacity={0.8} />
+            <Bar
+              dataKey="dateFound"
+              name="Date found"
+              stackId="nights"
+              fill={bucketColor('healthyViable')}
+              fillOpacity={0.8}
+              radius={[3, 3, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ChartCard
@@ -163,17 +216,33 @@ export default function PlatformHealthCharts({ timeRange }: { timeRange: TimeRan
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Activation Funnel" subtitle="% of each week's signups who reached each step so far">
+        <ChartCard
+          title="Activation Funnel"
+          subtitle={`% of signups in the ${FUNNEL_POOL_WEEKS} weeks ending at each point who reached each step within ${FUNNEL_WINDOW_DAYS} days of signing up · dashed: still inside their ${FUNNEL_WINDOW_DAYS} days`}
+        >
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={funnel} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
               {GRID}
               <XAxis dataKey="label" tick={SMALL_TICK} interval="preserveStartEnd" {...AXIS_PROPS} />
               <YAxis tick={SMALL_TICK} domain={[0, 100]} unit="%" {...AXIS_PROPS} />
-              <Tooltip content={<ChartTooltip unit="%" />} />
+              <Tooltip content={<ChartTooltip unit="%" />} payloadUniqBy={funnelTooltipKey} />
               <Legend wrapperStyle={{ fontSize: '11px' }} itemSorter={funnelLegend} />
-              <Line type="linear" dataKey="joined" name="In a game" stroke="#3b82f6" strokeWidth={2} dot={false} />
-              <Line type="linear" dataKey="availability" name="Entered dates" stroke="#f59e0b" strokeWidth={2} dot={false} />
-              <Line type="linear" dataKey="session" name="Got a session" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+              {FUNNEL_STEPS.map((step) => (
+                <Line key={step.key} type="linear" dataKey={step.key} name={step.name} stroke={step.color} strokeWidth={2} dot={false} />
+              ))}
+              {FUNNEL_STEPS.map((step) => (
+                <Line
+                  key={`${step.key}Tail`}
+                  type="linear"
+                  dataKey={`${step.key}Tail`}
+                  name={step.name}
+                  stroke={step.color}
+                  strokeWidth={2}
+                  strokeDasharray="4 3"
+                  dot={false}
+                  legendType="none"
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>

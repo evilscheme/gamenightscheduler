@@ -156,11 +156,11 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
 
           {/* Secondary row: 3 smaller charts */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Active Users */}
+            {/* Entering dates */}
             <Card>
               <CardHeader>
-                <h4 className="text-sm font-semibold text-card-foreground">Active Users</h4>
-                <p className="text-xs text-muted-foreground">Users who submitted availability</p>
+                <h4 className="text-sm font-semibold text-card-foreground">Entering Dates</h4>
+                <p className="text-xs text-muted-foreground">Users who added or changed availability that week</p>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={160}>
@@ -183,7 +183,7 @@ export default function EngagementCharts({ games }: EngagementChartsProps) {
                     <Area
                       type="monotone"
                       dataKey="activeUsers"
-                      name="Active Users"
+                      name="Users"
                       stroke="#f59e0b"
                       fill="#f59e0b"
                       fillOpacity={0.15}

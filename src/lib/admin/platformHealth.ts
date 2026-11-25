@@ -589,10 +589,11 @@ export interface GameNightsBucket {
  * windows. Distinct people per window, so someone in two games counts once:
  * - booked: each session played in the window, its game's roster as of the end
  *   of the play date (host plus members who had joined by then).
- * - dateFound: a game with no session counted that window, its roster as of the
- *   end of a day in the window that was workable by the calendar's rule
- *   (firstWorkableDate, as of that day) — groups that settle the date in the app
- *   and confirm it elsewhere. Someone already booked that window isn't counted again.
+ * - dateFound: a game's roster as of the end of a day in the window that was
+ *   workable by the calendar's rule (firstWorkableDate, as of that day) — groups
+ *   that settle the date in the app and confirm it elsewhere. Booked wins per
+ *   person, not per game: someone booked that window isn't counted again, but a
+ *   player who joined after the week's session still counts for a later workable date.
  * A host alone is nobody's game night.
  */
 export function buildGameNights(data: IndexedPlatform, now: Date, windows?: number): GameNightsBucket[] {
@@ -603,7 +604,6 @@ export function buildGameNights(data: IndexedPlatform, now: Date, windows?: numb
   const inRange = (index: number | null): index is number => index !== null && (windows == null || index < windows);
 
   for (const rows of data.games) {
-    const bookedWindows = new Set<number>();
     for (const s of rows.sessions) {
       if (s.status !== 'confirmed') continue;
       // A bare yyyy-MM-dd parses as UTC midnight; anchor it to local midnight.
@@ -612,16 +612,17 @@ export function buildGameNights(data: IndexedPlatform, now: Date, windows?: numb
       if (!inRange(index)) continue;
       const players = playersAt(rows, endOfDay(s.date).cutoff);
       if (players.length < 2) continue;
-      bookedWindows.add(index);
       const t = tallyAt(tally, day, endExclusive, empty);
       if (t) for (const id of players) t.booked.add(id);
     }
 
-    // Only a date someone answered 'available' to can be workable.
+    // Only a date someone answered 'available' to can be workable. Weeks with a
+    // session are checked too: someone who joined after it can still have had a
+    // workable date that week.
     for (const date of rows.availableDates) {
       const day = `${date}T00:00:00`;
       const index = getBucketIndex(day, endExclusive);
-      if (!inRange(index) || bookedWindows.has(index)) continue;
+      if (!inRange(index)) continue;
       const { cutoff } = endOfDay(date);
       if (!before(rows.game.created_at, cutoff)) continue;
       const players = playersAt(rows, cutoff);

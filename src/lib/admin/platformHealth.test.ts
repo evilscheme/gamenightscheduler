@@ -485,6 +485,22 @@ describe('buildGameNights', () => {
     expect(result).toEqual([[BUCKET1, 0, 0], [BUCKET0, 2, 1]]);
   });
 
+  it('counts a player who joined after the week\'s session for a later workable date', () => {
+    // g1 plays Wednesday 01-08 with gm1 and p. 'late' joins on 01-09, and all
+    // three can make Friday 01-10.
+    const result = nights({
+      memberships: [...base.memberships, { game_id: 'g1', user_id: 'late', joined_at: '2025-01-09T10:00:00' }],
+      sessions: [session('g1', '2025-01-08')],
+      availability: [
+        avail('g1', 'gm1', '2025-01-10'),
+        avail('g1', 'p', '2025-01-10'),
+        { ...avail('g1', 'late', '2025-01-10'), created_at: '2025-01-09T12:00:00', updated_at: '2025-01-09T12:00:00' },
+      ],
+    });
+    // Booked: gm1 and p. Date found: late only, the other two are already booked.
+    expect(result).toEqual([[BUCKET1, 0, 0], [BUCKET0, 2, 1]]);
+  });
+
   it('does not count maybes toward the threshold', () => {
     const result = nights({ availability: [avail('g2', 'gm2', '2025-01-10'), avail('g2', 'p', '2025-01-10', 'maybe')] });
     expect(result).toEqual([[BUCKET1, 0, 0], [BUCKET0, 0, 0]]);

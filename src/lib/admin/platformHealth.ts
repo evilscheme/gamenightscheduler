@@ -1,8 +1,8 @@
-import { addDays, eachDayOfInterval, format, max, parseISO, startOfDay, subDays } from 'date-fns';
+import { addDays, differenceInCalendarDays, eachDayOfInterval, format, max, min, parseISO, startOfDay, subDays } from 'date-fns';
 import { isEligiblePlayDate } from '@/lib/availability';
 import { effectiveThreshold, getSchedulingWindow } from '@/lib/schedule';
 import type { SchedulingWindowMonths } from '@/lib/constants';
-import { rollingSeries, tallyAt } from './adminEngagement';
+import { getBucketIndex, rollingSeries, tallyAt } from './adminEngagement';
 
 // ── Inputs ─────────────────────────────────────────────────
 
@@ -54,6 +54,11 @@ interface GameRows {
   playDates: PlatformInputs['playDates'];
   /** Every moment something touched the game, as epoch ms, ascending. */
   activity: number[];
+  /** The game's 'available' answers by date, so checking a date reads that
+   *  date's rows instead of rescanning the whole game's availability. */
+  availableOn: Map<string, PlatformInputs['availability']>;
+  /** The keys of availableOn, ascending. */
+  availableDates: string[];
 }
 
 export interface IndexedPlatform {
@@ -78,7 +83,7 @@ function groupBy<T extends { game_id: string }>(rows: T[]): Map<string, T[]> {
  * log_deletion() in supabase/schema.sql reads the same timestamps for a deleted
  * game's last_activity — change them together.
  */
-function gameActivity(rows: Omit<GameRows, 'activity'>): number[] {
+function gameActivity(rows: Omit<GameRows, 'activity' | 'availableOn' | 'availableDates'>): number[] {
   const times = [Date.parse(rows.game.created_at)];
   for (const m of rows.memberships) times.push(Date.parse(m.joined_at));
   for (const s of rows.sessions) times.push(Date.parse(s.created_at));
@@ -107,7 +112,19 @@ export function indexPlatform(inputs: PlatformInputs): IndexedPlatform {
         availability: availability.get(game.id) ?? [],
         playDates: playDates.get(game.id) ?? [],
       };
-      return { ...rows, activity: gameActivity(rows) };
+      const availableOn = new Map<string, PlatformInputs['availability']>();
+      for (const a of rows.availability) {
+        if (a.status !== 'available') continue;
+        const list = availableOn.get(a.date);
+        if (list) list.push(a);
+        else availableOn.set(a.date, [a]);
+      }
+      return {
+        ...rows,
+        activity: gameActivity(rows),
+        availableOn,
+        availableDates: [...availableOn.keys()].sort(),
+      };
     }),
   };
 }
@@ -198,33 +215,52 @@ function playersAt(rows: GameRows, cutoff: number): string[] {
 }
 
 /**
- * The earliest eligible play date on the game's calendar — its scheduling window
- * (campaign bounds included), cut off at viableThrough — on which at least
- * effectiveThreshold current players are marked available. Only
- * 'available' counts — not 'maybe' — matching the calendar's rule that a
- * positive claim reads confirmed yeses alone. Status is the row's current value
- * (edits aren't versioned), so rebuilt history is approximate for rows changed since.
+ * The earliest date from `from` through `through` (yyyy-MM-dd, inclusive) that
+ * was workable as of `cutoff`: an eligible play date on the game's calendar as
+ * seen from `from` — its scheduling window, campaign bounds included, and the
+ * play days or extra dates added by then — on which at least effectiveThreshold
+ * of `players` were marked available. Only 'available' counts — not 'maybe' —
+ * matching the calendar's rule that a positive claim reads confirmed yeses
+ * alone. Status is the row's current value (edits aren't versioned), so rebuilt
+ * history is approximate for rows changed since.
+ *
+ * The one "could this date happen" rule: the health buckets ask it of the next
+ * VIABLE_DATE_WEEKS, the game-nights chart of a single past day.
  */
-function firstViableDate(rows: GameRows, players: string[], at: Moment): ViableDate | null {
+function firstWorkableDate(
+  rows: GameRows,
+  players: string[],
+  from: string,
+  through: string,
+  cutoff: number
+): ViableDate | null {
   const { game } = rows;
   const needed = effectiveThreshold(game.min_players_needed ?? 0, players.length);
   const playerSet = new Set(players);
-  const counts = new Map<string, number>();
-  for (const a of rows.availability) {
-    if (a.status !== 'available' || a.date < at.firstUpcoming || a.date > at.viableThrough) continue;
-    if (!playerSet.has(a.user_id) || !before(a.created_at, at.cutoff)) continue;
-    counts.set(a.date, (counts.get(a.date) ?? 0) + 1);
-  }
-
-  const extraPlayDates = rows.playDates.filter((p) => before(p.created_at, at.cutoff)).map((p) => p.date.substring(0, 10));
   const calendar = getSchedulingWindow(
     { ...game, scheduling_window_months: (game.scheduling_window_months ?? 2) as SchedulingWindowMonths },
-    parseISO(at.firstUpcoming)
+    parseISO(from)
   );
-  const horizon = parseISO(at.viableThrough);
-  let best: ViableDate | null = null;
-  for (const [date, available] of counts) {
-    if (available < needed || (best && date >= best.date)) continue;
+  const horizon = parseISO(through);
+  let extraPlayDates: string[] | null = null;
+
+  // First answered date on or after `from` (availableDates is ascending).
+  const dates = rows.availableDates;
+  let lo = 0;
+  let hi = dates.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (dates[mid] < from) lo = mid + 1;
+    else hi = mid;
+  }
+  for (let i = lo; i < dates.length && dates[i] <= through; i++) {
+    const date = dates[i];
+    let available = 0;
+    for (const a of rows.availableOn.get(date) ?? []) {
+      if (playerSet.has(a.user_id) && before(a.created_at, cutoff)) available++;
+    }
+    if (available < needed) continue;
+    extraPlayDates ??= rows.playDates.filter((p) => before(p.created_at, cutoff)).map((p) => p.date.substring(0, 10));
     const eligible = isEligiblePlayDate({
       date: parseISO(date),
       playDays: game.play_days ?? [],
@@ -232,10 +268,14 @@ function firstViableDate(rows: GameRows, players: string[], at: Moment): ViableD
       today: calendar.start,
       windowEnd: calendar.end < horizon ? calendar.end : horizon,
     });
-    if (eligible) best = { date, available, needed };
+    if (eligible) return { date, available, needed };
   }
-  return best;
+  return null;
 }
+
+/** The earliest upcoming date, within VIABLE_DATE_WEEKS, that enough current players can make. */
+const firstViableDate = (rows: GameRows, players: string[], at: Moment) =>
+  firstWorkableDate(rows, players, at.firstUpcoming, at.viableThrough, at.cutoff);
 
 function classifyAt(rows: GameRows, at: Moment): GameStatus {
   let lastActivity = Date.parse(rows.game.created_at);
@@ -333,65 +373,270 @@ export const computeDailyStats = (data: IndexedPlatform, day: string) => countAt
 /** The same counts right now, for the admin Overview tiles. */
 export const computeCurrentStats = (data: IndexedPlatform, now: Date) => countAt(data, rightNow(now));
 
+// ── Bucket timeline ────────────────────────────────────────
+
+/**
+ * Every game's bucket at the end of each day, through yesterday. The charts that
+ * walk history (dormancy, the funnel) read it, so a request classifies each
+ * game-day once however many charts ask.
+ */
+export interface BucketTimeline {
+  /** The days classified, yyyy-MM-dd, consecutive and ascending. */
+  days: string[];
+  /** Per game id, its bucket at the end of each of `days`; null before it existed. */
+  buckets: Map<string, (HealthBucket | null)[]>;
+}
+
+/** Position of `day` in the timeline's days; out of range when it isn't covered. */
+const dayIndex = (timeline: BucketTimeline, day: string) =>
+  timeline.days.length ? differenceInCalendarDays(parseISO(day), parseISO(timeline.days[0])) : -1;
+
+/** The bucket game `gameId` was in at the end of `day`, or null before the game
+ *  existed or outside the timeline's range. */
+export function bucketOn(timeline: BucketTimeline, gameId: string, day: string): HealthBucket | null {
+  return timeline.buckets.get(gameId)?.[dayIndex(timeline, day)] ?? null;
+}
+
+/**
+ * Classify every game at the end of every day its consumers read. Each day is
+ * classified from scratch, so a bounded range needs only those days, not all of
+ * history: dormancy reads from the day before its range (for the starting
+ * state), the funnel from the first signup day of its earliest pooled cohort.
+ * Without `windows` ("all time") it covers every day since the first game.
+ */
+export function buildBucketTimeline(data: IndexedPlatform, now: Date, windows?: number): BucketTimeline {
+  const endExclusive = startOfDay(now);
+  const yesterday = subDays(endExclusive, 1);
+
+  const firstCreated = data.games.reduce<string | null>(
+    (first, g) => (first === null || g.game.created_at < first ? g.game.created_at : first),
+    null
+  );
+  const firstDay = firstCreated ? startOfDay(new Date(firstCreated)) : null;
+  const rangeStart = windows != null
+    ? min([subDays(endExclusive, windows * 7 + 1), subDays(endExclusive, (windows + FUNNEL_POOL_WEEKS - 1) * 7)])
+    : null;
+  const start = firstDay && rangeStart ? max([firstDay, rangeStart]) : firstDay;
+  const days = start && start <= yesterday
+    ? eachDayOfInterval({ start, end: yesterday }).map((d) => format(d, 'yyyy-MM-dd'))
+    : [];
+  const moments = days.map(endOfDay);
+
+  const buckets = new Map<string, (HealthBucket | null)[]>();
+  for (const rows of data.games) {
+    buckets.set(
+      rows.game.id,
+      moments.map((at) => (before(rows.game.created_at, at.cutoff) ? classifyAt(rows, at).bucket : null))
+    );
+  }
+  return { days, buckets };
+}
+
 // ── Activation funnel ──────────────────────────────────────
+
+/** How long after signing up a funnel step still counts. A fixed window, so a
+ *  cohort's numbers stop moving once it has had the whole of it, and an old
+ *  cohort isn't credited for something that happened months later. */
+export const FUNNEL_WINDOW_DAYS = 21;
+
+/** How many weekly signup cohorts each funnel point pools. A single week's
+ *  handful of signups swings too far to read; the point still advances weekly. */
+export const FUNNEL_POOL_WEEKS = 4;
 
 export interface FunnelCohort {
   windowEnd: string;
+  /** Signups in the FUNNEL_POOL_WEEKS rolling windows ending at windowEnd. */
   signups: number;
   /** Joined someone's game or created their own. */
   joinedGame: number;
   enteredAvailability: number;
-  /** In a game that had a session on or after the day they joined (or created) it. */
-  gotSession: number;
+  /** In a game that was healthy — booked or with a date found — while they were in it. */
+  foundGameNight: number;
+  /** In a game with a session booked, or played, while they were in it. Never more than foundGameNight. */
+  bookedGameNight: number;
+  /** Every signup in the point has had its full FUNNEL_WINDOW_DAYS; until then the counts can still rise. */
+  mature: boolean;
 }
 
 /**
- * Activation funnel by signup cohort, on the engagement charts' rolling windows. Each step is "ever, so far" — younger
- * cohorts have had less time to convert, so the newest points read low until
- * they mature.
+ * Activation funnel by signup cohort, on the engagement charts' rolling windows.
+ * Each point pools the FUNNEL_POOL_WEEKS windows ending there, and each step
+ * counts only if reached within FUNNEL_WINDOW_DAYS of signing up — so a cohort's
+ * numbers settle once it is `mature`, instead of reading low until they do. A
+ * game night is read off the same buckets the health charts use: found when the
+ * user's game was healthy on a day they were in it, booked when it was
+ * healthyBooked, so the funnel and the health charts agree on what "working" is.
+ * A session played on a day they were in the game counts as booked too, as it
+ * does on the Game Nights chart.
  */
-export function buildFunnelCohorts(data: IndexedPlatform, now: Date, windows?: number): FunnelCohort[] {
+export function buildFunnelCohorts(
+  data: IndexedPlatform,
+  now: Date,
+  windows?: number,
+  timeline: BucketTimeline = buildBucketTimeline(data, now, windows)
+): FunnelCohort[] {
   const endExclusive = startOfDay(now);
-
-  // Each user's games, with the day they came into each (created it, or joined).
-  const gamesByUser = new Map<string, { gameId: string; since: string }[]>();
-  const usersWithAvailability = new Set<string>();
-  const latestSessionByGame = new Map<string, string>();
+  const yesterday = format(subDays(endExclusive, 1), 'yyyy-MM-dd');
   const dayOf = (ts: string) => format(new Date(ts), 'yyyy-MM-dd');
+
+  // Each user's games, with when they came into each (created it, or joined),
+  // and when they first entered availability anywhere.
+  const gamesByUser = new Map<string, { rows: GameRows; since: number; sinceDay: string }[]>();
+  const firstAnswer = new Map<string, number>();
   for (const rows of data.games) {
     const entries = [
-      { userId: rows.game.gm_id, since: dayOf(rows.game.created_at) },
-      ...rows.memberships.map((m) => ({ userId: m.user_id, since: dayOf(m.joined_at) })),
+      { userId: rows.game.gm_id, at: rows.game.created_at },
+      ...rows.memberships.map((m) => ({ userId: m.user_id, at: m.joined_at })),
     ];
-    for (const { userId, since } of entries) {
+    for (const { userId, at } of entries) {
+      const entry = { rows, since: Date.parse(at), sinceDay: dayOf(at) };
       const list = gamesByUser.get(userId);
-      const entry = { gameId: rows.game.id, since };
       if (list) list.push(entry);
       else gamesByUser.set(userId, [entry]);
     }
-    for (const a of rows.availability) usersWithAvailability.add(a.user_id);
-    for (const s of rows.sessions) {
-      const prev = latestSessionByGame.get(rows.game.id);
-      if (!prev || s.date > prev) latestSessionByGame.set(rows.game.id, s.date);
+    for (const a of rows.availability) {
+      const created = Date.parse(a.created_at);
+      const prev = firstAnswer.get(a.user_id);
+      if (prev === undefined || created < prev) firstAnswer.set(a.user_id, created);
     }
   }
 
-  const empty = () => ({ signups: 0, joinedGame: 0, enteredAvailability: 0, gotSession: 0 });
+  // A bounded range tallies FUNNEL_POOL_WEEKS - 1 extra windows, so even its
+  // first point is fully pooled.
+  const weeks = windows != null ? windows + FUNNEL_POOL_WEEKS - 1 : undefined;
+  const empty = () => ({ signups: 0, joinedGame: 0, enteredAvailability: 0, foundGameNight: 0, bookedGameNight: 0 });
   const tally = new Map<number, ReturnType<typeof empty>>();
   for (const u of data.users) {
+    const index = getBucketIndex(u.created_at, endExclusive);
+    if (index === null || (weeks != null && index >= weeks)) continue;
     const t = tallyAt(tally, u.created_at, endExclusive, empty);
     if (!t) continue;
     t.signups++;
 
-    const games = gamesByUser.get(u.id) ?? [];
+    const signupDay = startOfDay(new Date(u.created_at));
+    const signup = format(signupDay, 'yyyy-MM-dd');
+    const lastDay = format(addDays(signupDay, FUNNEL_WINDOW_DAYS), 'yyyy-MM-dd');
+    const deadline = startOfDay(addDays(signupDay, FUNNEL_WINDOW_DAYS + 1)).getTime();
+
+    const games = (gamesByUser.get(u.id) ?? []).filter((g) => g.since < deadline);
     if (games.length) t.joinedGame++;
-    if (usersWithAvailability.has(u.id)) t.enteredAvailability++;
-    // A session counts only if it was on or after the day they came into that game.
-    if (games.some(({ gameId, since }) => (latestSessionByGame.get(gameId) ?? '') >= since)) {
-      t.gotSession++;
+    if ((firstAnswer.get(u.id) ?? Infinity) < deadline) t.enteredAvailability++;
+
+    // A game night counts on a day they were in the game: from the day they came
+    // in (never before signing up) through the window's last day, and only days
+    // already over — today's bucket isn't settled yet.
+    const through = lastDay < yesterday ? lastDay : yesterday;
+    let found = false;
+    let booked = false;
+    for (const { rows, sinceDay } of games) {
+      const from = sinceDay > signup ? sinceDay : signup;
+      // A session played on one of those days is a booked game night whatever the
+      // buckets say. An end-of-day bucket only sees sessions still ahead, so it
+      // misses one booked and played the same day, and one played the day they joined.
+      const played = rows.sessions.some(
+        (s) => s.date >= from && s.date <= through && playersAt(rows, endOfDay(s.date).cutoff).length > 1
+      );
+      if (played) {
+        found = booked = true;
+        break;
+      }
+      const buckets = timeline.buckets.get(rows.game.id);
+      if (!buckets) continue;
+      for (let i = Math.max(0, dayIndex(timeline, from)); i < timeline.days.length && timeline.days[i] <= through; i++) {
+        const bucket = buckets[i];
+        if (bucket === 'healthyBooked') booked = true;
+        if (bucket && isHealthy(bucket)) found = true;
+        if (booked) break;
+      }
+      if (booked) break;
+    }
+    if (found) t.foundGameNight++;
+    if (booked) t.bookedGameNight++;
+  }
+
+  const weekly = rollingSeries(tally, endExclusive, weeks, empty);
+  const first = windows != null ? weekly.length - windows : 0;
+  return weekly.slice(first).map((point, j) => {
+    // All time pools whatever windows exist before the earliest points.
+    const i = first + j;
+    const pooled = weekly.slice(Math.max(0, i - FUNNEL_POOL_WEEKS + 1), i + 1);
+    const sum = (key: keyof ReturnType<typeof empty>) => pooled.reduce((n, w) => n + w[key], 0);
+    return {
+      windowEnd: point.windowEnd,
+      signups: sum('signups'),
+      joinedGame: sum('joinedGame'),
+      enteredAvailability: sum('enteredAvailability'),
+      foundGameNight: sum('foundGameNight'),
+      bookedGameNight: sum('bookedGameNight'),
+      // The newest signups in the point joined on windowEnd.
+      mature: format(addDays(parseISO(point.windowEnd), FUNNEL_WINDOW_DAYS), 'yyyy-MM-dd') <= yesterday,
+    };
+  });
+}
+
+// ── Game nights ────────────────────────────────────────────
+
+export interface GameNightsBucket {
+  windowEnd: string;
+  /** People in a game with a session whose play date fell in the window. */
+  booked: number;
+  /** People not in `booked` whose game had, that window, a date enough of them could make. */
+  dateFound: number;
+}
+
+/**
+ * How many people had a game night each week, on the engagement charts' rolling
+ * windows. Distinct people per window, so someone in two games counts once:
+ * - booked: each session played in the window, its game's roster as of the end
+ *   of the play date (host plus members who had joined by then).
+ * - dateFound: a game's roster as of the end of a day in the window that was
+ *   workable by the calendar's rule (firstWorkableDate, as of that day) — groups
+ *   that settle the date in the app and confirm it elsewhere. Booked wins per
+ *   person, not per game: someone booked that window isn't counted again, but a
+ *   player who joined after the week's session still counts for a later workable date.
+ * A host alone is nobody's game night.
+ */
+export function buildGameNights(data: IndexedPlatform, now: Date, windows?: number): GameNightsBucket[] {
+  const endExclusive = startOfDay(now);
+  const empty = () => ({ booked: new Set<string>(), dateFound: new Set<string>() });
+  const tally = new Map<number, ReturnType<typeof empty>>();
+  // Bounded ranges skip work on windows rollingSeries would drop anyway.
+  const inRange = (index: number | null): index is number => index !== null && (windows == null || index < windows);
+
+  for (const rows of data.games) {
+    for (const s of rows.sessions) {
+      if (s.status !== 'confirmed') continue;
+      // A bare yyyy-MM-dd parses as UTC midnight; anchor it to local midnight.
+      const day = `${s.date}T00:00:00`;
+      const index = getBucketIndex(day, endExclusive);
+      if (!inRange(index)) continue;
+      const players = playersAt(rows, endOfDay(s.date).cutoff);
+      if (players.length < 2) continue;
+      const t = tallyAt(tally, day, endExclusive, empty);
+      if (t) for (const id of players) t.booked.add(id);
+    }
+
+    // Only a date someone answered 'available' to can be workable. Weeks with a
+    // session are checked too: someone who joined after it can still have had a
+    // workable date that week.
+    for (const date of rows.availableDates) {
+      const day = `${date}T00:00:00`;
+      const index = getBucketIndex(day, endExclusive);
+      if (!inRange(index)) continue;
+      const { cutoff } = endOfDay(date);
+      if (!before(rows.game.created_at, cutoff)) continue;
+      const players = playersAt(rows, cutoff);
+      if (players.length < 2 || !firstWorkableDate(rows, players, date, date, cutoff)) continue;
+      const t = tallyAt(tally, day, endExclusive, empty);
+      if (t) for (const id of players) t.dateFound.add(id);
     }
   }
-  return rollingSeries(tally, endExclusive, windows, empty);
+
+  return rollingSeries(tally, endExclusive, windows, empty).map(({ windowEnd, booked, dateFound }) => ({
+    windowEnd,
+    booked: booked.size,
+    dateFound: [...dateFound].filter((id) => !booked.has(id)).length,
+  }));
 }
 
 // ── Dormancy ───────────────────────────────────────────────
@@ -408,39 +653,34 @@ export interface DormancyBucket {
  * Games going dormant and coming back. Walks each game's bucket day by day with
  * the same classification the daily counts use, so a game this chart calls
  * dormant is exactly one the health charts stopped counting — and a quiet game
- * with a game night on the horizon never goes dormant.
+ * with a game night on the horizon never goes dormant. `timeline` must reach
+ * back to the day before the range (buildBucketTimeline's does).
  */
-export function buildDormancy(data: IndexedPlatform, now: Date, windows?: number): DormancyBucket[] {
+export function buildDormancy(
+  data: IndexedPlatform,
+  now: Date,
+  windows?: number,
+  timeline: BucketTimeline = buildBucketTimeline(data, now, windows)
+): DormancyBucket[] {
   const endExclusive = startOfDay(now);
-  const yesterday = subDays(endExclusive, 1);
   const empty = () => ({ wentDormant: 0, revived: 0 });
   const tally = new Map<number, ReturnType<typeof empty>>();
-
-  const firstCreated = data.games.reduce<string | null>(
-    (min, g) => (min === null || g.game.created_at < min ? g.game.created_at : min),
-    null
-  );
-  // Each day's bucket is classified from scratch, so a bounded range only needs
-  // the day before it (for the starting state), not all of history.
-  const rangeStart = windows != null ? subDays(endExclusive, windows * 7) : null;
-  const firstDay = firstCreated ? startOfDay(new Date(firstCreated)) : null;
-  const start = firstDay && rangeStart ? max([firstDay, subDays(rangeStart, 1)]) : firstDay;
-  const days = start && start <= yesterday
-    ? eachDayOfInterval({ start, end: yesterday }).map((d) => endOfDay(format(d, 'yyyy-MM-dd')))
-    : [];
-  const rangeStartCutoff = rangeStart ? endOfDay(format(rangeStart, 'yyyy-MM-dd')).cutoff : -Infinity;
+  // Days before the range only set the starting state.
+  const rangeStart = windows != null ? format(subDays(endExclusive, windows * 7), 'yyyy-MM-dd') : null;
 
   for (const rows of data.games) {
+    const buckets = timeline.buckets.get(rows.game.id) ?? [];
     let wasDormant = false;
-    for (const at of days) {
-      if (!before(rows.game.created_at, at.cutoff)) continue;
-      const dormant = classifyAt(rows, at).bucket === 'dormant';
-      if (dormant !== wasDormant && at.cutoff >= rangeStartCutoff) {
-        const t = tallyAt(tally, `${at.day}T00:00:00`, endExclusive, empty);
+    timeline.days.forEach((day, i) => {
+      const bucket = buckets[i];
+      if (bucket == null) return;
+      const dormant = bucket === 'dormant';
+      if (dormant !== wasDormant && (rangeStart === null || day >= rangeStart)) {
+        const t = tallyAt(tally, `${day}T00:00:00`, endExclusive, empty);
         if (t) t[dormant ? 'wentDormant' : 'revived']++;
       }
       wasDormant = dormant;
-    }
+    });
   }
   return rollingSeries(tally, endExclusive, windows, empty);
 }

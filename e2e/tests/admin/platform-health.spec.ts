@@ -23,7 +23,7 @@ test.describe('Admin platform health trends', () => {
     await expect(page.getByRole('heading', { name: 'Platform Health', exact: true })).toBeVisible({
       timeout: TEST_TIMEOUTS.LONG,
     });
-    for (const title of ['Healthy Games', 'Healthy Users', 'Healthy Share', 'Activation Funnel', 'Dormant Games', 'Deletions', 'Sessions Played']) {
+    for (const title of ['Game Nights', 'Healthy Games', 'Healthy Users', 'Healthy Share', 'Activation Funnel', 'Dormant Games', 'Deletions', 'Sessions Played']) {
       await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
     }
     // Overview tiles: both healthy counts carry their share of the live base.

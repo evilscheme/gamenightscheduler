@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { startOfDay, subDays, format } from 'date-fns';
 import { createTtlCache, requireAdmin, paginate } from '@/lib/api/admin';
 import {
+  buildBucketTimeline,
   buildDeletions,
   buildDormancy,
   buildFunnelCohorts,
+  buildGameNights,
   getBucketIndex,
   indexPlatform,
   parseWeeks,
@@ -33,8 +35,9 @@ export async function GET(request: NextRequest): Promise<Response> {
     const now = new Date();
     const endExclusive = startOfDay(now);
 
-    // Funnel and dormancy need all-time rows regardless of range (a cohort's
-    // later joins, a game's earlier activity), so there's no cutoff here.
+    // Funnel, game nights and dormancy need all-time rows regardless of range
+    // (a cohort's later joins, a roster's earlier joins, a game's earlier
+    // activity), so there's no cutoff here.
     // Read-only: daily stats are written by the cron and the backfill script,
     // and a day with no row is returned as a gap.
     const inputs = await getCachedPlatformInputs(admin);
@@ -84,10 +87,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     });
 
     const indexed = indexPlatform(inputs);
+    // Classifying every game on every day is the expensive part; the funnel and
+    // dormancy both read it, so it's built once and shared.
+    const timeline = buildBucketTimeline(indexed, now, windows);
     const data: AdminHealthTrends = {
       health,
-      funnel: buildFunnelCohorts(indexed, now, windows),
-      dormancy: buildDormancy(indexed, now, windows),
+      gameNights: buildGameNights(indexed, now, windows),
+      funnel: buildFunnelCohorts(indexed, now, windows, timeline),
+      dormancy: buildDormancy(indexed, now, windows, timeline),
       deletions: buildDeletions(deletionRows, now, windows),
     };
     cache.set(cacheKey, data);

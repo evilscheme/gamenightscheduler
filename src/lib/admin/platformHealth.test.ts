@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
+  FUNNEL_POOL_WEEKS,
+  FUNNEL_WINDOW_DAYS,
+  buildBucketTimeline,
   buildDeletions,
   buildDormancy,
   buildFunnelCohorts,
+  buildGameNights,
   computeCurrentStats,
   computeDailyStats,
   currentGameStatuses,
@@ -278,37 +282,39 @@ describe('currentGameStatuses', () => {
 });
 
 describe('buildFunnelCohorts', () => {
-  it('tracks each signup cohort through join, availability, and session', () => {
+  const avail = (game_id: string, user_id: string, date: string, created_at: string, status = 'available') => ({
+    game_id, user_id, date, status, created_at, updated_at: created_at,
+  });
+
+  it('tracks each pooled cohort through join, availability, and game night', () => {
     const result = buildFunnelCohorts(
       indexPlatform({
         ...EMPTY,
         users: [
-          { id: 'gm', created_at: '2025-01-02T10:00:00' }, // bucket 1, hosts a game with a session
+          { id: 'gm', created_at: '2025-01-02T10:00:00' }, // bucket 1, hosts g1
           { id: 'p', created_at: '2025-01-10T10:00:00' }, // bucket 0, joined + entered dates
           { id: 'lurker', created_at: '2025-01-11T10:00:00' }, // bucket 0, nothing
           { id: 'today', created_at: '2025-01-15T09:00:00' }, // today -> excluded
         ],
         games: [game('g1', 'gm', '2025-01-02T11:00:00')],
         memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2025-01-10T11:00:00' }],
-        sessions: [{ game_id: 'g1', date: '2025-01-09', created_at: '2025-01-03T10:00:00', status: 'confirmed' }],
-        availability: [
-          { game_id: 'g1', user_id: 'p', date: '2025-01-17', status: 'available', created_at: '2025-01-10T12:00:00', updated_at: '2025-01-10T12:00:00' },
-        ],
+        // Booked 01-11 with two players: healthyBooked from the end of that day.
+        sessions: [{ game_id: 'g1', date: '2025-01-24', created_at: '2025-01-11T10:00:00', status: 'confirmed' }],
+        availability: [avail('g1', 'p', '2025-01-17', '2025-01-10T12:00:00')],
       }),
       NOW,
       2
     );
     expect(result).toEqual([
-      { windowEnd: BUCKET1, signups: 1, joinedGame: 1, enteredAvailability: 0, gotSession: 1 },
-      // p joined after the game's only session (01-09 < signup 01-10), so no session credit.
-      { windowEnd: BUCKET0, signups: 2, joinedGame: 1, enteredAvailability: 1, gotSession: 0 },
+      { windowEnd: BUCKET1, signups: 1, joinedGame: 1, enteredAvailability: 0, foundGameNight: 1, bookedGameNight: 1, mature: false },
+      // Pools buckets 0–3, so gm's week is in it too.
+      { windowEnd: BUCKET0, signups: 3, joinedGame: 2, enteredAvailability: 1, foundGameNight: 2, bookedGameNight: 2, mature: false },
     ]);
   });
-});
 
-describe('buildFunnelCohorts: sessions', () => {
   it('does not credit a session held before the player joined that game', () => {
-    // Signed up 01-01, joined 01-10; the game's only session was 01-05.
+    // Signed up 01-01, joined 01-10; the game was booked for 01-05 (q made it
+    // healthy) and nothing is booked after p came in.
     const data = indexPlatform({
       ...EMPTY,
       users: [
@@ -316,11 +322,210 @@ describe('buildFunnelCohorts: sessions', () => {
         { id: 'p', created_at: '2025-01-01T10:00:00' },
       ],
       games: [game('g1', 'gm', '2024-12-01T11:00:00')],
-      memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2025-01-10T11:00:00' }],
+      memberships: [
+        { game_id: 'g1', user_id: 'q', joined_at: '2024-12-02T11:00:00' },
+        { game_id: 'g1', user_id: 'p', joined_at: '2025-01-10T11:00:00' },
+      ],
       sessions: [{ game_id: 'g1', date: '2025-01-05', created_at: '2024-12-20T10:00:00', status: 'confirmed' }],
     });
-    const cohort = buildFunnelCohorts(data, NOW, 3).find((c) => c.signups === 1 && c.joinedGame === 1);
-    expect(cohort).toMatchObject({ gotSession: 0 });
+    // One point pools buckets 0–3: p only (gm signed up in bucket 6).
+    expect(buildFunnelCohorts(data, NOW, 1)).toEqual([
+      { windowEnd: BUCKET0, signups: 1, joinedGame: 1, enteredAvailability: 0, foundGameNight: 0, bookedGameNight: 0, mature: false },
+    ]);
+  });
+
+  it('credits a session played while they were in the game, even one no end-of-day bucket shows', () => {
+    // Neither session is ever "upcoming" at a day's end: ga's is booked and played
+    // on 01-10, gb's is played on 01-10, the day b joins. gc's was played the day
+    // before c joined, so it does not count.
+    const data = indexPlatform({
+      ...EMPTY,
+      users: [
+        { id: 'gm', created_at: '2024-09-01T10:00:00' }, // outside the range
+        { id: 'a', created_at: '2025-01-08T10:00:00' },
+        { id: 'b', created_at: '2025-01-08T11:00:00' },
+        { id: 'c', created_at: '2025-01-08T12:00:00' },
+      ],
+      games: [
+        game('ga', 'gm', '2024-09-01T11:00:00'),
+        game('gb', 'gm', '2024-09-01T12:00:00'),
+        game('gc', 'gm', '2024-09-01T13:00:00'),
+      ],
+      memberships: [
+        { game_id: 'ga', user_id: 'a', joined_at: '2025-01-08T13:00:00' },
+        { game_id: 'gb', user_id: 'q', joined_at: '2024-09-02T10:00:00' },
+        { game_id: 'gb', user_id: 'b', joined_at: '2025-01-10T09:00:00' },
+        { game_id: 'gc', user_id: 'q', joined_at: '2024-09-02T10:00:00' },
+        { game_id: 'gc', user_id: 'c', joined_at: '2025-01-10T09:00:00' },
+      ],
+      sessions: [
+        { game_id: 'ga', date: '2025-01-10', created_at: '2025-01-10T08:00:00', status: 'confirmed' },
+        { game_id: 'gb', date: '2025-01-10', created_at: '2025-01-03T08:00:00', status: 'confirmed' },
+        { game_id: 'gc', date: '2025-01-09', created_at: '2025-01-03T08:00:00', status: 'confirmed' },
+      ],
+    });
+    expect(buildFunnelCohorts(data, NOW, 1)).toEqual([
+      { windowEnd: BUCKET0, signups: 3, joinedGame: 3, enteredAvailability: 0, foundGameNight: 2, bookedGameNight: 2, mature: false },
+    ]);
+  });
+
+  it(`counts a step reached on day ${FUNNEL_WINDOW_DAYS} after signup, not day ${FUNNEL_WINDOW_DAYS + 1}`, () => {
+    // a and b sign up 12-01: day 21 is 12-22, day 22 is 12-23. Each joins a game
+    // the host books just before they come in, and enters a date right after.
+    const data = indexPlatform({
+      ...EMPTY,
+      users: [
+        { id: 'gm', created_at: '2024-09-01T10:00:00' }, // outside the range
+        { id: 'a', created_at: '2024-12-01T10:00:00' },
+        { id: 'b', created_at: '2024-12-01T11:00:00' },
+      ],
+      games: [game('ga', 'gm', '2024-09-01T11:00:00'), game('gb', 'gm', '2024-09-01T12:00:00')],
+      memberships: [
+        { game_id: 'ga', user_id: 'a', joined_at: '2024-12-22T23:00:00' },
+        { game_id: 'gb', user_id: 'b', joined_at: '2024-12-23T00:30:00' },
+      ],
+      sessions: [
+        { game_id: 'ga', date: '2025-01-31', created_at: '2024-12-22T22:00:00', status: 'confirmed' },
+        { game_id: 'gb', date: '2025-01-31', created_at: '2024-12-23T00:00:00', status: 'confirmed' },
+      ],
+      availability: [
+        avail('ga', 'a', '2025-01-03', '2024-12-22T23:30:00'),
+        avail('gb', 'b', '2025-01-03', '2024-12-23T01:00:00'),
+      ],
+    });
+    // The oldest of 7 points is bucket 6 (11-27 to 12-03), pooling buckets 6–9.
+    expect(buildFunnelCohorts(data, NOW, 7)[0]).toEqual({
+      windowEnd: '2024-12-03',
+      signups: 2,
+      joinedGame: 1,
+      enteredAvailability: 1,
+      foundGameNight: 1,
+      bookedGameNight: 1,
+      mature: true,
+    });
+  });
+
+  it('credits a date found as a game night, but not as booked', () => {
+    // Both players can make Friday 01-17, entered 01-03; nothing is booked.
+    const data = indexPlatform({
+      ...EMPTY,
+      users: [
+        { id: 'gm', created_at: '2025-01-01T10:00:00' },
+        { id: 'p', created_at: '2025-01-02T10:00:00' },
+      ],
+      games: [game('g1', 'gm', '2025-01-02T11:00:00')],
+      memberships: [{ game_id: 'g1', user_id: 'p', joined_at: '2025-01-02T12:00:00' }],
+      availability: [avail('g1', 'gm', '2025-01-17', '2025-01-03T10:00:00'), avail('g1', 'p', '2025-01-17', '2025-01-03T10:00:00')],
+    });
+    expect(buildFunnelCohorts(data, NOW, 1)).toEqual([
+      { windowEnd: BUCKET0, signups: 2, joinedGame: 2, enteredAvailability: 2, foundGameNight: 2, bookedGameNight: 0, mature: false },
+    ]);
+  });
+
+  it(`pools ${FUNNEL_POOL_WEEKS} weeks per point, fully even for the first point of a range`, () => {
+    // Bucket k (k = 0..5) gets k + 1 signups, each on the window's last day.
+    const users = [0, 1, 2, 3, 4, 5].flatMap((k) =>
+      Array.from({ length: k + 1 }, (_, n) => ({
+        id: `u${k}-${n}`,
+        created_at: `${new Date(2025, 0, 14 - 7 * k).toLocaleDateString('sv-SE')}T10:00:00`,
+      }))
+    );
+    const data = indexPlatform({ ...EMPTY, users });
+    const signups = (cohorts: ReturnType<typeof buildFunnelCohorts>) => cohorts.map((c) => c.signups);
+    // Bucket 1 pools 1–4 (2+3+4+5), bucket 0 pools 0–3 (1+2+3+4).
+    expect(signups(buildFunnelCohorts(data, NOW, 2))).toEqual([14, 10]);
+    // All time: the earliest points pool whatever exists before them.
+    expect(signups(buildFunnelCohorts(data, NOW))).toEqual([6, 11, 15, 18, 14, 10]);
+  });
+
+  it(`turns mature once windowEnd + ${FUNNEL_WINDOW_DAYS} days is over`, () => {
+    // Yesterday is 01-14: 12-24 + 21 days is 01-14 exactly, 12-31 + 21 is 01-21.
+    expect(buildFunnelCohorts(indexPlatform(EMPTY), NOW, 5).map((c) => [c.windowEnd, c.mature])).toEqual([
+      ['2024-12-17', true],
+      ['2024-12-24', true],
+      ['2024-12-31', false],
+      ['2025-01-07', false],
+      [BUCKET0, false],
+    ]);
+  });
+});
+
+describe('buildGameNights', () => {
+  const avail = (game_id: string, user_id: string, date: string, status = 'available') => ({
+    game_id, user_id, date, status, created_at: '2025-01-05T10:00:00', updated_at: '2025-01-05T10:00:00',
+  });
+  const session = (game_id: string, date: string) => ({ game_id, date, created_at: '2024-12-20T10:00:00', status: 'confirmed' });
+  // g1: gm1 hosts p. g2: gm2 hosts p. Both play Fridays (01-10 is a Friday).
+  const base: PlatformInputs = {
+    ...EMPTY,
+    games: [game('g1', 'gm1', '2024-12-01T11:00:00'), game('g2', 'gm2', '2024-12-01T11:00:00')],
+    memberships: [
+      { game_id: 'g1', user_id: 'p', joined_at: '2024-12-02T11:00:00' },
+      { game_id: 'g2', user_id: 'p', joined_at: '2024-12-02T11:00:00' },
+    ],
+  };
+  const nights = (extra: Partial<PlatformInputs>, windows = 2) =>
+    buildGameNights(indexPlatform({ ...base, ...extra }), NOW, windows).map(({ windowEnd, booked, dateFound }) => [windowEnd, booked, dateFound]);
+
+  it("counts a session's roster as of its play date", () => {
+    const result = nights({
+      memberships: [...base.memberships, { game_id: 'g1', user_id: 'late', joined_at: '2025-01-06T10:00:00' }],
+      sessions: [session('g1', '2025-01-05'), session('g1', '2025-01-10')],
+    });
+    // 'late' joined after the 01-05 session, but was in for 01-10.
+    expect(result).toEqual([[BUCKET1, 2, 0], [BUCKET0, 3, 0]]);
+  });
+
+  it('counts someone booked in one game and with a date found in another once, as booked', () => {
+    const result = nights({
+      sessions: [session('g1', '2025-01-10')],
+      availability: [avail('g2', 'gm2', '2025-01-10'), avail('g2', 'p', '2025-01-10')],
+    });
+    // Booked: gm1 and p. Date found: gm2 (p is already booked).
+    expect(result).toEqual([[BUCKET1, 0, 0], [BUCKET0, 2, 1]]);
+  });
+
+  it('counts a player who joined after the week\'s session for a later workable date', () => {
+    // g1 plays Wednesday 01-08 with gm1 and p. 'late' joins on 01-09, and all
+    // three can make Friday 01-10.
+    const result = nights({
+      memberships: [...base.memberships, { game_id: 'g1', user_id: 'late', joined_at: '2025-01-09T10:00:00' }],
+      sessions: [session('g1', '2025-01-08')],
+      availability: [
+        avail('g1', 'gm1', '2025-01-10'),
+        avail('g1', 'p', '2025-01-10'),
+        { ...avail('g1', 'late', '2025-01-10'), created_at: '2025-01-09T12:00:00', updated_at: '2025-01-09T12:00:00' },
+      ],
+    });
+    // Booked: gm1 and p. Date found: late only, the other two are already booked.
+    expect(result).toEqual([[BUCKET1, 0, 0], [BUCKET0, 2, 1]]);
+  });
+
+  it('does not count maybes toward the threshold', () => {
+    const result = nights({ availability: [avail('g2', 'gm2', '2025-01-10'), avail('g2', 'p', '2025-01-10', 'maybe')] });
+    expect(result).toEqual([[BUCKET1, 0, 0], [BUCKET0, 0, 0]]);
+  });
+
+  it('counts nobody in a game with only its host', () => {
+    const result = nights({
+      games: [game('solo', 'gm', '2024-12-01T11:00:00')],
+      memberships: [],
+      sessions: [session('solo', '2025-01-10')],
+      availability: [avail('solo', 'gm', '2025-01-10')],
+    });
+    expect(result).toEqual([[BUCKET1, 0, 0], [BUCKET0, 0, 0]]);
+  });
+
+  it('counts an extra date but not another non-play day', () => {
+    const saturday = [avail('g2', 'gm2', '2025-01-11'), avail('g2', 'p', '2025-01-11')];
+    expect(nights({ availability: saturday })).toEqual([[BUCKET1, 0, 0], [BUCKET0, 0, 0]]);
+    const extra = [{ game_id: 'g2', date: '2025-01-11', created_at: '2025-01-04T10:00:00' }];
+    expect(nights({ availability: saturday, playDates: extra })).toEqual([[BUCKET1, 0, 0], [BUCKET0, 0, 2]]);
+  });
+
+  it('leaves out a session today', () => {
+    expect(nights({ sessions: [session('g1', '2025-01-15')] }, 1)).toEqual([[BUCKET0, 0, 0]]);
+    expect(nights({ sessions: [session('g1', '2025-01-14')] }, 1)).toEqual([[BUCKET0, 2, 0]]);
   });
 });
 
@@ -342,6 +547,23 @@ describe('buildDormancy', () => {
     const full = buildDormancy(data, NOW);
     expect(buildDormancy(data, NOW, 4)).toEqual(full.slice(-4));
     expect(full.slice(-4).some((b) => b.wentDormant || b.revived)).toBe(true); // the range isn't trivially empty
+  });
+
+  it('gives the same buckets from a shared timeline as from its own', () => {
+    const data = indexPlatform({
+      ...EMPTY,
+      games: [game('old', 'gm', '2024-06-01T12:00:00'), game('mid', 'gm', '2024-10-20T12:00:00')],
+      sessions: [
+        { game_id: 'old', date: '2025-03-01', created_at: '2024-12-05T12:00:00', status: 'confirmed' },
+        { game_id: 'mid', date: '2024-12-01', created_at: '2024-11-01T12:00:00', status: 'confirmed' },
+      ],
+    });
+    const own = buildDormancy(data, NOW, 4);
+    expect(own.some((b) => b.wentDormant || b.revived)).toBe(true);
+    // The range's own timeline (what the route shares with the funnel), or all of history.
+    expect(buildDormancy(data, NOW, 4, buildBucketTimeline(data, NOW, 4))).toEqual(own);
+    expect(buildDormancy(data, NOW, 4, buildBucketTimeline(data, NOW))).toEqual(own);
+    expect(buildDormancy(data, NOW, undefined, buildBucketTimeline(data, NOW))).toEqual(buildDormancy(data, NOW));
   });
 
   it('emits went-dormant 60 days after the last activity, and revived when it resumes', () => {
